@@ -121,15 +121,68 @@ npx tsx scripts/seed-firestore.ts
 
 ## Deploy
 
+### CI/CD via GitHub Actions (recomendado)
+
+Os workflows em `.github/workflows/` cuidam de tudo:
+
+- **`deploy.yml`** — em todo push para `main`, faz deploy de regras
+  Firestore + índices, regras Storage, Cloud Functions e o Next.js
+  inteiro via Firebase Web Frameworks (SSR em Cloud Run +
+  static assets em Hosting).
+- **`pr-preview.yml`** — em cada PR, gera um canal de preview do
+  Hosting com expiração de 7 dias e comenta a URL no PR.
+
+#### Secrets necessários no GitHub
+
+Em **Settings → Secrets and variables → Actions → New repository secret**:
+
+| Secret                                  | Como obter                                                                 |
+|-----------------------------------------|---------------------------------------------------------------------------|
+| `FIREBASE_PROJECT_ID`                   | ID do projeto (ex.: `achiropita-100`)                                     |
+| `FIREBASE_SERVICE_ACCOUNT`              | JSON inteiro da service account (ver passo abaixo)                        |
+| `NEXT_PUBLIC_FIREBASE_API_KEY`          | Project settings → Your apps → Web → SDK config                           |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`      | idem                                                                       |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID`       | idem                                                                       |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`   | idem                                                                       |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | idem                                                                    |
+| `NEXT_PUBLIC_FIREBASE_APP_ID`           | idem                                                                       |
+| `NEXT_PUBLIC_APP_URL`                   | URL final do Hosting (ex.: `https://achiropita-100.web.app`)              |
+
+#### Gerando a service account
+
+No console do Google Cloud:
+
+1. **IAM & Admin → Service Accounts → Create service account**
+2. Nome: `github-actions-deploy`
+3. Atribua as roles:
+   - `Firebase Admin`
+   - `Cloud Functions Admin`
+   - `Cloud Run Admin` (para o SSR via Web Frameworks)
+   - `Service Account User`
+   - `Artifact Registry Writer` (para functions deploy)
+4. **Manage keys → Add key → Create new key (JSON)** — baixa o arquivo
+5. Cole o conteúdo inteiro como `FIREBASE_SERVICE_ACCOUNT` no GitHub
+
+> **Atenção**: trate esse JSON como senha. Nunca comite no repo.
+
+#### Primeiro deploy
+
+1. Faça merge da branch para `main` (ou rode manualmente:
+   **Actions → Deploy to Firebase → Run workflow**).
+2. Acompanhe pelos logs do GitHub. Em ~5 min o app sobe em
+   `https://${FIREBASE_PROJECT_ID}.web.app`.
+3. Atualize `NEXT_PUBLIC_APP_URL` para o domínio definitivo (caso use
+   custom domain) e re-rode o workflow para regenerar os links de
+   validação com o novo host.
+
+### Deploy manual (alternativa, via Cloud Shell)
+
 ```bash
 firebase deploy --only firestore:rules,firestore:indexes,storage:rules
 firebase deploy --only functions
+firebase experiments:enable webframeworks
+firebase deploy --only hosting
 ```
-
-Para hosting da app Next.js, recomenda-se **Firebase App Hosting** (SSR
-nativo). Como alternativa, hospedar em Vercel apontando para o mesmo
-projeto Firebase também funciona — não há código `next/server` exclusivo
-de uma plataforma.
 
 ## Build
 

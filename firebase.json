@@ -15,9 +15,24 @@
     }
   ],
   "hosting": {
-    "public": "out",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "rewrites": [{ "source": "**", "destination": "/index.html" }]
+    "source": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "functions/**",
+      "scripts/**",
+      "fixtures/**",
+      "out/**",
+      ".firebase/**",
+      ".github/**"
+    ],
+    "frameworksBackend": {
+      "region": "southamerica-east1",
+      "memory": "512MiB",
+      "minInstances": 0,
+      "maxInstances": 10
+    }
   },
   "emulators": {
     "auth": { "port": 9099 },

@@ -178,7 +178,7 @@ No console do Google Cloud:
 ### Deploy manual (alternativa, via Cloud Shell)
 
 ```bash
-firebase deploy --only firestore:rules,firestore:indexes,storage:rules
+firebase deploy --only firestore:rules,firestore:indexes,storage
 firebase deploy --only functions
 firebase experiments:enable webframeworks
 firebase deploy --only hosting

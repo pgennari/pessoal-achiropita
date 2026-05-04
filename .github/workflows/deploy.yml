@@ -80,7 +80,7 @@ jobs:
           FIREBASE_CLI_EXPERIMENTS: webframeworks
         run: |
           firebase deploy \
-            --only firestore:rules,firestore:indexes,storage:rules,functions,hosting \
+            --only firestore:rules,firestore:indexes,storage,functions,hosting \
             --project ${{ secrets.FIREBASE_PROJECT_ID }} \
             --non-interactive \
             --force

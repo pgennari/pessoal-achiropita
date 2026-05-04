@@ -22,11 +22,6 @@ service cloud.firestore {
     function isEqpDono(pessoaId) {
       return isAuth() && request.auth.token.pessoaId == pessoaId;
     }
-    function camposIguais(a, b, campos) {
-      return campos.size() == 0 || (
-        a[campos[0]] == b[campos[0]] && camposIguais(a, b, campos.removeAll([campos[0]]))
-      );
-    }
 
     // Pessoas: leitura para qualquer autenticado.
     match /pessoas/{pessoaId} {

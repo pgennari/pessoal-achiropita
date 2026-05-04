@@ -4,39 +4,25 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PageHeader } from "@/components/PageHeader";
-import { PessoaForm } from "@/components/PessoaForm";
-import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { DadosPessoa, PessoaForm } from "@/components/PessoaForm";
+import { criarPessoa, proximoCracha } from "@/lib/mutations";
+import { usePessoas } from "@/hooks/usePessoas";
 import { normalizar } from "@/lib/utils";
 
 function Conteudo() {
   const router = useRouter();
   const [crachaSugerido, setCrachaSugerido] = useState(1);
   const [alertaDuplicata, setAlertaDuplicata] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const { data: pessoas } = usePessoas({ incluirInativos: true });
 
   useEffect(() => {
-    setCrachaSugerido(db.proximoCracha());
+    proximoCracha().then(setCrachaSugerido);
   }, []);
 
-  function salvar(dados: Parameters<typeof handle>[0]) {
-    handle(dados);
-  }
-
-  function handle(dados: {
-    nome: string;
-    nascimento: string;
-    telefone: string;
-    email?: string;
-    cpf?: string;
-    rg?: string;
-    endereco?: string;
-    bairro?: string;
-    estadoCivil?: import("@/lib/types").EstadoCivil;
-    cracha: number;
-    ativo: boolean;
-  }) {
+  async function salvar(dados: DadosPessoa) {
     setAlertaDuplicata(null);
-    const possivelDup = db.pessoas().find(
+    const possivelDup = pessoas.find(
       (p) =>
         normalizar(p.nome) === normalizar(dados.nome) &&
         p.nascimento === dados.nascimento
@@ -47,22 +33,22 @@ function Conteudo() {
       );
       return;
     }
-    confirmar(dados);
+    await confirmar(dados);
   }
 
-  function confirmar(dados: Parameters<typeof handle>[0]) {
-    const sessao = auth.sessao();
-    if (!sessao) return;
-    const nova = db.criarPessoa(
-      {
+  async function confirmar(dados: DadosPessoa) {
+    setSalvando(true);
+    try {
+      const id = await criarPessoa({
         ...dados,
         ativo: dados.ativo,
         dadosValidados: false,
         filhos: [],
-      },
-      sessao.email
-    );
-    router.push(`/pessoas/${nova.id}`);
+      });
+      router.push(`/pessoas/${id}`);
+    } finally {
+      setSalvando(false);
+    }
   }
 
   return (
@@ -82,7 +68,7 @@ function Conteudo() {
             crachaSugerido={crachaSugerido}
             onSubmit={salvar}
             onCancelar={() => router.back()}
-            textoSubmit="Cadastrar pessoa"
+            textoSubmit={salvando ? "Cadastrando…" : "Cadastrar pessoa"}
           />
         </div>
       </div>

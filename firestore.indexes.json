@@ -1,0 +1,53 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "participacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "edicaoId", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "participacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "pessoaId", "order": "ASCENDING" },
+        { "fieldPath": "edicaoId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "participacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "edicaoId", "order": "ASCENDING" },
+        { "fieldPath": "barracaId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "barracas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "edicaoId", "order": "ASCENDING" },
+        { "fieldPath": "nome", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "pessoas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ativo", "order": "ASCENDING" },
+        { "fieldPath": "nome", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "turmasFormacao",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "edicaoId", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

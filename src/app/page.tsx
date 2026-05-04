@@ -1,24 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AuthGuard } from "@/components/AuthGuard";
 import { KpiCard } from "@/components/KpiCard";
 import { PageHeader } from "@/components/PageHeader";
-import { db, assinarMudancas } from "@/lib/db";
-import { porcentagem, formatarData } from "@/lib/utils";
+import { useEdicaoAtiva } from "@/hooks/useEdicoes";
+import { useBarracas } from "@/hooks/useBarracas";
+import { useParticipacoes } from "@/hooks/useParticipacoes";
+import { usePessoas } from "@/hooks/usePessoas";
+import { useAuditoria } from "@/hooks/useAuditoria";
+import { formatarData, porcentagem } from "@/lib/utils";
 
 function Conteudo() {
-  const [versao, setVersao] = useState(0);
-
-  useEffect(() => assinarMudancas(() => setVersao((v) => v + 1)), []);
-
-  const edicao = db.edicaoAtiva();
-  const pessoas = db.pessoas().filter((p) => p.ativo);
-  const participacoes = edicao
-    ? db.participacoes({ edicaoId: edicao.id })
-    : [];
-  const barracas = edicao ? db.barracas(edicao.id) : [];
+  const { data: edicao } = useEdicaoAtiva();
+  const { data: pessoas } = usePessoas();
+  const { data: barracas } = useBarracas(edicao?.id);
+  const { data: participacoes } = useParticipacoes({ edicaoId: edicao?.id });
+  const { data: auditoria } = useAuditoria(6);
 
   const totalAlocados = participacoes.length;
   const totalVagas = barracas.reduce(
@@ -29,8 +27,6 @@ function Conteudo() {
   const validados = pessoas.filter((p) => p.dadosValidados).length;
   const cracha = participacoes.filter((p) => p.crachaEntregue).length;
   const fotos = pessoas.filter((p) => p.fotoUrl).length;
-
-  const auditoria = db.auditoria().slice(0, 6);
 
   return (
     <>
@@ -50,7 +46,6 @@ function Conteudo() {
         }
       />
 
-      {/* KPIs (US-10-01) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <KpiCard
           titulo="Total alocado"
@@ -91,7 +86,6 @@ function Conteudo() {
         />
       </div>
 
-      {/* Status por barraca */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 card">
           <div className="card-body">

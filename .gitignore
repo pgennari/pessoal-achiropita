@@ -10,3 +10,13 @@ next-env.d.ts
 .vercel
 .idea
 .vscode
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+serviceAccount*.json
+functions/lib/
+functions/node_modules/
+fixtures/
+

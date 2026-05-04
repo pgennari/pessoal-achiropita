@@ -1,32 +1,40 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PageHeader } from "@/components/PageHeader";
-import { db, assinarMudancas } from "@/lib/db";
-import { auth, podeAdministrar } from "@/lib/auth";
+import { useEdicaoAtiva } from "@/hooks/useEdicoes";
+import { useBarracas } from "@/hooks/useBarracas";
+import { useParticipacoes } from "@/hooks/useParticipacoes";
+import { usePessoas } from "@/hooks/usePessoas";
+import { useSessao, podeAdministrar } from "@/lib/auth";
+import {
+  alocar as alocarMutation,
+  moverParticipacao,
+  removerParticipacao,
+} from "@/lib/mutations";
 import { Funcao } from "@/lib/types";
 import { normalizar } from "@/lib/utils";
 
 function Conteudo() {
-  const [versao, setVersao] = useState(0);
   const [busca, setBusca] = useState("");
   const [barracaId, setBarracaId] = useState("");
   const [funcao, setFuncao] = useState<Funcao>("Equipista");
   const [mensagem, setMensagem] = useState<string | null>(null);
 
-  useEffect(() => assinarMudancas(() => setVersao((v) => v + 1)), []);
-
-  const sessao = auth.sessao();
+  const { sessao } = useSessao();
   const podeAdm = podeAdministrar(sessao);
-  const edicao = db.edicaoAtiva();
-  const barracas = edicao ? db.barracas(edicao.id) : [];
-  const participacoes = edicao
-    ? db.participacoes({ edicaoId: edicao.id })
-    : [];
-  const alocadosIds = new Set(participacoes.map((p) => p.pessoaId));
-  const pessoas = db.pessoas().filter((p) => p.ativo);
+  const { data: edicao } = useEdicaoAtiva();
+  const { data: barracas } = useBarracas(edicao?.id);
+  const { data: participacoes } = useParticipacoes({ edicaoId: edicao?.id });
+  const { data: todasPessoas } = usePessoas();
+  const pessoas = todasPessoas;
+
+  const alocadosIds = useMemo(
+    () => new Set(participacoes.map((p) => p.pessoaId)),
+    [participacoes]
+  );
 
   const naoAlocados = useMemo(() => {
     const termo = normalizar(busca);
@@ -41,37 +49,28 @@ function Conteudo() {
       .slice(0, 30);
   }, [busca, pessoas, alocadosIds]);
 
-  function alocar(pessoaId: string) {
-    if (!sessao || !edicao || !barracaId) {
+  async function alocar(pessoaId: string) {
+    if (!edicao || !barracaId) {
       setMensagem("Selecione uma barraca para alocar.");
       return;
     }
-    const r = db.alocar(
-      {
-        pessoaId,
-        edicaoId: edicao.id,
-        barracaId,
-        funcao,
-        formacaoFeita: false,
-        crachaEntregue: false,
-      },
-      sessao.email
-    );
-    if ("erro" in r) {
-      setMensagem(r.erro);
-    } else {
-      setMensagem(null);
-    }
+    const r = await alocarMutation({
+      pessoaId,
+      edicaoId: edicao.id,
+      barracaId,
+      funcao,
+      formacaoFeita: false,
+      crachaEntregue: false,
+    });
+    setMensagem(r.ok ? null : r.erro);
   }
 
-  function remover(participacaoId: string) {
-    if (!sessao) return;
-    db.removerParticipacao(participacaoId, sessao.email);
+  async function remover(participacaoId: string) {
+    await removerParticipacao(participacaoId);
   }
 
-  function moverPara(participacaoId: string, novaBarracaId: string) {
-    if (!sessao) return;
-    db.moverParticipacao(participacaoId, novaBarracaId, sessao.email);
+  async function moverPara(participacaoId: string, novaBarracaId: string) {
+    await moverParticipacao(participacaoId, novaBarracaId);
   }
 
   if (!edicao) {
@@ -192,7 +191,9 @@ function Conteudo() {
                     ) : (
                       <ul className="space-y-1 mb-3">
                         {desta.map((p) => {
-                          const pessoa = db.pessoa(p.pessoaId);
+                          const pessoa = pessoas.find(
+                            (pp) => pp.id === p.pessoaId
+                          );
                           return (
                             <li
                               key={p.id}
@@ -203,7 +204,7 @@ function Conteudo() {
                                   href={`/pessoas/${p.pessoaId}`}
                                   className="font-medium hover:text-achiropita-700"
                                 >
-                                  {pessoa?.nome}
+                                  {pessoa?.nome || "—"}
                                 </Link>
                                 <span className="ml-2 badge bg-slate-200 text-slate-700">
                                   {p.funcao}

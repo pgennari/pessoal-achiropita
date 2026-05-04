@@ -1,63 +1,95 @@
 "use client";
 
-import { Role, Usuario } from "./types";
-import { db } from "./db";
-
-const SESSION_KEY = "achiropita.session";
+import { useEffect, useState } from "react";
+import {
+  GoogleAuthProvider,
+  User,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+} from "firebase/auth";
+import { Role } from "./types";
+import { getFirebaseAuth } from "./firebase";
 
 export interface Sessao {
-  usuarioId: string;
+  uid: string;
   nome: string;
   email: string;
   perfil: Role;
   pessoaId?: string;
-  expiraEm: number;
+  barracasCRD?: string[];
 }
 
-export const auth = {
-  entrar(email: string, senha: string): { ok: true; sessao: Sessao } | { ok: false; erro: string } {
-    const u = db.buscarUsuarioPorEmail(email);
-    if (!u || u.senha !== senha) {
-      return { ok: false, erro: "E-mail ou senha incorretos." };
-    }
-    const sessao: Sessao = {
-      usuarioId: u.id,
-      nome: u.nome,
-      email: u.email,
-      perfil: u.perfil,
-      pessoaId: u.pessoaId,
-      expiraEm: Date.now() + 1000 * 60 * 60 * 24 * 30,
-    };
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(SESSION_KEY, JSON.stringify(sessao));
-      window.dispatchEvent(new Event("achiropita:sessao"));
-    }
-    return { ok: true, sessao };
-  },
+interface EstadoSessao {
+  sessao: Sessao | null;
+  carregando: boolean;
+  user: User | null;
+}
 
-  sair(): void {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(SESSION_KEY);
-      window.dispatchEvent(new Event("achiropita:sessao"));
-    }
-  },
+export function useSessao(): EstadoSessao {
+  const [estado, setEstado] = useState<EstadoSessao>({
+    sessao: null,
+    carregando: true,
+    user: null,
+  });
 
-  sessao(): Sessao | null {
-    if (typeof window === "undefined") return null;
-    try {
-      const raw = window.localStorage.getItem(SESSION_KEY);
-      if (!raw) return null;
-      const s = JSON.parse(raw) as Sessao;
-      if (s.expiraEm < Date.now()) {
-        window.localStorage.removeItem(SESSION_KEY);
-        return null;
+  useEffect(() => {
+    const auth = getFirebaseAuth();
+    return onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setEstado({ sessao: null, carregando: false, user: null });
+        return;
       }
-      return s;
-    } catch {
-      return null;
-    }
-  },
-};
+      try {
+        const tok = await user.getIdTokenResult();
+        const claims = tok.claims as Record<string, unknown>;
+        const perfil = (claims.perfil as Role) || "EQP";
+        const pessoaId = (claims.pessoaId as string) || undefined;
+        const barracasCRD = (claims.barracasCRD as string[]) || undefined;
+        setEstado({
+          sessao: {
+            uid: user.uid,
+            nome: user.displayName || user.email || "",
+            email: user.email || "",
+            perfil,
+            pessoaId,
+            barracasCRD,
+          },
+          carregando: false,
+          user,
+        });
+      } catch {
+        setEstado({ sessao: null, carregando: false, user: null });
+      }
+    });
+  }, []);
+
+  return estado;
+}
+
+export async function entrar(email: string, senha: string): Promise<void> {
+  await signInWithEmailAndPassword(getFirebaseAuth(), email.trim(), senha);
+}
+
+export async function entrarComGoogle(): Promise<void> {
+  const provider = new GoogleAuthProvider();
+  await signInWithPopup(getFirebaseAuth(), provider);
+}
+
+export async function recuperarSenha(email: string): Promise<void> {
+  await sendPasswordResetEmail(getFirebaseAuth(), email.trim());
+}
+
+export async function sair(): Promise<void> {
+  await signOut(getFirebaseAuth());
+}
+
+export async function refreshClaims(): Promise<void> {
+  const u = getFirebaseAuth().currentUser;
+  if (u) await u.getIdToken(true);
+}
 
 export function podeEditarPessoa(sessao: Sessao | null, pessoaId: string): boolean {
   if (!sessao) return false;
@@ -70,6 +102,6 @@ export function podeAdministrar(sessao: Sessao | null): boolean {
   return !!sessao && (sessao.perfil === "ADM" || sessao.perfil === "ORG");
 }
 
-export function listarUsuariosVisiveis(): Usuario[] {
-  return db.usuarios();
+export function ehAdm(sessao: Sessao | null): boolean {
+  return !!sessao && sessao.perfil === "ADM";
 }

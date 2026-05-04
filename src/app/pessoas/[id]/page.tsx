@@ -1,39 +1,44 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PageHeader } from "@/components/PageHeader";
-import { PessoaForm } from "@/components/PessoaForm";
-import { db, assinarMudancas } from "@/lib/db";
-import { auth, podeEditarPessoa } from "@/lib/auth";
+import { DadosPessoa, PessoaForm } from "@/components/PessoaForm";
+import { useSessao, podeEditarPessoa } from "@/lib/auth";
+import { atualizarPessoa } from "@/lib/mutations";
+import { usePessoa } from "@/hooks/usePessoas";
+import { useEdicoes } from "@/hooks/useEdicoes";
+import { useParticipacoes } from "@/hooks/useParticipacoes";
+import { useBarracas } from "@/hooks/useBarracas";
 import { calcularIdade, formatarData } from "@/lib/utils";
 
 function Conteudo() {
-  const router = useRouter();
   const params = useParams<{ id: string }>();
   const id = params?.id;
   const [editando, setEditando] = useState(false);
-  const [versao, setVersao] = useState(0);
+  const [salvando, setSalvando] = useState(false);
 
-  useEffect(() => assinarMudancas(() => setVersao((v) => v + 1)), []);
+  const { sessao } = useSessao();
+  const { data: pessoa, loading } = usePessoa(id);
+  const { data: edicoes } = useEdicoes();
+  const { data: participacoes } = useParticipacoes({ pessoaId: id });
+  const { data: barracas } = useBarracas(undefined); // todas via flatMap
 
-  const pessoa = id ? db.pessoa(id) : undefined;
-  const sessao = auth.sessao();
   const podeEditar = podeEditarPessoa(sessao, id || "");
 
-  const participacoes = useMemo(() => {
-    if (!pessoa) return [];
-    return db
-      .participacoes({ pessoaId: pessoa.id })
-      .sort((a, b) => {
-        const ea = db.edicoes().find((x) => x.id === a.edicaoId);
-        const eb = db.edicoes().find((x) => x.id === b.edicaoId);
-        return (eb?.numero ?? 0) - (ea?.numero ?? 0);
-      });
-  }, [pessoa, versao]);
+  const participacoesOrdenadas = useMemo(() => {
+    return [...participacoes].sort((a, b) => {
+      const ea = edicoes.find((x) => x.id === a.edicaoId);
+      const eb = edicoes.find((x) => x.id === b.edicaoId);
+      return (eb?.numero ?? 0) - (ea?.numero ?? 0);
+    });
+  }, [participacoes, edicoes]);
 
+  if (loading) {
+    return <div className="text-slate-500">Carregando…</div>;
+  }
   if (!pessoa) {
     return (
       <div className="text-slate-500">
@@ -46,46 +51,34 @@ function Conteudo() {
   }
 
   const idade = calcularIdade(pessoa.nascimento);
-  const totalEdicoes = participacoes.length;
-  const comoCoordenador = participacoes.filter(
+  const totalEdicoes = participacoesOrdenadas.length;
+  const comoCoordenador = participacoesOrdenadas.filter(
     (p) => p.funcao === "Coordenador"
   ).length;
-  const barracasUnicas = new Set(participacoes.map((p) => p.barracaId)).size;
+  const barracasUnicas = new Set(participacoesOrdenadas.map((p) => p.barracaId))
+    .size;
 
-  function salvar(dados: Parameters<typeof handleSubmit>[0]) {
-    handleSubmit(dados);
+  async function salvar(dados: DadosPessoa) {
+    if (!pessoa) return;
+    setSalvando(true);
+    try {
+      await atualizarPessoa(pessoa.id, dados);
+      setEditando(false);
+    } finally {
+      setSalvando(false);
+    }
   }
 
-  function handleSubmit(dados: {
-    nome: string;
-    nascimento: string;
-    telefone: string;
-    email?: string;
-    cpf?: string;
-    rg?: string;
-    endereco?: string;
-    bairro?: string;
-    estadoCivil?: import("@/lib/types").EstadoCivil;
-    cracha: number;
-    ativo: boolean;
-  }) {
-    if (!sessao || !pessoa) return;
-    db.atualizarPessoa(pessoa.id, dados, sessao.email);
-    setEditando(false);
+  async function alternarAtivo() {
+    if (!pessoa) return;
+    await atualizarPessoa(pessoa.id, { ativo: !pessoa.ativo });
   }
 
-  function alternarAtivo() {
-    if (!sessao || !pessoa) return;
-    db.atualizarPessoa(pessoa.id, { ativo: !pessoa.ativo }, sessao.email);
-  }
-
-  function alternarValidado() {
-    if (!sessao || !pessoa) return;
-    db.atualizarPessoa(
-      pessoa.id,
-      { dadosValidados: !pessoa.dadosValidados },
-      sessao.email
-    );
+  async function alternarValidado() {
+    if (!pessoa) return;
+    await atualizarPessoa(pessoa.id, {
+      dadosValidados: !pessoa.dadosValidados,
+    });
   }
 
   return (
@@ -98,7 +91,10 @@ function Conteudo() {
         acoes={
           podeEditar && !editando ? (
             <>
-              <button onClick={() => setEditando(true)} className="btn-secondary">
+              <button
+                onClick={() => setEditando(true)}
+                className="btn-secondary"
+              >
                 Editar
               </button>
               <button onClick={alternarAtivo} className="btn-secondary">
@@ -116,7 +112,7 @@ function Conteudo() {
               inicial={pessoa}
               onSubmit={salvar}
               onCancelar={() => setEditando(false)}
-              textoSubmit="Salvar alterações"
+              textoSubmit={salvando ? "Salvando…" : "Salvar alterações"}
             />
           </div>
         </div>
@@ -129,7 +125,10 @@ function Conteudo() {
                 <Info label="E-mail" valor={pessoa.email} />
                 <Info label="CPF" valor={pessoa.cpf} />
                 <Info label="RG" valor={pessoa.rg} />
-                <Info label="Nascimento" valor={formatarData(pessoa.nascimento)} />
+                <Info
+                  label="Nascimento"
+                  valor={formatarData(pessoa.nascimento)}
+                />
                 <Info label="Estado civil" valor={pessoa.estadoCivil} />
                 <Info label="Endereço" valor={pessoa.endereco} />
                 <Info label="Bairro" valor={pessoa.bairro} />
@@ -145,17 +144,15 @@ function Conteudo() {
                     · {barracasUnicas} barracas
                   </div>
                 </div>
-                {participacoes.length === 0 ? (
+                {participacoesOrdenadas.length === 0 ? (
                   <p className="text-slate-500 text-sm">
                     Sem participações registradas.
                   </p>
                 ) : (
                   <ol className="relative border-l-2 border-achiropita-100 ml-2">
-                    {participacoes.map((p) => {
-                      const ed = db.edicoes().find((e) => e.id === p.edicaoId);
-                      const b = db
-                        .barracas()
-                        .find((bb) => bb.id === p.barracaId);
+                    {participacoesOrdenadas.map((p) => {
+                      const ed = edicoes.find((e) => e.id === p.edicaoId);
+                      const b = barracas.find((bb) => bb.id === p.barracaId);
                       const destaque = p.funcao === "Coordenador";
                       return (
                         <li key={p.id} className="ml-6 mb-4">
@@ -261,11 +258,13 @@ function Conteudo() {
                 <h2 className="text-sm uppercase tracking-wide text-slate-500 mb-3">
                   Filhos
                 </h2>
-                {pessoa.filhos.length === 0 ? (
-                  <p className="text-sm text-slate-500">Nenhum filho cadastrado.</p>
+                {(pessoa.filhos || []).length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    Nenhum filho cadastrado.
+                  </p>
                 ) : (
                   <ul className="space-y-2 text-sm">
-                    {pessoa.filhos.map((f) => (
+                    {(pessoa.filhos || []).map((f) => (
                       <li key={f.id} className="flex justify-between">
                         <span>
                           {f.nome}{" "}

@@ -1,41 +1,40 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PageHeader } from "@/components/PageHeader";
-import { db, assinarMudancas } from "@/lib/db";
+import { useEdicaoAtiva } from "@/hooks/useEdicoes";
+import { useBarracas } from "@/hooks/useBarracas";
+import { useParticipacoes } from "@/hooks/useParticipacoes";
+import { usePessoas } from "@/hooks/usePessoas";
 import { formatarData, normalizar } from "@/lib/utils";
 
 function Conteudo() {
   const [busca, setBusca] = useState("");
   const [incluirInativos, setIncluirInativos] = useState(false);
-  const [versao, setVersao] = useState(0);
 
-  useEffect(() => assinarMudancas(() => setVersao((v) => v + 1)), []);
-
-  const pessoas = db.pessoas();
-  const edicaoAtiva = db.edicaoAtiva();
-  const participacoesAtivas = edicaoAtiva
-    ? db.participacoes({ edicaoId: edicaoAtiva.id })
-    : [];
-  const barracas = edicaoAtiva ? db.barracas(edicaoAtiva.id) : [];
+  const { data: pessoas, loading } = usePessoas({ incluirInativos });
+  const { data: edicaoAtiva } = useEdicaoAtiva();
+  const { data: participacoesAtivas } = useParticipacoes({
+    edicaoId: edicaoAtiva?.id,
+  });
+  const { data: barracas } = useBarracas(edicaoAtiva?.id);
 
   const lista = useMemo(() => {
     const termo = normalizar(busca);
     return pessoas
-      .filter((p) => incluirInativos || p.ativo)
       .filter((p) => {
         if (!termo) return true;
         return (
           normalizar(p.nome).includes(termo) ||
           String(p.cracha).includes(termo) ||
           (p.cpf || "").includes(termo) ||
-          normalizar(p.telefone).includes(termo)
+          normalizar(p.telefone || "").includes(termo)
         );
       })
       .slice(0, 50);
-  }, [busca, incluirInativos, pessoas]);
+  }, [busca, pessoas]);
 
   function barracaDe(pessoaId: string) {
     const part = participacoesAtivas.find((p) => p.pessoaId === pessoaId);
@@ -148,7 +147,7 @@ function Conteudo() {
               {lista.length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-10 text-center text-slate-500">
-                    Nenhuma pessoa encontrada.
+                    {loading ? "Carregando…" : "Nenhuma pessoa encontrada."}
                   </td>
                 </tr>
               )}

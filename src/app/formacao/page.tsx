@@ -1,65 +1,90 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PageHeader } from "@/components/PageHeader";
-import { db, assinarMudancas } from "@/lib/db";
-import { auth, podeAdministrar } from "@/lib/auth";
+import { useEdicaoAtiva } from "@/hooks/useEdicoes";
+import { useTurmas } from "@/hooks/useTurmas";
+import { useParticipacoes } from "@/hooks/useParticipacoes";
+import { useBarracas } from "@/hooks/useBarracas";
+import { usePessoas } from "@/hooks/usePessoas";
+import { useSessao, podeAdministrar } from "@/lib/auth";
+import {
+  chamarGerarLinkValidacao,
+  criarTurma,
+  marcarFormacao,
+} from "@/lib/mutations";
 import { formatarData } from "@/lib/utils";
 
 function Conteudo() {
-  const [versao, setVersao] = useState(0);
   const [criando, setCriando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
   const [data, setData] = useState("");
   const [horario, setHorario] = useState("");
   const [local, setLocal] = useState("");
   const [instrutor, setInstrutor] = useState("");
   const [capacidade, setCapacidade] = useState(50);
 
-  useEffect(() => assinarMudancas(() => setVersao((v) => v + 1)), []);
-
-  const sessao = auth.sessao();
+  const { sessao } = useSessao();
   const podeAdm = podeAdministrar(sessao);
-  const edicao = db.edicaoAtiva();
-  const turmas = edicao ? db.turmas(edicao.id) : [];
-  const participacoes = edicao
-    ? db.participacoes({ edicaoId: edicao.id })
-    : [];
+  const { data: edicao } = useEdicaoAtiva();
+  const { data: turmas } = useTurmas(edicao?.id);
+  const { data: participacoes } = useParticipacoes({ edicaoId: edicao?.id });
+  const { data: barracas } = useBarracas(edicao?.id);
+  const { data: pessoas } = usePessoas({ incluirInativos: true });
 
   const semFormacao = participacoes.filter((p) => !p.formacaoFeita);
   const validacaoPendente = participacoes
     .filter((p) => p.formacaoFeita)
     .filter((p) => {
-      const pessoa = db.pessoa(p.pessoaId);
+      const pessoa = pessoas.find((pp) => pp.id === p.pessoaId);
       return pessoa && !pessoa.dadosValidados;
     });
 
-  function criar(e: React.FormEvent) {
+  async function criar(e: React.FormEvent) {
     e.preventDefault();
-    if (!sessao || !edicao) return;
-    db.criarTurma(
-      {
+    if (!edicao) return;
+    setSalvando(true);
+    try {
+      await criarTurma({
         edicaoId: edicao.id,
         data,
         horario,
         local,
         instrutor,
         capacidade,
-      },
-      sessao.email
-    );
-    setCriando(false);
-    setData("");
-    setHorario("");
-    setLocal("");
-    setInstrutor("");
-    setCapacidade(50);
+      });
+      setCriando(false);
+      setData("");
+      setHorario("");
+      setLocal("");
+      setInstrutor("");
+      setCapacidade(50);
+    } finally {
+      setSalvando(false);
+    }
   }
 
-  function marcar(participacaoId: string) {
-    if (!sessao) return;
-    db.marcarFormacao(participacaoId, sessao.email);
+  async function marcar(participacaoId: string) {
+    await marcarFormacao(participacaoId);
+  }
+
+  async function gerarLink(turmaId: string) {
+    try {
+      const expira = new Date();
+      expira.setDate(expira.getDate() + 30);
+      const r = await chamarGerarLinkValidacao({
+        turmaId,
+        expiraEm: expira.toISOString(),
+      });
+      await navigator.clipboard.writeText(r.url);
+      alert(`Link copiado para a área de transferência:\n${r.url}`);
+    } catch (e: unknown) {
+      alert(
+        "Não foi possível gerar o link. Verifique se as Cloud Functions estão implantadas."
+      );
+    }
   }
 
   if (!edicao) {
@@ -91,7 +116,10 @@ function Conteudo() {
       {criando && (
         <div className="card mb-4">
           <div className="card-body">
-            <form onSubmit={criar} className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+            <form
+              onSubmit={criar}
+              className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end"
+            >
               <div>
                 <label className="label">Data</label>
                 <input
@@ -139,7 +167,9 @@ function Conteudo() {
                   onChange={(e) => setCapacidade(Number(e.target.value))}
                 />
               </div>
-              <button className="btn-primary md:col-span-5">Criar turma</button>
+              <button disabled={salvando} className="btn-primary md:col-span-5">
+                {salvando ? "Criando…" : "Criar turma"}
+              </button>
             </form>
           </div>
         </div>
@@ -156,7 +186,10 @@ function Conteudo() {
             ) : (
               <ul className="space-y-3">
                 {turmas.map((t) => (
-                  <li key={t.id} className="border border-slate-100 rounded-md p-3">
+                  <li
+                    key={t.id}
+                    className="border border-slate-100 rounded-md p-3"
+                  >
                     <div className="flex items-center justify-between">
                       <span className="font-semibold">
                         {formatarData(t.data)} · {t.horario}
@@ -171,11 +204,7 @@ function Conteudo() {
                     {podeAdm && (
                       <button
                         className="btn-secondary mt-2 text-xs"
-                        onClick={() =>
-                          alert(
-                            `Link público (mock): https://achiropita100.app/v/${t.id}`
-                          )
-                        }
+                        onClick={() => gerarLink(t.id)}
                       >
                         Gerar link de validação
                       </button>
@@ -204,8 +233,8 @@ function Conteudo() {
                 <li className="text-xs text-slate-500">Nenhuma pendência.</li>
               )}
               {semFormacao.map((p) => {
-                const pessoa = db.pessoa(p.pessoaId);
-                const barraca = db.barracas().find((b) => b.id === p.barracaId);
+                const pessoa = pessoas.find((pp) => pp.id === p.pessoaId);
+                const barraca = barracas.find((b) => b.id === p.barracaId);
                 return (
                   <li
                     key={p.id}
@@ -243,7 +272,7 @@ function Conteudo() {
                 <li className="text-xs text-slate-500">Nenhuma pendência.</li>
               )}
               {validacaoPendente.map((p) => {
-                const pessoa = db.pessoa(p.pessoaId);
+                const pessoa = pessoas.find((pp) => pp.id === p.pessoaId);
                 return (
                   <li
                     key={p.id}

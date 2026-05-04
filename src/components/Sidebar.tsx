@@ -60,7 +60,7 @@ export function Sidebar({ sessao }: { sessao: Sessao }) {
         })}
       </nav>
       <div className="p-4 border-t border-slate-100 text-xs text-slate-500">
-        v0.1 · primeira versão
+        v0.2 · Firebase
       </div>
     </aside>
   );

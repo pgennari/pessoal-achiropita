@@ -2,44 +2,71 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import {
+  entrar,
+  entrarComGoogle,
+  recuperarSenha,
+  useSessao,
+} from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { sessao, carregando } = useSessao();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
-    db.estado();
-    if (auth.sessao()) {
-      router.replace("/");
-    }
-  }, [router]);
+    if (!carregando && sessao) router.replace("/");
+  }, [carregando, sessao, router]);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
+    setInfo(null);
     setEnviando(true);
-    const r = auth.entrar(email.trim(), senha);
-    setEnviando(false);
-    if (!r.ok) {
-      setErro(r.erro);
-      return;
+    try {
+      await entrar(email, senha);
+      router.replace("/");
+    } catch (e: unknown) {
+      const cod = (e as { code?: string }).code || "";
+      setErro(
+        cod === "auth/invalid-credential" ||
+          cod === "auth/wrong-password" ||
+          cod === "auth/user-not-found"
+          ? "E-mail ou senha incorretos."
+          : "Não foi possível entrar. Tente novamente."
+      );
+    } finally {
+      setEnviando(false);
     }
-    router.replace("/");
   }
 
-  function preencherDemo(perfil: "admin" | "org" | "eqp") {
-    const emails = {
-      admin: "admin@achiropita.app",
-      org: "org@achiropita.app",
-      eqp: "ana.rossi@example.com",
-    };
-    setEmail(emails[perfil]);
-    setSenha("achiropita100");
+  async function handleGoogle() {
+    setErro(null);
+    setInfo(null);
+    try {
+      await entrarComGoogle();
+      router.replace("/");
+    } catch {
+      setErro("Login com Google não autorizado para este e-mail.");
+    }
+  }
+
+  async function handleEsqueci() {
+    if (!email.trim()) {
+      setErro("Informe o e-mail para receber o link de redefinição.");
+      return;
+    }
+    setErro(null);
+    try {
+      await recuperarSenha(email);
+      setInfo("E-mail de redefinição enviado se o endereço estiver cadastrado.");
+    } catch {
+      setInfo("E-mail de redefinição enviado se o endereço estiver cadastrado.");
+    }
   }
 
   return (
@@ -91,6 +118,11 @@ export default function LoginPage() {
                 {erro}
               </div>
             )}
+            {info && (
+              <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
+                {info}
+              </div>
+            )}
             <button
               type="submit"
               disabled={enviando}
@@ -98,32 +130,29 @@ export default function LoginPage() {
             >
               {enviando ? "Entrando…" : "Entrar"}
             </button>
-            <div className="text-xs text-slate-500 text-center pt-2 border-t border-slate-100">
-              Acessos demo:{" "}
+
+            <div className="relative my-2 flex items-center">
+              <div className="flex-grow border-t border-slate-200" />
+              <span className="flex-shrink mx-3 text-xs text-slate-400">ou</span>
+              <div className="flex-grow border-t border-slate-200" />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogle}
+              className="btn-secondary w-full"
+            >
+              Entrar com Google
+            </button>
+
+            <div className="text-center pt-2">
               <button
                 type="button"
-                className="underline hover:text-slate-700"
-                onClick={() => preencherDemo("admin")}
+                onClick={handleEsqueci}
+                className="text-xs text-slate-600 hover:text-achiropita-700 underline"
               >
-                ADM
-              </button>{" "}
-              ·{" "}
-              <button
-                type="button"
-                className="underline hover:text-slate-700"
-                onClick={() => preencherDemo("org")}
-              >
-                ORG
-              </button>{" "}
-              ·{" "}
-              <button
-                type="button"
-                className="underline hover:text-slate-700"
-                onClick={() => preencherDemo("eqp")}
-              >
-                EQP
+                Esqueci minha senha
               </button>
-              <div className="mt-1">Senha demo: achiropita100</div>
             </div>
           </div>
         </form>

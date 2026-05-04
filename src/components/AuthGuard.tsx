@@ -1,29 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Sessao, auth } from "@/lib/auth";
+import { useSessao } from "@/lib/auth";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [sessao, setSessao] = useState<Sessao | null>(null);
-  const [carregando, setCarregando] = useState(true);
+  const { sessao, carregando } = useSessao();
 
   useEffect(() => {
-    const s = auth.sessao();
-    if (!s) {
+    if (!carregando && !sessao) {
       router.replace("/login");
-      return;
     }
-    setSessao(s);
-    setCarregando(false);
-
-    const handler = () => setSessao(auth.sessao());
-    window.addEventListener("achiropita:sessao", handler);
-    return () => window.removeEventListener("achiropita:sessao", handler);
-  }, [router]);
+  }, [carregando, sessao, router]);
 
   if (carregando || !sessao) {
     return (

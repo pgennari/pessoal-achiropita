@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+    function perfil() {
+      return request.auth.token.perfil;
+    }
+    function isAdm() {
+      return isAuth() && perfil() == 'ADM';
+    }
+    function isOrg() {
+      return isAuth() && (perfil() == 'ORG' || perfil() == 'ADM');
+    }
+    function isCrdDe(barracaId) {
+      return isAuth()
+        && perfil() == 'CRD'
+        && barracaId in (request.auth.token.barracasCRD == null ? [] : request.auth.token.barracasCRD);
+    }
+    function isEqpDono(pessoaId) {
+      return isAuth() && request.auth.token.pessoaId == pessoaId;
+    }
+    function camposIguais(a, b, campos) {
+      return campos.size() == 0 || (
+        a[campos[0]] == b[campos[0]] && camposIguais(a, b, campos.removeAll([campos[0]]))
+      );
+    }
+
+    // Pessoas: leitura para qualquer autenticado.
+    match /pessoas/{pessoaId} {
+      allow read: if isAuth();
+      allow create, delete: if isOrg();
+      // Update completo permitido a ADM/ORG; EQP só atualiza próprios dados não sensíveis.
+      allow update: if isOrg()
+        || (isEqpDono(pessoaId)
+            && request.resource.data.cracha == resource.data.cracha
+            && request.resource.data.cpf == resource.data.cpf
+            && request.resource.data.ativo == resource.data.ativo);
+    }
+
+    match /edicoes/{edicaoId} {
+      allow read: if isAuth();
+      allow create, update, delete: if isAdm();
+    }
+
+    match /barracas/{barracaId} {
+      allow read: if isAuth();
+      allow create, update, delete: if isOrg();
+    }
+
+    match /participacoes/{participacaoId} {
+      allow read: if isAuth();
+      allow create, update: if isOrg() || isCrdDe(request.resource.data.barracaId);
+      allow delete: if isOrg();
+    }
+
+    match /turmasFormacao/{turmaId} {
+      allow read: if isAuth();
+      allow create, update, delete: if isOrg();
+    }
+
+    match /usuarios/{uid} {
+      allow read: if isAuth() && (isAdm() || request.auth.uid == uid);
+      // Escrita apenas pela Cloud Function setUserRole (Admin SDK ignora rules).
+      allow write: if false;
+    }
+
+    // Apenas Cloud Functions (Admin SDK) escrevem; ADM consulta o log.
+    match /auditoria/{eventoId} {
+      allow read: if isAdm();
+      allow write: if false;
+    }
+
+    // Tokens de validação são opacos: nunca expostos ao cliente.
+    match /linksValidacao/{token} {
+      allow read, write: if false;
+    }
+  }
+}

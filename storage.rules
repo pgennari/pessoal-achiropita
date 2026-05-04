@@ -1,0 +1,36 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+    function perfil() {
+      return request.auth.token.perfil;
+    }
+    function isOrg() {
+      return isAuth() && (perfil() == 'ORG' || perfil() == 'ADM');
+    }
+    function isEqpDono(pessoaId) {
+      return isAuth() && request.auth.token.pessoaId == pessoaId;
+    }
+
+    // Foto da pessoa.
+    match /pessoas/{pessoaId}/foto.jpg {
+      allow read: if isAuth();
+      allow write: if (isOrg() || isEqpDono(pessoaId))
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // Pasta de versões antigas — só leitura para Functions; cliente não acessa.
+    match /pessoas/{pessoaId}/historico/{file=**} {
+      allow read, write: if false;
+    }
+
+    // Backups e exports — apenas Admin SDK.
+    match /backups/{file=**} {
+      allow read, write: if false;
+    }
+  }
+}

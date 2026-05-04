@@ -1,42 +1,39 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PageHeader } from "@/components/PageHeader";
-import { db, assinarMudancas } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { useEdicaoAtiva } from "@/hooks/useEdicoes";
+import { useParticipacoes } from "@/hooks/useParticipacoes";
+import { useBarracas } from "@/hooks/useBarracas";
+import { usePessoas } from "@/hooks/usePessoas";
+import { marcarCrachaEntregue } from "@/lib/mutations";
 import { formatarData, normalizar, porcentagem } from "@/lib/utils";
 
 function Conteudo() {
-  const [versao, setVersao] = useState(0);
   const [busca, setBusca] = useState("");
 
-  useEffect(() => assinarMudancas(() => setVersao((v) => v + 1)), []);
-
-  const sessao = auth.sessao();
-  const edicao = db.edicaoAtiva();
-  const participacoes = edicao
-    ? db.participacoes({ edicaoId: edicao.id })
-    : [];
-  const barracas = edicao ? db.barracas(edicao.id) : [];
+  const { data: edicao } = useEdicaoAtiva();
+  const { data: participacoes } = useParticipacoes({ edicaoId: edicao?.id });
+  const { data: barracas } = useBarracas(edicao?.id);
+  const { data: pessoas } = usePessoas({ incluirInativos: true });
 
   const lista = useMemo(() => {
     const termo = normalizar(busca);
     return participacoes.filter((p) => {
       if (!termo) return true;
-      const pessoa = db.pessoa(p.pessoaId);
+      const pessoa = pessoas.find((pp) => pp.id === p.pessoaId);
       if (!pessoa) return false;
       return (
         normalizar(pessoa.nome).includes(termo) ||
         String(pessoa.cracha).includes(termo)
       );
     });
-  }, [busca, participacoes]);
+  }, [busca, participacoes, pessoas]);
 
-  function entregar(id: string) {
-    if (!sessao) return;
-    db.marcarCrachaEntregue(id, sessao.email);
+  async function entregar(id: string) {
+    await marcarCrachaEntregue(id);
   }
 
   if (!edicao) {
@@ -103,11 +100,14 @@ function Conteudo() {
               </thead>
               <tbody>
                 {lista.map((p) => {
-                  const pessoa = db.pessoa(p.pessoaId);
+                  const pessoa = pessoas.find((pp) => pp.id === p.pessoaId);
                   const barraca = barracas.find((b) => b.id === p.barracaId);
                   if (!pessoa) return null;
                   return (
-                    <tr key={p.id} className="border-b border-slate-100 last:border-0">
+                    <tr
+                      key={p.id}
+                      className="border-b border-slate-100 last:border-0"
+                    >
                       <td className="py-3 px-2 font-mono text-slate-700">
                         {pessoa.cracha}
                       </td>

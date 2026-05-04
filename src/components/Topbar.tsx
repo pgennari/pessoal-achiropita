@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sessao, auth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { Sessao, sair } from "@/lib/auth";
+import { useEdicaoAtiva } from "@/hooks/useEdicoes";
 
 export function Topbar({ sessao }: { sessao: Sessao }) {
   const router = useRouter();
-  const edicaoAtiva = db.edicaoAtiva();
+  const { data: edicaoAtiva } = useEdicaoAtiva();
 
-  function sair() {
-    auth.sair();
+  async function handleSair() {
+    await sair();
     router.push("/login");
   }
 
@@ -39,7 +39,7 @@ export function Topbar({ sessao }: { sessao: Sessao }) {
         <div className="h-9 w-9 rounded-full bg-achiropita-100 text-achiropita-700 flex items-center justify-center text-sm font-semibold">
           {sessao.nome.charAt(0).toUpperCase()}
         </div>
-        <button onClick={sair} className="btn-secondary text-xs">
+        <button onClick={handleSair} className="btn-secondary text-xs">
           Sair
         </button>
       </div>

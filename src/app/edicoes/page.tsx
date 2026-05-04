@@ -1,52 +1,48 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PageHeader } from "@/components/PageHeader";
-import { db, assinarMudancas } from "@/lib/db";
-import { auth, podeAdministrar } from "@/lib/auth";
+import { useEdicoes } from "@/hooks/useEdicoes";
+import { useSessao, podeAdministrar } from "@/lib/auth";
+import { ativarEdicao, criarEdicao } from "@/lib/mutations";
 import { formatarData } from "@/lib/utils";
 
 function Conteudo() {
-  const [versao, setVersao] = useState(0);
   const [criando, setCriando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
   const [numero, setNumero] = useState("");
   const [ano, setAno] = useState("");
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
 
-  useEffect(() => assinarMudancas(() => setVersao((v) => v + 1)), []);
-
-  const sessao = auth.sessao();
+  const { sessao } = useSessao();
   const podeAdm = podeAdministrar(sessao);
-  const edicoes = db
-    .edicoes()
-    .slice()
-    .sort((a, b) => b.numero - a.numero);
+  const { data: edicoes } = useEdicoes();
 
-  function criar(e: React.FormEvent) {
+  async function criar(e: React.FormEvent) {
     e.preventDefault();
-    if (!sessao) return;
-    db.criarEdicao(
-      {
+    setSalvando(true);
+    try {
+      await criarEdicao({
         numero: Number(numero),
         ano: Number(ano),
         inicio,
         fim,
         status: "planejamento",
-      },
-      sessao.email
-    );
-    setCriando(false);
-    setNumero("");
-    setAno("");
-    setInicio("");
-    setFim("");
+      });
+      setCriando(false);
+      setNumero("");
+      setAno("");
+      setInicio("");
+      setFim("");
+    } finally {
+      setSalvando(false);
+    }
   }
 
-  function ativar(id: string) {
-    if (!sessao) return;
-    db.ativarEdicao(id, sessao.email);
+  async function ativar(id: string) {
+    await ativarEdicao(id);
   }
 
   return (
@@ -69,7 +65,10 @@ function Conteudo() {
       {criando && (
         <div className="card mb-4">
           <div className="card-body">
-            <form onSubmit={criar} className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+            <form
+              onSubmit={criar}
+              className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end"
+            >
               <div>
                 <label className="label">Número</label>
                 <input
@@ -110,7 +109,9 @@ function Conteudo() {
                   required
                 />
               </div>
-              <button className="btn-primary">Criar</button>
+              <button disabled={salvando} className="btn-primary">
+                {salvando ? "Criando…" : "Criar"}
+              </button>
             </form>
           </div>
         </div>
@@ -129,7 +130,10 @@ function Conteudo() {
             </thead>
             <tbody>
               {edicoes.map((e) => (
-                <tr key={e.id} className="border-b border-slate-100 last:border-0">
+                <tr
+                  key={e.id}
+                  className="border-b border-slate-100 last:border-0"
+                >
                   <td className="py-3 px-5 font-medium">
                     {e.numero}ª · {e.ano}
                   </td>

@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PageHeader } from "@/components/PageHeader";
-import { db, assinarMudancas } from "@/lib/db";
-import { auth, podeAdministrar } from "@/lib/auth";
+import { useEdicaoAtiva } from "@/hooks/useEdicoes";
+import { useBarracas } from "@/hooks/useBarracas";
+import { useParticipacoes } from "@/hooks/useParticipacoes";
+import { useSessao, podeAdministrar } from "@/lib/auth";
+import { criarBarraca } from "@/lib/mutations";
 import { Setor } from "@/lib/types";
 import { porcentagem } from "@/lib/utils";
 
 function Conteudo() {
-  const [versao, setVersao] = useState(0);
   const [criando, setCriando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
   const [nome, setNome] = useState("");
   const [setor, setSetor] = useState<Setor>("Alimentação");
   const [coord, setCoord] = useState(1);
@@ -18,35 +21,35 @@ function Conteudo() {
   const [apoio, setApoio] = useState(2);
   const [filtroSetor, setFiltroSetor] = useState<Setor | "Todos">("Todos");
 
-  useEffect(() => assinarMudancas(() => setVersao((v) => v + 1)), []);
-
-  const sessao = auth.sessao();
+  const { sessao } = useSessao();
   const podeAdm = podeAdministrar(sessao);
-  const edicao = db.edicaoAtiva();
-  const barracas = edicao ? db.barracas(edicao.id) : [];
-  const participacoes = edicao ? db.participacoes({ edicaoId: edicao.id }) : [];
+  const { data: edicao } = useEdicaoAtiva();
+  const { data: barracas } = useBarracas(edicao?.id);
+  const { data: participacoes } = useParticipacoes({ edicaoId: edicao?.id });
 
   const lista = barracas.filter(
     (b) => filtroSetor === "Todos" || b.setor === filtroSetor
   );
 
-  function criar(e: React.FormEvent) {
+  async function criar(e: React.FormEvent) {
     e.preventDefault();
-    if (!edicao || !sessao) return;
-    db.criarBarraca(
-      {
+    if (!edicao) return;
+    setSalvando(true);
+    try {
+      await criarBarraca({
         edicaoId: edicao.id,
         nome: nome.trim(),
         setor,
         vagas: { coordenador: coord, equipista: eqp, apoio },
-      },
-      sessao.email
-    );
-    setCriando(false);
-    setNome("");
-    setCoord(1);
-    setEqp(10);
-    setApoio(2);
+      });
+      setCriando(false);
+      setNome("");
+      setCoord(1);
+      setEqp(10);
+      setApoio(2);
+    } finally {
+      setSalvando(false);
+    }
   }
 
   if (!edicao) {
@@ -135,7 +138,9 @@ function Conteudo() {
                   onChange={(e) => setApoio(Number(e.target.value))}
                 />
               </div>
-              <button className="btn-primary md:col-span-6">Criar barraca</button>
+              <button disabled={salvando} className="btn-primary md:col-span-6">
+                {salvando ? "Criando…" : "Criar barraca"}
+              </button>
             </form>
           </div>
         </div>

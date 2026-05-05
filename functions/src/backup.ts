@@ -3,7 +3,7 @@ import { logger } from "firebase-functions/v2";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { google } from "googleapis";
 
-const REGION = "southamerica-east1";
+const REGION = "us-east1";
 
 // Backup semanal — toda quarta-feira 03:00 BRT (US-12-04).
 // Exporta o Firestore inteiro para gs://<projectId>-backups/<timestamp>.

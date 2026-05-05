@@ -6,7 +6,7 @@ import { onObjectFinalized } from "firebase-functions/v2/storage";
 import * as path from "path";
 import sharp from "sharp";
 
-const REGION = "southamerica-east1";
+const REGION = "us-east1";
 
 // Trigger: ao subir /pessoas/{id}/foto.jpg, normaliza para 600x600 e atualiza fotoUrl.
 export const processarFotoPessoa = onObjectFinalized(

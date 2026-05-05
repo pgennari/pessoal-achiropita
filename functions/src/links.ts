@@ -4,7 +4,7 @@ import { defineString } from "firebase-functions/params";
 import { logger } from "firebase-functions/v2";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-const REGION = "southamerica-east1";
+const REGION = "us-east1";
 
 const APP_URL = defineString("APP_URL", {
   default: "http://localhost:3000",

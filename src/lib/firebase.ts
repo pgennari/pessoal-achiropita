@@ -75,7 +75,7 @@ export function getStorageClient(): FirebaseStorage {
 }
 
 export function getFunctionsClient(): Functions {
-  if (!_functions) _functions = getFunctions(getFirebaseApp(), "southamerica-east1");
+  if (!_functions) _functions = getFunctions(getFirebaseApp(), "us-east1");
   ligarEmuladores();
   return _functions;
 }

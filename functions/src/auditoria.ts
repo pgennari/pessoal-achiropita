@@ -2,7 +2,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { logger } from "firebase-functions/v2";
 
-const REGION = "southamerica-east1";
+const REGION = "us-east1";
 
 async function registrar(
   acao: string,

@@ -38,7 +38,7 @@ firebase.json         emuladores, hosting, functions
 ## Setup do Firebase
 
 1. **Crie o projeto** (Console → "Add project") em
-   `southamerica-east1`. Recomendado: `achiropita-100`.
+   `us-east1`. Recomendado: `achiropita-100`.
 2. **Habilite os produtos**:
    - Authentication → Email/Password e Google
    - Firestore (modo nativo, mesma região)

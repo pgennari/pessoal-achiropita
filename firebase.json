@@ -28,7 +28,7 @@
       ".github/**"
     ],
     "frameworksBackend": {
-      "region": "southamerica-east1",
+      "region": "us-east1",
       "memory": "512MiB",
       "minInstances": 0,
       "maxInstances": 10

@@ -20,7 +20,7 @@ interface InviteUserData {
   barracasCRD?: string[];
 }
 
-const REGION = "southamerica-east1";
+const REGION = "us-east1";
 
 function exigirAdm(token: { perfil?: string } | undefined) {
   if (!token || token.perfil !== "ADM") {

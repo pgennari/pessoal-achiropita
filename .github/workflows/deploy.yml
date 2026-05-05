@@ -74,13 +74,41 @@ jobs:
         run: firebase experiments:enable webframeworks
 
       - name: Deploy
+        shell: bash
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
           GCLOUD_PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_CLI_EXPERIMENTS: webframeworks
         run: |
+          set +e
           firebase deploy \
             --only firestore:rules,firestore:indexes,storage,functions,hosting \
             --project ${{ secrets.FIREBASE_PROJECT_ID }} \
             --non-interactive \
-            --force
+            --force 2>&1 | tee /tmp/deploy.log
+          code=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$code" -eq 0 ]; then
+            exit 0
+          fi
+
+          # Tolera só o caso "cleanup policy não foi setada após Functions OK".
+          if grep -q "could not set up cleanup policy" /tmp/deploy.log \
+             && grep -q "Functions successfully deployed" /tmp/deploy.log; then
+            echo "::warning::Cleanup policy auto-setup falhou apesar de --force; setando explicitamente e continuando"
+            firebase functions:artifacts:setpolicy \
+              --location us-east1 \
+              --days 7 \
+              --project ${{ secrets.FIREBASE_PROJECT_ID }} \
+              --non-interactive \
+              --force
+            firebase deploy \
+              --only hosting \
+              --project ${{ secrets.FIREBASE_PROJECT_ID }} \
+              --non-interactive \
+              --force
+            exit 0
+          fi
+
+          exit "$code"

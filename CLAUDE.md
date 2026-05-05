@@ -23,18 +23,20 @@ contendo só este arquivo e o de user stories. A tentativa anterior
 excessiva no deploy (Next.js App Router + Firebase Web Frameworks via
 GitHub Actions).
 
-## Decisões pendentes (alinhar com o usuário antes de codar)
+## Stack
 
-1. **Stack web**: Vite+React, SvelteKit, Remix, Next.js Pages Router etc.
-   **Evitar** Next.js App Router com static export — dynamic routes não
-   têm caminho limpo de SPA fallback.
-2. **Backend/dados**: Firebase, Supabase, ou Postgres + API própria.
-   Se Firebase, **evitar Web Frameworks** (experimental + IAM complexo) —
-   usar **App Hosting** conectado ao GitHub direto pelo Console.
-3. **Hosting/CI**: Vercel ou Netlify resolvem com auto-deploy do repo,
-   zero yaml. GitHub Actions só se houver razão concreta.
+- **Frontend**: **Vite + React** (SPA puro). TypeScript obrigatório.
+  Build artifacts em `dist/`.
+- **Auth**: Firebase Authentication (e-mail/senha + Google).
+- **Dados**: Firestore (modo nativo).
+- **Arquivos**: Firebase Storage (fotos das pessoas).
+- **Hosting**: Firebase Hosting estático com SPA fallback
+  (`rewrites: [{ source: "**", destination: "/index.html" }]`).
+- **CI/CD**: GitHub Actions deploya em push para `main`. PRs disparam
+  preview channel do Hosting (opcional).
 
-**Não comece a implementar sem fechar 1 e 2 com o usuário.**
+**Não usar**: Next.js (qualquer router), Firebase Web Frameworks,
+SSR/Cloud Run. SPA puro resolve todas as US sem complicação.
 
 ## Convenções de código
 
@@ -61,6 +63,30 @@ GitHub Actions).
   precisa servir a uma US listada.
 - **Sem camadas prematuras.** Nada de `services/`, `repositories/`,
   `useCases/` antes de pelo menos dois consumidores reais.
+- **Plano Spark (gratuito) é o alvo.** Cloud Functions exigem Blaze
+  mesmo dentro das quotas grátis — por isso, o MVP resolve tudo com
+  **cliente + Security Rules** sempre que possível. Antes de propor
+  qualquer Cloud Function, confirme com o usuário se a US justifica
+  sair do plano grátis.
+
+  Substituições padrão para evitar Functions:
+  - **Custom claims** → doc `/usuarios/{uid}` com campo `perfil` lido
+    pela aplicação (rules ficam mais verbosas mas evitam um trigger).
+  - **Redimensionamento de foto** → no cliente com `<canvas>` antes do
+    upload.
+  - **Validação pública via link** (US-06-06) → token em
+    `linksValidacao/{token}` com rules que validam o 2º fator.
+  - **Auditoria** (US-12-03) → cliente escreve em `auditoria/` (rules
+    append-only).
+  - **Backup** (US-12-04) → export manual via Console ou GitHub Action
+    agendada com Admin SDK.
+
+  Vigilância de quotas Spark (úteis para checagem de design):
+  Firestore 50K leituras/dia · 20K escritas/dia · 1 GiB armazenado.
+  Storage 5 GiB armazenado · 1 GiB download/dia. Hosting 10 GiB
+  armazenado · 360 MiB download/dia. Para ~100 usuários da festa,
+  isso sobra — mas prefira paginação a `onSnapshot` em coleções
+  inteiras.
 
 ## Fluxo
 
@@ -109,10 +135,10 @@ Histórico do que deu errado, para não repetir:
 
 ## Antes de começar uma sessão
 
-1. Confirme com o usuário qual stack e backend foram escolhidos
-   (Decisões pendentes acima).
-2. Leia o `user-stories-festa-100.md` inteiro pelo menos uma vez.
-3. Liste em alto nível as US que vai cobrir nessa iteração antes de
+1. Leia o `user-stories-festa-100.md` inteiro pelo menos uma vez.
+2. Liste em alto nível as US que vai cobrir nessa iteração antes de
    abrir editor.
+3. Confirme com o usuário se a iteração não introduz necessidade de
+   Cloud Functions (que sairia do plano Spark — vide Princípios).
 4. Se algo deste CLAUDE.md está desatualizado, proponha a edição antes
    de seguir.

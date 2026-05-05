@@ -2,7 +2,7 @@
 
 ## Visão geral
 
-Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a operação da equipe da Festa de Nossa Senhora Achiropita do Bixiga, substituindo a planilha atual com **5.871 pessoas** e **27 edições de histórico**. Stack: Next.js + Tailwind + shadcn/ui no front, Firebase (Firestore, Auth, Storage, Cloud Functions, FCM, Hosting) no back.
+Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a operação da equipe da Festa de Nossa Senhora Achiropita do Bixiga, substituindo a planilha atual com **5.871 pessoas** e **27 edições de histórico**.
 
 ## Personas
 
@@ -105,7 +105,7 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 **para** manter os dados corretos.
 
 **Critérios de aceite:**
-- EQP só edita os próprios dados (RLS via Firestore Security Rules)
+- EQP só edita os próprios dados
 - ORG/ADM editam qualquer cadastro
 - Campos sensíveis (CPF, número de crachá) só são editáveis por ADM
 - Toda alteração registra autor e data em `/auditoria`
@@ -120,7 +120,6 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 **Critérios de aceite:**
 - Upload aceita JPG, PNG, HEIC; converte para JPG e redimensiona a 600×600
 - Foto armazenada em Firebase Storage com URL no documento da pessoa
-- Versão antiga é mantida por 30 dias antes de ser deletada por Cloud Function
 
 🔴 Alta · MVP
 
@@ -244,7 +243,7 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 **para** acelerar o preenchimento das vagas-chave.
 
 **Critérios de aceite:**
-- Regra base: ≥3 edições como equipista na mesma barraca, idade ≥21, formação concluída na última edição
+- Regra base: ≥3 edições como equipista na mesma barraca, idade ≥21
 - ORG pode ajustar parâmetros da regra
 - Lista pode ser marcada manualmente como "apto a coordenar"
 
@@ -343,7 +342,7 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 **para** organizar a chamada e o controle de presença.
 
 **Critérios de aceite:**
-- Cada turma tem: data, horário, local, instrutor, capacidade máxima
+- Cada turma tem: data, horário, local, capacidade máxima
 - Vínculo opcional com setor ou barraca específica
 
 🟡 Média · MVP
@@ -404,7 +403,6 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 - Botão final "Confirmar dados e presença"
 - Ao confirmar: registra `dataFormacao` na participação da edição corrente, marca `dadosValidados: true` no perfil, incrementa contador do link
 - Tela final de sucesso: "Presença registrada. Bem-vindo(a) à 100ª Festa da Achiropita."
-- Tudo escrito por **Cloud Function** que valida o token; cliente público nunca escreve direto no Firestore
 
 🔴 Alta · MVP
 
@@ -526,12 +524,6 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 
 🟡 Média · v2
 
-### US-10-04 — Mapa de origem
-**Como** ORG,
-**quero** ver os bairros de onde vem a equipe,
-**para** planejar logística (carona, transporte).
-
-🟢 Baixa · v3
 
 ---
 
@@ -604,7 +596,6 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 **para** ter backup independente do Firebase.
 
 **Critérios de aceite:**
-- Cloud Function programada (semanal) deposita backup em Storage
 - Exportação manual sob demanda
 - Inclui pessoas, participações, edições, barracas, auditoria, links de validação
 
@@ -674,19 +665,5 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 
 🔴 Alta · MVP
 
----
-
-## Backlog priorizado
-
-### MVP (entrega 1) — fundação, cadastro e formação com validação
-EP-01 (US-01-01, 02, 03, 04) · EP-02 (US-02-01 a 05) · EP-04 (US-04-01, 02) · EP-05 (US-05-01 a 05) · EP-06 (US-06-01, 02, 04, 05, 06) · EP-07 (US-07-02, 04) · EP-10 (US-10-01) · EP-12 (US-12-01, 02) · EP-13 (toda)
-
-### v2 — operação em campo
-EP-03 · EP-04 (US-04-03) · EP-05 (US-05-06) · EP-07 (US-07-03) · EP-09 (US-09-01, 03) · EP-10 (US-10-02, 03) · EP-11 (toda) · EP-12 (US-12-03, 04, 05)
-
-### v3 — refinamentos
-US-01-05 · US-05-07 · US-09-02 · US-10-04
-
----
 
 *Documento vivo — revisar antes de cada planning. Última atualização: 03/05/2026.*

@@ -80,10 +80,19 @@ Console Firebase → ⚙️ → **Project settings → Service accounts →
 Generate new private key** baixa um JSON. Cole o conteúdo inteiro como
 valor do secret `FIREBASE_SERVICE_ACCOUNT`.
 
-A SA gerada por essa via já vem com a role *Firebase Admin SDK Service
-Agent*, que cobre Hosting + Firestore rules + indexes. Se preferir uma
-SA dedicada (mais granular), as roles mínimas são **Firebase Hosting
-Admin** + **Cloud Datastore Owner** (para Firestore rules/indexes).
+A chave criada por essa via vem associada à SA `firebase-adminsdk-…`,
+que tem por padrão a role *Firebase Admin SDK Service Agent* — essa
+role só serve pro runtime do Admin SDK, **não permite deploy de
+rules/hosting via CLI**. É preciso adicionar uma role extra:
+
+- **Mais simples**: adicione *Firebase Admin* (`roles/firebase.admin`)
+  na SA via Console → IAM. Cobre Hosting + Firestore rules + indexes.
+  Não inclui IAM/Cloud Run/Service Account User, então não dá pra cair
+  nos pitfalls da tentativa anterior.
+- **Least-privilege**: em vez de Firebase Admin, atribua o trio
+  *Firebase Hosting Admin* + *Firebase Rules Admin* +
+  *Cloud Datastore Index Admin*. Cobre exatamente o que o workflow
+  faz, nada a mais.
 
 ### Primeiro deploy
 

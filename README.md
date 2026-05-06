@@ -43,3 +43,70 @@ src/
 - US-01-02 / US-01-03 (já cobertas pelo login)
 - US-02-01 cadastro de pessoas
 - Setup do Firebase Hosting + Actions de deploy
+
+## Deploy
+
+### CI/CD
+
+- **`.github/workflows/deploy.yml`** roda em todo push para `main` (e
+  na branch atual `claude/restart`, enquanto o app está em
+  desenvolvimento). Faz build do Vite e roda
+  `firebase deploy --only hosting,firestore:rules,firestore:indexes`
+  com a service account.
+- **`.github/workflows/pr-preview.yml`** roda em cada PR contra
+  `main`. Cria um canal de preview no Hosting (expira em 7 dias) e
+  comenta a URL no PR automaticamente.
+
+Sem Cloud Functions, sem Web Frameworks, sem Cloud Run — só Hosting
+estático + regras de Firestore. Cabe folgado no plano Spark.
+
+### Secrets necessários no GitHub
+
+**Settings → Secrets and variables → Actions → New repository secret**:
+
+| Secret                                  | Como obter                                                                |
+|-----------------------------------------|---------------------------------------------------------------------------|
+| `VITE_FIREBASE_API_KEY`                 | Console Firebase → Project settings → Your apps → SDK setup               |
+| `VITE_FIREBASE_AUTH_DOMAIN`             | idem                                                                      |
+| `VITE_FIREBASE_PROJECT_ID`              | idem (também usado como projectId no `firebase deploy`)                   |
+| `VITE_FIREBASE_STORAGE_BUCKET`          | idem                                                                      |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID`     | idem                                                                      |
+| `VITE_FIREBASE_APP_ID`                  | idem                                                                      |
+| `FIREBASE_SERVICE_ACCOUNT`              | JSON inteiro de uma service account (ver passo abaixo)                    |
+
+### Service account
+
+Console Firebase → ⚙️ → **Project settings → Service accounts →
+Generate new private key** baixa um JSON. Cole o conteúdo inteiro como
+valor do secret `FIREBASE_SERVICE_ACCOUNT`.
+
+A SA gerada por essa via já vem com a role *Firebase Admin SDK Service
+Agent*, que cobre Hosting + Firestore rules + indexes. Se preferir uma
+SA dedicada (mais granular), as roles mínimas são **Firebase Hosting
+Admin** + **Cloud Datastore Owner** (para Firestore rules/indexes).
+
+### Primeiro deploy
+
+1. Cadastre os 7 secrets acima.
+2. Faça merge para `main` ou rode manualmente:
+   **Actions → Deploy → Run workflow**.
+3. Em ~2 min o app sobe em
+   `https://${VITE_FIREBASE_PROJECT_ID}.web.app`.
+
+### Bootstrap do primeiro usuário
+
+Como não temos Cloud Functions, o primeiro usuário ADM tem que ser
+provisionado manualmente:
+
+1. Console Firebase → **Authentication → Users → Add user**: cadastre
+   o e-mail e a senha do administrador.
+2. Console Firebase → **Firestore → Start collection**: crie a coleção
+   `usuarios` e dentro dela um documento com **ID = uid do usuário**
+   (copie da aba Authentication). Campos:
+   ```
+   email: "voce@dominio.com"
+   nome: "Seu Nome"
+   perfil: "ADM"
+   ```
+3. Acesse o app deployado, faça login. O `useSessao` lê esse doc para
+   resolver permissões.

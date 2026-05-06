@@ -1,0 +1,20 @@
+rules_version = '2';
+
+// Regras mínimas para a v0.1 — só permitem que cada usuário leia seu
+// próprio documento /usuarios/{uid} (necessário para o useSessao
+// resolver o perfil sem custom claims). Escrita só via Admin SDK
+// (Console ou script com service account). Demais coleções
+// continuam negadas por default.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    match /usuarios/{uid} {
+      allow read: if autenticado() && request.auth.uid == uid;
+      allow write: if false;
+    }
+  }
+}

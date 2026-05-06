@@ -10,10 +10,17 @@ App de gestão da equipe da **Festa de Nossa Senhora Achiropita do Bixiga**
 há ~15 anos. Uso esperado: 50–100 pessoas — Administração, Organização,
 Coordenadores de barraca, Equipistas, Operadores e Recreação.
 
-**Fonte da verdade dos requisitos:**
-[`user-stories-festa-100.md`](./user-stories-festa-100.md). Sempre consulte
-antes de qualquer feature — define os 13 épicos (EP-01 a EP-13) e as user
-stories (US-XX-YY) com critérios de aceite.
+**Fontes da verdade do projeto:**
+
+- [`user-stories-festa-100.md`](./user-stories-festa-100.md) — requisitos
+  funcionais: 13 épicos (EP-01 a EP-13) e user stories (US-XX-YY) com
+  critérios de aceite. Consulte antes de qualquer feature.
+- [`guia-visual-festa-100.html`](./guia-visual-festa-100.html) — guia
+  visual: paleta, tipografia, espaçamento, componentes, acessibilidade e
+  tom de voz. Use os tokens (variáveis CSS no `:root` do `<style>`) ao
+  montar o tema/Tailwind, e siga os componentes de referência (botões,
+  cards, badges, formulários) ao implementar UI. Abra no navegador antes
+  de codar telas — não invente cor ou tipografia.
 
 ## Estado
 
@@ -37,6 +44,20 @@ GitHub Actions).
 
 **Não usar**: Next.js (qualquer router), Firebase Web Frameworks,
 SSR/Cloud Run. SPA puro resolve todas as US sem complicação.
+
+### Estrutura de pastas (plana)
+
+```
+src/
+  pages/         uma .tsx por rota (Login, Painel, Pessoas, …)
+  components/    componentes reaproveitados entre páginas
+  lib/           init Firebase, helpers, hooks de dados
+  styles/        globals.css + tema derivado do guia visual
+```
+
+Sem `features/`, `services/` ou camadas profundas até pelo menos dois
+consumidores reais justificarem a quebra. Mover depois é barato; criar
+camadas vazias hoje é caro.
 
 ## Convenções de código
 
@@ -136,9 +157,12 @@ Histórico do que deu errado, para não repetir:
 ## Antes de começar uma sessão
 
 1. Leia o `user-stories-festa-100.md` inteiro pelo menos uma vez.
-2. Liste em alto nível as US que vai cobrir nessa iteração antes de
+2. Abra o `guia-visual-festa-100.html` (renderizado no navegador ou
+   via leitura do CSS no `:root`) para ter os tokens de cor,
+   tipografia, espaçamento e exemplos de componentes à mão.
+3. Liste em alto nível as US que vai cobrir nessa iteração antes de
    abrir editor.
-3. Confirme com o usuário se a iteração não introduz necessidade de
+4. Confirme com o usuário se a iteração não introduz necessidade de
    Cloud Functions (que sairia do plano Spark — vide Princípios).
-4. Se algo deste CLAUDE.md está desatualizado, proponha a edição antes
+5. Se algo deste CLAUDE.md está desatualizado, proponha a edição antes
    de seguir.

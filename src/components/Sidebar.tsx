@@ -10,6 +10,8 @@ interface ItemNav {
 
 const itens: ItemNav[] = [
   { to: "/", label: "Painel" },
+  { to: "/pessoas", label: "Pessoas" },
+  { to: "/auditoria", label: "Auditoria", perfis: ["ADM", "ORG"] },
 ];
 
 export function Sidebar({ sessao }: { sessao: Sessao }) {

@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    function perfil() {
+      return firestore.get(/databases/(default)/documents/usuarios/$(request.auth.uid)).data.perfil;
+    }
+
+    function ehAdmOuOrg() {
+      return autenticado() && perfil() in ["ADM", "ORG"];
+    }
+
+    // Foto da pessoa: catálogo legível a autenticados; ADM/ORG escrevem.
+    // Limites: até 4 MB (após redimensionar no cliente fica < 200 KB).
+    match /pessoas/{pessoaId}/foto.jpg {
+      allow read: if autenticado();
+      allow write: if ehAdmOuOrg()
+        && request.resource.size < 4 * 1024 * 1024
+        && request.resource.contentType.matches("image/.*");
+      allow delete: if ehAdmOuOrg();
+    }
+  }
+}

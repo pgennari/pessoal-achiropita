@@ -1,0 +1,113 @@
+import { Link } from "react-router-dom";
+import { useAuditoriaRecente } from "../lib/hooks";
+import { useSessao } from "../lib/sessao";
+import { formatarData } from "../lib/utilsDominio";
+
+const ACOES: Record<string, string> = {
+  "pessoa.criou": "criou pessoa",
+  "pessoa.atualizou": "atualizou pessoa",
+  "pessoa.inativou": "inativou pessoa",
+  "pessoa.reativou": "reativou pessoa",
+  "pessoa.foto.atualizou": "atualizou foto",
+  "pessoa.foto.removeu": "removeu foto",
+};
+
+export function Auditoria() {
+  const { sessao } = useSessao();
+  const { itens, carregando, erro } = useAuditoriaRecente(200);
+
+  if (!sessao) return null;
+  const podeVer = sessao.perfil === "ADM" || sessao.perfil === "ORG";
+
+  if (!podeVer) {
+    return (
+      <div className="card">
+        <div className="card-corpo">
+          <h3 className="mb-2">Sem permissão</h3>
+          <p className="text-ardesia">
+            Apenas Administração e Organização podem ver a auditoria.
+          </p>
+          <Link to="/" className="btn btn-secundario mt-4">
+            Voltar
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <header>
+        <div className="eyebrow">Histórico</div>
+        <h2 className="mt-1">Auditoria</h2>
+        <p className="text-ardesia text-sm">
+          {carregando
+            ? "Carregando..."
+            : `${itens.length} eventos recentes`}
+        </p>
+      </header>
+
+      {erro && (
+        <div className="card border-vermelho/40">
+          <div className="card-corpo text-vermelho-escuro">{erro}</div>
+        </div>
+      )}
+
+      <div className="card overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-pietra-clara/60 text-left">
+            <tr>
+              <th className="px-4 py-3 font-semibold w-44">Quando</th>
+              <th className="px-4 py-3 font-semibold">Quem</th>
+              <th className="px-4 py-3 font-semibold">Ação</th>
+              <th className="px-4 py-3 font-semibold">Alvo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {itens.length === 0 && !carregando && (
+              <tr>
+                <td colSpan={4} className="px-4 py-8 text-center text-ardesia">
+                  Nenhum evento registrado.
+                </td>
+              </tr>
+            )}
+            {itens.map((ev) => {
+              const alvoId = ev.alvo.startsWith("pessoas/")
+                ? ev.alvo.slice("pessoas/".length)
+                : "";
+              return (
+                <tr
+                  key={ev.id}
+                  className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                >
+                  <td className="px-4 py-3 text-ardesia font-mono">
+                    {formatarData(ev.criadoEm)}
+                  </td>
+                  <td className="px-4 py-3">{ev.autorNome || ev.autor}</td>
+                  <td className="px-4 py-3">
+                    {ACOES[ev.acao] ?? ev.acao}
+                    {ev.detalhes && (
+                      <span className="text-ardesia"> — {ev.detalhes}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {alvoId ? (
+                      <Link
+                        to={`/pessoas/${alvoId}`}
+                        className="text-verde font-semibold hover:underline"
+                      >
+                        ver
+                      </Link>
+                    ) : (
+                      <span className="text-ardesia">{ev.alvo}</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

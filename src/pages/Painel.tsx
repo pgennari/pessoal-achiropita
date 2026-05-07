@@ -1,8 +1,17 @@
+import { Link } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
+import { usePessoas } from "../lib/hooks";
 
 export function Painel() {
   const { sessao } = useSessao();
+  const { itens, carregando } = usePessoas();
+
   if (!sessao) return null;
+
+  const ativas = itens.filter((p) => p.ativo).length;
+  const total = itens.length;
+  const numero = (n: number) =>
+    carregando ? <span className="text-ardesia">…</span> : n;
 
   return (
     <>
@@ -19,8 +28,11 @@ export function Painel() {
         <div className="kpi">
           <div className="kpi-label">Pessoas ativas</div>
           <div className="kpi-valor">
-            — <span className="unidade">cadastros</span>
+            {numero(ativas)} <span className="unidade">de {numero(total)}</span>
           </div>
+          <Link to="/pessoas" className="kpi-delta positivo">
+            Abrir cadastro →
+          </Link>
         </div>
         <div className="kpi">
           <div className="kpi-label">Vagas preenchidas</div>

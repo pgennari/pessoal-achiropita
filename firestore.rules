@@ -1,10 +1,5 @@
 rules_version = '2';
 
-// Regras mínimas para a v0.1 — só permitem que cada usuário leia seu
-// próprio documento /usuarios/{uid} (necessário para o useSessao
-// resolver o perfil sem custom claims). Escrita só via Admin SDK
-// (Console ou script com service account). Demais coleções
-// continuam negadas por default.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -12,9 +7,47 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function perfil() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil;
+    }
+
+    function ehAdmOuOrg() {
+      return autenticado() && perfil() in ["ADM", "ORG"];
+    }
+
+    // Lista de campos esperados num documento de Pessoa. Mantém o
+    // schema apertado mas sem validação por tipo (o cliente já fez).
+    function pessoaValida(d) {
+      return d.keys().hasAll(["nome", "nascimento", "telefone", "cracha", "ativo"])
+        && d.cracha is int
+        && d.cracha > 0
+        && d.nome is string
+        && d.nascimento is string;
+    }
+
     match /usuarios/{uid} {
       allow read: if autenticado() && request.auth.uid == uid;
       allow write: if false;
+    }
+
+    match /pessoas/{id} {
+      // Catálogo de pessoas é visível a qualquer usuário autenticado:
+      // todos os perfis precisam consultar/buscar pessoas no app.
+      allow read: if autenticado();
+      allow create: if ehAdmOuOrg() && pessoaValida(request.resource.data);
+      allow update: if ehAdmOuOrg() && pessoaValida(request.resource.data);
+      // Sem delete: removemos via inativação (ativo = false).
+      allow delete: if false;
+    }
+
+    match /auditoria/{id} {
+      // Append-only: ADM/ORG leem; qualquer autenticado escreve seu
+      // próprio evento; ninguém edita ou apaga.
+      allow read: if ehAdmOuOrg();
+      allow create: if autenticado()
+        && request.resource.data.autor == request.auth.uid
+        && request.resource.data.keys().hasAll(["acao", "alvo", "autor", "autorNome", "criadoEm"]);
+      allow update, delete: if false;
     }
   }
 }

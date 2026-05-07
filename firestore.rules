@@ -64,6 +64,27 @@ service cloud.firestore {
         && d.operadorUid == request.auth.uid;
     }
 
+    function turmaValida(d) {
+      return d.keys().hasAll([
+          "edicaoId", "data", "horarioInicio", "local", "capacidadeMaxima"
+        ])
+        && d.edicaoId is string
+        && d.data is string
+        && d.horarioInicio is string
+        && d.local is string
+        && d.capacidadeMaxima is int && d.capacidadeMaxima > 0;
+    }
+
+    function formacaoValida(d) {
+      return d.keys().hasAll([
+          "edicaoId", "pessoaId", "presencaTipo",
+          "registradoPorUid", "registradoPorNome", "presencaEm",
+          "dadosValidados"
+        ])
+        && d.presencaTipo in ["manual", "validacao"]
+        && d.registradoPorUid == request.auth.uid;
+    }
+
     function usuarioValido(d) {
       return d.keys().hasAll(["email", "nome", "perfil"])
         && d.email is string
@@ -113,6 +134,22 @@ service cloud.firestore {
       allow read: if autenticado();
       allow create: if ehAdmOuOrg() && participacaoValida(request.resource.data);
       allow update: if ehAdmOuOrg() && participacaoValida(request.resource.data);
+      allow delete: if ehAdmOuOrg();
+    }
+
+    match /turmasFormacao/{id} {
+      allow read: if autenticado();
+      allow create, update: if ehAdmOuOrg() && turmaValida(request.resource.data);
+      allow delete: if ehAdmOuOrg();
+    }
+
+    match /formacoes/{id} {
+      allow read: if autenticado();
+      // Bloqueio de duplo registro: id determinístico + create-only.
+      allow create: if ehAdmOuOrg() && formacaoValida(request.resource.data);
+      // Atualizações usadas pelo fluxo de validação (US-06-06) virão no
+      // slice 6b com regra cross-doc baseada em sessão anônima.
+      allow update: if false;
       allow delete: if ehAdmOuOrg();
     }
 

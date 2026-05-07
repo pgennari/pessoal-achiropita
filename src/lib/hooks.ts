@@ -13,8 +13,10 @@ import {
   Edicao,
   EntregaCracha,
   EventoAuditoria,
+  Formacao,
   Participacao,
   Pessoa,
+  TurmaFormacao,
   Usuario,
 } from "./tipos";
 import { pessoaDeSnap } from "./pessoas";
@@ -24,6 +26,8 @@ import { barracaDeSnap } from "./barracas";
 import { participacaoDeSnap } from "./participacoes";
 import { entregaDeSnap } from "./entregas";
 import { usuarioDeSnap } from "./usuarios";
+import { turmaDeSnap } from "./turmas";
+import { formacaoDeSnap } from "./formacoes";
 
 export interface EstadoLista<T> {
   itens: T[];
@@ -538,6 +542,85 @@ export function useUsuarios(): EstadoLista<Usuario> {
     );
     return () => cancelar();
   }, []);
+
+  return estado;
+}
+
+export function useTurmasFormacao(
+  edicaoId: string | undefined
+): EstadoLista<TurmaFormacao> {
+  const [estado, setEstado] = useState<EstadoLista<TurmaFormacao>>({
+    itens: [],
+    carregando: true,
+    erro: null,
+  });
+
+  useEffect(() => {
+    if (!edicaoId) {
+      setEstado({ itens: [], carregando: false, erro: null });
+      return;
+    }
+    const cancelar = onSnapshot(
+      query(
+        collection(db(), "turmasFormacao"),
+        where("edicaoId", "==", edicaoId)
+      ),
+      (snap) => {
+        const itens = snap.docs.map((d) =>
+          turmaDeSnap(d.id, d.data() as Record<string, unknown>)
+        );
+        itens.sort((a, b) =>
+          (a.data + a.horarioInicio).localeCompare(b.data + b.horarioInicio)
+        );
+        setEstado({ itens, carregando: false, erro: null });
+      },
+      (err) =>
+        setEstado({
+          itens: [],
+          carregando: false,
+          erro: err.message ?? "Falha ao carregar turmas.",
+        })
+    );
+    return () => cancelar();
+  }, [edicaoId]);
+
+  return estado;
+}
+
+export function useFormacoes(
+  edicaoId: string | undefined
+): EstadoLista<Formacao> {
+  const [estado, setEstado] = useState<EstadoLista<Formacao>>({
+    itens: [],
+    carregando: true,
+    erro: null,
+  });
+
+  useEffect(() => {
+    if (!edicaoId) {
+      setEstado({ itens: [], carregando: false, erro: null });
+      return;
+    }
+    const cancelar = onSnapshot(
+      query(
+        collection(db(), "formacoes"),
+        where("edicaoId", "==", edicaoId)
+      ),
+      (snap) => {
+        const itens = snap.docs.map((d) =>
+          formacaoDeSnap(d.id, d.data() as Record<string, unknown>)
+        );
+        setEstado({ itens, carregando: false, erro: null });
+      },
+      (err) =>
+        setEstado({
+          itens: [],
+          carregando: false,
+          erro: err.message ?? "Falha ao carregar formações.",
+        })
+    );
+    return () => cancelar();
+  }, [edicaoId]);
 
   return estado;
 }

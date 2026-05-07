@@ -18,6 +18,12 @@ const itens: ItemNav[] = [
     label: "Entrega de crachás",
     perfis: ["ADM", "ORG", "OPC"],
   },
+  { to: "/formacao", label: "Formação", perfis: ["ADM", "ORG"] },
+  {
+    to: "/pendencias/formacao",
+    label: "Pendências de formação",
+    perfis: ["ADM", "ORG"],
+  },
   {
     to: "/pendencias/fotos",
     label: "Pendências de foto",

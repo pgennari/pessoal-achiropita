@@ -4,6 +4,7 @@ import {
   useBarracas,
   useEdicaoAtiva,
   useEntregasCracha,
+  useFormacoes,
   useParticipacoes,
   usePessoas,
 } from "../lib/hooks";
@@ -15,6 +16,7 @@ export function Painel() {
   const { itens: barracas } = useBarracas(edicao?.id);
   const { itens: participacoes } = useParticipacoes(edicao?.id);
   const { itens: entregas } = useEntregasCracha(edicao?.id);
+  const { itens: formacoes } = useFormacoes(edicao?.id);
 
   if (!sessao) return null;
 
@@ -30,6 +32,9 @@ export function Painel() {
   const pctEntregues =
     alocadas > 0 ? Math.round((entregues / alocadas) * 100) : 0;
   const semFoto = pessoas.filter((p) => p.ativo && !p.fotoUrl).length;
+  const totalFormacoes = formacoes.length;
+  const pctFormacao =
+    alocadas > 0 ? Math.round((totalFormacoes / alocadas) * 100) : 0;
 
   const numero = (n: number, carregando = false) =>
     carregando ? <span className="text-ardesia">…</span> : n;
@@ -74,8 +79,13 @@ export function Painel() {
         <div className="kpi">
           <div className="kpi-label">Formação concluída</div>
           <div className="kpi-valor">
-            — <span className="unidade">%</span>
+            {edicao ? pctFormacao : "—"} <span className="unidade">%</span>
           </div>
+          {edicao && (
+            <Link to="/pendencias/formacao" className="kpi-delta positivo">
+              {totalFormacoes} de {alocadas} alocados →
+            </Link>
+          )}
         </div>
         <div className="kpi">
           <div className="kpi-label">Crachás entregues</div>

@@ -14,6 +14,8 @@ import { Historico } from "./pages/Historico";
 import { EntregaCrachas } from "./pages/EntregaCrachas";
 import { PendenciasFoto } from "./pages/PendenciasFoto";
 import { Usuarios } from "./pages/Usuarios";
+import { PaginaFormacao } from "./pages/Formacao";
+import { PendenciasFormacao } from "./pages/PendenciasFormacao";
 
 export function App() {
   return (
@@ -39,6 +41,8 @@ export function App() {
         <Route path="historico" element={<Historico />} />
         <Route path="entregas/crachas" element={<EntregaCrachas />} />
         <Route path="pendencias/fotos" element={<PendenciasFoto />} />
+        <Route path="formacao" element={<PaginaFormacao />} />
+        <Route path="pendencias/formacao" element={<PendenciasFormacao />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="auditoria" element={<Auditoria />} />
       </Route>

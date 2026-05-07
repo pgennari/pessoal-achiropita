@@ -124,3 +124,33 @@ export interface EntregaCracha {
   operadorNome: string;
   observacao?: string;
 }
+
+export interface TurmaFormacao {
+  id: string;
+  edicaoId: string;
+  data: string; // ISO YYYY-MM-DD
+  horarioInicio: string; // HH:mm
+  horarioFim?: string;
+  local: string;
+  capacidadeMaxima: number;
+  setorVinculo?: Setor;
+  barracaIdVinculo?: string;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+export type TipoPresenca = "manual" | "validacao";
+
+export interface Formacao {
+  id: string; // formato: `${edicaoId}__${pessoaId}`
+  edicaoId: string;
+  pessoaId: string;
+  turmaId?: string;
+  presencaTipo: TipoPresenca;
+  presencaEm: string;
+  registradoPorUid: string;
+  registradoPorNome: string;
+  justificativa?: string;
+  dadosValidados: boolean;
+  validadoEm?: string;
+}

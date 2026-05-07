@@ -8,6 +8,7 @@ interface Props {
   onCancelar: () => void;
   errosServidor?: Record<string, string>;
   textoBotao?: string;
+  bloquearSensivel?: boolean;
 }
 
 function dadosIniciais(p?: Pessoa | null): DadosPessoaForm {
@@ -32,6 +33,7 @@ export function PessoaForm({
   onCancelar,
   errosServidor,
   textoBotao = "Salvar",
+  bloquearSensivel = false,
 }: Props) {
   const [dados, setDados] = useState<DadosPessoaForm>(() =>
     dadosIniciais(inicial)
@@ -162,13 +164,22 @@ export function PessoaForm({
             </label>
             <input
               id="cpf"
-              className={`input ${erros.cpf ? "erro" : ""}`}
+              className={`input ${erros.cpf ? "erro" : ""} ${
+                bloquearSensivel ? "opacity-60" : ""
+              }`}
               value={dados.cpf ?? ""}
               onChange={(e) => set("cpf", e.target.value)}
               inputMode="numeric"
               autoComplete="off"
+              disabled={bloquearSensivel}
             />
-            {erros.cpf && <p className="input-erro-msg">{erros.cpf}</p>}
+            {bloquearSensivel ? (
+              <p className="input-ajuda">
+                Só Administração altera CPF. Avise se estiver errado.
+              </p>
+            ) : (
+              erros.cpf && <p className="input-erro-msg">{erros.cpf}</p>
+            )}
           </div>
 
           <div className="input-grupo">

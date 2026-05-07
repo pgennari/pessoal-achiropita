@@ -68,6 +68,17 @@ service cloud.firestore {
         && novo.fotoUrl == velho.fotoUrl;
     }
 
+    // Cracha e CPF so podem ser alterados pelo ADM (US-02-02 criterio).
+    function preservaSensiveis(novo, velho) {
+      return novo.cracha == velho.cracha && novo.cpf == velho.cpf;
+    }
+
+    function pessoaIdDoUsuario() {
+      return temPerfilDoc()
+        ? get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.pessoaId
+        : null;
+    }
+
     // ---------- Validacoes de schema ----------
 
     function pessoaValida(d) {
@@ -173,14 +184,22 @@ service cloud.firestore {
         || (sessaoVigente() && pessoaIdDaSessao() == id);
 
       allow create: if ehAdmOuOrg() && pessoaValida(request.resource.data);
-      // Update por ADM/ORG (qualquer campo) ou pela sessao anon (campos
-      // nao sensiveis apenas).
-      allow update: if (ehAdmOuOrg() && pessoaValida(request.resource.data))
-        || (sessaoVigente()
-            && pessoaIdDaSessao() == id
-            && linkDaSessaoAtivo()
-            && pessoaValida(request.resource.data)
-            && diffPessoaSemSensiveis(request.resource.data, resource.data));
+      // Update por:
+      //   ADM: qualquer campo.
+      //   ORG: tudo menos cracha/cpf (sensiveis).
+      //   EQP self (usuario.pessoaId == id): tudo menos sensiveis.
+      //   Sessao anon publica: campos nao sensiveis amplos.
+      allow update: if pessoaValida(request.resource.data) && (
+          ehAdm()
+          || (ehAdmOuOrg() && preservaSensiveis(request.resource.data, resource.data))
+          || (temPerfilDoc()
+              && pessoaIdDoUsuario() == id
+              && preservaSensiveis(request.resource.data, resource.data))
+          || (sessaoVigente()
+              && pessoaIdDaSessao() == id
+              && linkDaSessaoAtivo()
+              && diffPessoaSemSensiveis(request.resource.data, resource.data))
+        );
       allow delete: if false;
     }
 

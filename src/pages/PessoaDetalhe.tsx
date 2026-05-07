@@ -23,7 +23,11 @@ export function PessoaDetalhe() {
   const [acaoOcupado, setAcaoOcupado] = useState(false);
 
   if (!sessao) return null;
-  const podeEditar = sessao.perfil === "ADM" || sessao.perfil === "ORG";
+  const ehProprio = !!sessao.pessoaId && sessao.pessoaId === id;
+  const podeEditar =
+    sessao.perfil === "ADM" || sessao.perfil === "ORG" || ehProprio;
+  const podeInativar = sessao.perfil === "ADM" || sessao.perfil === "ORG";
+  const bloquearSensivel = sessao.perfil !== "ADM";
 
   if (carregando) {
     return <p className="text-ardesia">Carregando...</p>;
@@ -82,6 +86,7 @@ export function PessoaDetalhe() {
               onSubmit={handleSalvar}
               onCancelar={() => setEditando(false)}
               textoBotao="Salvar alterações"
+              bloquearSensivel={bloquearSensivel}
             />
           </div>
         </div>
@@ -97,13 +102,16 @@ export function PessoaDetalhe() {
             ← Pessoas
           </Link>
           <h2 className="mt-1">{pessoa.nome}</h2>
-          <div className="text-ardesia text-sm">
+          <div className="text-ardesia text-sm flex flex-wrap items-center gap-2">
             <span className="font-mono">#{pessoa.cracha}</span>
-            {" · "}
+            <span>·</span>
             {pessoa.ativo ? (
               <span className="badge badge-verde">ativo</span>
             ) : (
               <span className="badge badge-cinza">inativo</span>
+            )}
+            {ehProprio && (
+              <span className="badge badge-azul">sua ficha</span>
             )}
           </div>
         </div>
@@ -116,25 +124,26 @@ export function PessoaDetalhe() {
             >
               Editar
             </button>
-            {pessoa.ativo ? (
-              <button
-                type="button"
-                className="btn btn-perigo"
-                onClick={() => handleAtivacao(false)}
-                disabled={acaoOcupado}
-              >
-                Inativar
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="btn btn-primario"
-                onClick={() => handleAtivacao(true)}
-                disabled={acaoOcupado}
-              >
-                Reativar
-              </button>
-            )}
+            {podeInativar &&
+              (pessoa.ativo ? (
+                <button
+                  type="button"
+                  className="btn btn-perigo"
+                  onClick={() => handleAtivacao(false)}
+                  disabled={acaoOcupado}
+                >
+                  Inativar
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-primario"
+                  onClick={() => handleAtivacao(true)}
+                  disabled={acaoOcupado}
+                >
+                  Reativar
+                </button>
+              ))}
           </div>
         )}
       </header>

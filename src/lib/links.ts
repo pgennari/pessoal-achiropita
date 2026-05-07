@@ -1,26 +1,26 @@
 import {
   Timestamp,
   doc,
+  getDocs,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
+  collection,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import {
-  LinkValidacao,
-  PessoaNoLink,
-  Pessoa,
-  StatusLink,
-  TurmaFormacao,
-} from "./tipos";
+import { LinkValidacao, StatusLink, TurmaFormacao } from "./tipos";
 import { Sessao } from "./sessao";
 import { registrarEvento } from "./auditoria";
 
 const COL = "linksValidacao";
 
+// Prazo padrao: 15 minutos apos o inicio agendado da formacao.
+const MINUTOS_APOS_INICIO = 15;
+
 export class ErroLink extends Error {}
 
-// 122 bits de entropia. URL-safe (hex).
 export function gerarToken(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID().replace(/-/g, "");
@@ -47,8 +47,6 @@ export function linkDeSnap(
     status: (data.status as StatusLink) ?? "ativo",
     contadorUsos: (data.contadorUsos as number) ?? 0,
     rotuloOpcional: (data.rotuloOpcional as string) || undefined,
-    pessoasMap:
-      (data.pessoasMap as Record<string, PessoaNoLink>) ?? {},
     criadoPorUid: (data.criadoPorUid as string) ?? "",
     criadoPorNome: (data.criadoPorNome as string) ?? "",
     criadoEm:
@@ -56,45 +54,35 @@ export function linkDeSnap(
   };
 }
 
-export interface DadosLinkTurma {
-  turma: TurmaFormacao;
-  pessoasAtivasComCracha: Pick<Pessoa, "id" | "cracha" | "nascimento" | "ativo">[];
-  expiraEm: Date;
-  rotuloOpcional?: string;
+export function calcularExpiracaoDaTurma(turma: TurmaFormacao): Date {
+  if (!turma.data || !turma.horarioInicio) {
+    // Fallback razoavel: agora + 1h.
+    return new Date(Date.now() + 60 * 60 * 1000);
+  }
+  const inicio = new Date(`${turma.data}T${turma.horarioInicio}:00`);
+  return new Date(inicio.getTime() + MINUTOS_APOS_INICIO * 60 * 1000);
 }
 
 export async function gerarLinkDeTurma(
   sessao: Sessao,
-  args: DadosLinkTurma
+  turma: TurmaFormacao,
+  expiraEm?: Date
 ): Promise<string> {
-  if (args.expiraEm <= new Date()) {
-    throw new ErroLink("Prazo de expiração precisa ser no futuro.");
-  }
-  if (!args.turma.id || !args.turma.edicaoId) {
+  if (!turma.id || !turma.edicaoId) {
     throw new ErroLink("Turma inválida.");
   }
-  const pessoasMap: Record<string, PessoaNoLink> = {};
-  for (const p of args.pessoasAtivasComCracha) {
-    if (!p.ativo) continue;
-    if (!p.cracha || !p.nascimento || p.nascimento.length < 4) continue;
-    pessoasMap[String(p.cracha)] = {
-      id: p.id,
-      ano: p.nascimento.slice(0, 4),
-    };
+  const prazo = expiraEm ?? calcularExpiracaoDaTurma(turma);
+  if (prazo <= new Date()) {
+    throw new ErroLink("Prazo de expiração precisa ser no futuro.");
   }
-  if (Object.keys(pessoasMap).length === 0) {
-    throw new ErroLink("Nenhuma pessoa elegível para incluir no link.");
-  }
-
   const token = gerarToken();
   await setDoc(doc(db(), COL, token), {
-    edicaoId: args.turma.edicaoId,
-    turmaId: args.turma.id,
-    expiraEm: Timestamp.fromDate(args.expiraEm),
+    edicaoId: turma.edicaoId,
+    turmaId: turma.id,
+    expiraEm: Timestamp.fromDate(prazo),
     status: "ativo" as StatusLink,
     contadorUsos: 0,
-    rotuloOpcional: args.rotuloOpcional ?? null,
-    pessoasMap,
+    rotuloOpcional: null,
     criadoPorUid: sessao.uid,
     criadoPorNome: sessao.nome,
     criadoEm: serverTimestamp(),
@@ -103,9 +91,9 @@ export async function gerarLinkDeTurma(
     sessao,
     "link.gerou",
     `linksValidacao/${token}`,
-    `turma ${args.turma.data} ${args.turma.horarioInicio} · ${
-      Object.keys(pessoasMap).length
-    } pessoas · expira ${args.expiraEm.toLocaleString("pt-BR")}`
+    `turma ${turma.data} ${turma.horarioInicio} · expira ${prazo.toLocaleString(
+      "pt-BR"
+    )}`
   );
   return token;
 }
@@ -123,6 +111,63 @@ export async function revogarLink(
     `linksValidacao/${link.id}`,
     `turma ${link.turmaId}`
   );
+}
+
+// Busca os links de uma turma e atualiza o prazo dos que estao
+// ativos com novo expira (em geral apos reagendamento da turma).
+export async function ajustarPrazoDosLinksAtivos(
+  sessao: Sessao,
+  turma: TurmaFormacao
+): Promise<number> {
+  const snap = await getDocs(
+    query(collection(db(), COL), where("turmaId", "==", turma.id))
+  );
+  const novoPrazo = calcularExpiracaoDaTurma(turma);
+  let atualizados = 0;
+  for (const d of snap.docs) {
+    const dados = d.data();
+    if (dados.status !== "ativo") continue;
+    await updateDoc(d.ref, {
+      expiraEm: Timestamp.fromDate(novoPrazo),
+    });
+    atualizados++;
+  }
+  if (atualizados > 0) {
+    await registrarEvento(
+      sessao,
+      "link.reagendou",
+      `linksValidacao/turma:${turma.id}`,
+      `${atualizados} link(s) reagendado(s) para ${novoPrazo.toLocaleString(
+        "pt-BR"
+      )}`
+    );
+  }
+  return atualizados;
+}
+
+export async function revogarLinksDaTurma(
+  sessao: Sessao,
+  turmaId: string
+): Promise<number> {
+  const snap = await getDocs(
+    query(collection(db(), COL), where("turmaId", "==", turmaId))
+  );
+  let revogados = 0;
+  for (const d of snap.docs) {
+    const dados = d.data();
+    if (dados.status !== "ativo") continue;
+    await updateDoc(d.ref, { status: "revogado" as StatusLink });
+    revogados++;
+  }
+  if (revogados > 0) {
+    await registrarEvento(
+      sessao,
+      "link.revogou",
+      `linksValidacao/turma:${turmaId}`,
+      `${revogados} link(s) revogado(s)`
+    );
+  }
+  return revogados;
 }
 
 export function urlPublica(token: string): string {

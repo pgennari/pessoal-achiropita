@@ -2,10 +2,11 @@ import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { LinkValidacao, Pessoa, ESTADOS_CIVIS, Filho } from "../lib/tipos";
 import {
+  abrirSessaoVazia,
   carregarLinkPublico,
   DadosValidacao,
   ErroValidacaoPublica,
-  identificarEAbrirSessao,
+  identificarPessoa,
   salvarValidacao,
 } from "../lib/validacao";
 import { calcularIdade, formatarCPF, formatarData } from "../lib/utilsDominio";
@@ -72,6 +73,11 @@ export function ValidarPublico() {
           setEtapa(r.status === "revogado" ? "revogado" : "expirado");
           return;
         }
+        // Fase 1: ja abre sessao anonima vazia. A identificacao via
+        // /buscaCracha so acontece quando o usuario submete o form.
+        const uid = await abrirSessaoVazia(r.link);
+        if (cancelado) return;
+        setUidAnonimo(uid);
         setEtapa("identificacao");
       } catch (e) {
         if (cancelado) return;
@@ -86,12 +92,11 @@ export function ValidarPublico() {
 
   async function handleIdentificacao(ev: FormEvent) {
     ev.preventDefault();
-    if (!link) return;
+    if (!link || !uidAnonimo) return;
     setErroIdent(null);
     setEtapa("verificando");
     try {
-      const r = await identificarEAbrirSessao(link, cracha, anoNasc);
-      setUidAnonimo(r.uidAnonimo);
+      const r = await identificarPessoa(link, uidAnonimo, cracha, anoNasc);
       setPessoa(r.pessoa);
       setDados(dadosIniciaisForm(r.pessoa));
       setEtapa("form");

@@ -21,6 +21,10 @@ import { Sessao } from "./sessao";
 import { Filho, Pessoa } from "./tipos";
 import { registrarEvento } from "./auditoria";
 import {
+  removerBuscaCracha,
+  sincronizarBuscaCracha,
+} from "./buscaCracha";
+import {
   ehDuplicataPorCpf,
   ehDuplicataPorNomeNascimento,
   redimensionarParaJpeg,
@@ -175,6 +179,13 @@ export async function criarPessoa(
     atualizadoEm: serverTimestamp(),
   });
 
+  await sincronizarBuscaCracha({
+    id: ref.id,
+    cracha,
+    nascimento: dados.nascimento,
+    ativo: dados.ativo,
+  } as Pessoa);
+
   await registrarEvento(
     sessao,
     "pessoa.criou",
@@ -194,10 +205,27 @@ export async function atualizarPessoa(
   const erros = validar(dados, pessoasExistentes, pessoaId);
   if (Object.keys(erros).length > 0) throw new ErroValidacao(erros);
 
+  const anterior = pessoasExistentes.find((p) => p.id === pessoaId);
+
   await updateDoc(doc(db(), COL, pessoaId), {
     ...payloadDeForm(dados),
     atualizadoEm: serverTimestamp(),
   });
+
+  // Ressincroniza a lookup se nascimento ou ativo mudou. Cracha
+  // continua estavel (nao e editavel pelo app).
+  if (
+    anterior &&
+    (anterior.nascimento !== dados.nascimento ||
+      anterior.ativo !== dados.ativo)
+  ) {
+    await sincronizarBuscaCracha({
+      id: pessoaId,
+      cracha: anterior.cracha,
+      nascimento: dados.nascimento,
+      ativo: dados.ativo,
+    } as Pessoa);
+  }
 
   await registrarEvento(
     sessao,
@@ -216,6 +244,11 @@ export async function definirAtivacao(
     ativo,
     atualizadoEm: serverTimestamp(),
   });
+  if (ativo) {
+    await sincronizarBuscaCracha({ ...pessoa, ativo } as Pessoa);
+  } else {
+    await removerBuscaCracha(pessoa.cracha);
+  }
   await registrarEvento(
     sessao,
     ativo ? "pessoa.reativou" : "pessoa.inativou",

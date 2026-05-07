@@ -321,6 +321,33 @@ async function garantirPessoas(qtdAlvo) {
     todas.push({ id: d.id, ...d.data() });
   }
   todas.sort((a, b) => a.cracha - b.cracha);
+
+  // Sincroniza /buscaCracha (lookup publica usada pela validacao
+  // anonima em /v/{token}). Ativos viram doc; inativos sao removidos.
+  let sincronizadas = 0;
+  for (const p of todas) {
+    if (!p.cracha || !p.nascimento) continue;
+    const id = String(p.cracha);
+    if (!p.ativo) {
+      try {
+        await db.collection("buscaCracha").doc(id).delete();
+      } catch {
+        // ignore
+      }
+      continue;
+    }
+    await db
+      .collection("buscaCracha")
+      .doc(id)
+      .set({
+        pessoaId: p.id,
+        anoNascimento: String(p.nascimento).slice(0, 4),
+        atualizadoEm: FieldValue.serverTimestamp(),
+      });
+    sincronizadas++;
+  }
+  console.log(`✓ ${sincronizadas} entradas em /buscaCracha`);
+
   return todas.filter((p) => p.ativo);
 }
 

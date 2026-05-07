@@ -22,7 +22,7 @@ import {
   removerFormacao,
 } from "../lib/formacoes";
 import { TurmaForm } from "../components/TurmaForm";
-import { GerarLinkDialog } from "../components/GerarLinkDialog";
+import { LinkDaTurma } from "../components/LinkDaTurma";
 import { Formacao, Pessoa, TurmaFormacao } from "../lib/tipos";
 import { formatarData, normalizar, soDigitos } from "../lib/utilsDominio";
 
@@ -47,7 +47,6 @@ export function PaginaFormacao() {
   } | null>(null);
   const [justificativa, setJustificativa] = useState("");
   const [busca, setBusca] = useState("");
-  const [turmaParaLink, setTurmaParaLink] = useState<TurmaFormacao | null>(null);
 
   const turmaEditando =
     turmas.find((t) => t.id === editandoTurmaId) ?? null;
@@ -255,79 +254,63 @@ export function PaginaFormacao() {
           </div>
         )}
 
-        <div className="card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-pietra-clara/60 text-left">
-              <tr>
-                <th className="px-4 py-3 font-semibold w-32">Data</th>
-                <th className="px-4 py-3 font-semibold w-32">Horário</th>
-                <th className="px-4 py-3 font-semibold">Local</th>
-                <th className="px-4 py-3 font-semibold w-32">Capacidade</th>
-                <th className="px-4 py-3 font-semibold hidden md:table-cell">
-                  Vínculo
-                </th>
-                <th className="px-4 py-3 font-semibold w-36 text-right">
-                  Ações
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {turmas.length === 0 && !carregandoTurmas && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-ardesia">
-                    Nenhuma turma cadastrada.
-                  </td>
-                </tr>
-              )}
-              {turmas.map((t) => {
-                const barraca = barracas.find((b) => b.id === t.barracaIdVinculo);
-                return (
-                  <tr
-                    key={t.id}
-                    className="border-t border-pietra-clara"
-                  >
-                    <td className="px-4 py-3 font-mono">
-                      {formatarData(t.data)}
-                    </td>
-                    <td className="px-4 py-3 font-mono">
-                      {t.horarioInicio}
-                      {t.horarioFim ? `–${t.horarioFim}` : ""}
-                    </td>
-                    <td className="px-4 py-3">{t.local}</td>
-                    <td className="px-4 py-3 font-mono">{t.capacidadeMaxima}</td>
-                    <td className="px-4 py-3 hidden md:table-cell text-ardesia text-xs">
-                      {barraca?.nome ?? t.setorVinculo ?? "Geral"}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2 flex-wrap">
-                        <button
-                          type="button"
-                          className="btn btn-primario btn-pequeno"
-                          onClick={() => setTurmaParaLink(t)}
-                        >
-                          Gerar link
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-secundario btn-pequeno"
-                          onClick={() => setEditandoTurmaId(t.id)}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                          onClick={() => handleRemoverTurma(t)}
-                        >
-                          Remover
-                        </button>
+        {turmas.length === 0 && !carregandoTurmas && (
+          <div className="card">
+            <div className="card-corpo text-ardesia text-center">
+              Nenhuma turma cadastrada.
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {turmas.map((t) => {
+            const barraca = barracas.find((b) => b.id === t.barracaIdVinculo);
+            return (
+              <div key={t.id} className="card">
+                <div className="card-corpo space-y-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="font-display text-xl">
+                        {formatarData(t.data)} ·{" "}
+                        <span className="font-mono">
+                          {t.horarioInicio}
+                          {t.horarioFim ? `–${t.horarioFim}` : ""}
+                        </span>
                       </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      <div className="text-ardesia text-sm">
+                        {t.local} · capacidade {t.capacidadeMaxima}
+                        {barraca
+                          ? ` · ${barraca.nome}`
+                          : t.setorVinculo
+                          ? ` · setor ${t.setorVinculo}`
+                          : ""}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-secundario btn-pequeno"
+                        onClick={() => setEditandoTurmaId(t.id)}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                        onClick={() => handleRemoverTurma(t)}
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-pietra-clara pt-4">
+                    <LinkDaTurma turma={t} />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -514,14 +497,6 @@ export function PaginaFormacao() {
           </div>
         </div>
       )}
-
-      <GerarLinkDialog
-        aberto={!!turmaParaLink}
-        turma={turmaParaLink}
-        pessoas={pessoas}
-        participacoes={participacoes}
-        onFechar={() => setTurmaParaLink(null)}
-      />
     </div>
   );
 }

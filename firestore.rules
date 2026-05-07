@@ -157,12 +157,18 @@ service cloud.firestore {
     function linkValidacaoValido(d) {
       return d.keys().hasAll([
           "edicaoId", "turmaId", "expiraEm", "status",
-          "contadorUsos", "pessoasMap", "criadoPorUid", "criadoPorNome"
+          "contadorUsos", "criadoPorUid", "criadoPorNome"
         ])
         && d.status in ["ativo", "revogado", "usado"]
         && d.contadorUsos is int && d.contadorUsos >= 0
-        && d.expiraEm is timestamp
-        && d.pessoasMap is map;
+        && d.expiraEm is timestamp;
+    }
+
+    function buscaCrachaValida(d) {
+      return d.keys().hasAll(["pessoaId", "anoNascimento"])
+        && d.pessoaId is string
+        && d.anoNascimento is string
+        && d.anoNascimento.size() == 4;
     }
 
     // ---------- Coleções ----------
@@ -272,22 +278,47 @@ service cloud.firestore {
       allow delete: if ehAdm();
     }
 
+    match /buscaCracha/{cracha} {
+      // Lookup publica para a etapa de identificacao do anon. So
+      // expoe pessoaId + anoNascimento; nao expoe nome ou outros
+      // dados sensiveis.
+      allow read: if temPerfilDoc() || sessaoVigente();
+      allow create, update: if (ehAdmOuOrg() && buscaCrachaValida(request.resource.data))
+        || (temPerfilDoc()
+            && pessoaIdDoUsuario() == request.resource.data.pessoaId
+            && buscaCrachaValida(request.resource.data));
+      allow delete: if ehAdmOuOrg();
+    }
+
     match /sessoesValidacao/{uid} {
       allow read: if autenticado() && request.auth.uid == uid;
-      // O anon so cria sessao se o segundo fator (cracha + ano) bate
-      // com a entrada do pessoasMap no link da turma. Sem isso, nao
-      // havia como o anonimo descobrir o pessoaId.
+      // Fase 1: cria sessao "vazia" amarrada ao link/turma. Sem
+      // pessoaId ainda — anon ainda nao se identificou.
       allow create: if ehAnon()
         && request.auth.uid == uid
         && exists(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token))
         && get(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token)).data.status == "ativo"
         && get(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token)).data.expiraEm > request.time
-        && get(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token)).data.pessoasMap[string(request.resource.data.cracha)].id == request.resource.data.pessoaId
-        && get(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token)).data.pessoasMap[string(request.resource.data.cracha)].ano == request.resource.data.ano
+        && get(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token)).data.turmaId == request.resource.data.turmaId
         && request.resource.data.expiraEm is timestamp
-        && request.resource.data.expiraEm > request.time;
-      // Sessao e descartavel; nao permite edicao pelo cliente.
-      allow update, delete: if false;
+        && request.resource.data.expiraEm > request.time
+        && !('pessoaId' in request.resource.data);
+      // Fase 2: vincula pessoaId apos cliente conferir o ano via
+      // /buscaCracha. So pode acrescentar pessoaId/cracha/ano; nao
+      // muda token/turmaId/expiraEm. O cracha precisa bater com o
+      // pessoaId via lookup em /buscaCracha (cross-doc).
+      allow update: if ehAnon()
+        && request.auth.uid == uid
+        && resource.data.token == request.resource.data.token
+        && resource.data.turmaId == request.resource.data.turmaId
+        && resource.data.expiraEm == request.resource.data.expiraEm
+        && !('pessoaId' in resource.data)
+        && request.resource.data.pessoaId is string
+        && request.resource.data.cracha is int
+        && exists(/databases/$(database)/documents/buscaCracha/$(string(request.resource.data.cracha)))
+        && get(/databases/$(database)/documents/buscaCracha/$(string(request.resource.data.cracha))).data.pessoaId == request.resource.data.pessoaId
+        && get(/databases/$(database)/documents/buscaCracha/$(string(request.resource.data.cracha))).data.anoNascimento == request.resource.data.ano;
+      allow delete: if false;
     }
 
     match /auditoria/{id} {

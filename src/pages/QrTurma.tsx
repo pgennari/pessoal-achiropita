@@ -93,13 +93,13 @@ export function QrTurma() {
           <h1 className="mt-2">Validação da turma</h1>
           {link && (
             <p className="text-ardesia">
-              {formatarData(link.expiraEm)} · expira{" "}
+              expira em {formatarData(link.expiraEm)}{" "}
               {new Date(link.expiraEm).toLocaleTimeString("pt-BR", {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
               {" · "}
-              {Object.keys(link.pessoasMap).length} pessoa(s) habilitada(s)
+              {link.contadorUsos} validação(ões) registradas
             </p>
           )}
         </header>

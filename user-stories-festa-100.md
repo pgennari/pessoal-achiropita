@@ -344,6 +344,12 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 **Critérios de aceite:**
 - Cada turma tem: data, horário, local, capacidade máxima
 - Vínculo opcional com setor ou barraca específica
+- Ao **criar** a turma, o app gera automaticamente um link público
+  de validação (US-06-05) com prazo de expiração **15 minutos após
+  o início agendado** da formação
+- Ao **editar** data ou horário da turma, o prazo do link existente
+  é atualizado automaticamente
+- Ao **remover** a turma, o link é revogado
 
 🟡 Média · MVP
 
@@ -372,19 +378,25 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 
 🔴 Alta · MVP
 
-### US-06-05 — Gerar link de validação para turma
+### US-06-05 — Link público de validação por turma
 **Como** ORG,
-**quero** gerar um link público de validação por turma de formação,
-**para** que os equipistas confirmem presença após validar seus dados.
+**quero** que cada turma tenha um link público fixo,
+**para** que os equipistas confirmem dados e presença na hora.
 
 **Critérios de aceite:**
-- Botão "Gerar link" na tela da turma cria token único de ~24 caracteres
-- URL pública no formato `https://achiropita100.app/v/{token}`
-- Configurar prazo de expiração com data e hora final (sugestão: 2h após o término da formação)
-- Exibe QR Code grande para projetar na sala e link curto para copiar
-- Link pode ser revogado manualmente antes da expiração
-- Painel mostra status (ativo, expirado, revogado) e contador de uso (quantos validaram)
-- Reuso: se o link expirar antes do fim da turma, ORG gera um novo com poucos cliques
+- Link gerado automaticamente ao cadastrar a turma (US-06-01)
+- Token único de ~24 caracteres; URL no formato
+  `https://achiropita100.app/v/{token}`
+- Prazo padrão: **15 minutos após o início agendado** da formação;
+  ajustado automaticamente se a turma for reagendada
+- O link **não armazena dados de pessoas** — é apenas o token + a
+  referência à turma. A identificação acontece quando alguém abre
+- QR Code é exibido na lista de turmas para projeção na sala e
+  leitura no celular; URL curta também aparece para copiar
+- Painel mostra status (ativo, expirado, revogado) e contador de
+  uso (quantos validaram pelo link)
+- Link pode ser revogado manualmente antes da expiração; ORG pode
+  gerar um novo com um clique
 
 🔴 Alta · MVP
 
@@ -394,15 +406,25 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 **para** confirmar minha presença na formação.
 
 **Critérios de aceite:**
-- Página acessível pelo link sem necessidade de login (autenticação por token + segundo fator)
-- **Se token expirado ou revogado:** tela "Prazo expirado — fale com a organização"
-- **Se válido:** identificação por número do crachá + ano de nascimento (segundo fator simples)
-- Mostra dados atuais lado a lado: nome, contato, endereço, estado civil, filhos, foto
-- Permite editar campos não-sensíveis (telefone, e-mail, endereço, filhos)
-- Permite enviar/atualizar foto pelo celular (acesso à câmera)
+- Página acessível pelo link sem necessidade de login (autenticação
+  anônima + segundo fator)
+- **Se token expirado ou revogado:** tela "Prazo expirado — fale com
+  a organização"
+- **Se válido:** identificação pedindo número do crachá + ano de
+  nascimento. O sistema busca a pessoa por crachá numa lookup
+  pública (`/buscaCracha/{cracha}`) e confere o ano
+- Mostra dados atuais: nome, contato, endereço, estado civil, filhos, foto
+- Permite editar campos não-sensíveis (telefone, e-mail, endereço,
+  bairro, estado civil, filhos)
+- TODO: enviar/atualizar foto pelo celular durante validação
+  (Storage rule cruzada com sessão anônima — pendente)
 - Botão final "Confirmar dados e presença"
-- Ao confirmar: registra `dataFormacao` na participação da edição corrente, marca `dadosValidados: true` no perfil, incrementa contador do link
-- Tela final de sucesso: "Presença registrada. Bem-vindo(a) à 100ª Festa da Achiropita."
+- Ao confirmar: atualiza pessoa, cria/atualiza
+  `/formacoes/{edicaoId__pessoaId}` com `presencaTipo=validacao`,
+  `dadosValidados=true`, `turmaId` igual ao da turma do link, e
+  incrementa o contador do link
+- Tela final de sucesso: "Presença registrada. Bem-vindo(a) à 100ª
+  Festa da Achiropita."
 
 🔴 Alta · MVP
 

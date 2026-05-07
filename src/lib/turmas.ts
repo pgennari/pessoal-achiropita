@@ -4,6 +4,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
@@ -11,6 +12,11 @@ import { db } from "./firebase";
 import { Setor, TurmaFormacao } from "./tipos";
 import { Sessao } from "./sessao";
 import { registrarEvento } from "./auditoria";
+import {
+  ajustarPrazoDosLinksAtivos,
+  gerarLinkDeTurma,
+  revogarLinksDaTurma,
+} from "./links";
 
 const COL = "turmasFormacao";
 
@@ -96,6 +102,17 @@ export async function criarTurma(
     `turmasFormacao/${ref.id}`,
     `${dados.data} ${dados.horarioInicio}`
   );
+
+  // Gera o link publico automaticamente (US-06-01 + US-06-05).
+  // Falhas aqui nao desfazem a turma criada, mas sao logadas e
+  // borbulham para que ORG saiba o que aconteceu.
+  const snap = await getDoc(ref);
+  const turmaCompleta = turmaDeSnap(
+    ref.id,
+    snap.data() as Record<string, unknown>
+  );
+  await gerarLinkDeTurma(sessao, turmaCompleta);
+
   return ref.id;
 }
 
@@ -116,12 +133,27 @@ export async function atualizarTurma(
     `turmasFormacao/${turma.id}`,
     `${dados.data} ${dados.horarioInicio}`
   );
+
+  // Se data ou horario mudaram, ajusta o prazo dos links ativos.
+  if (
+    turma.data !== dados.data ||
+    turma.horarioInicio !== dados.horarioInicio
+  ) {
+    await ajustarPrazoDosLinksAtivos(sessao, {
+      ...turma,
+      data: dados.data,
+      horarioInicio: dados.horarioInicio,
+    });
+  }
 }
 
 export async function removerTurma(
   sessao: Sessao,
   turma: TurmaFormacao
 ): Promise<void> {
+  // Revoga os links antes de deletar a turma para preservar o
+  // historico (delete cascade simples nao e possivel sem batch).
+  await revogarLinksDaTurma(sessao, turma.id);
   await deleteDoc(doc(db(), COL, turma.id));
   await registrarEvento(
     sessao,

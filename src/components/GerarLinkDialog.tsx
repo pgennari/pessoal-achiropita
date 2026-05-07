@@ -277,6 +277,16 @@ export function GerarLinkDialog({
                         >
                           {copiouToken === link.id ? "Copiado!" : "Copiar"}
                         </button>
+                        {r.texto === "ativo" && (
+                          <a
+                            href={`/v-qr/${link.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn btn-secundario btn-pequeno"
+                          >
+                            QR para projetar
+                          </a>
+                        )}
                         {link.status === "ativo" && (
                           <button
                             type="button"

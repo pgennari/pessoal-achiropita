@@ -15,6 +15,14 @@ service cloud.firestore {
       return autenticado() && perfil() in ["ADM", "ORG"];
     }
 
+    function podeOperarEntregas() {
+      return autenticado() && perfil() in ["ADM", "ORG", "OPC"];
+    }
+
+    function ehAdm() {
+      return autenticado() && perfil() == "ADM";
+    }
+
     function pessoaValida(d) {
       return d.keys().hasAll(["nome", "nascimento", "telefone", "cracha", "ativo"])
         && d.cracha is int
@@ -45,6 +53,15 @@ service cloud.firestore {
     function participacaoValida(d) {
       return d.keys().hasAll(["edicaoId", "barracaId", "pessoaId", "funcao"])
         && d.funcao in ["Coordenador", "Equipista", "Apoio"];
+    }
+
+    function entregaValida(d) {
+      return d.keys().hasAll([
+          "edicaoId", "pessoaId", "operadorUid", "operadorNome", "entregueEm"
+        ])
+        && d.edicaoId is string
+        && d.pessoaId is string
+        && d.operadorUid == request.auth.uid;
     }
 
     match /usuarios/{uid} {
@@ -78,6 +95,15 @@ service cloud.firestore {
       allow create: if ehAdmOuOrg() && participacaoValida(request.resource.data);
       allow update: if ehAdmOuOrg() && participacaoValida(request.resource.data);
       allow delete: if ehAdmOuOrg();
+    }
+
+    match /entregasCracha/{id} {
+      // Bloqueio de "segunda entrega" via rule: create funciona quando o
+      // doc nao existe; update sempre nega; so ADM pode delete (= desbloquear).
+      allow read: if autenticado();
+      allow create: if podeOperarEntregas() && entregaValida(request.resource.data);
+      allow update: if false;
+      allow delete: if ehAdm();
     }
 
     match /auditoria/{id} {

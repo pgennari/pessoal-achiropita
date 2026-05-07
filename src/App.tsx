@@ -11,6 +11,8 @@ import { Edicoes } from "./pages/Edicoes";
 import { EdicaoDetalhe } from "./pages/EdicaoDetalhe";
 import { BarracaDetalhe } from "./pages/BarracaDetalhe";
 import { Historico } from "./pages/Historico";
+import { EntregaCrachas } from "./pages/EntregaCrachas";
+import { PendenciasFoto } from "./pages/PendenciasFoto";
 
 export function App() {
   return (
@@ -34,6 +36,8 @@ export function App() {
           element={<BarracaDetalhe />}
         />
         <Route path="historico" element={<Historico />} />
+        <Route path="entregas/crachas" element={<EntregaCrachas />} />
+        <Route path="pendencias/fotos" element={<PendenciasFoto />} />
         <Route path="auditoria" element={<Auditoria />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

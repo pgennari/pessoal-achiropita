@@ -11,6 +11,7 @@ import { db } from "./firebase";
 import {
   Barraca,
   Edicao,
+  EntregaCracha,
   EventoAuditoria,
   Participacao,
   Pessoa,
@@ -20,6 +21,7 @@ import { consultaAuditoriaRecente, eventoDeSnap } from "./auditoria";
 import { edicaoDeSnap } from "./edicoes";
 import { barracaDeSnap } from "./barracas";
 import { participacaoDeSnap } from "./participacoes";
+import { entregaDeSnap } from "./entregas";
 
 export interface EstadoLista<T> {
   itens: T[];
@@ -466,6 +468,44 @@ export function useTodasParticipacoes(): EstadoLista<Participacao> {
     );
     return () => cancelar();
   }, []);
+
+  return estado;
+}
+
+export function useEntregasCracha(
+  edicaoId: string | undefined
+): EstadoLista<EntregaCracha> {
+  const [estado, setEstado] = useState<EstadoLista<EntregaCracha>>({
+    itens: [],
+    carregando: true,
+    erro: null,
+  });
+
+  useEffect(() => {
+    if (!edicaoId) {
+      setEstado({ itens: [], carregando: false, erro: null });
+      return;
+    }
+    const cancelar = onSnapshot(
+      query(
+        collection(db(), "entregasCracha"),
+        where("edicaoId", "==", edicaoId)
+      ),
+      (snap) => {
+        const itens = snap.docs.map((d) =>
+          entregaDeSnap(d.id, d.data() as Record<string, unknown>)
+        );
+        setEstado({ itens, carregando: false, erro: null });
+      },
+      (err) =>
+        setEstado({
+          itens: [],
+          carregando: false,
+          erro: err.message ?? "Falha ao carregar entregas.",
+        })
+    );
+    return () => cancelar();
+  }, [edicaoId]);
 
   return estado;
 }

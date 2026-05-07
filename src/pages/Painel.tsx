@@ -3,6 +3,7 @@ import { useSessao } from "../lib/sessao";
 import {
   useBarracas,
   useEdicaoAtiva,
+  useEntregasCracha,
   useParticipacoes,
   usePessoas,
 } from "../lib/hooks";
@@ -13,6 +14,7 @@ export function Painel() {
   const { edicao, carregando: carregandoEdicao } = useEdicaoAtiva();
   const { itens: barracas } = useBarracas(edicao?.id);
   const { itens: participacoes } = useParticipacoes(edicao?.id);
+  const { itens: entregas } = useEntregasCracha(edicao?.id);
 
   if (!sessao) return null;
 
@@ -24,6 +26,10 @@ export function Painel() {
   );
   const alocadas = participacoes.length;
   const pct = previstas > 0 ? Math.round((alocadas / previstas) * 100) : 0;
+  const entregues = entregas.length;
+  const pctEntregues =
+    alocadas > 0 ? Math.round((entregues / alocadas) * 100) : 0;
+  const semFoto = pessoas.filter((p) => p.ativo && !p.fotoUrl).length;
 
   const numero = (n: number, carregando = false) =>
     carregando ? <span className="text-ardesia">…</span> : n;
@@ -74,8 +80,22 @@ export function Painel() {
         <div className="kpi">
           <div className="kpi-label">Crachás entregues</div>
           <div className="kpi-valor">
-            — <span className="unidade">%</span>
+            {edicao ? pctEntregues : "—"} <span className="unidade">%</span>
           </div>
+          {edicao && (
+            <Link to="/entregas/crachas" className="kpi-delta positivo">
+              {entregues} de {alocadas} alocados →
+            </Link>
+          )}
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">Sem foto</div>
+          <div className="kpi-valor">
+            {semFoto} <span className="unidade">pessoa(s)</span>
+          </div>
+          <Link to="/pendencias/fotos" className="kpi-delta negativo">
+            Abrir lista →
+          </Link>
         </div>
       </div>
     </>

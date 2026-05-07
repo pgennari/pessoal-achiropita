@@ -2,9 +2,20 @@
 // Seed fixture: cria edição ativa, 15 barracas e 100 pessoas alocadas.
 // Roda localmente via Admin SDK (bypassa Security Rules).
 //
-// Uso:
-//   GOOGLE_APPLICATION_CREDENTIALS=./service-account.json \
-//     npm run seed:fixture
+// Caminhos de autenticação (na ordem de prioridade):
+//
+//   1) GOOGLE_APPLICATION_CREDENTIALS aponta para a service account JSON.
+//      Útil quando você baixou a chave do Console.
+//
+//        GOOGLE_APPLICATION_CREDENTIALS=./service-account.json \
+//          npm run seed:fixture
+//
+//   2) Application Default Credentials (sem arquivo). Funciona dentro do
+//      Cloud Shell ou onde `gcloud auth application-default login` foi
+//      executado. Precisa do project id em --project= ou na env var
+//      GOOGLE_CLOUD_PROJECT (Cloud Shell define automaticamente).
+//
+//        npm run seed:fixture -- --project=meu-projeto
 //
 // É idempotente para a mesma edição:
 //   - reaproveita a edição com status="ativa" se houver, senão cria.
@@ -14,6 +25,7 @@
 
 import fs from "node:fs";
 import {
+  applicationDefault,
   cert,
   getApps,
   initializeApp,
@@ -23,16 +35,30 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 const QTD_PESSOAS = parseInt(process.env.QTD_PESSOAS ?? "100", 10);
 
 const saPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-if (!saPath) {
-  console.error(
-    "Defina GOOGLE_APPLICATION_CREDENTIALS apontando para a service account JSON."
-  );
-  process.exit(1);
-}
+const projetoArg = process.argv
+  .find((a) => a.startsWith("--project="))
+  ?.split("=")[1];
+const projetoEnv =
+  process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
 
-const sa = JSON.parse(fs.readFileSync(saPath, "utf8"));
 if (getApps().length === 0) {
-  initializeApp({ credential: cert(sa), projectId: sa.project_id });
+  if (saPath) {
+    const sa = JSON.parse(fs.readFileSync(saPath, "utf8"));
+    initializeApp({ credential: cert(sa), projectId: sa.project_id });
+    console.log(`Autenticado via service account JSON · projeto ${sa.project_id}`);
+  } else {
+    const projeto = projetoArg || projetoEnv;
+    if (!projeto) {
+      console.error(
+        "Sem GOOGLE_APPLICATION_CREDENTIALS. Defina --project=<id> ou a env var GOOGLE_CLOUD_PROJECT."
+      );
+      process.exit(1);
+    }
+    initializeApp({ credential: applicationDefault(), projectId: projeto });
+    console.log(
+      `Autenticado via Application Default Credentials · projeto ${projeto}`
+    );
+  }
 }
 const db = getFirestore();
 
@@ -394,7 +420,7 @@ async function garantirParticipacoes(edicaoId, pessoas, barracas) {
 }
 
 async function main() {
-  console.log(`Seed fixture · projeto ${sa.project_id}`);
+  console.log("Seed fixture iniciando...");
   const edicao = await garantirEdicaoAtiva();
   const barracas = await garantirBarracas(edicao.id);
   const pessoas = await garantirPessoas(QTD_PESSOAS);

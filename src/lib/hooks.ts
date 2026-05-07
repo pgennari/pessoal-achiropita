@@ -1,15 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   collection,
   doc,
   onSnapshot,
   orderBy,
   query,
+  where,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { EventoAuditoria, Pessoa } from "./tipos";
+import {
+  Barraca,
+  Edicao,
+  EventoAuditoria,
+  Participacao,
+  Pessoa,
+} from "./tipos";
 import { pessoaDeSnap } from "./pessoas";
 import { consultaAuditoriaRecente, eventoDeSnap } from "./auditoria";
+import { edicaoDeSnap } from "./edicoes";
+import { barracaDeSnap } from "./barracas";
+import { participacaoDeSnap } from "./participacoes";
 
 export interface EstadoLista<T> {
   itens: T[];
@@ -91,6 +101,244 @@ export function usePessoa(id: string | undefined): EstadoItem<Pessoa> {
   }, [id]);
 
   return estado;
+}
+
+export function useEdicoes(): EstadoLista<Edicao> {
+  const [estado, setEstado] = useState<EstadoLista<Edicao>>({
+    itens: [],
+    carregando: true,
+    erro: null,
+  });
+
+  useEffect(() => {
+    const cancelar = onSnapshot(
+      query(collection(db(), "edicoes"), orderBy("ano", "desc")),
+      (snap) => {
+        const itens = snap.docs.map((d) =>
+          edicaoDeSnap(d.id, d.data() as Record<string, unknown>)
+        );
+        setEstado({ itens, carregando: false, erro: null });
+      },
+      (err) =>
+        setEstado({
+          itens: [],
+          carregando: false,
+          erro: err.message ?? "Falha ao carregar edições.",
+        })
+    );
+    return () => cancelar();
+  }, []);
+
+  return estado;
+}
+
+export interface EstadoEdicaoAtiva {
+  edicao: Edicao | null;
+  carregando: boolean;
+  erro: string | null;
+}
+
+export function useEdicaoAtiva(): EstadoEdicaoAtiva {
+  const [estado, setEstado] = useState<EstadoEdicaoAtiva>({
+    edicao: null,
+    carregando: true,
+    erro: null,
+  });
+
+  useEffect(() => {
+    const cancelar = onSnapshot(
+      query(collection(db(), "edicoes"), where("status", "==", "ativa")),
+      (snap) => {
+        const docSnap = snap.docs[0];
+        const edicao = docSnap
+          ? edicaoDeSnap(docSnap.id, docSnap.data() as Record<string, unknown>)
+          : null;
+        setEstado({ edicao, carregando: false, erro: null });
+      },
+      (err) =>
+        setEstado({
+          edicao: null,
+          carregando: false,
+          erro: err.message ?? "Falha ao carregar edição ativa.",
+        })
+    );
+    return () => cancelar();
+  }, []);
+
+  return estado;
+}
+
+export function useEdicao(id: string | undefined): EstadoItem<Edicao> {
+  const [estado, setEstado] = useState<EstadoItem<Edicao>>({
+    item: null,
+    carregando: true,
+    erro: null,
+  });
+
+  useEffect(() => {
+    if (!id) {
+      setEstado({ item: null, carregando: false, erro: null });
+      return;
+    }
+    const cancelar = onSnapshot(
+      doc(db(), "edicoes", id),
+      (snap) => {
+        if (!snap.exists())
+          setEstado({
+            item: null,
+            carregando: false,
+            erro: "Edição não encontrada.",
+          });
+        else
+          setEstado({
+            item: edicaoDeSnap(
+              snap.id,
+              snap.data() as Record<string, unknown>
+            ),
+            carregando: false,
+            erro: null,
+          });
+      },
+      (err) =>
+        setEstado({
+          item: null,
+          carregando: false,
+          erro: err.message ?? "Falha ao carregar edição.",
+        })
+    );
+    return () => cancelar();
+  }, [id]);
+
+  return estado;
+}
+
+export function useBarracas(edicaoId: string | undefined): EstadoLista<Barraca> {
+  const [estado, setEstado] = useState<EstadoLista<Barraca>>({
+    itens: [],
+    carregando: true,
+    erro: null,
+  });
+
+  useEffect(() => {
+    if (!edicaoId) {
+      setEstado({ itens: [], carregando: false, erro: null });
+      return;
+    }
+    const cancelar = onSnapshot(
+      query(collection(db(), "barracas"), where("edicaoId", "==", edicaoId)),
+      (snap) => {
+        const itens = snap.docs.map((d) =>
+          barracaDeSnap(d.id, d.data() as Record<string, unknown>)
+        );
+        itens.sort(
+          (a, b) =>
+            a.setor.localeCompare(b.setor) || a.nome.localeCompare(b.nome)
+        );
+        setEstado({ itens, carregando: false, erro: null });
+      },
+      (err) =>
+        setEstado({
+          itens: [],
+          carregando: false,
+          erro: err.message ?? "Falha ao carregar barracas.",
+        })
+    );
+    return () => cancelar();
+  }, [edicaoId]);
+
+  return estado;
+}
+
+export function useBarraca(id: string | undefined): EstadoItem<Barraca> {
+  const [estado, setEstado] = useState<EstadoItem<Barraca>>({
+    item: null,
+    carregando: true,
+    erro: null,
+  });
+
+  useEffect(() => {
+    if (!id) {
+      setEstado({ item: null, carregando: false, erro: null });
+      return;
+    }
+    const cancelar = onSnapshot(
+      doc(db(), "barracas", id),
+      (snap) => {
+        if (!snap.exists())
+          setEstado({
+            item: null,
+            carregando: false,
+            erro: "Barraca não encontrada.",
+          });
+        else
+          setEstado({
+            item: barracaDeSnap(
+              snap.id,
+              snap.data() as Record<string, unknown>
+            ),
+            carregando: false,
+            erro: null,
+          });
+      },
+      (err) =>
+        setEstado({
+          item: null,
+          carregando: false,
+          erro: err.message ?? "Falha ao carregar barraca.",
+        })
+    );
+    return () => cancelar();
+  }, [id]);
+
+  return estado;
+}
+
+export function useParticipacoes(
+  edicaoId: string | undefined
+): EstadoLista<Participacao> {
+  const [estado, setEstado] = useState<EstadoLista<Participacao>>({
+    itens: [],
+    carregando: true,
+    erro: null,
+  });
+
+  useEffect(() => {
+    if (!edicaoId) {
+      setEstado({ itens: [], carregando: false, erro: null });
+      return;
+    }
+    const cancelar = onSnapshot(
+      query(
+        collection(db(), "participacoes"),
+        where("edicaoId", "==", edicaoId)
+      ),
+      (snap) => {
+        const itens = snap.docs.map((d) =>
+          participacaoDeSnap(d.id, d.data() as Record<string, unknown>)
+        );
+        setEstado({ itens, carregando: false, erro: null });
+      },
+      (err) =>
+        setEstado({
+          itens: [],
+          carregando: false,
+          erro: err.message ?? "Falha ao carregar participações.",
+        })
+    );
+    return () => cancelar();
+  }, [edicaoId]);
+
+  return estado;
+}
+
+// Indexa pessoas por id e por crachá; útil em telas que cruzam
+// participações com pessoas sem buscar uma a uma.
+export function useIndicePessoas(pessoas: Pessoa[]) {
+  return useMemo(() => {
+    const porId = new Map<string, Pessoa>();
+    for (const p of pessoas) porId.set(p.id, p);
+    return porId;
+  }, [pessoas]);
 }
 
 export function useAuditoriaRecente(qtd = 100): EstadoLista<EventoAuditoria> {

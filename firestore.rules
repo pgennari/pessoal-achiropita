@@ -15,8 +15,6 @@ service cloud.firestore {
       return autenticado() && perfil() in ["ADM", "ORG"];
     }
 
-    // Lista de campos esperados num documento de Pessoa. Mantém o
-    // schema apertado mas sem validação por tipo (o cliente já fez).
     function pessoaValida(d) {
       return d.keys().hasAll(["nome", "nascimento", "telefone", "cracha", "ativo"])
         && d.cracha is int
@@ -25,24 +23,64 @@ service cloud.firestore {
         && d.nascimento is string;
     }
 
+    function edicaoValida(d) {
+      return d.keys().hasAll(["numero", "ano", "inicio", "fim", "status"])
+        && d.numero is int
+        && d.ano is int
+        && d.status in ["planejamento", "ativa", "encerrada"];
+    }
+
+    function barracaValida(d) {
+      return d.keys().hasAll([
+          "edicaoId", "nome", "setor",
+          "vagasCoordenador", "vagasEquipista", "vagasApoio"
+        ])
+        && d.nome is string
+        && d.setor in ["Interna", "Externa", "Alimentacao"]
+        && d.vagasCoordenador is int && d.vagasCoordenador >= 0
+        && d.vagasEquipista is int && d.vagasEquipista >= 0
+        && d.vagasApoio is int && d.vagasApoio >= 0;
+    }
+
+    function participacaoValida(d) {
+      return d.keys().hasAll(["edicaoId", "barracaId", "pessoaId", "funcao"])
+        && d.funcao in ["Coordenador", "Equipista", "Apoio"];
+    }
+
     match /usuarios/{uid} {
       allow read: if autenticado() && request.auth.uid == uid;
       allow write: if false;
     }
 
     match /pessoas/{id} {
-      // Catálogo de pessoas é visível a qualquer usuário autenticado:
-      // todos os perfis precisam consultar/buscar pessoas no app.
       allow read: if autenticado();
       allow create: if ehAdmOuOrg() && pessoaValida(request.resource.data);
       allow update: if ehAdmOuOrg() && pessoaValida(request.resource.data);
-      // Sem delete: removemos via inativação (ativo = false).
       allow delete: if false;
     }
 
+    match /edicoes/{id} {
+      allow read: if autenticado();
+      allow create: if ehAdmOuOrg() && edicaoValida(request.resource.data);
+      allow update: if ehAdmOuOrg() && edicaoValida(request.resource.data);
+      allow delete: if false;
+    }
+
+    match /barracas/{id} {
+      allow read: if autenticado();
+      allow create: if ehAdmOuOrg() && barracaValida(request.resource.data);
+      allow update: if ehAdmOuOrg() && barracaValida(request.resource.data);
+      allow delete: if ehAdmOuOrg();
+    }
+
+    match /participacoes/{id} {
+      allow read: if autenticado();
+      allow create: if ehAdmOuOrg() && participacaoValida(request.resource.data);
+      allow update: if ehAdmOuOrg() && participacaoValida(request.resource.data);
+      allow delete: if ehAdmOuOrg();
+    }
+
     match /auditoria/{id} {
-      // Append-only: ADM/ORG leem; qualquer autenticado escreve seu
-      // próprio evento; ninguém edita ou apaga.
       allow read: if ehAdmOuOrg();
       allow create: if autenticado()
         && request.resource.data.autor == request.auth.uid

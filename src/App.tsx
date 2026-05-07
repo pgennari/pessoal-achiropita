@@ -7,6 +7,9 @@ import { Pessoas } from "./pages/Pessoas";
 import { PessoaNova } from "./pages/PessoaNova";
 import { PessoaDetalhe } from "./pages/PessoaDetalhe";
 import { Auditoria } from "./pages/Auditoria";
+import { Edicoes } from "./pages/Edicoes";
+import { EdicaoDetalhe } from "./pages/EdicaoDetalhe";
+import { BarracaDetalhe } from "./pages/BarracaDetalhe";
 
 export function App() {
   return (
@@ -23,6 +26,12 @@ export function App() {
         <Route path="pessoas" element={<Pessoas />} />
         <Route path="pessoas/nova" element={<PessoaNova />} />
         <Route path="pessoas/:id" element={<PessoaDetalhe />} />
+        <Route path="edicoes" element={<Edicoes />} />
+        <Route path="edicoes/:id" element={<EdicaoDetalhe />} />
+        <Route
+          path="edicoes/:edicaoId/barracas/:id"
+          element={<BarracaDetalhe />}
+        />
         <Route path="auditoria" element={<Auditoria />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

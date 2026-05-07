@@ -11,6 +11,7 @@ interface ItemNav {
 const itens: ItemNav[] = [
   { to: "/", label: "Painel" },
   { to: "/pessoas", label: "Pessoas" },
+  { to: "/edicoes", label: "Edições" },
   { to: "/auditoria", label: "Auditoria", perfis: ["ADM", "ORG"] },
 ];
 

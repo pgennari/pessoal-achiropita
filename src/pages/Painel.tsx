@@ -1,16 +1,31 @@
 import { Link } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
-import { usePessoas } from "../lib/hooks";
+import {
+  useBarracas,
+  useEdicaoAtiva,
+  useParticipacoes,
+  usePessoas,
+} from "../lib/hooks";
 
 export function Painel() {
   const { sessao } = useSessao();
-  const { itens, carregando } = usePessoas();
+  const { itens: pessoas, carregando: carregandoPessoas } = usePessoas();
+  const { edicao, carregando: carregandoEdicao } = useEdicaoAtiva();
+  const { itens: barracas } = useBarracas(edicao?.id);
+  const { itens: participacoes } = useParticipacoes(edicao?.id);
 
   if (!sessao) return null;
 
-  const ativas = itens.filter((p) => p.ativo).length;
-  const total = itens.length;
-  const numero = (n: number) =>
+  const ativas = pessoas.filter((p) => p.ativo).length;
+  const total = pessoas.length;
+  const previstas = barracas.reduce(
+    (acc, b) => acc + b.vagasCoordenador + b.vagasEquipista + b.vagasApoio,
+    0
+  );
+  const alocadas = participacoes.length;
+  const pct = previstas > 0 ? Math.round((alocadas / previstas) * 100) : 0;
+
+  const numero = (n: number, carregando = false) =>
     carregando ? <span className="text-ardesia">…</span> : n;
 
   return (
@@ -19,8 +34,12 @@ export function Painel() {
         <div className="eyebrow">Início</div>
         <h1 className="mt-2">Painel da edição corrente</h1>
         <p className="text-ardesia mt-2 max-w-prose">
-          Bem-vindo, {sessao.nome.split(" ")[0]}. Os indicadores da edição vão
-          aparecer aqui assim que houver dados cadastrados.
+          Bem-vindo, {sessao.nome.split(" ")[0]}.{" "}
+          {carregandoEdicao
+            ? ""
+            : edicao
+            ? `${edicao.numero}ª edição (${edicao.ano}) está ativa.`
+            : "Nenhuma edição ativa — abra ou crie uma em Edições."}
         </p>
       </div>
 
@@ -28,7 +47,8 @@ export function Painel() {
         <div className="kpi">
           <div className="kpi-label">Pessoas ativas</div>
           <div className="kpi-valor">
-            {numero(ativas)} <span className="unidade">de {numero(total)}</span>
+            {numero(ativas, carregandoPessoas)}{" "}
+            <span className="unidade">de {numero(total, carregandoPessoas)}</span>
           </div>
           <Link to="/pessoas" className="kpi-delta positivo">
             Abrir cadastro →
@@ -37,8 +57,13 @@ export function Painel() {
         <div className="kpi">
           <div className="kpi-label">Vagas preenchidas</div>
           <div className="kpi-valor">
-            — <span className="unidade">%</span>
+            {edicao ? pct : "—"} <span className="unidade">%</span>
           </div>
+          {edicao && (
+            <Link to={`/edicoes/${edicao.id}`} className="kpi-delta positivo">
+              {alocadas} de {previstas} vagas →
+            </Link>
+          )}
         </div>
         <div className="kpi">
           <div className="kpi-label">Formação concluída</div>

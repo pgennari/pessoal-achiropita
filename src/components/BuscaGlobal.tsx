@@ -1,15 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { usePessoas } from "../lib/hooks";
+import {
+  useBarracas,
+  useEdicaoAtiva,
+  useParticipacoes,
+  usePessoas,
+} from "../lib/hooks";
 import { normalizar, soDigitos } from "../lib/utilsDominio";
-import { Pessoa } from "../lib/tipos";
+import { Funcao, Pessoa } from "../lib/tipos";
 
 interface Props {
   aberto: boolean;
   onFechar: () => void;
 }
 
-const LIMITE = 12;
+const LIMITE = 20;
+
+interface ContextoEdicao {
+  barracaNome?: string;
+  funcao?: Funcao;
+}
 
 function pontuar(p: Pessoa, termo: string): number {
   const n = normalizar(p.nome);
@@ -29,6 +39,9 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
   const [termo, setTermo] = useState("");
   const [destaque, setDestaque] = useState(0);
   const { itens } = usePessoas();
+  const { edicao } = useEdicaoAtiva();
+  const { itens: participacoes } = useParticipacoes(edicao?.id);
+  const { itens: barracas } = useBarracas(edicao?.id);
 
   useEffect(() => {
     if (aberto) {
@@ -47,6 +60,18 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [aberto, onFechar]);
+
+  const indiceContexto = useMemo(() => {
+    const barrPorId = new Map(barracas.map((b) => [b.id, b.nome]));
+    const m = new Map<string, ContextoEdicao>();
+    for (const p of participacoes) {
+      m.set(p.pessoaId, {
+        barracaNome: barrPorId.get(p.barracaId),
+        funcao: p.funcao,
+      });
+    }
+    return m;
+  }, [participacoes, barracas]);
 
   const resultados = useMemo(() => {
     if (!termo.trim()) return itens.slice(0, LIMITE);
@@ -110,31 +135,61 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
               Nenhuma pessoa encontrada.
             </li>
           )}
-          {resultados.map((p, idx) => (
-            <li key={p.id}>
-              <button
-                type="button"
-                className={`w-full text-left px-4 py-2.5 flex items-center justify-between gap-3 transition ${
-                  idx === destaque
-                    ? "bg-pietra-clara"
-                    : "hover:bg-pietra-clara/60"
-                }`}
-                onMouseEnter={() => setDestaque(idx)}
-                onClick={() => abrir(p)}
-              >
-                <div className="min-w-0">
-                  <div className="font-semibold text-carbone truncate">
-                    {p.nome}
+          {resultados.map((p, idx) => {
+            const ctx = indiceContexto.get(p.id);
+            const inicial = p.nome.trim().charAt(0).toUpperCase() || "?";
+            return (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  className={`w-full text-left px-3 py-2 flex items-center gap-3 transition ${
+                    idx === destaque
+                      ? "bg-pietra-clara"
+                      : "hover:bg-pietra-clara/60"
+                  }`}
+                  onMouseEnter={() => setDestaque(idx)}
+                  onClick={() => abrir(p)}
+                >
+                  <div
+                    aria-hidden
+                    className="h-9 w-9 shrink-0 rounded-full bg-pietra-clara overflow-hidden flex items-center justify-center text-bianco font-display text-sm"
+                    style={
+                      p.fotoUrl
+                        ? undefined
+                        : {
+                            background:
+                              "linear-gradient(135deg, #2E9D52, #16753A)",
+                          }
+                    }
+                  >
+                    {p.fotoUrl ? (
+                      <img
+                        src={p.fotoUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      inicial
+                    )}
                   </div>
-                  <div className="text-xs text-ardesia font-mono">
-                    #{p.cracha}
-                    {p.email ? ` · ${p.email}` : ""}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-carbone truncate">
+                      {p.nome}
+                    </div>
+                    <div className="text-xs text-ardesia font-mono truncate">
+                      #{p.cracha}
+                      {ctx?.barracaNome
+                        ? ` · ${ctx.barracaNome} · ${ctx.funcao}`
+                        : edicao
+                        ? " · sem alocação"
+                        : ""}
+                    </div>
                   </div>
-                </div>
-                {!p.ativo && <span className="badge badge-cinza">inativo</span>}
-              </button>
-            </li>
-          ))}
+                  {!p.ativo && <span className="badge badge-cinza">inativo</span>}
+                </button>
+              </li>
+            );
+          })}
         </ul>
         <div className="border-t border-pietra-clara px-4 py-2 text-xs text-ardesia font-mono flex items-center gap-3">
           <span>↑↓ navegar</span>

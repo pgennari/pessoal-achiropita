@@ -13,6 +13,7 @@ export function normalizar(texto: string): string {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
+    .replace(/\s+/g, " ")
     .trim();
 }
 

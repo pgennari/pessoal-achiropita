@@ -627,9 +627,8 @@ export function useFormacoes(
   return estado;
 }
 
-export function useLinksDaPessoa(
-  pessoaId: string | undefined,
-  edicaoId: string | undefined
+export function useLinksDaTurma(
+  turmaId: string | undefined
 ): EstadoLista<LinkValidacao> {
   const [estado, setEstado] = useState<EstadoLista<LinkValidacao>>({
     itens: [],
@@ -638,15 +637,14 @@ export function useLinksDaPessoa(
   });
 
   useEffect(() => {
-    if (!pessoaId || !edicaoId) {
+    if (!turmaId) {
       setEstado({ itens: [], carregando: false, erro: null });
       return;
     }
     const cancelar = onSnapshot(
       query(
         collection(db(), "linksValidacao"),
-        where("pessoaId", "==", pessoaId),
-        where("edicaoId", "==", edicaoId)
+        where("turmaId", "==", turmaId)
       ),
       (snap) => {
         const itens = snap.docs.map((d) =>
@@ -663,7 +661,7 @@ export function useLinksDaPessoa(
         })
     );
     return () => cancelar();
-  }, [pessoaId, edicaoId]);
+  }, [turmaId]);
 
   return estado;
 }

@@ -1,65 +1,98 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSessao } from "../lib/sessao";
-import { LinkValidacao, Pessoa } from "../lib/tipos";
+import {
+  LinkValidacao,
+  Participacao,
+  Pessoa,
+  TurmaFormacao,
+} from "../lib/tipos";
 import {
   ErroLink,
-  gerarLinkIndividual,
+  gerarLinkDeTurma,
   revogarLink,
   urlPublica,
 } from "../lib/links";
-import { useLinksDaPessoa } from "../lib/hooks";
+import { useLinksDaTurma } from "../lib/hooks";
 import { formatarData } from "../lib/utilsDominio";
+
+type Escopo = "alocadosNaEdicao" | "alocadosNaBarracaDaTurma";
 
 interface Props {
   aberto: boolean;
-  pessoa: Pessoa | null;
-  edicaoId: string | undefined;
+  turma: TurmaFormacao | null;
+  pessoas: Pessoa[];
+  participacoes: Participacao[];
   onFechar: () => void;
 }
 
-function dataPadrao(): string {
-  // Default expiration: 7 dias a partir de hoje, 23:59 local.
-  const d = new Date();
-  d.setDate(d.getDate() + 7);
-  d.setHours(23, 59, 0, 0);
-  return d.toISOString().slice(0, 16);
+function inicialDateTime(turma: TurmaFormacao | null): string {
+  // Default: data + horarioInicio da turma (US-06-05 ajustada).
+  if (!turma || !turma.data || !turma.horarioInicio) {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    d.setHours(20, 0, 0, 0);
+    return d.toISOString().slice(0, 16);
+  }
+  return `${turma.data}T${turma.horarioInicio}`;
 }
 
 export function GerarLinkDialog({
   aberto,
-  pessoa,
-  edicaoId,
+  turma,
+  pessoas,
+  participacoes,
   onFechar,
 }: Props) {
   const { sessao } = useSessao();
-  const [expiraEmLocal, setExpiraEmLocal] = useState<string>(dataPadrao());
+  const [expiraEmLocal, setExpiraEmLocal] = useState<string>(
+    inicialDateTime(turma)
+  );
+  const [escopo, setEscopo] = useState<Escopo>("alocadosNaEdicao");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [copiouToken, setCopiouToken] = useState<string | null>(null);
 
-  const { itens: links } = useLinksDaPessoa(pessoa?.id, edicaoId);
+  const { itens: links } = useLinksDaTurma(turma?.id);
 
   useEffect(() => {
     if (aberto) {
-      setExpiraEmLocal(dataPadrao());
+      setExpiraEmLocal(inicialDateTime(turma));
       setErro(null);
       setCopiouToken(null);
+      setEscopo(
+        turma?.barracaIdVinculo ? "alocadosNaBarracaDaTurma" : "alocadosNaEdicao"
+      );
     }
-  }, [aberto, pessoa?.id]);
+  }, [aberto, turma?.id]);
 
-  if (!aberto || !pessoa || !edicaoId || !sessao) return null;
+  const pessoasNoEscopo = useMemo<Pessoa[]>(() => {
+    if (!turma) return [];
+    const ativosPorId = new Map(
+      pessoas.filter((p) => p.ativo).map((p) => [p.id, p])
+    );
+    if (escopo === "alocadosNaBarracaDaTurma" && turma.barracaIdVinculo) {
+      const idsBarraca = new Set(
+        participacoes
+          .filter((p) => p.barracaId === turma.barracaIdVinculo)
+          .map((p) => p.pessoaId)
+      );
+      return pessoas.filter((p) => ativosPorId.has(p.id) && idsBarraca.has(p.id));
+    }
+    const idsAlocados = new Set(participacoes.map((p) => p.pessoaId));
+    return pessoas.filter((p) => ativosPorId.has(p.id) && idsAlocados.has(p.id));
+  }, [escopo, pessoas, participacoes, turma]);
+
+  if (!aberto || !turma || !sessao) return null;
 
   async function handleGerar() {
-    if (!sessao || !pessoa || !edicaoId) return;
+    if (!sessao || !turma) return;
     setErro(null);
     setEnviando(true);
     try {
       const expiraEm = new Date(expiraEmLocal);
-      await gerarLinkIndividual(sessao, {
-        pessoaId: pessoa.id,
-        pessoaNome: pessoa.nome,
-        cracha: pessoa.cracha,
-        edicaoId,
+      await gerarLinkDeTurma(sessao, {
+        turma,
+        pessoasAtivasComCracha: pessoasNoEscopo,
         expiraEm,
       });
     } catch (e) {
@@ -71,11 +104,11 @@ export function GerarLinkDialog({
   }
 
   async function handleRevogar(link: LinkValidacao) {
-    if (!sessao || !pessoa) return;
+    if (!sessao) return;
     if (!confirm("Revogar este link? Quem clicar verá 'prazo expirado'.")) return;
     setErro(null);
     try {
-      await revogarLink(sessao, link, pessoa.nome);
+      await revogarLink(sessao, link);
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Falha ao revogar.");
     }
@@ -108,7 +141,7 @@ export function GerarLinkDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[8vh] px-4 bg-carbone/40"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[6vh] px-4 bg-carbone/40"
       onClick={onFechar}
     >
       <div
@@ -117,9 +150,12 @@ export function GerarLinkDialog({
       >
         <div className="card-corpo space-y-5">
           <div>
-            <div className="eyebrow">Validação pública</div>
-            <h3>{pessoa.nome}</h3>
-            <p className="text-ardesia text-sm font-mono">#{pessoa.cracha}</p>
+            <div className="eyebrow">Validação pública · turma</div>
+            <h3>
+              {formatarData(turma.data)} · {turma.horarioInicio}
+              {turma.horarioFim ? `–${turma.horarioFim}` : ""}
+            </h3>
+            <p className="text-ardesia text-sm">{turma.local}</p>
           </div>
 
           {erro && (
@@ -129,13 +165,55 @@ export function GerarLinkDialog({
           )}
 
           <div className="space-y-3">
-            <h4 className="m-0">Gerar novo link individual</h4>
+            <h4 className="m-0">Gerar novo link</h4>
             <p className="text-ardesia text-sm">
-              Link com token único, amarrado a esta pessoa. Quem abrir confirma
-              os dados, registra presença e marca <em>dadosValidados</em>. O
-              link continua aceitando confirmações até o prazo escolhido (a
-              pessoa pode reabrir se precisar corrigir algo).
+              O link cobre as pessoas escolhidas; cada uma se identifica com
+              número de crachá e ano de nascimento (segundo fator). Por padrão
+              expira no início desta formação.
             </p>
+
+            <div className="input-grupo m-0">
+              <label className="input-label">Quem o link cobre</label>
+              <div className="flex flex-col gap-2 text-sm">
+                <label className="flex items-start gap-2">
+                  <input
+                    type="radio"
+                    className="mt-1"
+                    checked={escopo === "alocadosNaEdicao"}
+                    onChange={() => setEscopo("alocadosNaEdicao")}
+                  />
+                  <span>
+                    Todos os alocados na edição corrente
+                    <span className="text-ardesia">
+                      {" — "}
+                      {escopo === "alocadosNaEdicao"
+                        ? `${pessoasNoEscopo.length} pessoa(s)`
+                        : ""}
+                    </span>
+                  </span>
+                </label>
+                {turma.barracaIdVinculo && (
+                  <label className="flex items-start gap-2">
+                    <input
+                      type="radio"
+                      className="mt-1"
+                      checked={escopo === "alocadosNaBarracaDaTurma"}
+                      onChange={() => setEscopo("alocadosNaBarracaDaTurma")}
+                    />
+                    <span>
+                      Apenas alocados na barraca vinculada
+                      <span className="text-ardesia">
+                        {" — "}
+                        {escopo === "alocadosNaBarracaDaTurma"
+                          ? `${pessoasNoEscopo.length} pessoa(s)`
+                          : ""}
+                      </span>
+                    </span>
+                  </label>
+                )}
+              </div>
+            </div>
+
             <div className="flex flex-wrap items-end gap-3">
               <div className="input-grupo m-0 flex-1 min-w-[220px]">
                 <label className="input-label" htmlFor="expira">
@@ -148,12 +226,16 @@ export function GerarLinkDialog({
                   value={expiraEmLocal}
                   onChange={(e) => setExpiraEmLocal(e.target.value)}
                 />
+                <p className="input-ajuda">
+                  Default: início da formação. Ajuste se quiser permitir
+                  validação após o término.
+                </p>
               </div>
               <button
                 type="button"
                 className="btn btn-primario"
                 onClick={handleGerar}
-                disabled={enviando}
+                disabled={enviando || pessoasNoEscopo.length === 0}
               >
                 {enviando ? "Gerando..." : "Gerar link"}
               </button>
@@ -162,7 +244,7 @@ export function GerarLinkDialog({
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="m-0">Links desta pessoa nesta edição</h4>
+              <h4 className="m-0">Links desta turma</h4>
               <span className="text-xs text-ardesia">
                 {ativos.length} ativo(s) · {links.length} total
               </span>
@@ -173,14 +255,15 @@ export function GerarLinkDialog({
               <ul className="divide-y divide-pietra-clara border border-pietra-clara rounded-sm">
                 {links.map((link) => {
                   const r = rotuloStatus(link);
+                  const total = Object.keys(link.pessoasMap).length;
                   return (
                     <li key={link.id} className="px-3 py-3 space-y-2">
                       <div className="flex flex-wrap items-baseline gap-2">
                         <span className={r.classe}>{r.texto}</span>
                         <span className="text-ardesia text-xs">
                           expira {formatarData(link.expiraEm)} ·{" "}
-                          {link.contadorUsos} uso(s) ·{" "}
-                          criado por {link.criadoPorNome}
+                          {link.contadorUsos}/{total} usaram · criado por{" "}
+                          {link.criadoPorNome}
                         </span>
                       </div>
                       <code className="block bg-pietra-clara/40 rounded-sm px-2 py-1 text-xs break-all">

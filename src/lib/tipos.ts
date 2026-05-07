@@ -141,14 +141,24 @@ export interface TurmaFormacao {
 
 export type StatusLink = "ativo" | "revogado" | "usado";
 
+// Link de validacao publica e amarrado a uma turma de formacao
+// (US-06-05). O pessoasMap embute o cruzamento cracha → pessoaId/ano
+// de quem pode usar o link, evitando leitura previa de pessoas para
+// o usuario anonimo durante a etapa de identificacao.
+export interface PessoaNoLink {
+  id: string; // pessoaId
+  ano: string; // YYYY do nascimento, segundo fator
+}
+
 export interface LinkValidacao {
   id: string; // = token
-  pessoaId: string;
   edicaoId: string;
+  turmaId: string;
   expiraEm: string; // ISO
   status: StatusLink;
   contadorUsos: number;
   rotuloOpcional?: string;
+  pessoasMap: Record<string, PessoaNoLink>; // chave: cracha em string
   criadoPorUid: string;
   criadoPorNome: string;
   criadoEm: string;
@@ -159,6 +169,7 @@ export interface SessaoValidacao {
   token: string;
   pessoaId: string;
   edicaoId: string;
+  turmaId: string;
   expiraEm: string;
   criadoEm: string;
 }

@@ -1,10 +1,13 @@
-// Fluxo da pagina publica /v/{token} (US-06-06).
+// Fluxo da pagina publica /v/{token} (US-06-05 + US-06-06).
 //
-// Requer rules cruzadas para funcionar (slice 6b):
-//   - linksValidacao read publico
-//   - sessoesValidacao create por anon valido
-//   - pessoas read/update gated por sessao
-//   - formacoes create/update gated por sessao
+// Modelo:
+//   - O link e da turma e tem um pessoasMap embutido (cracha -> {id,ano}).
+//   - Etapa 1 (identificacao): o usuario informa cracha + ano de
+//     nascimento. Cliente cruza com pessoasMap, descobre pessoaId e
+//     so entao cria a /sessoesValidacao. Sem isso, o anonimo nao
+//     conseguiria ler /pessoas (rules exigem sessao com pessoaId).
+//   - Etapa 2 (form): com a sessao em vigor, le a pessoa, atualiza
+//     dados nao sensiveis e confirma presenca/dadosValidados.
 
 import { signInAnonymously } from "firebase/auth";
 import {
@@ -17,9 +20,8 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
-import { LinkValidacao, Pessoa, StatusLink } from "./tipos";
+import { Filho, LinkValidacao, Pessoa, StatusLink } from "./tipos";
 import { linkDeSnap } from "./links";
-import { Filho } from "./tipos";
 import { idFormacao } from "./formacoes";
 import { pessoaDeSnap } from "./pessoas";
 import { soDigitos } from "./utilsDominio";
@@ -38,12 +40,33 @@ export async function carregarLinkPublico(
   return { status: "ativo", link };
 }
 
-export async function abrirSessaoAnon(
-  link: LinkValidacao
-): Promise<{ uid: string }> {
+export interface ResultadoIdentificacao {
+  uidAnonimo: string;
+  pessoa: Pessoa;
+}
+
+// Etapa 1: cruza cracha+ano com pessoasMap do link, faz signInAnon e
+// cria /sessoesValidacao. Em caso de falha do segundo fator, lanca
+// ErroValidacaoPublica para o cliente exibir mensagem.
+export async function identificarEAbrirSessao(
+  link: LinkValidacao,
+  cracha: string,
+  anoNascimento: string
+): Promise<ResultadoIdentificacao> {
+  const crachaNum = parseInt(cracha.trim(), 10);
+  if (!Number.isInteger(crachaNum) || crachaNum <= 0) {
+    throw new ErroValidacaoPublica("Crachá inválido.");
+  }
+  const ref = link.pessoasMap[String(crachaNum)];
+  if (!ref || ref.ano !== anoNascimento.trim()) {
+    throw new ErroValidacaoPublica(
+      "Crachá ou ano de nascimento não confere. Tente novamente ou fale com a organização."
+    );
+  }
+
   const cred = await signInAnonymously(auth());
   const uid = cred.user.uid;
-  // Sessao valida por 1 hora ou ate o link expirar (o menor dos dois).
+
   const limiteSessao = new Date(Date.now() + 60 * 60 * 1000);
   const expiracaoLink = new Date(link.expiraEm);
   const expiraEm =
@@ -51,20 +74,24 @@ export async function abrirSessaoAnon(
 
   await setDoc(doc(db(), "sessoesValidacao", uid), {
     token: link.id,
-    pessoaId: link.pessoaId,
+    pessoaId: ref.id,
+    cracha: crachaNum,
+    ano: ref.ano,
     edicaoId: link.edicaoId,
+    turmaId: link.turmaId,
     expiraEm: Timestamp.fromDate(expiraEm),
     criadoEm: serverTimestamp(),
   });
-  return { uid };
-}
 
-export async function carregarPessoaDaSessao(
-  pessoaId: string
-): Promise<Pessoa | null> {
-  const snap = await getDoc(doc(db(), "pessoas", pessoaId));
-  if (!snap.exists()) return null;
-  return pessoaDeSnap(snap.id, snap.data() as Record<string, unknown>);
+  const pessoaSnap = await getDoc(doc(db(), "pessoas", ref.id));
+  if (!pessoaSnap.exists()) {
+    throw new ErroValidacaoPublica("Pessoa não encontrada.");
+  }
+  const pessoa = pessoaDeSnap(
+    pessoaSnap.id,
+    pessoaSnap.data() as Record<string, unknown>
+  );
+  return { uidAnonimo: uid, pessoa };
 }
 
 export interface DadosValidacao {
@@ -76,18 +103,6 @@ export interface DadosValidacao {
   filhos: Filho[];
 }
 
-// US-06-06 segundo fator: confere crachá + ano de nascimento.
-export function segundoFatorConfere(
-  pessoa: Pessoa,
-  cracha: string,
-  anoNascimento: string
-): boolean {
-  const numCracha = parseInt(cracha, 10);
-  if (!Number.isInteger(numCracha) || numCracha !== pessoa.cracha) return false;
-  const anoEsperado = pessoa.nascimento?.slice(0, 4);
-  return anoNascimento.trim() === anoEsperado;
-}
-
 export async function salvarValidacao(args: {
   link: LinkValidacao;
   pessoa: Pessoa;
@@ -96,7 +111,6 @@ export async function salvarValidacao(args: {
 }): Promise<void> {
   const { link, pessoa, dados, uidAnonimo } = args;
 
-  // 1) Atualiza pessoa (campos nao sensiveis).
   await updateDoc(doc(db(), "pessoas", pessoa.id), {
     telefone: soDigitos(dados.telefone),
     email: dados.email?.trim() || null,
@@ -112,7 +126,6 @@ export async function salvarValidacao(args: {
     atualizadoEm: serverTimestamp(),
   });
 
-  // 2) Cria/atualiza /formacoes/{edicaoId__pessoaId}.
   const idForm = idFormacao(link.edicaoId, pessoa.id);
   const ref = doc(db(), "formacoes", idForm);
   const atual = await getDoc(ref);
@@ -121,12 +134,13 @@ export async function salvarValidacao(args: {
       dadosValidados: true,
       validadoEm: serverTimestamp(),
       presencaTipo: "validacao",
+      turmaId: link.turmaId,
     });
   } else {
     await setDoc(ref, {
       edicaoId: link.edicaoId,
       pessoaId: pessoa.id,
-      turmaId: null,
+      turmaId: link.turmaId,
       presencaTipo: "validacao",
       presencaEm: serverTimestamp(),
       registradoPorUid: uidAnonimo,
@@ -137,7 +151,6 @@ export async function salvarValidacao(args: {
     });
   }
 
-  // 3) Incrementa contador no link.
   await updateDoc(doc(db(), "linksValidacao", link.id), {
     contadorUsos: increment(1),
   });

@@ -22,6 +22,7 @@ import {
   removerFormacao,
 } from "../lib/formacoes";
 import { TurmaForm } from "../components/TurmaForm";
+import { GerarLinkDialog } from "../components/GerarLinkDialog";
 import { Formacao, Pessoa, TurmaFormacao } from "../lib/tipos";
 import { formatarData, normalizar, soDigitos } from "../lib/utilsDominio";
 
@@ -46,6 +47,7 @@ export function PaginaFormacao() {
   } | null>(null);
   const [justificativa, setJustificativa] = useState("");
   const [busca, setBusca] = useState("");
+  const [turmaParaLink, setTurmaParaLink] = useState<TurmaFormacao | null>(null);
 
   const turmaEditando =
     turmas.find((t) => t.id === editandoTurmaId) ?? null;
@@ -297,7 +299,14 @@ export function PaginaFormacao() {
                       {barraca?.nome ?? t.setorVinculo ?? "Geral"}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          className="btn btn-primario btn-pequeno"
+                          onClick={() => setTurmaParaLink(t)}
+                        >
+                          Gerar link
+                        </button>
                         <button
                           type="button"
                           className="btn btn-secundario btn-pequeno"
@@ -505,6 +514,14 @@ export function PaginaFormacao() {
           </div>
         </div>
       )}
+
+      <GerarLinkDialog
+        aberto={!!turmaParaLink}
+        turma={turmaParaLink}
+        pessoas={pessoas}
+        participacoes={participacoes}
+        onFechar={() => setTurmaParaLink(null)}
+      />
     </div>
   );
 }

@@ -2,12 +2,11 @@ import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { LinkValidacao, Pessoa, ESTADOS_CIVIS, Filho } from "../lib/tipos";
 import {
-  abrirSessaoAnon,
   carregarLinkPublico,
-  carregarPessoaDaSessao,
   DadosValidacao,
+  ErroValidacaoPublica,
+  identificarEAbrirSessao,
   salvarValidacao,
-  segundoFatorConfere,
 } from "../lib/validacao";
 import { calcularIdade, formatarCPF, formatarData } from "../lib/utilsDominio";
 import { novoFilho } from "../lib/pessoas";
@@ -18,6 +17,7 @@ type Etapa =
   | "revogado"
   | "naoEncontrado"
   | "identificacao"
+  | "verificando"
   | "form"
   | "salvando"
   | "sucesso"
@@ -72,17 +72,6 @@ export function ValidarPublico() {
           setEtapa(r.status === "revogado" ? "revogado" : "expirado");
           return;
         }
-        // ativo: cria sessão anon e carrega pessoa
-        const sess = await abrirSessaoAnon(r.link);
-        if (cancelado) return;
-        setUidAnonimo(sess.uid);
-        const p = await carregarPessoaDaSessao(r.link.pessoaId);
-        if (cancelado) return;
-        if (!p) {
-          setEtapa("naoEncontrado");
-          return;
-        }
-        setPessoa(p);
         setEtapa("identificacao");
       } catch (e) {
         if (cancelado) return;
@@ -95,17 +84,27 @@ export function ValidarPublico() {
     };
   }, [token]);
 
-  function handleIdentificacao(ev: FormEvent) {
+  async function handleIdentificacao(ev: FormEvent) {
     ev.preventDefault();
-    if (!pessoa) return;
-    if (segundoFatorConfere(pessoa, cracha, anoNasc)) {
-      setErroIdent(null);
-      setDados(dadosIniciaisForm(pessoa));
+    if (!link) return;
+    setErroIdent(null);
+    setEtapa("verificando");
+    try {
+      const r = await identificarEAbrirSessao(link, cracha, anoNasc);
+      setUidAnonimo(r.uidAnonimo);
+      setPessoa(r.pessoa);
+      setDados(dadosIniciaisForm(r.pessoa));
       setEtapa("form");
-    } else {
-      setErroIdent(
-        "Crachá ou ano de nascimento não confere. Tente novamente ou fale com a organização."
-      );
+    } catch (e) {
+      if (e instanceof ErroValidacaoPublica) {
+        setErroIdent(e.message);
+      } else {
+        console.error(e);
+        setErroIdent(
+          "Não foi possível verificar agora. Tente novamente em alguns segundos."
+        );
+      }
+      setEtapa("identificacao");
     }
   }
 
@@ -196,14 +195,14 @@ export function ValidarPublico() {
           />
         )}
 
-        {etapa === "identificacao" && pessoa && (
+        {(etapa === "identificacao" || etapa === "verificando") && link && (
           <form onSubmit={handleIdentificacao} className="card">
             <div className="card-corpo space-y-5">
               <div>
                 <h3 className="mb-1">Olá!</h3>
                 <p className="text-ardesia">
-                  Este link é uma confirmação rápida do seu cadastro para a 100ª
-                  Festa. Antes de começar, confirme sua identidade.
+                  Antes de começar, confirme sua identidade. Use o número do
+                  seu crachá e o ano em que você nasceu.
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -236,12 +235,16 @@ export function ValidarPublico() {
                   />
                 </div>
               </div>
-              {erroIdent && (
-                <p className="input-erro-msg">{erroIdent}</p>
-              )}
+              {erroIdent && <p className="input-erro-msg">{erroIdent}</p>}
               <div>
-                <button type="submit" className="btn btn-primario btn-grande">
-                  Confirmar identidade
+                <button
+                  type="submit"
+                  className="btn btn-primario btn-grande"
+                  disabled={etapa === "verificando"}
+                >
+                  {etapa === "verificando"
+                    ? "Verificando..."
+                    : "Confirmar identidade"}
                 </button>
               </div>
             </div>
@@ -419,7 +422,7 @@ export function ValidarPublico() {
             <div className="card">
               <div className="card-corpo text-sm text-ardesia">
                 A foto do crachá é atualizada pelo aplicativo da organização.
-                Se a sua precisa de troca, marque no campo de e-mail abaixo
+                Se a sua precisa de troca, marque no campo de e-mail acima
                 que enviamos uma nova solicitação.
               </div>
             </div>

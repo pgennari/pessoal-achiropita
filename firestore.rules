@@ -156,12 +156,13 @@ service cloud.firestore {
 
     function linkValidacaoValido(d) {
       return d.keys().hasAll([
-          "pessoaId", "edicaoId", "expiraEm", "status",
-          "contadorUsos", "criadoPorUid", "criadoPorNome"
+          "edicaoId", "turmaId", "expiraEm", "status",
+          "contadorUsos", "pessoasMap", "criadoPorUid", "criadoPorNome"
         ])
         && d.status in ["ativo", "revogado", "usado"]
         && d.contadorUsos is int && d.contadorUsos >= 0
-        && d.expiraEm is timestamp;
+        && d.expiraEm is timestamp
+        && d.pessoasMap is map;
     }
 
     // ---------- Coleções ----------
@@ -273,15 +274,16 @@ service cloud.firestore {
 
     match /sessoesValidacao/{uid} {
       allow read: if autenticado() && request.auth.uid == uid;
-      // Cria a sessao apos consultar o link. Verifica que o token
-      // existe, esta ativo e nao expirou; e amarra a sessao a um
-      // anonUid + pessoaId consistente.
+      // O anon so cria sessao se o segundo fator (cracha + ano) bate
+      // com a entrada do pessoasMap no link da turma. Sem isso, nao
+      // havia como o anonimo descobrir o pessoaId.
       allow create: if ehAnon()
         && request.auth.uid == uid
         && exists(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token))
         && get(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token)).data.status == "ativo"
         && get(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token)).data.expiraEm > request.time
-        && get(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token)).data.pessoaId == request.resource.data.pessoaId
+        && get(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token)).data.pessoasMap[string(request.resource.data.cracha)].id == request.resource.data.pessoaId
+        && get(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token)).data.pessoasMap[string(request.resource.data.cracha)].ano == request.resource.data.ano
         && request.resource.data.expiraEm is timestamp
         && request.resource.data.expiraEm > request.time;
       // Sessao e descartavel; nao permite edicao pelo cliente.

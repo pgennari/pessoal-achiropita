@@ -369,3 +369,103 @@ export function useAuditoriaRecente(qtd = 100): EstadoLista<EventoAuditoria> {
 
   return estado;
 }
+
+export function useParticipacoesDePessoa(
+  pessoaId: string | undefined
+): EstadoLista<Participacao> {
+  const [estado, setEstado] = useState<EstadoLista<Participacao>>({
+    itens: [],
+    carregando: true,
+    erro: null,
+  });
+
+  useEffect(() => {
+    if (!pessoaId) {
+      setEstado({ itens: [], carregando: false, erro: null });
+      return;
+    }
+    const cancelar = onSnapshot(
+      query(
+        collection(db(), "participacoes"),
+        where("pessoaId", "==", pessoaId)
+      ),
+      (snap) => {
+        const itens = snap.docs.map((d) =>
+          participacaoDeSnap(d.id, d.data() as Record<string, unknown>)
+        );
+        setEstado({ itens, carregando: false, erro: null });
+      },
+      (err) =>
+        setEstado({
+          itens: [],
+          carregando: false,
+          erro: err.message ?? "Falha ao carregar histórico.",
+        })
+    );
+    return () => cancelar();
+  }, [pessoaId]);
+
+  return estado;
+}
+
+export function useTodasBarracas(): EstadoLista<Barraca> {
+  const [estado, setEstado] = useState<EstadoLista<Barraca>>({
+    itens: [],
+    carregando: true,
+    erro: null,
+  });
+
+  useEffect(() => {
+    const cancelar = onSnapshot(
+      query(collection(db(), "barracas")),
+      (snap) => {
+        const itens = snap.docs.map((d) =>
+          barracaDeSnap(d.id, d.data() as Record<string, unknown>)
+        );
+        setEstado({ itens, carregando: false, erro: null });
+      },
+      (err) =>
+        setEstado({
+          itens: [],
+          carregando: false,
+          erro: err.message ?? "Falha ao carregar barracas.",
+        })
+    );
+    return () => cancelar();
+  }, []);
+
+  return estado;
+}
+
+// Carrega todas as participações via onSnapshot. Em escala MVP
+// (~100 pessoas × 27 edições) cabe; quando o legado for importado
+// (~50 mil docs) será preciso paginar ou trocar por getDocs sob
+// demanda — TODO(US-04-02).
+export function useTodasParticipacoes(): EstadoLista<Participacao> {
+  const [estado, setEstado] = useState<EstadoLista<Participacao>>({
+    itens: [],
+    carregando: true,
+    erro: null,
+  });
+
+  useEffect(() => {
+    const cancelar = onSnapshot(
+      query(collection(db(), "participacoes")),
+      (snap) => {
+        const itens = snap.docs.map((d) =>
+          participacaoDeSnap(d.id, d.data() as Record<string, unknown>)
+        );
+        setEstado({ itens, carregando: false, erro: null });
+      },
+      (err) =>
+        setEstado({
+          itens: [],
+          carregando: false,
+          erro: err.message ?? "Falha ao carregar participações.",
+        })
+    );
+    return () => cancelar();
+  }, []);
+
+  return estado;
+}

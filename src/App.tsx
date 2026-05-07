@@ -10,6 +10,7 @@ import { Auditoria } from "./pages/Auditoria";
 import { Edicoes } from "./pages/Edicoes";
 import { EdicaoDetalhe } from "./pages/EdicaoDetalhe";
 import { BarracaDetalhe } from "./pages/BarracaDetalhe";
+import { Historico } from "./pages/Historico";
 
 export function App() {
   return (
@@ -32,6 +33,7 @@ export function App() {
           path="edicoes/:edicaoId/barracas/:id"
           element={<BarracaDetalhe />}
         />
+        <Route path="historico" element={<Historico />} />
         <Route path="auditoria" element={<Auditoria />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -12,6 +12,7 @@ const itens: ItemNav[] = [
   { to: "/", label: "Painel" },
   { to: "/pessoas", label: "Pessoas" },
   { to: "/edicoes", label: "Edições" },
+  { to: "/historico", label: "Histórico", perfis: ["ADM", "ORG"] },
   { to: "/auditoria", label: "Auditoria", perfis: ["ADM", "ORG"] },
 ];
 

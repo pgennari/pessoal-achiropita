@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PessoaForm } from "../components/PessoaForm";
 import { UploadFoto } from "../components/UploadFoto";
+import { HistoricoPessoa } from "../components/HistoricoPessoa";
 import { usePessoa, usePessoas } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import {
@@ -200,6 +201,13 @@ export function PessoaDetalhe() {
               ))}
             </ul>
           )}
+        </div>
+      </section>
+
+      <section className="card">
+        <div className="card-corpo">
+          <h4 className="mb-4">Histórico de participações</h4>
+          <HistoricoPessoa pessoa={pessoa} />
         </div>
       </section>
 

@@ -40,6 +40,14 @@ export function useSessao(): EstadoSessao {
         return;
       }
 
+      // Anon e usado pela pagina publica /v/{token}; nao tem perfil.
+      // Nao bota dentro do app: se o usuario chegar autenticado anon
+      // numa rota protegida, sessao fica null e ProtegerRota redireciona.
+      if (user.isAnonymous) {
+        setEstado({ sessao: null, carregando: false });
+        return;
+      }
+
       // Cria o doc se for primeiro sign-in. Falha silenciosa: se o
       // backend negar (rules) ou ficar offline, o snapshot logo abaixo
       // ainda mostra o usuario com EQP padrao para nao travar a UI.

@@ -16,11 +16,13 @@ import { PendenciasFoto } from "./pages/PendenciasFoto";
 import { Usuarios } from "./pages/Usuarios";
 import { PaginaFormacao } from "./pages/Formacao";
 import { PendenciasFormacao } from "./pages/PendenciasFormacao";
+import { ValidarPublico } from "./pages/ValidarPublico";
 
 export function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/v/:token" element={<ValidarPublico />} />
       <Route
         element={
           <ProtegerRota>

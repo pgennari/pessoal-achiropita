@@ -10,6 +10,7 @@ import {
   usePessoas,
 } from "../lib/hooks";
 import { Barraca, Funcao, Pessoa, SETORES, Setor } from "../lib/tipos";
+import { GerarLinkDialog } from "../components/GerarLinkDialog";
 
 interface Linha {
   pessoa: Pessoa;
@@ -31,6 +32,7 @@ export function PendenciasFormacao() {
   const [aba, setAba] = useState<Aba>("sem-formacao");
   const [filtroSetor, setFiltroSetor] = useState<Setor | "todos">("todos");
   const [filtroBarracaId, setFiltroBarracaId] = useState<string>("todas");
+  const [pessoaParaLink, setPessoaParaLink] = useState<Pessoa | null>(null);
 
   const indiceFormacoes = useMemo(() => {
     const m = new Map<string, (typeof formacoes)[number]>();
@@ -221,15 +223,15 @@ export function PendenciasFormacao() {
           {aba === "sem-formacao" ? (
             <>
               Substitui a aba <strong>FALTA FORMAÇÃO</strong> da planilha
-              (US-06-04). Cobre só pessoas alocadas na edição ativa. Para
-              cobrar uma turma inteira, gere o link público em Formação
-              (US-06-05, em desenvolvimento).
+              (US-06-04). Cobre só pessoas alocadas na edição ativa. Use{" "}
+              <strong>Gerar link</strong> para enviar a confirmação por
+              WhatsApp ou e-mail; quem abrir confirma a presença sozinho.
             </>
           ) : (
             <>
               Pessoas com presença marcada manualmente que ainda não validaram
-              os dados pelo link público (US-06-06). O botão para gerar
-              link individual ficará aqui quando o EP-06b estiver pronto.
+              os dados pelo link público. Gere um link individual para que
+              cada uma confirme dados pelo celular.
             </>
           )}
         </div>
@@ -263,6 +265,9 @@ export function PendenciasFormacao() {
                   <th className="px-4 py-2 font-semibold hidden md:table-cell">
                     E-mail
                   </th>
+                  <th className="px-4 py-2 font-semibold w-32 text-right">
+                    Ações
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -289,6 +294,15 @@ export function PendenciasFormacao() {
                     <td className="px-4 py-2 hidden md:table-cell text-ardesia">
                       {l.pessoa.email || "—"}
                     </td>
+                    <td className="px-4 py-2 text-right">
+                      <button
+                        type="button"
+                        className="btn btn-secundario btn-pequeno"
+                        onClick={() => setPessoaParaLink(l.pessoa)}
+                      >
+                        Gerar link
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -296,6 +310,13 @@ export function PendenciasFormacao() {
           </section>
         ))}
       </div>
+
+      <GerarLinkDialog
+        aberto={!!pessoaParaLink}
+        pessoa={pessoaParaLink}
+        edicaoId={edicao?.id}
+        onFechar={() => setPessoaParaLink(null)}
+      />
     </div>
   );
 }

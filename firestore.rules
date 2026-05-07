@@ -7,21 +7,68 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function ehAnon() {
+      return autenticado()
+        && request.auth.token.firebase.sign_in_provider == "anonymous";
+    }
+
+    function temPerfilDoc() {
+      return autenticado()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
+    }
+
     function perfil() {
       return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil;
     }
 
     function ehAdmOuOrg() {
-      return autenticado() && perfil() in ["ADM", "ORG"];
+      return temPerfilDoc() && perfil() in ["ADM", "ORG"];
     }
 
     function podeOperarEntregas() {
-      return autenticado() && perfil() in ["ADM", "ORG", "OPC"];
+      return temPerfilDoc() && perfil() in ["ADM", "ORG", "OPC"];
     }
 
     function ehAdm() {
-      return autenticado() && perfil() == "ADM";
+      return temPerfilDoc() && perfil() == "ADM";
     }
+
+    // ---------- Helpers de validacao publica (US-06-06) ----------
+
+    function temSessaoValidacao() {
+      return ehAnon()
+        && exists(/databases/$(database)/documents/sessoesValidacao/$(request.auth.uid));
+    }
+
+    function dadosSessao() {
+      return get(/databases/$(database)/documents/sessoesValidacao/$(request.auth.uid)).data;
+    }
+
+    function sessaoVigente() {
+      return temSessaoValidacao()
+        && dadosSessao().expiraEm > request.time;
+    }
+
+    function linkDaSessaoAtivo() {
+      return exists(/databases/$(database)/documents/linksValidacao/$(dadosSessao().token))
+        && get(/databases/$(database)/documents/linksValidacao/$(dadosSessao().token)).data.status == "ativo"
+        && get(/databases/$(database)/documents/linksValidacao/$(dadosSessao().token)).data.expiraEm > request.time;
+    }
+
+    function pessoaIdDaSessao() {
+      return dadosSessao().pessoaId;
+    }
+
+    function diffPessoaSemSensiveis(novo, velho) {
+      return novo.cracha == velho.cracha
+        && novo.cpf == velho.cpf
+        && novo.nome == velho.nome
+        && novo.nascimento == velho.nascimento
+        && novo.ativo == velho.ativo
+        && novo.fotoUrl == velho.fotoUrl;
+    }
+
+    // ---------- Validacoes de schema ----------
 
     function pessoaValida(d) {
       return d.keys().hasAll(["nome", "nascimento", "telefone", "cracha", "ativo"])
@@ -75,14 +122,18 @@ service cloud.firestore {
         && d.capacidadeMaxima is int && d.capacidadeMaxima > 0;
     }
 
-    function formacaoValida(d) {
+    function formacaoShape(d) {
       return d.keys().hasAll([
           "edicaoId", "pessoaId", "presencaTipo",
           "registradoPorUid", "registradoPorNome", "presencaEm",
           "dadosValidados"
         ])
-        && d.presencaTipo in ["manual", "validacao"]
-        && d.registradoPorUid == request.auth.uid;
+        && d.presencaTipo in ["manual", "validacao"];
+    }
+
+    // Para create: alem do shape, exige que o autor seja quem escreve.
+    function formacaoValida(d) {
+      return formacaoShape(d) && d.registradoPorUid == request.auth.uid;
     }
 
     function usuarioValido(d) {
@@ -92,79 +143,135 @@ service cloud.firestore {
         && d.perfil in ["ADM", "ORG", "CRD", "EQP", "OPC", "REC"];
     }
 
-    match /usuarios/{uid} {
-      // Cada usuario le seu proprio doc; ADM le qualquer.
-      allow read: if autenticado() && (request.auth.uid == uid || ehAdm());
+    function linkValidacaoValido(d) {
+      return d.keys().hasAll([
+          "pessoaId", "edicaoId", "expiraEm", "status",
+          "contadorUsos", "criadoPorUid", "criadoPorNome"
+        ])
+        && d.status in ["ativo", "revogado", "usado"]
+        && d.contadorUsos is int && d.contadorUsos >= 0
+        && d.expiraEm is timestamp;
+    }
 
-      // Self-create no primeiro sign-in: o proprio uid, perfil obrigatorio EQP.
-      // Evita escalada de privilegio sem precisar de Cloud Function.
+    // ---------- Coleções ----------
+
+    match /usuarios/{uid} {
+      allow read: if temPerfilDoc() && (request.auth.uid == uid || ehAdm());
+      // Self-create no primeiro sign-in (perfil EQP). Anon nao se aplica.
       allow create: if autenticado()
+        && !ehAnon()
         && request.auth.uid == uid
         && usuarioValido(request.resource.data)
         && request.resource.data.perfil == "EQP";
-
-      // Mudancas de perfil/vinculo: somente ADM. Schema validado.
-      // Tambem permite ADM criar manualmente colando o UID.
       allow create, update: if ehAdm() && usuarioValido(request.resource.data);
       allow delete: if ehAdm();
     }
 
     match /pessoas/{id} {
-      allow read: if autenticado();
+      // Equipe normal le qualquer pessoa; sessao anon le apenas a propria.
+      allow read: if temPerfilDoc()
+        || (sessaoVigente() && pessoaIdDaSessao() == id);
+
       allow create: if ehAdmOuOrg() && pessoaValida(request.resource.data);
-      allow update: if ehAdmOuOrg() && pessoaValida(request.resource.data);
+      // Update por ADM/ORG (qualquer campo) ou pela sessao anon (campos
+      // nao sensiveis apenas).
+      allow update: if (ehAdmOuOrg() && pessoaValida(request.resource.data))
+        || (sessaoVigente()
+            && pessoaIdDaSessao() == id
+            && linkDaSessaoAtivo()
+            && pessoaValida(request.resource.data)
+            && diffPessoaSemSensiveis(request.resource.data, resource.data));
       allow delete: if false;
     }
 
     match /edicoes/{id} {
-      allow read: if autenticado();
+      allow read: if temPerfilDoc();
       allow create: if ehAdmOuOrg() && edicaoValida(request.resource.data);
       allow update: if ehAdmOuOrg() && edicaoValida(request.resource.data);
       allow delete: if false;
     }
 
     match /barracas/{id} {
-      allow read: if autenticado();
+      allow read: if temPerfilDoc();
       allow create: if ehAdmOuOrg() && barracaValida(request.resource.data);
       allow update: if ehAdmOuOrg() && barracaValida(request.resource.data);
       allow delete: if ehAdmOuOrg();
     }
 
     match /participacoes/{id} {
-      allow read: if autenticado();
+      allow read: if temPerfilDoc();
       allow create: if ehAdmOuOrg() && participacaoValida(request.resource.data);
       allow update: if ehAdmOuOrg() && participacaoValida(request.resource.data);
       allow delete: if ehAdmOuOrg();
     }
 
-    match /turmasFormacao/{id} {
-      allow read: if autenticado();
-      allow create, update: if ehAdmOuOrg() && turmaValida(request.resource.data);
-      allow delete: if ehAdmOuOrg();
-    }
-
-    match /formacoes/{id} {
-      allow read: if autenticado();
-      // Bloqueio de duplo registro: id determinístico + create-only.
-      allow create: if ehAdmOuOrg() && formacaoValida(request.resource.data);
-      // Atualizações usadas pelo fluxo de validação (US-06-06) virão no
-      // slice 6b com regra cross-doc baseada em sessão anônima.
-      allow update: if false;
-      allow delete: if ehAdmOuOrg();
-    }
-
     match /entregasCracha/{id} {
-      // Bloqueio de "segunda entrega" via rule: create funciona quando o
-      // doc nao existe; update sempre nega; so ADM pode delete (= desbloquear).
-      allow read: if autenticado();
+      allow read: if temPerfilDoc();
       allow create: if podeOperarEntregas() && entregaValida(request.resource.data);
       allow update: if false;
       allow delete: if ehAdm();
     }
 
+    match /turmasFormacao/{id} {
+      allow read: if temPerfilDoc();
+      allow create, update: if ehAdmOuOrg() && turmaValida(request.resource.data);
+      allow delete: if ehAdmOuOrg();
+    }
+
+    match /formacoes/{id} {
+      allow read: if temPerfilDoc();
+      allow create: if (ehAdmOuOrg() && formacaoValida(request.resource.data))
+        || (sessaoVigente()
+            && pessoaIdDaSessao() == request.resource.data.pessoaId
+            && linkDaSessaoAtivo()
+            && formacaoValida(request.resource.data)
+            && request.resource.data.presencaTipo == "validacao"
+            && request.resource.data.dadosValidados == true);
+      allow update: if (ehAdmOuOrg() && formacaoShape(request.resource.data))
+        || (sessaoVigente()
+            && pessoaIdDaSessao() == resource.data.pessoaId
+            && linkDaSessaoAtivo()
+            && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(["dadosValidados", "validadoEm", "presencaTipo"])
+            && request.resource.data.dadosValidados == true);
+      allow delete: if ehAdmOuOrg();
+    }
+
+    match /linksValidacao/{token} {
+      // Leitura publica: o id do doc E o secret. Quem tem o token, ja tem
+      // o link em si — nao expomos pessoaId fora dessa relacao.
+      allow read: if true;
+      allow create: if ehAdmOuOrg() && linkValidacaoValido(request.resource.data);
+      // ADM/ORG mexem em status (revogar), prazo etc. Sessao anon
+      // incrementa apenas contadorUsos.
+      allow update: if (ehAdmOuOrg() && linkValidacaoValido(request.resource.data))
+        || (sessaoVigente()
+            && dadosSessao().token == token
+            && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(["contadorUsos"]));
+      allow delete: if ehAdm();
+    }
+
+    match /sessoesValidacao/{uid} {
+      allow read: if autenticado() && request.auth.uid == uid;
+      // Cria a sessao apos consultar o link. Verifica que o token
+      // existe, esta ativo e nao expirou; e amarra a sessao a um
+      // anonUid + pessoaId consistente.
+      allow create: if ehAnon()
+        && request.auth.uid == uid
+        && exists(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token))
+        && get(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token)).data.status == "ativo"
+        && get(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token)).data.expiraEm > request.time
+        && get(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token)).data.pessoaId == request.resource.data.pessoaId
+        && request.resource.data.expiraEm is timestamp
+        && request.resource.data.expiraEm > request.time;
+      // Sessao e descartavel; nao permite edicao pelo cliente.
+      allow update, delete: if false;
+    }
+
     match /auditoria/{id} {
       allow read: if ehAdmOuOrg();
-      allow create: if autenticado()
+      allow create: if temPerfilDoc()
         && request.resource.data.autor == request.auth.uid
         && request.resource.data.keys().hasAll(["acao", "alvo", "autor", "autorNome", "criadoEm"]);
       allow update, delete: if false;

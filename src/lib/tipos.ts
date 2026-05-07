@@ -139,6 +139,30 @@ export interface TurmaFormacao {
   atualizadoEm: string;
 }
 
+export type StatusLink = "ativo" | "revogado" | "usado";
+
+export interface LinkValidacao {
+  id: string; // = token
+  pessoaId: string;
+  edicaoId: string;
+  expiraEm: string; // ISO
+  status: StatusLink;
+  contadorUsos: number;
+  rotuloOpcional?: string;
+  criadoPorUid: string;
+  criadoPorNome: string;
+  criadoEm: string;
+}
+
+export interface SessaoValidacao {
+  uid: string; // = anon auth uid
+  token: string;
+  pessoaId: string;
+  edicaoId: string;
+  expiraEm: string;
+  criadoEm: string;
+}
+
 export type TipoPresenca = "manual" | "validacao";
 
 export interface Formacao {

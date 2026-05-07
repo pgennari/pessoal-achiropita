@@ -14,6 +14,7 @@ import {
   EntregaCracha,
   EventoAuditoria,
   Formacao,
+  LinkValidacao,
   Participacao,
   Pessoa,
   TurmaFormacao,
@@ -28,6 +29,7 @@ import { entregaDeSnap } from "./entregas";
 import { usuarioDeSnap } from "./usuarios";
 import { turmaDeSnap } from "./turmas";
 import { formacaoDeSnap } from "./formacoes";
+import { linkDeSnap } from "./links";
 
 export interface EstadoLista<T> {
   itens: T[];
@@ -621,6 +623,47 @@ export function useFormacoes(
     );
     return () => cancelar();
   }, [edicaoId]);
+
+  return estado;
+}
+
+export function useLinksDaPessoa(
+  pessoaId: string | undefined,
+  edicaoId: string | undefined
+): EstadoLista<LinkValidacao> {
+  const [estado, setEstado] = useState<EstadoLista<LinkValidacao>>({
+    itens: [],
+    carregando: true,
+    erro: null,
+  });
+
+  useEffect(() => {
+    if (!pessoaId || !edicaoId) {
+      setEstado({ itens: [], carregando: false, erro: null });
+      return;
+    }
+    const cancelar = onSnapshot(
+      query(
+        collection(db(), "linksValidacao"),
+        where("pessoaId", "==", pessoaId),
+        where("edicaoId", "==", edicaoId)
+      ),
+      (snap) => {
+        const itens = snap.docs.map((d) =>
+          linkDeSnap(d.id, d.data() as Record<string, unknown>)
+        );
+        itens.sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
+        setEstado({ itens, carregando: false, erro: null });
+      },
+      (err) =>
+        setEstado({
+          itens: [],
+          carregando: false,
+          erro: err.message ?? "Falha ao carregar links.",
+        })
+    );
+    return () => cancelar();
+  }, [pessoaId, edicaoId]);
 
   return estado;
 }

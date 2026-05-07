@@ -11,6 +11,7 @@ import {
 import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { Perfil, Usuario } from "./tipos";
+import { garantirDocUsuario } from "./usuarios";
 
 export interface Sessao extends Usuario {}
 
@@ -38,6 +39,15 @@ export function useSessao(): EstadoSessao {
         setEstado({ sessao: null, carregando: false });
         return;
       }
+
+      // Cria o doc se for primeiro sign-in. Falha silenciosa: se o
+      // backend negar (rules) ou ficar offline, o snapshot logo abaixo
+      // ainda mostra o usuario com EQP padrao para nao travar a UI.
+      garantirDocUsuario({
+        uid: user.uid,
+        email: user.email ?? "",
+        nome: user.displayName ?? user.email ?? "",
+      }).catch(() => {});
 
       cancelarUsuarioDoc = onSnapshot(
         doc(db(), "usuarios", user.uid),

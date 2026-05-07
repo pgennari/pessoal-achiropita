@@ -64,9 +64,28 @@ service cloud.firestore {
         && d.operadorUid == request.auth.uid;
     }
 
+    function usuarioValido(d) {
+      return d.keys().hasAll(["email", "nome", "perfil"])
+        && d.email is string
+        && d.nome is string
+        && d.perfil in ["ADM", "ORG", "CRD", "EQP", "OPC", "REC"];
+    }
+
     match /usuarios/{uid} {
-      allow read: if autenticado() && request.auth.uid == uid;
-      allow write: if false;
+      // Cada usuario le seu proprio doc; ADM le qualquer.
+      allow read: if autenticado() && (request.auth.uid == uid || ehAdm());
+
+      // Self-create no primeiro sign-in: o proprio uid, perfil obrigatorio EQP.
+      // Evita escalada de privilegio sem precisar de Cloud Function.
+      allow create: if autenticado()
+        && request.auth.uid == uid
+        && usuarioValido(request.resource.data)
+        && request.resource.data.perfil == "EQP";
+
+      // Mudancas de perfil/vinculo: somente ADM. Schema validado.
+      // Tambem permite ADM criar manualmente colando o UID.
+      allow create, update: if ehAdm() && usuarioValido(request.resource.data);
+      allow delete: if ehAdm();
     }
 
     match /pessoas/{id} {

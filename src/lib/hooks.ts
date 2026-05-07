@@ -15,6 +15,7 @@ import {
   EventoAuditoria,
   Participacao,
   Pessoa,
+  Usuario,
 } from "./tipos";
 import { pessoaDeSnap } from "./pessoas";
 import { consultaAuditoriaRecente, eventoDeSnap } from "./auditoria";
@@ -22,6 +23,7 @@ import { edicaoDeSnap } from "./edicoes";
 import { barracaDeSnap } from "./barracas";
 import { participacaoDeSnap } from "./participacoes";
 import { entregaDeSnap } from "./entregas";
+import { usuarioDeSnap } from "./usuarios";
 
 export interface EstadoLista<T> {
   itens: T[];
@@ -506,6 +508,36 @@ export function useEntregasCracha(
     );
     return () => cancelar();
   }, [edicaoId]);
+
+  return estado;
+}
+
+export function useUsuarios(): EstadoLista<Usuario> {
+  const [estado, setEstado] = useState<EstadoLista<Usuario>>({
+    itens: [],
+    carregando: true,
+    erro: null,
+  });
+
+  useEffect(() => {
+    const cancelar = onSnapshot(
+      query(collection(db(), "usuarios")),
+      (snap) => {
+        const itens = snap.docs.map((d) =>
+          usuarioDeSnap(d.id, d.data() as Record<string, unknown>)
+        );
+        itens.sort((a, b) => a.nome.localeCompare(b.nome));
+        setEstado({ itens, carregando: false, erro: null });
+      },
+      (err) =>
+        setEstado({
+          itens: [],
+          carregando: false,
+          erro: err.message ?? "Falha ao carregar usuários.",
+        })
+    );
+    return () => cancelar();
+  }, []);
 
   return estado;
 }

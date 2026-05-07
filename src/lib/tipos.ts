@@ -7,6 +7,8 @@ export interface Usuario {
   perfil: Perfil;
   pessoaId?: string;
   barracasCRD?: string[];
+  criadoEm?: string;
+  atualizadoEm?: string;
 }
 
 export type EstadoCivil =

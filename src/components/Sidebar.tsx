@@ -23,6 +23,7 @@ const itens: ItemNav[] = [
     label: "Pendências de foto",
     perfis: ["ADM", "ORG"],
   },
+  { to: "/usuarios", label: "Usuários", perfis: ["ADM"] },
   { to: "/auditoria", label: "Auditoria", perfis: ["ADM", "ORG"] },
 ];
 

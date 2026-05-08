@@ -244,7 +244,14 @@ service cloud.firestore {
     }
 
     match /formacoes/{id} {
-      allow read: if temPerfilDoc();
+      // Equipe normal le qualquer formacao; sessao anon le apenas a
+      // sua propria (precisa para o salvarValidacao decidir entre
+      // create e update). Quando o doc nao existe, resource e null
+      // — o short-circuit cobre esse caso.
+      allow read: if temPerfilDoc()
+        || (sessaoVigente()
+            && (resource == null
+                || resource.data.pessoaId == pessoaIdDaSessao()));
       allow create: if (ehAdmOuOrg() && formacaoValida(request.resource.data))
         || (sessaoVigente()
             && pessoaIdDaSessao() == request.resource.data.pessoaId
@@ -257,7 +264,7 @@ service cloud.firestore {
             && pessoaIdDaSessao() == resource.data.pessoaId
             && linkDaSessaoAtivo()
             && request.resource.data.diff(resource.data).affectedKeys()
-                .hasOnly(["dadosValidados", "validadoEm", "presencaTipo"])
+                .hasOnly(["dadosValidados", "validadoEm", "presencaTipo", "turmaId"])
             && request.resource.data.dadosValidados == true);
       allow delete: if ehAdmOuOrg();
     }

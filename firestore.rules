@@ -302,7 +302,7 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/linksValidacao/$(request.resource.data.token)).data.turmaId == request.resource.data.turmaId
         && request.resource.data.expiraEm is timestamp
         && request.resource.data.expiraEm > request.time
-        && !('pessoaId' in request.resource.data);
+        && !request.resource.data.keys().hasAny(["pessoaId"]);
       // Fase 2: vincula pessoaId apos cliente conferir o ano via
       // /buscaCracha. So pode acrescentar pessoaId/cracha/ano; nao
       // muda token/turmaId/expiraEm. O cracha precisa bater com o
@@ -312,7 +312,7 @@ service cloud.firestore {
         && resource.data.token == request.resource.data.token
         && resource.data.turmaId == request.resource.data.turmaId
         && resource.data.expiraEm == request.resource.data.expiraEm
-        && !('pessoaId' in resource.data)
+        && !resource.data.keys().hasAny(["pessoaId"])
         && request.resource.data.pessoaId is string
         && request.resource.data.cracha is int
         && exists(/databases/$(database)/documents/buscaCracha/$(string(request.resource.data.cracha)))

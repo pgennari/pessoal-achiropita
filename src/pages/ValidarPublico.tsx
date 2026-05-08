@@ -48,7 +48,22 @@ export function ValidarPublico() {
   const [anoNasc, setAnoNasc] = useState("");
   const [erroIdent, setErroIdent] = useState<string | null>(null);
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
+  const [erroAbertura, setErroAbertura] = useState<string | null>(null);
   const [dados, setDados] = useState<EstadoForm | null>(null);
+
+  function descreverErro(e: unknown): string {
+    if (e && typeof e === "object" && "code" in e) {
+      const code = (e as { code?: string }).code ?? "";
+      if (code === "auth/operation-not-allowed") {
+        return 'Login anônimo não está habilitado no Firebase. Peça à organização para ativar "Anonymous" em Authentication → Sign-in method.';
+      }
+      if (code === "permission-denied") {
+        return "Sem permissão para abrir esta sessão. As regras do banco podem estar desatualizadas.";
+      }
+    }
+    if (e instanceof Error) return e.message;
+    return "Erro desconhecido.";
+  }
 
   useEffect(() => {
     if (!token) {
@@ -75,13 +90,21 @@ export function ValidarPublico() {
         }
         // Fase 1: ja abre sessao anonima vazia. A identificacao via
         // /buscaCracha so acontece quando o usuario submete o form.
-        const uid = await abrirSessaoVazia(r.link);
-        if (cancelado) return;
-        setUidAnonimo(uid);
-        setEtapa("identificacao");
+        try {
+          const uid = await abrirSessaoVazia(r.link);
+          if (cancelado) return;
+          setUidAnonimo(uid);
+          setEtapa("identificacao");
+        } catch (e) {
+          if (cancelado) return;
+          console.error(e);
+          setErroAbertura(descreverErro(e));
+          setEtapa("erro");
+        }
       } catch (e) {
         if (cancelado) return;
         console.error(e);
+        setErroAbertura(descreverErro(e));
         setEtapa("erro");
       }
     })();
@@ -196,7 +219,10 @@ export function ValidarPublico() {
         {etapa === "erro" && (
           <Mensagem
             titulo="Erro inesperado"
-            texto="Algo deu errado. Tente recarregar a página ou abrir o link de novo."
+            texto={
+              erroAbertura ??
+              "Algo deu errado. Tente recarregar a página ou abrir o link de novo."
+            }
           />
         )}
 

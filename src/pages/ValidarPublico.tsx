@@ -9,7 +9,7 @@ import {
   identificarPessoa,
   salvarValidacao,
 } from "../lib/validacao";
-import { calcularIdade, formatarCPF, formatarData } from "../lib/utilsDominio";
+import { calcularIdade } from "../lib/utilsDominio";
 import { novoFilho } from "../lib/pessoas";
 
 type Etapa =
@@ -28,6 +28,10 @@ interface EstadoForm extends DadosValidacao {}
 
 function dadosIniciaisForm(p: Pessoa): EstadoForm {
   return {
+    nome: p.nome,
+    nascimento: p.nascimento,
+    cpf: p.cpf ?? "",
+    rg: p.rg ?? "",
     telefone: p.telefone,
     email: p.email ?? "",
     endereco: p.endereco ?? "",
@@ -285,89 +289,134 @@ export function ValidarPublico() {
         {(etapa === "form" || etapa === "salvando") && pessoa && dados && (
           <form onSubmit={handleConfirmar} className="space-y-5">
             <div className="card">
-              <div className="card-corpo space-y-3">
-                <div>
-                  <div className="eyebrow">Confira seus dados</div>
-                  <h3>{pessoa.nome}</h3>
-                  <p className="text-ardesia text-sm">
-                    Crachá <span className="font-mono">#{pessoa.cracha}</span> ·
-                    nascido(a) em {formatarData(pessoa.nascimento)}
-                    {pessoa.cpf ? ` · CPF ${formatarCPF(pessoa.cpf)}` : ""}
-                  </p>
-                  {pessoa.fotoUrl && (
-                    <div className="mt-3">
-                      <img
-                        src={pessoa.fotoUrl}
-                        alt={`Foto de ${pessoa.nome}`}
-                        className="h-24 w-24 rounded-full object-cover border border-pietra"
-                      />
-                    </div>
-                  )}
-                </div>
+              <div className="card-corpo space-y-2">
+                <div className="eyebrow">Confira seus dados</div>
+                <h3 className="m-0">{dados.nome || pessoa.nome}</h3>
                 <p className="text-ardesia text-sm">
-                  Atualize o que mudou. Seu nome, crachá, CPF e data de
-                  nascimento ficam protegidos — fale com a organização se algum
-                  estiver errado.
+                  Crachá <span className="font-mono">#{pessoa.cracha}</span>
+                </p>
+                <p className="text-ardesia text-sm">
+                  Atualize o que mudou e clique em <strong>Confirmar</strong>{" "}
+                  no fim do formulário. Seu crachá não é alterado por aqui;
+                  fale com a organização se estiver errado. A foto do crachá
+                  é atualizada pelo aplicativo da organização.
                 </p>
               </div>
             </div>
 
             <div className="card">
-              <div className="card-corpo grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="input-grupo m-0">
-                  <label className="input-label">Telefone</label>
-                  <input
-                    className="input"
-                    value={dados.telefone}
-                    onChange={(e) => set("telefone", e.target.value)}
-                    inputMode="tel"
-                    required
-                  />
+              <div className="card-corpo space-y-4">
+                <h4 className="m-0">Dados pessoais</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="input-grupo m-0 sm:col-span-2">
+                    <label className="input-label">Nome completo</label>
+                    <input
+                      className="input"
+                      value={dados.nome}
+                      onChange={(e) => set("nome", e.target.value)}
+                      autoComplete="name"
+                      required
+                    />
+                  </div>
+                  <div className="input-grupo m-0">
+                    <label className="input-label">Data de nascimento</label>
+                    <input
+                      type="date"
+                      className="input"
+                      value={dados.nascimento}
+                      onChange={(e) => set("nascimento", e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="input-grupo m-0">
+                    <label className="input-label">Estado civil</label>
+                    <select
+                      className="input"
+                      value={dados.estadoCivil ?? ""}
+                      onChange={(e) =>
+                        set(
+                          "estadoCivil",
+                          (e.target.value || undefined) as Pessoa["estadoCivil"]
+                        )
+                      }
+                    >
+                      <option value="">—</option>
+                      {ESTADOS_CIVIS.map((ec) => (
+                        <option key={ec} value={ec}>
+                          {ec}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="input-grupo m-0">
+                    <label className="input-label">
+                      CPF <span className="opcional">(opcional)</span>
+                    </label>
+                    <input
+                      className="input"
+                      value={dados.cpf ?? ""}
+                      onChange={(e) => set("cpf", e.target.value)}
+                      inputMode="numeric"
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="input-grupo m-0">
+                    <label className="input-label">
+                      RG <span className="opcional">(opcional)</span>
+                    </label>
+                    <input
+                      className="input"
+                      value={dados.rg ?? ""}
+                      onChange={(e) => set("rg", e.target.value)}
+                      autoComplete="off"
+                    />
+                  </div>
                 </div>
-                <div className="input-grupo m-0">
-                  <label className="input-label">E-mail</label>
-                  <input
-                    type="email"
-                    className="input"
-                    value={dados.email ?? ""}
-                    onChange={(e) => set("email", e.target.value)}
-                  />
-                </div>
-                <div className="input-grupo m-0 sm:col-span-2">
-                  <label className="input-label">Endereço</label>
-                  <input
-                    className="input"
-                    value={dados.endereco ?? ""}
-                    onChange={(e) => set("endereco", e.target.value)}
-                  />
-                </div>
-                <div className="input-grupo m-0">
-                  <label className="input-label">Bairro</label>
-                  <input
-                    className="input"
-                    value={dados.bairro ?? ""}
-                    onChange={(e) => set("bairro", e.target.value)}
-                  />
-                </div>
-                <div className="input-grupo m-0">
-                  <label className="input-label">Estado civil</label>
-                  <select
-                    className="input"
-                    value={dados.estadoCivil ?? ""}
-                    onChange={(e) =>
-                      set(
-                        "estadoCivil",
-                        (e.target.value || undefined) as Pessoa["estadoCivil"]
-                      )
-                    }
-                  >
-                    <option value="">—</option>
-                    {ESTADOS_CIVIS.map((ec) => (
-                      <option key={ec} value={ec}>
-                        {ec}
-                      </option>
-                    ))}
-                  </select>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-corpo space-y-4">
+                <h4 className="m-0">Contato</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="input-grupo m-0">
+                    <label className="input-label">Telefone</label>
+                    <input
+                      className="input"
+                      value={dados.telefone}
+                      onChange={(e) => set("telefone", e.target.value)}
+                      inputMode="tel"
+                      autoComplete="tel"
+                      required
+                    />
+                  </div>
+                  <div className="input-grupo m-0">
+                    <label className="input-label">E-mail</label>
+                    <input
+                      type="email"
+                      className="input"
+                      value={dados.email ?? ""}
+                      onChange={(e) => set("email", e.target.value)}
+                      autoComplete="email"
+                    />
+                  </div>
+                  <div className="input-grupo m-0 sm:col-span-2">
+                    <label className="input-label">Endereço</label>
+                    <input
+                      className="input"
+                      value={dados.endereco ?? ""}
+                      onChange={(e) => set("endereco", e.target.value)}
+                      autoComplete="street-address"
+                    />
+                  </div>
+                  <div className="input-grupo m-0">
+                    <label className="input-label">Bairro</label>
+                    <input
+                      className="input"
+                      value={dados.bairro ?? ""}
+                      onChange={(e) => set("bairro", e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -450,14 +499,6 @@ export function ValidarPublico() {
               </div>
             </div>
 
-            <div className="card">
-              <div className="card-corpo text-sm text-ardesia">
-                A foto do crachá é atualizada pelo aplicativo da organização.
-                Se a sua precisa de troca, marque no campo de e-mail acima
-                que enviamos uma nova solicitação.
-              </div>
-            </div>
-
             {erroSalvar && (
               <div className="card border-vermelho/40">
                 <div className="card-corpo text-vermelho-escuro">
@@ -472,9 +513,7 @@ export function ValidarPublico() {
                 className="btn btn-primario btn-grande"
                 disabled={etapa === "salvando"}
               >
-                {etapa === "salvando"
-                  ? "Salvando..."
-                  : "Confirmar dados e presença"}
+                {etapa === "salvando" ? "Salvando..." : "Confirmar"}
               </button>
             </div>
           </form>

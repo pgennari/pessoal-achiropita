@@ -59,11 +59,10 @@ service cloud.firestore {
       return dadosSessao().pessoaId;
     }
 
+    // Sessao anon (validacao publica) atualiza todos os dados pessoais
+    // exceto crachá (identificador estável), flag de ativacao e foto.
     function diffPessoaSemSensiveis(novo, velho) {
       return novo.cracha == velho.cracha
-        && novo.cpf == velho.cpf
-        && novo.nome == velho.nome
-        && novo.nascimento == velho.nascimento
         && novo.ativo == velho.ativo
         && novo.fotoUrl == velho.fotoUrl;
     }
@@ -286,6 +285,12 @@ service cloud.firestore {
       allow create, update: if (ehAdmOuOrg() && buscaCrachaValida(request.resource.data))
         || (temPerfilDoc()
             && pessoaIdDoUsuario() == request.resource.data.pessoaId
+            && buscaCrachaValida(request.resource.data))
+        // Sessao anon ressincroniza apos atualizar a propria pessoa
+        // (caso o ano de nascimento tenha mudado pela validacao publica).
+        || (sessaoVigente()
+            && pessoaIdDaSessao() == request.resource.data.pessoaId
+            && linkDaSessaoAtivo()
             && buscaCrachaValida(request.resource.data));
       allow delete: if ehAdmOuOrg();
     }

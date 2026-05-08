@@ -413,16 +413,20 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 - **Se válido:** identificação pedindo número do crachá + ano de
   nascimento. O sistema busca a pessoa por crachá numa lookup
   pública (`/buscaCracha/{cracha}`) e confere o ano
-- Mostra dados atuais: nome, contato, endereço, estado civil, filhos, foto
-- Permite editar campos não-sensíveis (telefone, e-mail, endereço,
-  bairro, estado civil, filhos)
-- TODO: enviar/atualizar foto pelo celular durante validação
-  (Storage rule cruzada com sessão anônima — pendente)
-- Botão final "Confirmar dados e presença"
-- Ao confirmar: atualiza pessoa, cria/atualiza
-  `/formacoes/{edicaoId__pessoaId}` com `presencaTipo=validacao`,
-  `dadosValidados=true`, `turmaId` igual ao da turma do link, e
-  incrementa o contador do link
+- **Se crachá/ano não encontrarem nenhuma pessoa:** mensagem para
+  tentar novamente, sem revelar se o erro foi no crachá ou no ano
+- Após identificação, carrega **todos os dados pessoais** num
+  formulário para conferência e edição: nome, data de nascimento,
+  CPF, RG, telefone, e-mail, endereço, bairro, estado civil e filhos
+- **Crachá** aparece apenas como informação (não-editável); foto
+  é atualizada pelo aplicativo da organização e não aparece nesse
+  formulário
+- Botão final **"Confirmar"**: ao clicar, atualiza a coleção
+  `/pessoas` com os valores do formulário e cria/atualiza
+  `/formacoes/{edicaoId__pessoaId}` registrando presença na turma
+  do link, com `presencaTipo=validacao`, `dadosValidados=true`,
+  `turmaId` igual ao da turma do link e incrementando o contador
+  do link
 - Tela final de sucesso: "Presença registrada. Bem-vindo(a) à 100ª
   Festa da Achiropita."
 

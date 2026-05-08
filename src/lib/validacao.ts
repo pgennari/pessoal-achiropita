@@ -119,7 +119,13 @@ export async function identificarPessoa(
   return { uidAnonimo, pessoa };
 }
 
+// Todos os campos editaveis pelo proprio dono via link publico.
+// Cracha, ativo e fotoUrl ficam imutaveis nesta tela.
 export interface DadosValidacao {
+  nome: string;
+  nascimento: string;
+  cpf?: string;
+  rg?: string;
   telefone: string;
   email?: string;
   endereco?: string;
@@ -136,7 +142,13 @@ export async function salvarValidacao(args: {
 }): Promise<void> {
   const { link, pessoa, dados, uidAnonimo } = args;
 
+  const novoNascimento = dados.nascimento;
+
   await updateDoc(doc(db(), "pessoas", pessoa.id), {
+    nome: dados.nome.trim(),
+    nascimento: novoNascimento,
+    cpf: dados.cpf ? soDigitos(dados.cpf) : null,
+    rg: dados.rg?.trim() || null,
     telefone: soDigitos(dados.telefone),
     email: dados.email?.trim() || null,
     endereco: dados.endereco?.trim() || null,
@@ -150,6 +162,19 @@ export async function salvarValidacao(args: {
     })),
     atualizadoEm: serverTimestamp(),
   });
+
+  // Se o ano de nascimento mudou, ressincroniza a lookup publica
+  // — caso contrario o segundo fator deixaria de bater para essa
+  // pessoa nas proximas validacoes.
+  const anoAntigo = pessoa.nascimento?.slice(0, 4);
+  const anoNovo = novoNascimento?.slice(0, 4);
+  if (anoNovo && anoNovo !== anoAntigo) {
+    await setDoc(doc(db(), "buscaCracha", String(pessoa.cracha)), {
+      pessoaId: pessoa.id,
+      anoNascimento: anoNovo,
+      atualizadoEm: serverTimestamp(),
+    });
+  }
 
   const idForm = idFormacao(link.edicaoId, pessoa.id);
   const ref = doc(db(), "formacoes", idForm);

@@ -265,7 +265,7 @@ export function BarracaDetalhe() {
               </button>
             ))}
         </div>
-        <table className="w-full text-sm">
+        <div className="tabela-rolavel"><table className="tabela-larga">
           <thead className="bg-pietra-clara/40 text-left">
             <tr>
               <th className="px-4 py-3 font-semibold w-20">Crachá</th>
@@ -337,7 +337,7 @@ export function BarracaDetalhe() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </section>
 
       <div>

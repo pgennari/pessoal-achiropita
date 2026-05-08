@@ -268,7 +268,7 @@ export function EntregaCrachas() {
                 {g.entregues} de {g.linhas.length} entregues
               </span>
             </div>
-            <table className="w-full text-sm">
+            <div className="tabela-rolavel"><table className="tabela-larga">
               <thead className="bg-pietra-clara/40 text-left">
                 <tr>
                   <th className="px-4 py-2 font-semibold w-14">Foto</th>
@@ -367,7 +367,7 @@ export function EntregaCrachas() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           </section>
         ))}
       </div>

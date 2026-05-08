@@ -4,9 +4,10 @@ import { Sessao, sair } from "../lib/sessao";
 interface Props {
   sessao: Sessao;
   onAbrirBusca: () => void;
+  onAbrirSidebar: () => void;
 }
 
-export function Topbar({ sessao, onAbrirBusca }: Props) {
+export function Topbar({ sessao, onAbrirBusca, onAbrirSidebar }: Props) {
   const navigate = useNavigate();
 
   async function handleSair() {
@@ -14,17 +15,48 @@ export function Topbar({ sessao, onAbrirBusca }: Props) {
     navigate("/login", { replace: true });
   }
 
-  const inicial = (sessao.nome || sessao.email || "?").trim().charAt(0).toUpperCase();
+  const inicial = (sessao.nome || sessao.email || "?")
+    .trim()
+    .charAt(0)
+    .toUpperCase();
   const ehMac =
-    typeof navigator !== "undefined" && /Mac|iPad|iPhone/.test(navigator.platform);
+    typeof navigator !== "undefined" &&
+    /Mac|iPad|iPhone/.test(navigator.platform);
 
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-pietra bg-bianco/80 backdrop-blur px-6 py-3">
-      <div className="md:hidden font-display text-xl text-verde">Achiropita 100</div>
+    <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-pietra bg-bianco/80 backdrop-blur px-4 sm:px-6 py-3">
+      <button
+        type="button"
+        onClick={onAbrirSidebar}
+        className="md:hidden text-carbone p-2 -ml-2 hover:bg-pietra-clara rounded-sm"
+        aria-label="Abrir menu"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+
+      <div className="md:hidden font-display text-lg text-verde mr-auto">
+        Achiropita 100
+      </div>
+
       <button
         type="button"
         onClick={onAbrirBusca}
-        className="hidden sm:flex items-center gap-3 text-left text-sm text-ardesia bg-pietra-clara/60 hover:bg-pietra-clara border border-pietra-clara rounded-sm px-3 py-2 min-w-[260px]"
+        className="hidden md:flex items-center gap-3 text-left text-sm text-ardesia bg-pietra-clara/60 hover:bg-pietra-clara border border-pietra-clara rounded-sm px-3 py-2 min-w-[260px]"
         aria-label="Abrir busca global"
       >
         <span>Buscar pessoa, crachá ou e-mail...</span>
@@ -32,11 +64,12 @@ export function Topbar({ sessao, onAbrirBusca }: Props) {
           {ehMac ? "⌘" : "Ctrl"}K
         </kbd>
       </button>
-      <div className="ml-auto flex items-center gap-3">
+
+      <div className="ml-auto flex items-center gap-2 sm:gap-3">
         <button
           type="button"
           onClick={onAbrirBusca}
-          className="sm:hidden btn btn-secundario btn-pequeno"
+          className="md:hidden btn btn-secundario btn-pequeno"
           aria-label="Abrir busca global"
         >
           Buscar
@@ -51,14 +84,17 @@ export function Topbar({ sessao, onAbrirBusca }: Props) {
         </div>
         <div
           aria-hidden
-          className="h-9 w-9 rounded-full text-bianco font-display text-base flex items-center justify-center"
+          className="h-9 w-9 rounded-full text-bianco font-display text-base flex items-center justify-center shrink-0"
           style={{
             background: "linear-gradient(135deg, #2E9D52, #16753A)",
           }}
         >
           {inicial}
         </div>
-        <button onClick={handleSair} className="btn btn-secundario btn-pequeno">
+        <button
+          onClick={handleSair}
+          className="btn btn-secundario btn-pequeno"
+        >
           Sair
         </button>
       </div>

@@ -89,7 +89,7 @@ export function Edicoes() {
       )}
 
       <div className="card overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="tabela-rolavel"><table className="tabela-larga">
           <thead className="bg-pietra-clara/60 text-left">
             <tr>
               <th className="px-4 py-3 font-semibold w-20">Nº</th>
@@ -154,7 +154,7 @@ export function Edicoes() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   );

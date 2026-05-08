@@ -169,6 +169,17 @@
     @apply p-6 sm:p-8;
   }
 
+  /* Wrapper de tabela com scroll horizontal no mobile.
+     Mantemos largura minima razoavel pra forcar scroll quando o
+     viewport e menor; a tabela interna pega min-w via .tabela-larga. */
+  .tabela-rolavel {
+    @apply overflow-x-auto;
+  }
+  .tabela-larga {
+    @apply w-full text-sm;
+    min-width: 640px;
+  }
+
   /* KPI */
   .kpi-grid {
     @apply grid gap-4;

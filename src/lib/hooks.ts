@@ -30,6 +30,8 @@ import { usuarioDeSnap } from "./usuarios";
 import { turmaDeSnap } from "./turmas";
 import { formacaoDeSnap } from "./formacoes";
 import { linkDeSnap } from "./links";
+import { Convite } from "./tipos";
+import { conviteDeSnap } from "./convites";
 
 export interface EstadoLista<T> {
   itens: T[];
@@ -662,6 +664,36 @@ export function useLinksDaTurma(
     );
     return () => cancelar();
   }, [turmaId]);
+
+  return estado;
+}
+
+export function useConvites(): EstadoLista<Convite> {
+  const [estado, setEstado] = useState<EstadoLista<Convite>>({
+    itens: [],
+    carregando: true,
+    erro: null,
+  });
+
+  useEffect(() => {
+    const cancelar = onSnapshot(
+      query(collection(db(), "convites")),
+      (snap) => {
+        const itens = snap.docs.map((d) =>
+          conviteDeSnap(d.id, d.data() as Record<string, unknown>)
+        );
+        itens.sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
+        setEstado({ itens, carregando: false, erro: null });
+      },
+      (err) =>
+        setEstado({
+          itens: [],
+          carregando: false,
+          erro: err.message ?? "Falha ao carregar convites.",
+        })
+    );
+    return () => cancelar();
+  }, []);
 
   return estado;
 }

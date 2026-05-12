@@ -74,6 +74,19 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 
 🔴 Alta · MVP
 
+### US-01-06 — Listar convites enviados
+**Como** ADM,
+**quero** visualizar todos os convites enviados, com status e data,
+**para** saber quais estão pendentes, aceitos ou expirados.
+
+**Critérios de aceite:**
+- Aba "Convites" na tela de Usuários separada da aba "Usuários"
+- Tabela com e-mail, perfil, status, data de criação e expiração
+- Links copiáveis diretamente na lista
+- Filtro por e-mail, perfil ou status
+
+🔴 Alta · MVP
+
 ### US-01-05 — Encerrar sessões ativas
 **Como** usuário,
 **quero** ver e encerrar sessões abertas em outros dispositivos,

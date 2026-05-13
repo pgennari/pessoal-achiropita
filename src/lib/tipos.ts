@@ -11,6 +11,25 @@ export interface Usuario {
   atualizadoEm?: string;
 }
 
+export type StatusConvite = "pendente" | "usado" | "revogado";
+
+// Convite emitido pelo ADM (US-01-04). A chave do doc em /convites
+// e o e-mail lowercased; o /usuarios/{uid} e provisionado quando o
+// convidado fizer o primeiro login.
+export interface Convite {
+  email: string;
+  nome: string;
+  perfil: Perfil;
+  pessoaId?: string;
+  barracasCRD?: string[];
+  status: StatusConvite;
+  criadoPorUid: string;
+  criadoPorNome: string;
+  criadoEm: string;
+  usadoEm?: string;
+  usadoPorUid?: string;
+}
+
 export type EstadoCivil =
   | "Solteiro(a)"
   | "Casado(a)"

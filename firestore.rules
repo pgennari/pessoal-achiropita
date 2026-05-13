@@ -170,17 +170,69 @@ service cloud.firestore {
         && d.anoNascimento.size() == 4;
     }
 
+    function conviteValido(d) {
+      return d.keys().hasAll([
+          "email", "nome", "perfil", "status",
+          "criadoPorUid", "criadoPorNome"
+        ])
+        && d.email is string
+        && d.nome is string
+        && d.perfil in ["ADM", "ORG", "CRD", "EQP", "OPC", "REC"]
+        && d.status in ["pendente", "usado", "revogado"];
+    }
+
+    // E-mail do auth normalizado, usado pra resolver a chave de
+    // /convites quando o convidado faz o primeiro login.
+    function chaveConviteDoAuth() {
+      return string(request.auth.token.email).lower();
+    }
+
+    function temConvitePendenteParaPerfil(perfilEsperado) {
+      return exists(/databases/$(database)/documents/convites/$(chaveConviteDoAuth()))
+        && get(/databases/$(database)/documents/convites/$(chaveConviteDoAuth())).data.status == "pendente"
+        && get(/databases/$(database)/documents/convites/$(chaveConviteDoAuth())).data.perfil == perfilEsperado;
+    }
+
     // ---------- Coleções ----------
 
     match /usuarios/{uid} {
       allow read: if temPerfilDoc() && (request.auth.uid == uid || ehAdm());
-      // Self-create no primeiro sign-in (perfil EQP). Anon nao se aplica.
+      // Self-create no primeiro sign-in. Anon nao se aplica.
+      // Dois ramos:
+      //   1) sem convite: cria com perfil EQP (default).
+      //   2) com convite pendente para o e-mail autenticado: aceita
+      //      qualquer perfil contanto que bata com o convite.
       allow create: if autenticado()
         && !ehAnon()
         && request.auth.uid == uid
         && usuarioValido(request.resource.data)
-        && request.resource.data.perfil == "EQP";
+        && (
+          request.resource.data.perfil == "EQP"
+          || temConvitePendenteParaPerfil(request.resource.data.perfil)
+        );
       allow create, update: if ehAdm() && usuarioValido(request.resource.data);
+      allow delete: if ehAdm();
+    }
+
+    match /convites/{email} {
+      // ADM vê tudo. O proprio convidado vê seu doc (necessario para
+      // consultarConvitePendente apos o login).
+      allow read: if ehAdm()
+        || (autenticado() && string(request.auth.token.email).lower() == email);
+
+      // ADM cria, atualiza e revoga.
+      allow create, update: if ehAdm() && conviteValido(request.resource.data);
+
+      // Convidado consome o proprio convite: vira "pendente" → "usado"
+      // mexendo apenas em status/usadoEm/usadoPorUid.
+      allow update: if autenticado()
+        && string(request.auth.token.email).lower() == email
+        && resource.data.status == "pendente"
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(["status", "usadoEm", "usadoPorUid"])
+        && request.resource.data.status == "usado"
+        && request.resource.data.usadoPorUid == request.auth.uid;
+
       allow delete: if ehAdm();
     }
 

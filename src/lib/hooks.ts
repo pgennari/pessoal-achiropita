@@ -10,6 +10,7 @@ import {
 import { db } from "./firebase";
 import {
   Barraca,
+  Convite,
   Edicao,
   EntregaCracha,
   EventoAuditoria,
@@ -27,6 +28,7 @@ import { barracaDeSnap } from "./barracas";
 import { participacaoDeSnap } from "./participacoes";
 import { entregaDeSnap } from "./entregas";
 import { usuarioDeSnap } from "./usuarios";
+import { conviteDeSnap } from "./convites";
 import { turmaDeSnap } from "./turmas";
 import { formacaoDeSnap } from "./formacoes";
 import { linkDeSnap } from "./links";
@@ -662,6 +664,36 @@ export function useLinksDaTurma(
     );
     return () => cancelar();
   }, [turmaId]);
+
+  return estado;
+}
+
+export function useConvites(): EstadoLista<Convite> {
+  const [estado, setEstado] = useState<EstadoLista<Convite>>({
+    itens: [],
+    carregando: true,
+    erro: null,
+  });
+
+  useEffect(() => {
+    const cancelar = onSnapshot(
+      query(collection(db(), "convites")),
+      (snap) => {
+        const itens = snap.docs.map((d) =>
+          conviteDeSnap(d.id, d.data() as Record<string, unknown>)
+        );
+        itens.sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
+        setEstado({ itens, carregando: false, erro: null });
+      },
+      (err) =>
+        setEstado({
+          itens: [],
+          carregando: false,
+          erro: err.message ?? "Falha ao carregar convites.",
+        })
+    );
+    return () => cancelar();
+  }, []);
 
   return estado;
 }

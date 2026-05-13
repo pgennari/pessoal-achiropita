@@ -1,18 +1,13 @@
 import { FormEvent, useState } from "react";
-import {
-  Barraca,
-  Pessoa,
-  Perfil,
-  Usuario,
-} from "../lib/tipos";
-import { DadosUsuarioForm } from "../lib/usuarios";
+import { Barraca, Convite, Pessoa, Perfil } from "../lib/tipos";
+import { DadosConviteForm } from "../lib/convites";
 import { normalizar } from "../lib/utilsDominio";
 
 interface Props {
-  inicial?: Usuario | null;
+  inicial?: Convite | null;
   pessoas: Pessoa[];
   barracasAtivas: Barraca[];
-  onSubmit: (dados: DadosUsuarioForm) => Promise<void>;
+  onSubmit: (dados: DadosConviteForm) => Promise<void>;
   onCancelar: () => void;
   textoBotao?: string;
 }
@@ -30,34 +25,35 @@ const PERFIS: { valor: Perfil; rotulo: string; descricao: string }[] = [
   { valor: "REC", rotulo: "REC", descricao: "Recreação" },
 ];
 
-function inicialDados(u?: Usuario | null): DadosUsuarioForm {
+function inicialDados(c?: Convite | null): DadosConviteForm {
   return {
-    email: u?.email ?? "",
-    nome: u?.nome ?? "",
-    perfil: u?.perfil ?? "EQP",
-    pessoaId: u?.pessoaId ?? "",
-    barracasCRD: u?.barracasCRD ?? [],
+    email: c?.email ?? "",
+    nome: c?.nome ?? "",
+    perfil: c?.perfil ?? "EQP",
+    pessoaId: c?.pessoaId ?? "",
+    barracasCRD: c?.barracasCRD ?? [],
   };
 }
 
-export function UsuarioForm({
+export function ConviteForm({
   inicial,
   pessoas,
   barracasAtivas,
   onSubmit,
   onCancelar,
-  textoBotao = "Salvar",
+  textoBotao = "Enviar convite",
 }: Props) {
-  const [dados, setDados] = useState<DadosUsuarioForm>(() =>
+  const editando = !!inicial;
+  const [dados, setDados] = useState<DadosConviteForm>(() =>
     inicialDados(inicial)
   );
   const [enviando, setEnviando] = useState(false);
   const [erros, setErros] = useState<Record<string, string>>({});
   const [buscaPessoa, setBuscaPessoa] = useState("");
 
-  function set<K extends keyof DadosUsuarioForm>(
+  function set<K extends keyof DadosConviteForm>(
     chave: K,
-    valor: DadosUsuarioForm[K]
+    valor: DadosConviteForm[K]
   ) {
     setDados((d) => ({ ...d, [chave]: valor }));
   }
@@ -111,24 +107,28 @@ export function UsuarioForm({
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="input-grupo">
+        <div className="input-grupo sm:col-span-2">
           <label className="input-label" htmlFor="email">
             E-mail
           </label>
           <input
             id="email"
             type="email"
-            className={`input ${erros.email ? "erro" : ""}`}
+            className={`input ${erros.email ? "erro" : ""} ${
+              editando ? "opacity-60" : ""
+            }`}
             value={dados.email}
             onChange={(e) => set("email", e.target.value)}
+            disabled={editando}
             required
+            autoComplete="off"
           />
           {erros.email && <p className="input-erro-msg">{erros.email}</p>}
-          {inicial && (
-            <p className="input-ajuda font-mono text-xs">
-              UID Firebase: {inicial.uid}
-            </p>
-          )}
+          <p className="input-ajuda">
+            O doc <code className="font-mono">/usuarios/{"{uid}"}</code> é
+            criado automaticamente no primeiro login dessa pessoa, com o
+            perfil escolhido aqui.
+          </p>
         </div>
 
         <div className="input-grupo">
@@ -145,7 +145,7 @@ export function UsuarioForm({
           {erros.nome && <p className="input-erro-msg">{erros.nome}</p>}
         </div>
 
-        <div className="input-grupo sm:col-span-2">
+        <div className="input-grupo">
           <label className="input-label" htmlFor="perfil">
             Perfil
           </label>

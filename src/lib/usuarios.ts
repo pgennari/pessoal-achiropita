@@ -11,6 +11,10 @@ import { db } from "./firebase";
 import { Perfil, Usuario } from "./tipos";
 import { Sessao } from "./sessao";
 import { registrarEvento } from "./auditoria";
+import {
+  consultarConvitePendente,
+  marcarConviteUsado,
+} from "./convites";
 
 const COL = "usuarios";
 
@@ -22,8 +26,10 @@ export class ErroUsuario extends Error {
   }
 }
 
+// Form de edicao de usuario existente. UID nao aparece — eh
+// inalteravel e vem do doc atual. Novos usuarios entram pela
+// fluxo de convite (ver ConviteForm).
 export interface DadosUsuarioForm {
-  uid: string;
   email: string;
   nome: string;
   perfil: Perfil;
@@ -57,7 +63,6 @@ export function usuarioDeSnap(
 
 function validar(d: DadosUsuarioForm): Record<string, string> {
   const erros: Record<string, string> = {};
-  if (!d.uid.trim() || d.uid.trim().length < 6) erros.uid = "UID inválido.";
   if (!d.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email))
     erros.email = "E-mail inválido.";
   if (!d.nome.trim()) erros.nome = "Nome é obrigatório.";
@@ -78,36 +83,12 @@ function payload(d: DadosUsuarioForm): Record<string, unknown> {
   };
 }
 
-export async function criarUsuarioPorAdm(
-  sessao: Sessao,
-  dados: DadosUsuarioForm
-): Promise<void> {
-  const erros = validar(dados);
-  if (Object.keys(erros).length) throw new ErroUsuario(erros);
-  const ref = doc(db(), COL, dados.uid.trim());
-  const existente = await getDoc(ref);
-  if (existente.exists()) {
-    throw new ErroUsuario({ uid: "Já existe um usuário com este UID." });
-  }
-  await setDoc(ref, {
-    ...payload(dados),
-    criadoEm: serverTimestamp(),
-    atualizadoEm: serverTimestamp(),
-  });
-  await registrarEvento(
-    sessao,
-    "usuario.criou",
-    `usuarios/${dados.uid}`,
-    `${dados.nome} (${dados.perfil})`
-  );
-}
-
 export async function atualizarUsuario(
   sessao: Sessao,
   uid: string,
   dados: DadosUsuarioForm
 ): Promise<void> {
-  const erros = validar({ ...dados, uid });
+  const erros = validar(dados);
   if (Object.keys(erros).length) throw new ErroUsuario(erros);
   await updateDoc(doc(db(), COL, uid), {
     ...payload(dados),
@@ -134,9 +115,15 @@ export async function removerUsuario(
   );
 }
 
-// Auto-cria o doc do usuário no primeiro sign-in com perfil EQP. ADM
-// promove depois pela tela de gerenciamento. Idempotente: se o doc já
-// existe, retorna sem fazer nada.
+// Auto-cria o doc do usuário no primeiro sign-in.
+//
+// 1. Se /usuarios/{uid} ja existe → no-op.
+// 2. Se ha convite pendente para o e-mail → cria com perfil do
+//    convite e marca o convite como usado.
+// 3. Senao → cria com perfil EQP (default).
+//
+// Idempotente. Falha silenciosa em camadas superiores; aqui propaga
+// erros pra quem chamar tratar (mas chamadores costumam ignorar).
 export async function garantirDocUsuario(args: {
   uid: string;
   email: string;
@@ -145,8 +132,34 @@ export async function garantirDocUsuario(args: {
   const ref = doc(db(), COL, args.uid);
   const snap = await getDoc(ref);
   if (snap.exists()) return;
+
+  const emailLower = args.email.trim().toLowerCase();
+  const convite = emailLower
+    ? await consultarConvitePendente(emailLower)
+    : null;
+
+  if (convite) {
+    await setDoc(ref, {
+      email: emailLower,
+      nome: convite.nome || args.nome,
+      perfil: convite.perfil,
+      pessoaId: convite.pessoaId ?? null,
+      barracasCRD: convite.barracasCRD ?? null,
+      criadoEm: serverTimestamp(),
+      atualizadoEm: serverTimestamp(),
+    });
+    // Marca o convite depois do setDoc — se isso falhar, o doc
+    // do usuario fica criado e o ADM pode revogar manualmente.
+    try {
+      await marcarConviteUsado(emailLower, args.uid);
+    } catch {
+      // ignora — convite ja foi efetivamente aproveitado
+    }
+    return;
+  }
+
   await setDoc(ref, {
-    email: args.email.toLowerCase(),
+    email: emailLower,
     nome: args.nome,
     perfil: "EQP" as Perfil,
     pessoaId: null,

@@ -1,204 +1,266 @@
 import { FormEvent, useState } from "react";
-import { Barraca, Perfil } from "../lib/tipos";
-import { DadosCriarConvite } from "../lib/convites";
+import { Barraca, Convite, Pessoa, Perfil } from "../lib/tipos";
+import { DadosConviteForm } from "../lib/convites";
+import { normalizar } from "../lib/utilsDominio";
 
 interface Props {
+  inicial?: Convite | null;
+  pessoas: Pessoa[];
   barracasAtivas: Barraca[];
-  onSubmit: (dados: DadosCriarConvite) => Promise<string>;
+  onSubmit: (dados: DadosConviteForm) => Promise<void>;
   onCancelar: () => void;
+  textoBotao?: string;
 }
 
-const PERFIS_CONVITE: { valor: Perfil; rotulo: string }[] = [
-  { valor: "ADM", rotulo: "ADM — Administracao" },
-  { valor: "ORG", rotulo: "ORG — Organizacao" },
-  { valor: "CRD", rotulo: "CRD — Coordenador (vinculado a barracas)" },
-  { valor: "EQP", rotulo: "EQP — Equipista" },
-  { valor: "OPC", rotulo: "OPC — Operador" },
-  { valor: "REC", rotulo: "REC — Recreacao" },
+const PERFIS: { valor: Perfil; rotulo: string; descricao: string }[] = [
+  { valor: "ADM", rotulo: "ADM", descricao: "Acesso total" },
+  { valor: "ORG", rotulo: "ORG", descricao: "Organização geral" },
+  {
+    valor: "CRD",
+    rotulo: "CRD",
+    descricao: "Coordenador (precisa de barracas)",
+  },
+  { valor: "EQP", rotulo: "EQP", descricao: "Equipista" },
+  { valor: "OPC", rotulo: "OPC", descricao: "Operador de campo" },
+  { valor: "REC", rotulo: "REC", descricao: "Recreação" },
 ];
 
-export function ConviteForm({ barracasAtivas, onSubmit, onCancelar }: Props) {
-  const [email, setEmail] = useState("");
-  const [perfil, setPerfil] = useState<Perfil>("EQP");
-  const [barracasSelecionadas, setBarracasSelecionadas] = useState<Set<string>>(
-    new Set()
+function inicialDados(c?: Convite | null): DadosConviteForm {
+  return {
+    email: c?.email ?? "",
+    nome: c?.nome ?? "",
+    perfil: c?.perfil ?? "EQP",
+    pessoaId: c?.pessoaId ?? "",
+    barracasCRD: c?.barracasCRD ?? [],
+  };
+}
+
+export function ConviteForm({
+  inicial,
+  pessoas,
+  barracasAtivas,
+  onSubmit,
+  onCancelar,
+  textoBotao = "Enviar convite",
+}: Props) {
+  const editando = !!inicial;
+  const [dados, setDados] = useState<DadosConviteForm>(() =>
+    inicialDados(inicial)
   );
   const [enviando, setEnviando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-  const [linkGerado, setLinkGerado] = useState<string | null>(null);
+  const [erros, setErros] = useState<Record<string, string>>({});
+  const [buscaPessoa, setBuscaPessoa] = useState("");
+
+  function set<K extends keyof DadosConviteForm>(
+    chave: K,
+    valor: DadosConviteForm[K]
+  ) {
+    setDados((d) => ({ ...d, [chave]: valor }));
+  }
 
   function alternarBarraca(id: string) {
-    setBarracasSelecionadas((prev) => {
-      const novo = new Set(prev);
-      if (novo.has(id)) novo.delete(id);
-      else novo.add(id);
-      return novo;
+    setDados((d) => {
+      const set = new Set(d.barracasCRD ?? []);
+      if (set.has(id)) set.delete(id);
+      else set.add(id);
+      return { ...d, barracasCRD: Array.from(set) };
     });
   }
 
   async function handleSubmit(ev: FormEvent) {
     ev.preventDefault();
-    setErro(null);
-    setLinkGerado(null);
-
-    if (perfil === "CRD" && barracasSelecionadas.size === 0) {
-      setErro("Coordenador precisa de pelo menos uma barraca.");
-      return;
-    }
-
+    setErros({});
     setEnviando(true);
     try {
-      const token = await onSubmit({
-        email: email.trim(),
-        perfil,
-        barracasCRD:
-          perfil === "CRD"
-            ? Array.from(barracasSelecionadas)
-            : undefined,
-      });
-      setLinkGerado(
-        `${window.location.origin}/convite/${token}`
-      );
-      setEmail("");
-      setPerfil("EQP");
-      setBarracasSelecionadas(new Set());
+      await onSubmit(dados);
     } catch (e) {
-      setErro(e instanceof Error ? e.message : "Falha ao criar convite.");
+      if (e && typeof e === "object" && "campos" in e) {
+        setErros((e as { campos: Record<string, string> }).campos ?? {});
+      } else if (e instanceof Error) {
+        setErros({ _form: e.message });
+      } else {
+        setErros({ _form: "Falha ao salvar." });
+      }
     } finally {
       setEnviando(false);
     }
   }
 
-  async function handleCopiar() {
-    if (!linkGerado) return;
-    try {
-      await navigator.clipboard.writeText(linkGerado);
-    } catch {
-      // fallback: seleciona o texto
-      const el = document.getElementById("link-convite") as HTMLInputElement;
-      if (el) el.select();
-    }
-  }
+  const sugestoesPessoas = (() => {
+    const t = normalizar(buscaPessoa);
+    if (!t) return pessoas.slice(0, 6);
+    return pessoas
+      .filter((p) => normalizar(p.nome).includes(t))
+      .slice(0, 6);
+  })();
 
-  if (linkGerado) {
-    return (
-      <div className="space-y-4">
-        <div className="card border-verde/40 bg-verde/5">
-          <div className="card-corpo space-y-3">
-            <h4 className="!text-verde-escuro">Convite criado</h4>
-            <p className="text-sm text-ardesia">
-              Compartilhe o link abaixo com a pessoa convidada. Ele e valido
-              por 7 dias.
-            </p>
-            <div className="flex gap-2">
-              <input
-                id="link-convite"
-                className="input font-mono text-sm flex-1"
-                value={linkGerado}
-                readOnly
-                onClick={(e) => (e.target as HTMLInputElement).select()}
-              />
-              <button
-                type="button"
-                className="btn btn-primario"
-                onClick={handleCopiar}
-              >
-                Copiar
-              </button>
-            </div>
-          </div>
-        </div>
-        <button
-          type="button"
-          className="btn btn-secundario"
-          onClick={onCancelar}
-        >
-          Fechar
-        </button>
-      </div>
-    );
-  }
+  const pessoaSelecionada = pessoas.find((p) => p.id === dados.pessoaId);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {erro && (
+      {erros._form && (
         <div className="card border-vermelho/40">
-          <div className="card-corpo py-4 text-vermelho-escuro">{erro}</div>
+          <div className="card-corpo py-4 text-vermelho-escuro">
+            {erros._form}
+          </div>
         </div>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="input-grupo sm:col-span-2">
-          <label className="input-label" htmlFor="convite-email">
-            E-mail da pessoa convidada
+          <label className="input-label" htmlFor="email">
+            E-mail
           </label>
           <input
-            id="convite-email"
+            id="email"
             type="email"
-            className="input"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            className={`input ${erros.email ? "erro" : ""} ${
+              editando ? "opacity-60" : ""
+            }`}
+            value={dados.email}
+            onChange={(e) => set("email", e.target.value)}
+            disabled={editando}
             required
-            placeholder="pessoa@email.com"
             autoComplete="off"
           />
+          {erros.email && <p className="input-erro-msg">{erros.email}</p>}
+          <p className="input-ajuda">
+            O doc <code className="font-mono">/usuarios/{"{uid}"}</code> é
+            criado automaticamente no primeiro login dessa pessoa, com o
+            perfil escolhido aqui.
+          </p>
         </div>
 
-        <div className="input-grupo sm:col-span-2">
-          <label className="input-label" htmlFor="convite-perfil">
-            Perfil de acesso
+        <div className="input-grupo">
+          <label className="input-label" htmlFor="nome">
+            Nome
+          </label>
+          <input
+            id="nome"
+            className={`input ${erros.nome ? "erro" : ""}`}
+            value={dados.nome}
+            onChange={(e) => set("nome", e.target.value)}
+            required
+          />
+          {erros.nome && <p className="input-erro-msg">{erros.nome}</p>}
+        </div>
+
+        <div className="input-grupo">
+          <label className="input-label" htmlFor="perfil">
+            Perfil
           </label>
           <select
-            id="convite-perfil"
-            className="input"
-            value={perfil}
-            onChange={(e) => setPerfil(e.target.value as Perfil)}
+            id="perfil"
+            className={`input ${erros.perfil ? "erro" : ""}`}
+            value={dados.perfil}
+            onChange={(e) => set("perfil", e.target.value as Perfil)}
           >
-            {PERFIS_CONVITE.map((p) => (
+            {PERFIS.map((p) => (
               <option key={p.valor} value={p.valor}>
-                {p.rotulo}
+                {p.rotulo} — {p.descricao}
               </option>
             ))}
           </select>
         </div>
 
-        {perfil === "CRD" && (
+        {dados.perfil === "CRD" && (
           <div className="input-grupo sm:col-span-2">
             <label className="input-label">Barracas coordenadas</label>
             {barracasAtivas.length === 0 ? (
               <p className="input-ajuda">
-                Nenhuma barraca cadastrada na edicao ativa. Crie barracas
-                primeiro em Edicoes.
+                Nenhuma barraca cadastrada na edição ativa. Crie barracas
+                primeiro em Edições → ativa.
               </p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                 {barracasAtivas.map((b) => (
-                  <label key={b.id} className="flex items-center gap-2 text-sm">
+                  <label
+                    key={b.id}
+                    className="flex items-center gap-2 text-sm"
+                  >
                     <input
                       type="checkbox"
                       className="h-4 w-4"
-                      checked={barracasSelecionadas.has(b.id)}
+                      checked={(dados.barracasCRD ?? []).includes(b.id)}
                       onChange={() => alternarBarraca(b.id)}
                     />
                     <span>{b.nome}</span>
                     <span className="text-ardesia text-xs">
-                      ({b.setor === "Alimentacao" ? "Alimentacao" : b.setor})
+                      ({b.setor === "Alimentacao" ? "Alimentação" : b.setor})
                     </span>
                   </label>
                 ))}
               </div>
             )}
+            {erros.barracasCRD && (
+              <p className="input-erro-msg">{erros.barracasCRD}</p>
+            )}
           </div>
         )}
+
+        <div className="input-grupo sm:col-span-2">
+          <label className="input-label">
+            Pessoa vinculada <span className="opcional">(opcional)</span>
+          </label>
+          {pessoaSelecionada ? (
+            <div className="flex items-center gap-3 mb-2">
+              <span className="badge badge-verde">
+                #{pessoaSelecionada.cracha} · {pessoaSelecionada.nome}
+              </span>
+              <button
+                type="button"
+                className="btn btn-texto btn-pequeno"
+                onClick={() => set("pessoaId", "")}
+              >
+                desvincular
+              </button>
+            </div>
+          ) : (
+            <>
+              <input
+                className="input"
+                placeholder="Buscar pessoa por nome..."
+                value={buscaPessoa}
+                onChange={(e) => setBuscaPessoa(e.target.value)}
+              />
+              {buscaPessoa && (
+                <ul className="border border-pietra-clara rounded-sm mt-2 divide-y divide-pietra-clara max-h-40 overflow-y-auto">
+                  {sugestoesPessoas.length === 0 && (
+                    <li className="px-3 py-2 text-ardesia text-sm">
+                      Nenhuma encontrada.
+                    </li>
+                  )}
+                  {sugestoesPessoas.map((p) => (
+                    <li key={p.id}>
+                      <button
+                        type="button"
+                        className="w-full text-left px-3 py-2 hover:bg-pietra-clara/60"
+                        onClick={() => {
+                          set("pessoaId", p.id);
+                          setBuscaPessoa("");
+                        }}
+                      >
+                        <span className="font-mono text-ardesia mr-2">
+                          #{p.cracha}
+                        </span>
+                        {p.nome}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+          <p className="input-ajuda">
+            Vincular a uma Pessoa permite que o usuário (EQP) consulte e edite
+            seu próprio cadastro pelo app.
+          </p>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-3 pt-4 border-t border-pietra-clara">
-        <button
-          type="submit"
-          className="btn btn-primario"
-          disabled={enviando}
-        >
-          {enviando ? "Criando..." : "Gerar link de convite"}
+        <button type="submit" className="btn btn-primario" disabled={enviando}>
+          {enviando ? "Salvando..." : textoBotao}
         </button>
         <button
           type="button"

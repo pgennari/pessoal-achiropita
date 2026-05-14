@@ -10,6 +10,7 @@ import {
 import { db } from "./firebase";
 import {
   Barraca,
+  Convite,
   Edicao,
   EntregaCracha,
   EventoAuditoria,
@@ -27,11 +28,10 @@ import { barracaDeSnap } from "./barracas";
 import { participacaoDeSnap } from "./participacoes";
 import { entregaDeSnap } from "./entregas";
 import { usuarioDeSnap } from "./usuarios";
+import { conviteDeSnap } from "./convites";
 import { turmaDeSnap } from "./turmas";
 import { formacaoDeSnap } from "./formacoes";
 import { linkDeSnap } from "./links";
-import { Convite } from "./tipos";
-import { conviteDeSnap } from "./convites";
 
 export interface EstadoLista<T> {
   itens: T[];

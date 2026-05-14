@@ -32,7 +32,6 @@ const PERFIS: { valor: Perfil; rotulo: string; descricao: string }[] = [
 
 function inicialDados(u?: Usuario | null): DadosUsuarioForm {
   return {
-    uid: u?.uid ?? "",
     email: u?.email ?? "",
     nome: u?.nome ?? "",
     perfil: u?.perfil ?? "EQP",
@@ -49,7 +48,6 @@ export function UsuarioForm({
   onCancelar,
   textoBotao = "Salvar",
 }: Props) {
-  const editando = !!inicial;
   const [dados, setDados] = useState<DadosUsuarioForm>(() =>
     inicialDados(inicial)
   );
@@ -113,28 +111,6 @@ export function UsuarioForm({
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="input-grupo sm:col-span-2">
-          <label className="input-label" htmlFor="uid">
-            UID do Firebase Authentication
-          </label>
-          <input
-            id="uid"
-            className={`input ${erros.uid ? "erro" : ""} ${
-              editando ? "opacity-60" : ""
-            }`}
-            value={dados.uid}
-            onChange={(e) => set("uid", e.target.value)}
-            disabled={editando}
-            autoComplete="off"
-          />
-          {erros.uid && <p className="input-erro-msg">{erros.uid}</p>}
-          {!editando && (
-            <p className="input-ajuda">
-              Pegue em Firebase Console → Authentication → Users (UID).
-            </p>
-          )}
-        </div>
-
         <div className="input-grupo">
           <label className="input-label" htmlFor="email">
             E-mail
@@ -148,6 +124,11 @@ export function UsuarioForm({
             required
           />
           {erros.email && <p className="input-erro-msg">{erros.email}</p>}
+          {inicial && (
+            <p className="input-ajuda font-mono text-xs">
+              UID Firebase: {inicial.uid}
+            </p>
+          )}
         </div>
 
         <div className="input-grupo">

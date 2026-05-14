@@ -216,6 +216,20 @@ service cloud.firestore {
           || temConvitePendenteParaPerfil(request.resource.data.perfil)
         );
       allow create, update: if ehAdm() && usuarioValido(request.resource.data);
+      // Auto-update via convite: o usuario aceita um convite e atualiza
+      // o proprio perfil. O conviteToken e passado no payload e a rule
+      // verifica se o convite existe, esta pendente, e-mail bate e nao
+      // expirou. So permite alterar perfil, barracasCRD, atualizadoEm.
+      allow update: if autenticado()
+        && !ehAnon()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasAny(["conviteToken"])
+        && exists(/databases/$(database)/documents/convites/$(request.resource.data.conviteToken))
+        && get(/databases/$(database)/documents/convites/$(request.resource.data.conviteToken)).data.status == "pendente"
+        && get(/databases/$(database)/documents/convites/$(request.resource.data.conviteToken)).data.email == request.auth.token.email
+        && get(/databases/$(database)/documents/convites/$(request.resource.data.conviteToken)).data.expiraEm > request.time
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(["perfil", "barracasCRD", "atualizadoEm", "conviteToken"]);
       allow delete: if ehAdm();
     }
 
@@ -388,6 +402,34 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/buscaCracha/$(string(request.resource.data.cracha))).data.pessoaId == request.resource.data.pessoaId
         && get(/databases/$(database)/documents/buscaCracha/$(string(request.resource.data.cracha))).data.anoNascimento == request.resource.data.ano;
       allow delete: if false;
+    }
+
+    match /convites/{token} {
+      // Leitura: get publico (token no path e o secret); list so ADM.
+      // O onSnapshot na lista (tabela de convites) usa list; o
+      // doc() na pagina publica usa get.
+      allow get: if true;
+      allow list: if ehAdm();
+      // Criacao: apenas ADM.
+      allow create: if ehAdm()
+        && request.resource.data.keys().hasAll([
+            "email", "perfil", "status",
+            "criadoEm", "expiraEm",
+            "criadoPorUid", "criadoPorNome"
+          ])
+        && request.resource.data.perfil in ["ADM", "ORG", "CRD", "EQP", "OPC", "REC"]
+        && request.resource.data.status == "pendente"
+        && request.resource.data.expiraEm is timestamp
+        && request.resource.data.expiraEm > request.time;
+      // Update: apenas o destinatario pode aceitar (mudar status para "aceito").
+      allow update: if autenticado() && !ehAnon()
+        && resource.data.email == request.auth.token.email
+        && resource.data.status == "pendente"
+        && resource.data.expiraEm > request.time
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(["status", "aceitoPorUid"])
+        && request.resource.data.status == "aceito";
+      allow delete: if ehAdm();
     }
 
     match /auditoria/{id} {

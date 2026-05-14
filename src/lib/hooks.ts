@@ -32,6 +32,8 @@ import { conviteDeSnap } from "./convites";
 import { turmaDeSnap } from "./turmas";
 import { formacaoDeSnap } from "./formacoes";
 import { linkDeSnap } from "./links";
+import { Convite } from "./tipos";
+import { conviteDeSnap } from "./convites";
 
 export interface EstadoLista<T> {
   itens: T[];

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   entrar,
   entrarComGoogle,
@@ -14,9 +14,14 @@ interface LocationState {
 export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { sessao, carregando } = useSessao();
 
-  const destino = (location.state as LocationState | null)?.from?.pathname || "/";
+  const redirectParam = searchParams.get("redirect");
+  const destino =
+    redirectParam ||
+    (location.state as LocationState | null)?.from?.pathname ||
+    "/";
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");

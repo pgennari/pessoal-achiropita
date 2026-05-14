@@ -196,7 +196,12 @@ service cloud.firestore {
     // ---------- Coleções ----------
 
     match /usuarios/{uid} {
-      allow read: if temPerfilDoc() && (request.auth.uid == uid || ehAdm());
+      // Self pode ler o proprio doc mesmo antes dele existir — caso
+      // contrario o auto-provisionamento no primeiro login trava
+      // (catch-22: precisamos checar se o doc existe pra criar, mas a
+      // rule de read antiga exigia que ja existisse).
+      allow read: if autenticado()
+        && (request.auth.uid == uid || ehAdm());
       // Self-create no primeiro sign-in. Anon nao se aplica.
       // Dois ramos:
       //   1) sem convite: cria com perfil EQP (default).

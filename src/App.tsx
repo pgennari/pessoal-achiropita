@@ -18,13 +18,11 @@ import { PaginaFormacao } from "./pages/Formacao";
 import { PendenciasFormacao } from "./pages/PendenciasFormacao";
 import { ValidarPublico } from "./pages/ValidarPublico";
 import { QrTurma } from "./pages/QrTurma";
-import { PaginaConvite } from "./pages/PaginaConvite";
 
 export function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/convite/:token" element={<PaginaConvite />} />
       <Route path="/v/:token" element={<ValidarPublico />} />
       <Route path="/v-qr/:token" element={<QrTurma />} />
       <Route

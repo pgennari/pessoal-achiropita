@@ -206,17 +206,3 @@ export interface Formacao {
   validadoEm?: string;
 }
 
-export type StatusConvite = "pendente" | "aceito" | "expirado";
-
-export interface Convite {
-  token: string;
-  email: string;
-  perfil: Perfil;
-  barracasCRD?: string[];
-  status: StatusConvite;
-  criadoEm: string;
-  expiraEm: string;
-  criadoPorUid: string;
-  criadoPorNome: string;
-  aceitoPorUid?: string;
-}

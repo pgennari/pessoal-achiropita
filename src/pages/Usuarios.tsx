@@ -26,8 +26,6 @@ import { ConviteForm } from "../components/ConviteForm";
 import { Convite, Usuario } from "../lib/tipos";
 import { formatarData } from "../lib/utilsDominio";
 
-type Aba = "usuarios" | "convites";
-
 const ROTULO_PERFIL: Record<string, string> = {
   ADM: "ADM",
   ORG: "ORG",
@@ -46,19 +44,17 @@ function classePerfilBadge(p: string): string {
 
 export function Usuarios() {
   const { sessao } = useSessao();
-  const { itens: usuarios, carregando, erro } = useUsuarios();
+  const { itens: usuarios, carregando } = useUsuarios();
   const { itens: convites, carregando: carregandoConvites } = useConvites();
   const { itens: pessoas } = usePessoas();
   const { edicao } = useEdicaoAtiva();
   const { itens: barracas } = useBarracas(edicao?.id);
-  const [aba, setAba] = useState<Aba>("usuarios");
   const [editandoUid, setEditandoUid] = useState<string | null>(null);
   const [editandoConviteKey, setEditandoConviteKey] = useState<string | null>(
     null
   );
   const [criandoConvite, setCriandoConvite] = useState(false);
   const [filtro, setFiltro] = useState("");
-  const [filtroConvite, setFiltroConvite] = useState("");
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
 
   const indicePessoas = useMemo(() => {
@@ -254,6 +250,8 @@ export function Usuarios() {
               textoBotao="Salvar convite"
             />
           </div>
+        </div>
+      )}
 
       {usuarioEditando && (
         <div className="card">
@@ -268,94 +266,7 @@ export function Usuarios() {
               textoBotao="Salvar alterações"
             />
           </div>
-
-          <div className="card overflow-hidden">
-            <div className="tabela-rolavel"><table className="tabela-larga">
-              <thead className="bg-pietra-clara/60 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Nome / e-mail</th>
-                  <th className="px-4 py-3 font-semibold w-24">Perfil</th>
-                  <th className="px-4 py-3 font-semibold hidden md:table-cell">
-                    Vinculada a
-                  </th>
-                  <th className="px-4 py-3 font-semibold hidden lg:table-cell w-36">
-                    Criado em
-                  </th>
-                  <th className="px-4 py-3 font-semibold w-44 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lista.length === 0 && !carregando && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-ardesia">
-                      Nenhum usuário encontrado.
-                    </td>
-                  </tr>
-                )}
-                {lista.map((u) => (
-                  <tr
-                    key={u.uid}
-                    className="border-t border-pietra-clara hover:bg-pietra-clara/40"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-semibold">{u.nome}</div>
-                      <div className="text-xs text-ardesia font-mono">
-                        {u.email}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`badge ${
-                          u.perfil === "ADM"
-                            ? "badge-vermelho"
-                            : u.perfil === "ORG"
-                            ? "badge-ouro"
-                            : u.perfil === "CRD"
-                            ? "badge-azul"
-                            : "badge-cinza"
-                        }`}
-                      >
-                        {ROTULO_PERFIL[u.perfil]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 hidden md:table-cell text-ardesia">
-                      {u.pessoaId
-                        ? indicePessoas.get(u.pessoaId) ?? "(pessoa removida)"
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3 hidden lg:table-cell text-ardesia font-mono text-xs">
-                      {formatarData(u.criadoEm)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          className="btn btn-secundario btn-pequeno"
-                          onClick={() => setEditandoUid(u.uid)}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                          onClick={() => handleRemover(u)}
-                          disabled={u.uid === sessao.uid}
-                          title={
-                            u.uid === sessao.uid
-                              ? "Não pode remover o próprio usuário"
-                              : ""
-                          }
-                        >
-                          Remover
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table></div>
-          </div>
-        </>
+        </div>
       )}
 
       <section>

@@ -6,27 +6,64 @@ interface ItemNav {
   to: string;
   label: string;
   perfis?: Perfil[];
+  filhos?: ItemNav[];
 }
 
-const itens: ItemNav[] = [
-  { to: "/", label: "Painel" },
-  { to: "/pessoas", label: "Pessoas" },
-  { to: "/edicoes", label: "Edições" },
-  { to: "/historico", label: "Histórico", perfis: ["ADM", "ORG"] },
-  { to: "/formacao", label: "Formação", perfis: ["ADM", "ORG"] },
+interface Secao {
+  label?: string;
+  itens: ItemNav[];
+}
+
+const secoes: Secao[] = [
   {
-    to: "/entregas/crachas",
-    label: "Entrega de crachás",
-    perfis: ["ADM", "ORG", "OPC"],
+    itens: [{ to: "/", label: "Painel" }],
   },
   {
-    to: "/pendencias/fotos",
-    label: "Pendências de foto",
-    perfis: ["ADM", "ORG"],
+    label: "Pessoal",
+    itens: [
+      {
+        to: "/pessoas",
+        label: "Pessoas",
+        filhos: [
+          {
+            to: "/entregas/crachas",
+            label: "Entrega de Crachá",
+            perfis: ["ADM", "ORG", "OPC"],
+          },
+          {
+            to: "/pendencias/fotos",
+            label: "Pendências de Fotos",
+            perfis: ["ADM", "ORG"],
+          },
+        ],
+      },
+      { to: "/formacao", label: "Formação", perfis: ["ADM", "ORG"] },
+    ],
   },
-  { to: "/usuarios", label: "Usuários", perfis: ["ADM"] },
-  { to: "/auditoria", label: "Auditoria", perfis: ["ADM", "ORG"] },
+  {
+    label: "Festa",
+    itens: [
+      {
+        to: "/edicoes",
+        label: "Edição",
+        filhos: [
+          { to: "/historico", label: "Histórico", perfis: ["ADM", "ORG"] },
+        ],
+      },
+    ],
+  },
+  {
+    label: "Administração",
+    itens: [
+      { to: "/usuarios", label: "Usuários", perfis: ["ADM"] },
+      { to: "/auditoria", label: "Auditoria", perfis: ["ADM", "ORG"] },
+    ],
+  },
 ];
+
+function itemVisivel(item: ItemNav, perfil: Perfil): boolean {
+  return !item.perfis || item.perfis.includes(perfil);
+}
 
 interface Props {
   sessao: Sessao;
@@ -35,13 +72,24 @@ interface Props {
 }
 
 export function Sidebar({ sessao, aberta, onFechar }: Props) {
-  const visiveis = itens.filter(
-    (i) => !i.perfis || i.perfis.includes(sessao.perfil)
-  );
+  const classeLink = (isActive: boolean) =>
+    [
+      "flex items-center px-3 py-2.5 rounded-sm text-sm font-semibold transition",
+      isActive
+        ? "bg-pietra-clara text-verde-escuro"
+        : "text-carbone hover:bg-pietra-clara",
+    ].join(" ");
+
+  const classeSubLink = (isActive: boolean) =>
+    [
+      "flex items-center px-3 py-2 rounded-sm text-sm transition",
+      isActive
+        ? "text-verde-escuro font-semibold"
+        : "text-ardesia hover:text-carbone hover:bg-pietra-clara",
+    ].join(" ");
 
   return (
     <>
-      {/* Backdrop só no mobile, quando aberta */}
       {aberta && (
         <button
           type="button"
@@ -76,25 +124,59 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
           </button>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {visiveis.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === "/"}
-              onClick={onFechar}
-              className={({ isActive }) =>
-                [
-                  "flex items-center px-3 py-2.5 rounded-sm text-sm font-semibold transition",
-                  isActive
-                    ? "bg-pietra-clara text-verde-escuro"
-                    : "text-carbone hover:bg-pietra-clara",
-                ].join(" ")
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
+        <nav className="flex-1 p-3 overflow-y-auto space-y-4">
+          {secoes.map((secao, si) => {
+            const itensVisiveis = secao.itens.filter((item) =>
+              itemVisivel(item, sessao.perfil)
+            );
+            if (itensVisiveis.length === 0) return null;
+
+            return (
+              <div key={si}>
+                {secao.label && (
+                  <div className="px-3 pt-1 pb-1 text-xs font-mono uppercase tracking-widest text-ardesia">
+                    {secao.label}
+                  </div>
+                )}
+                <div className="space-y-0.5">
+                  {itensVisiveis.map((item) => {
+                    const filhosVisiveis = item.filhos?.filter((f) =>
+                      itemVisivel(f, sessao.perfil)
+                    );
+
+                    return (
+                      <div key={item.to}>
+                        <NavLink
+                          to={item.to}
+                          end={item.to === "/"}
+                          onClick={onFechar}
+                          className={({ isActive }) => classeLink(isActive)}
+                        >
+                          {item.label}
+                        </NavLink>
+                        {filhosVisiveis && filhosVisiveis.length > 0 && (
+                          <div className="ml-3 pl-3 border-l border-pietra space-y-0.5 mt-0.5 mb-1">
+                            {filhosVisiveis.map((filho) => (
+                              <NavLink
+                                key={filho.to}
+                                to={filho.to}
+                                onClick={onFechar}
+                                className={({ isActive }) =>
+                                  classeSubLink(isActive)
+                                }
+                              >
+                                {filho.label}
+                              </NavLink>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </nav>
 
         <div className="p-4 border-t border-pietra-clara text-xs text-ardesia font-mono">

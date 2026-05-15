@@ -15,11 +15,6 @@ const itens: ItemNav[] = [
   { to: "/historico", label: "Histórico", perfis: ["ADM", "ORG"] },
   { to: "/formacao", label: "Formação", perfis: ["ADM", "ORG"] },
   {
-    to: "/pendencias/formacao",
-    label: "Pendências de formação",
-    perfis: ["ADM", "ORG"],
-  },
-  {
     to: "/entregas/crachas",
     label: "Entrega de crachás",
     perfis: ["ADM", "ORG", "OPC"],

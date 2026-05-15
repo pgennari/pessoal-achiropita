@@ -82,7 +82,7 @@ export function Painel() {
             {edicao ? pctFormacao : "—"} <span className="unidade">%</span>
           </div>
           {edicao && (
-            <Link to="/pendencias/formacao" className="kpi-delta positivo">
+            <Link to="/formacao" className="kpi-delta positivo">
               {totalFormacoes} de {alocadas} alocados →
             </Link>
           )}

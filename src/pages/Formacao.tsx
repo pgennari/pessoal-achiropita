@@ -60,6 +60,17 @@ export function PaginaFormacao() {
     return m;
   }, [formacoes]);
 
+  const indiceBarracaPorPessoa = useMemo(() => {
+    const barracaPorId = new Map<string, string>();
+    for (const b of barracas) barracaPorId.set(b.id, b.nome);
+    const m = new Map<string, string>();
+    for (const p of participacoes) {
+      const nome = barracaPorId.get(p.barracaId);
+      if (nome) m.set(p.pessoaId, nome);
+    }
+    return m;
+  }, [participacoes, barracas]);
+
   const alocados = useMemo<Pessoa[]>(() => {
     const ids = new Set(participacoes.map((p) => p.pessoaId));
     return pessoas.filter((p) => ids.has(p.id) && p.ativo);
@@ -76,6 +87,21 @@ export function PaginaFormacao() {
         (td && soDigitos(p.cpf).includes(td))
     );
   }, [alocados, busca]);
+
+  const pendentes = useMemo(
+    () =>
+      filtrados.filter((p) => {
+        const f = indiceFormacoes.get(p.id);
+        return !f || !f.dadosValidados;
+      }),
+    [filtrados, indiceFormacoes]
+  );
+
+  const validados = useMemo(
+    () =>
+      filtrados.filter((p) => indiceFormacoes.get(p.id)?.dadosValidados),
+    [filtrados, indiceFormacoes]
+  );
 
   if (!sessao) return null;
   if (!podeAdministrar) {
@@ -336,11 +362,16 @@ export function PaginaFormacao() {
         </div>
 
         <div className="card overflow-hidden">
+          <div className="card-corpo flex flex-wrap items-center gap-3 border-b border-pietra-clara py-4">
+            <h4 className="m-0 mr-auto">Pendentes</h4>
+            <span className="badge badge-cinza">{pendentes.length}</span>
+          </div>
           <div className="tabela-rolavel"><table className="tabela-larga">
             <thead className="bg-pietra-clara/60 text-left">
               <tr>
                 <th className="px-4 py-3 font-semibold w-20">Crachá</th>
                 <th className="px-4 py-3 font-semibold">Pessoa</th>
+                <th className="px-4 py-3 font-semibold">Barraca</th>
                 <th className="px-4 py-3 font-semibold w-40">Status</th>
                 <th className="px-4 py-3 font-semibold w-44 text-right">
                   Ações
@@ -348,14 +379,14 @@ export function PaginaFormacao() {
               </tr>
             </thead>
             <tbody>
-              {filtrados.length === 0 && (
+              {pendentes.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-ardesia">
-                    Ninguém encontrado.
+                  <td colSpan={5} className="px-4 py-8 text-center text-ardesia">
+                    Nenhum pendente.
                   </td>
                 </tr>
               )}
-              {filtrados.map((p) => {
+              {pendentes.map((p) => {
                 const f = indiceFormacoes.get(p.id);
                 return (
                   <tr
@@ -373,21 +404,20 @@ export function PaginaFormacao() {
                         {p.nome}
                       </Link>
                     </td>
+                    <td className="px-4 py-3 text-ardesia">
+                      {indiceBarracaPorPessoa.get(p.id) ?? "—"}
+                    </td>
                     <td className="px-4 py-3">
                       {f ? (
-                        f.dadosValidados ? (
-                          <span className="badge badge-verde">validado</span>
-                        ) : (
-                          <span className="badge badge-ouro">
-                            manual · sem validação
-                          </span>
-                        )
+                        <span className="badge badge-ouro">
+                          manual · sem validação
+                        </span>
                       ) : (
                         <span className="badge badge-vermelho">pendente</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {!f ? (
+                      {!f && (
                         <button
                           type="button"
                           className="btn btn-primario btn-pequeno"
@@ -398,15 +428,69 @@ export function PaginaFormacao() {
                         >
                           Marcar manual
                         </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                          onClick={() => handleRemoverFormacao(f)}
-                        >
-                          Remover
-                        </button>
                       )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table></div>
+        </div>
+
+        <div className="card overflow-hidden mt-6">
+          <div className="card-corpo flex flex-wrap items-center gap-3 border-b border-pietra-clara py-4">
+            <h4 className="m-0 mr-auto">Validados</h4>
+            <span className="badge badge-cinza">{validados.length}</span>
+          </div>
+          <div className="tabela-rolavel"><table className="tabela-larga">
+            <thead className="bg-pietra-clara/60 text-left">
+              <tr>
+                <th className="px-4 py-3 font-semibold w-20">Crachá</th>
+                <th className="px-4 py-3 font-semibold">Pessoa</th>
+                <th className="px-4 py-3 font-semibold">Barraca</th>
+                <th className="px-4 py-3 font-semibold w-44 text-right">
+                  Ações
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {validados.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-8 text-center text-ardesia">
+                    Nenhum validado.
+                  </td>
+                </tr>
+              )}
+              {validados.map((p) => {
+                const f = indiceFormacoes.get(p.id);
+                if (!f) return null;
+                return (
+                  <tr
+                    key={p.id}
+                    className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                  >
+                    <td className="px-4 py-3 font-mono text-ardesia">
+                      #{p.cracha}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link
+                        to={`/pessoas/${p.id}`}
+                        className="font-semibold text-carbone hover:text-verde"
+                      >
+                        {p.nome}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-ardesia">
+                      {indiceBarracaPorPessoa.get(p.id) ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                        onClick={() => handleRemoverFormacao(f)}
+                      >
+                        Remover
+                      </button>
                     </td>
                   </tr>
                 );

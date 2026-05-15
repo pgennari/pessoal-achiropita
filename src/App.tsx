@@ -15,7 +15,6 @@ import { EntregaCrachas } from "./pages/EntregaCrachas";
 import { PendenciasFoto } from "./pages/PendenciasFoto";
 import { Usuarios } from "./pages/Usuarios";
 import { PaginaFormacao } from "./pages/Formacao";
-import { PendenciasFormacao } from "./pages/PendenciasFormacao";
 import { ValidarPublico } from "./pages/ValidarPublico";
 import { QrTurma } from "./pages/QrTurma";
 
@@ -46,7 +45,6 @@ export function App() {
         <Route path="entregas/crachas" element={<EntregaCrachas />} />
         <Route path="pendencias/fotos" element={<PendenciasFoto />} />
         <Route path="formacao" element={<PaginaFormacao />} />
-        <Route path="pendencias/formacao" element={<PendenciasFormacao />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="auditoria" element={<Auditoria />} />
       </Route>

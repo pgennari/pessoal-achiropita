@@ -68,7 +68,6 @@ Todas as colecoes Firestore e nomes de identificadores estao em `src/lib/tipos.t
 | `/entregas/crachas` | EntregaCrachas |
 | `/pendencias/fotos` | PendenciasFoto |
 | `/formacao` | PaginaFormacao |
-| `/pendencias/formacao` | PendenciasFormacao |
 | `/usuarios` | Usuarios |
 | `/auditoria` | Auditoria |
 | `/historico` | Historico |

@@ -19,6 +19,14 @@ export function Topbar({ sessao, onAbrirBusca, onAbrirSidebar }: Props) {
     .trim()
     .charAt(0)
     .toUpperCase();
+
+  function gradienteAvatar(perfil: string): string {
+    if (perfil === "ADM") return "linear-gradient(135deg, #C8102E, #8B0A1F)";
+    if (perfil === "ORG") return "linear-gradient(135deg, #B38828, #7A5B18)";
+    if (perfil === "CRD") return "linear-gradient(135deg, #2A5C8A, #1B3F5C)";
+    if (perfil === "EQP") return "linear-gradient(135deg, #2E9D52, #16753A)";
+    return "linear-gradient(135deg, #6B6960, #3E3C36)"; // OPC, REC
+  }
   const ehMac =
     typeof navigator !== "undefined" &&
     /Mac|iPad|iPhone/.test(navigator.platform);
@@ -86,7 +94,7 @@ export function Topbar({ sessao, onAbrirBusca, onAbrirSidebar }: Props) {
           aria-hidden
           className="h-9 w-9 rounded-full text-bianco font-display text-base flex items-center justify-center shrink-0"
           style={{
-            background: "linear-gradient(135deg, #2E9D52, #16753A)",
+            background: gradienteAvatar(sessao.perfil),
           }}
         >
           {inicial}

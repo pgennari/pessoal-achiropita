@@ -212,13 +212,9 @@ export async function atualizarPessoa(
     atualizadoEm: serverTimestamp(),
   });
 
-  // Ressincroniza a lookup se nascimento ou ativo mudou. Cracha
-  // continua estavel (nao e editavel pelo app).
-  if (
-    anterior &&
-    (anterior.nascimento !== dados.nascimento ||
-      anterior.ativo !== dados.ativo)
-  ) {
+  // Sempre ressincroniza — garante integridade mesmo se o doc estava
+  // ausente por importacao direta ou falha anterior.
+  if (anterior) {
     await sincronizarBuscaCracha({
       id: pessoaId,
       cracha: anterior.cracha,

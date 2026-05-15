@@ -371,9 +371,20 @@ service cloud.firestore {
       allow get: if true;
       allow list: if ehAdmOuOrg();
 
-      // ADM/ORG cria, atualiza (editar) e revoga.
-      allow create, update: if ehAdmOuOrg()
+      // ADM/ORG cria com validacao completa do shape.
+      allow create: if ehAdmOuOrg()
         && conviteValido(request.resource.data);
+
+      // ADM/ORG revoga: muda apenas status para "revogado".
+      allow update: if ehAdmOuOrg()
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(["status"])
+        && request.resource.data.status == "revogado";
+
+      // ADM/ORG edita convite pendente: perfil e vinculo.
+      allow update: if ehAdmOuOrg()
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(["perfil", "pessoaId", "barracasCRD"]);
 
       // Convidado consome o proprio convite: pendente -> usado.
       // So pode mexer em status/usadoEm/usadoPorUid.

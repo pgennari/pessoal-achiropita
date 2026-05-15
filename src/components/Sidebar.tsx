@@ -11,6 +11,7 @@ interface ItemNav {
 
 interface Secao {
   label?: string;
+  perfis?: Perfil[];
   itens: ItemNav[];
 }
 
@@ -20,6 +21,7 @@ const secoes: Secao[] = [
   },
   {
     label: "Pessoal",
+    perfis: ["ADM", "ORG", "OPC"],
     itens: [
       {
         to: "/pessoas",
@@ -42,6 +44,7 @@ const secoes: Secao[] = [
   },
   {
     label: "Festa",
+    perfis: ["ADM", "ORG"],
     itens: [
       {
         to: "/edicoes",
@@ -54,6 +57,7 @@ const secoes: Secao[] = [
   },
   {
     label: "Administração",
+    perfis: ["ADM"],
     itens: [
       { to: "/usuarios", label: "Usuários", perfis: ["ADM"] },
       { to: "/auditoria", label: "Auditoria", perfis: ["ADM", "ORG"] },
@@ -126,6 +130,8 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
 
         <nav className="flex-1 p-3 overflow-y-auto space-y-4">
           {secoes.map((secao, si) => {
+            if (secao.perfis && !secao.perfis.includes(sessao.perfil))
+              return null;
             const itensVisiveis = secao.itens.filter((item) =>
               itemVisivel(item, sessao.perfil)
             );

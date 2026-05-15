@@ -39,7 +39,7 @@ const secoes: Secao[] = [
           },
         ],
       },
-      { to: "/formacao", label: "Formação", perfis: ["ADM", "ORG"] },
+      { to: "/formacao", label: "Formação", perfis: ["ADM", "ORG", "OPC"] },
     ],
   },
   {

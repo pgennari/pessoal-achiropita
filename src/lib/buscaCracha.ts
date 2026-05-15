@@ -39,6 +39,14 @@ export async function sincronizarBuscaCracha(pessoa: Pessoa): Promise<void> {
   });
 }
 
+export async function sincronizarTodosOsCrachas(
+  pessoas: Pessoa[]
+): Promise<void> {
+  for (const p of pessoas) {
+    await sincronizarBuscaCracha(p);
+  }
+}
+
 export async function removerBuscaCracha(cracha: number): Promise<void> {
   if (!cracha) return;
   try {

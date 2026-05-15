@@ -4,6 +4,7 @@ import { usePessoas } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import { normalizar, soDigitos } from "../lib/utilsDominio";
 import { Pessoa } from "../lib/tipos";
+import { sincronizarTodosOsCrachas } from "../lib/buscaCracha";
 
 type Filtro = "todos" | "ativos" | "inativos";
 
@@ -30,6 +31,24 @@ export function Pessoas() {
   const [filtro, setFiltro] = useState<Filtro>("ativos");
 
   const podeCriar = sessao?.perfil === "ADM" || sessao?.perfil === "ORG";
+  const [sincronizando, setSincronizando] = useState(false);
+  const [mensagemSync, setMensagemSync] = useState<string | null>(null);
+
+  async function handleSincronizarLookup() {
+    setSincronizando(true);
+    setMensagemSync(null);
+    try {
+      await sincronizarTodosOsCrachas(itens);
+      setMensagemSync(`${itens.length} registros sincronizados.`);
+    } catch (e) {
+      setMensagemSync(
+        "Falha na sincronização: " +
+          (e instanceof Error ? e.message : "erro desconhecido")
+      );
+    } finally {
+      setSincronizando(false);
+    }
+  }
 
   const lista = useMemo(
     () => itens.filter((p) => aplicarFiltro(p, filtro) && combina(p, termo)),
@@ -48,12 +67,31 @@ export function Pessoas() {
               : `${lista.length} de ${itens.length}`}
           </p>
         </div>
-        {podeCriar && (
-          <Link to="/pessoas/nova" className="btn btn-primario">
-            Nova pessoa
-          </Link>
-        )}
+        <div className="flex gap-2 flex-wrap">
+          {podeCriar && (
+            <button
+              type="button"
+              className="btn btn-secundario"
+              onClick={handleSincronizarLookup}
+              disabled={sincronizando || carregando}
+              title="Recria os documentos de lookup de crachá usados na validação pública"
+            >
+              {sincronizando ? "Sincronizando..." : "Recriar lookup"}
+            </button>
+          )}
+          {podeCriar && (
+            <Link to="/pessoas/nova" className="btn btn-primario">
+              Nova pessoa
+            </Link>
+          )}
+        </div>
       </header>
+
+      {mensagemSync && (
+        <div className="card border-verde/40">
+          <div className="card-corpo text-sm text-ardesia">{mensagemSync}</div>
+        </div>
+      )}
 
       <div className="card">
         <div className="card-corpo flex flex-wrap gap-3 items-center">

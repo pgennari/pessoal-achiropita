@@ -4,6 +4,7 @@ import {
   entrar,
   entrarComGoogle,
   recuperarSenha,
+  sair,
   useSessao,
 } from "../lib/sessao";
 
@@ -15,7 +16,7 @@ export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { sessao, carregando } = useSessao();
+  const { sessao, semAcesso, carregando } = useSessao();
 
   const redirectParam = searchParams.get("redirect");
   const destino =
@@ -79,6 +80,38 @@ export function Login() {
     }
     setInfo(
       "Se o endereço estiver cadastrado, em alguns minutos o link de redefinição chega no e-mail."
+    );
+  }
+
+  if (semAcesso) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="eyebrow">Festa 100ª · Bixiga</div>
+            <h1 className="mt-3 font-display">
+              <span className="text-verde">Achiropita</span>{" "}
+              <em className="text-vermelho not-italic font-light">100</em>
+            </h1>
+          </div>
+          <div className="card">
+            <div className="card-corpo space-y-4 text-center">
+              <h3 className="mb-1">Sua conta ainda não tem acesso</h3>
+              <p className="text-ardesia">
+                O cadastro de usuários é feito por convite. Procure a
+                Administração ou Organização para receber o link de acesso.
+              </p>
+              <button
+                type="button"
+                className="btn btn-secundario w-full"
+                onClick={() => sair()}
+              >
+                Sair
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 

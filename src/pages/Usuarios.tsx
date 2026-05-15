@@ -14,12 +14,14 @@ import {
   removerUsuario,
 } from "../lib/usuarios";
 import {
+  CriarConviteResultado,
   DadosConviteForm,
   atualizarConvite,
-  chaveConvite,
   criarConvite,
+  normalizarEmail,
   removerConvite,
   revogarConvite,
+  urlPublicaConvite,
 } from "../lib/convites";
 import { UsuarioForm } from "../components/UsuarioForm";
 import { ConviteForm } from "../components/ConviteForm";
@@ -50,10 +52,13 @@ export function Usuarios() {
   const { edicao } = useEdicaoAtiva();
   const { itens: barracas } = useBarracas(edicao?.id);
   const [editandoUid, setEditandoUid] = useState<string | null>(null);
-  const [editandoConviteKey, setEditandoConviteKey] = useState<string | null>(
+  const [editandoConviteId, setEditandoConviteId] = useState<string | null>(
     null
   );
   const [criandoConvite, setCriandoConvite] = useState(false);
+  const [linkRecemCriado, setLinkRecemCriado] =
+    useState<CriarConviteResultado | null>(null);
+  const [copiouToken, setCopiouToken] = useState<string | null>(null);
   const [filtro, setFiltro] = useState("");
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
 
@@ -66,6 +71,16 @@ export function Usuarios() {
   const emailsEmUso = useMemo(
     () => new Set(usuarios.map((u) => u.email.toLowerCase())),
     [usuarios]
+  );
+
+  const emailsPendentes = useMemo(
+    () =>
+      new Set(
+        convites
+          .filter((c) => c.status === "pendente")
+          .map((c) => c.email.toLowerCase())
+      ),
+    [convites]
   );
 
   const listaUsuarios = useMemo(() => {
@@ -89,13 +104,15 @@ export function Usuarios() {
   );
 
   if (!sessao) return null;
-  if (sessao.perfil !== "ADM") {
+  const ehAdm = sessao.perfil === "ADM";
+  const ehAdmOuOrg = ehAdm || sessao.perfil === "ORG";
+  if (!ehAdmOuOrg) {
     return (
       <div className="card">
         <div className="card-corpo">
           <h3 className="mb-2">Sem permissão</h3>
           <p className="text-ardesia">
-            Apenas Administração pode gerenciar usuários.
+            Apenas Administração e Organização gerenciam usuários.
           </p>
           <Link to="/" className="btn btn-secundario mt-4">
             Voltar
@@ -108,27 +125,23 @@ export function Usuarios() {
   const usuarioEditando =
     usuarios.find((u) => u.uid === editandoUid) ?? null;
   const conviteEditando =
-    convites.find((c) => chaveConvite(c.email) === editandoConviteKey) ?? null;
+    convites.find((c) => c.id === editandoConviteId) ?? null;
 
   async function handleCriarConvite(dados: DadosConviteForm) {
     if (!sessao) return;
-    if (emailsEmUso.has(chaveConvite(dados.email))) {
-      throw new Error(
-        "Já existe um usuário cadastrado com esse e-mail; edite o usuário em vez de gerar convite."
-      );
-    }
-    await criarConvite(sessao, dados);
+    const emailNorm = normalizarEmail(dados.email);
+    const resultado = await criarConvite(sessao, dados, {
+      emailEmUso: emailsEmUso.has(emailNorm),
+      pendenteParaEmail: emailsPendentes.has(emailNorm),
+    });
     setCriandoConvite(false);
+    setLinkRecemCriado(resultado);
   }
 
   async function handleAtualizarConvite(dados: DadosConviteForm) {
     if (!sessao || !conviteEditando) return;
-    await atualizarConvite(
-      sessao,
-      chaveConvite(conviteEditando.email),
-      dados
-    );
-    setEditandoConviteKey(null);
+    await atualizarConvite(sessao, conviteEditando.id, dados);
+    setEditandoConviteId(null);
   }
 
   async function handleAtualizarUsuario(dados: DadosUsuarioForm) {
@@ -145,7 +158,7 @@ export function Usuarios() {
     }
     if (
       !confirm(
-        `Remover ${u.nome} (${u.email})? O acesso volta para o padrão EQP no próximo login. A conta no Firebase Authentication permanece — desabilite por lá se quiser bloquear o login.`
+        `Remover ${u.nome} (${u.email})? A conta no Firebase Authentication permanece; desabilite por lá se quiser bloquear o login.`
       )
     )
       return;
@@ -179,8 +192,21 @@ export function Usuarios() {
     }
   }
 
+  async function copiar(token: string) {
+    try {
+      await navigator.clipboard.writeText(urlPublicaConvite(token));
+      setCopiouToken(token);
+      setTimeout(
+        () => setCopiouToken((c) => (c === token ? null : c)),
+        2000
+      );
+    } catch {
+      setAcaoErro("Não foi possível copiar. Selecione e copie manualmente.");
+    }
+  }
+
   const podeAbrirNovo =
-    !criandoConvite && !editandoConviteKey && !editandoUid;
+    !criandoConvite && !editandoConviteId && !editandoUid;
 
   return (
     <div className="space-y-6">
@@ -200,25 +226,56 @@ export function Usuarios() {
             className="btn btn-primario"
             onClick={() => setCriandoConvite(true)}
           >
-            Novo usuário
+            Novo convite
           </button>
         )}
       </header>
 
       <div className="card">
         <div className="card-corpo text-sm text-ardesia">
-          ADM convida pelo e-mail. O doc{" "}
-          <code className="font-mono">/usuarios/{"{uid}"}</code> é criado
-          automaticamente no primeiro login da pessoa convidada, já com o
-          perfil escolhido. Quem entra sem convite cai no perfil padrão{" "}
-          <strong>EQP</strong>; você pode promover depois pela linha do
-          usuário.
+          ADM ou ORG geram um convite e enviam o link ao novo usuário.
+          Quem entra no sistema <strong>precisa ter passado pelo link</strong>;
+          tentativas de login sem convite são recusadas e mostram um aviso
+          orientando a procurar a organização.
         </div>
       </div>
 
       {acaoErro && (
         <div className="card border-vermelho/40">
           <div className="card-corpo text-vermelho-escuro">{acaoErro}</div>
+        </div>
+      )}
+
+      {linkRecemCriado && (
+        <div className="card border-verde/40">
+          <div className="card-corpo space-y-3">
+            <h3 className="m-0">Convite criado</h3>
+            <p className="text-ardesia text-sm">
+              Copie o link abaixo e envie ao novo usuário. Ele tem 7 dias para
+              completar o cadastro.
+            </p>
+            <code className="block bg-pietra-clara/60 rounded-sm px-2 py-2 text-xs break-all">
+              {linkRecemCriado.url}
+            </code>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn btn-primario btn-pequeno"
+                onClick={() => copiar(linkRecemCriado.token)}
+              >
+                {copiouToken === linkRecemCriado.token
+                  ? "Copiado!"
+                  : "Copiar link"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secundario btn-pequeno"
+                onClick={() => setLinkRecemCriado(null)}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -240,13 +297,15 @@ export function Usuarios() {
       {conviteEditando && (
         <div className="card">
           <div className="card-corpo">
-            <h3 className="mb-4">Editando convite — {conviteEditando.email}</h3>
+            <h3 className="mb-4">
+              Editando convite — {conviteEditando.email}
+            </h3>
             <ConviteForm
               inicial={conviteEditando}
               pessoas={pessoas}
               barracasAtivas={barracas}
               onSubmit={handleAtualizarConvite}
-              onCancelar={() => setEditandoConviteKey(null)}
+              onCancelar={() => setEditandoConviteId(null)}
               textoBotao="Salvar convite"
             />
           </div>
@@ -282,21 +341,22 @@ export function Usuarios() {
         {carregandoConvites ? (
           <p className="text-ardesia text-sm">Carregando...</p>
         ) : convitesPendentes.length === 0 ? (
-          <p className="text-ardesia text-sm">
-            Nenhum convite pendente.
-          </p>
+          <p className="text-ardesia text-sm">Nenhum convite pendente.</p>
         ) : (
           <div className="card overflow-hidden">
             <div className="tabela-rolavel">
               <table className="tabela-larga">
                 <thead className="bg-pietra-clara/60 text-left">
                   <tr>
-                    <th className="px-4 py-3 font-semibold">Convidado</th>
+                    <th className="px-4 py-3 font-semibold">E-mail</th>
                     <th className="px-4 py-3 font-semibold w-24">Perfil</th>
                     <th className="px-4 py-3 font-semibold hidden lg:table-cell w-36">
                       Criado em
                     </th>
-                    <th className="px-4 py-3 font-semibold w-44 text-right">
+                    <th className="px-4 py-3 font-semibold hidden lg:table-cell w-36">
+                      Expira em
+                    </th>
+                    <th className="px-4 py-3 font-semibold w-52 text-right">
                       Ações
                     </th>
                   </tr>
@@ -304,14 +364,11 @@ export function Usuarios() {
                 <tbody>
                   {convitesPendentes.map((c) => (
                     <tr
-                      key={chaveConvite(c.email)}
+                      key={c.id}
                       className="border-t border-pietra-clara hover:bg-pietra-clara/40"
                     >
-                      <td className="px-4 py-3">
-                        <div className="font-semibold">{c.nome}</div>
-                        <div className="text-xs text-ardesia font-mono">
-                          {c.email}
-                        </div>
+                      <td className="px-4 py-3 font-mono text-xs">
+                        {c.email}
                       </td>
                       <td className="px-4 py-3">
                         <span className={classePerfilBadge(c.perfil)}>
@@ -321,14 +378,22 @@ export function Usuarios() {
                       <td className="px-4 py-3 hidden lg:table-cell text-ardesia font-mono text-xs">
                         {formatarData(c.criadoEm)}
                       </td>
+                      <td className="px-4 py-3 hidden lg:table-cell text-ardesia font-mono text-xs">
+                        {formatarData(c.expiraEm)}
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2 flex-wrap">
                           <button
                             type="button"
                             className="btn btn-secundario btn-pequeno"
-                            onClick={() =>
-                              setEditandoConviteKey(chaveConvite(c.email))
-                            }
+                            onClick={() => copiar(c.id)}
+                          >
+                            {copiouToken === c.id ? "Copiado!" : "Copiar link"}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secundario btn-pequeno"
+                            onClick={() => setEditandoConviteId(c.id)}
                           >
                             Editar
                           </button>
@@ -431,19 +496,21 @@ export function Usuarios() {
                         >
                           Editar
                         </button>
-                        <button
-                          type="button"
-                          className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                          onClick={() => handleRemoverUsuario(u)}
-                          disabled={u.uid === sessao.uid}
-                          title={
-                            u.uid === sessao.uid
-                              ? "Não pode remover o próprio usuário"
-                              : ""
-                          }
-                        >
-                          Remover
-                        </button>
+                        {ehAdm && (
+                          <button
+                            type="button"
+                            className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                            onClick={() => handleRemoverUsuario(u)}
+                            disabled={u.uid === sessao.uid}
+                            title={
+                              u.uid === sessao.uid
+                                ? "Não pode remover o próprio usuário"
+                                : ""
+                            }
+                          >
+                            Remover
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -462,7 +529,7 @@ export function Usuarios() {
           <ul className="mt-3 divide-y divide-pietra-clara border border-pietra-clara rounded-sm">
             {convitesEncerrados.map((c) => (
               <li
-                key={chaveConvite(c.email)}
+                key={c.id}
                 className="px-3 py-2 flex flex-wrap items-center gap-2"
               >
                 <span
@@ -477,17 +544,18 @@ export function Usuarios() {
                 <span className="font-mono text-xs text-ardesia">
                   {c.email}
                 </span>
-                <span className="text-ardesia">— {c.nome}</span>
                 <span className={`${classePerfilBadge(c.perfil)} ml-auto`}>
                   {ROTULO_PERFIL[c.perfil]}
                 </span>
-                <button
-                  type="button"
-                  className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                  onClick={() => handleRemoverConvite(c)}
-                >
-                  Apagar
-                </button>
+                {ehAdm && (
+                  <button
+                    type="button"
+                    className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                    onClick={() => handleRemoverConvite(c)}
+                  >
+                    Apagar
+                  </button>
+                )}
               </li>
             ))}
           </ul>

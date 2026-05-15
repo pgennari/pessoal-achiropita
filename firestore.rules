@@ -172,86 +172,47 @@ service cloud.firestore {
 
     function conviteValido(d) {
       return d.keys().hasAll([
-          "email", "nome", "perfil", "status",
+          "email", "perfil", "status", "expiraEm",
           "criadoPorUid", "criadoPorNome"
         ])
         && d.email is string
-        && d.nome is string
         && d.perfil in ["ADM", "ORG", "CRD", "EQP", "OPC", "REC"]
-        && d.status in ["pendente", "usado", "revogado"];
+        && d.status in ["pendente", "usado", "revogado"]
+        && d.expiraEm is timestamp;
     }
 
-    // E-mail do auth normalizado, usado pra resolver a chave de
-    // /convites quando o convidado faz o primeiro login.
-    function chaveConviteDoAuth() {
-      return string(request.auth.token.email).lower();
+    function conviteDoToken(token) {
+      return get(/databases/$(database)/documents/convites/$(token)).data;
     }
 
-    function temConvitePendenteParaPerfil(perfilEsperado) {
-      return exists(/databases/$(database)/documents/convites/$(chaveConviteDoAuth()))
-        && get(/databases/$(database)/documents/convites/$(chaveConviteDoAuth())).data.status == "pendente"
-        && get(/databases/$(database)/documents/convites/$(chaveConviteDoAuth())).data.perfil == perfilEsperado;
+    function temConviteValido(token) {
+      return exists(/databases/$(database)/documents/convites/$(token))
+        && conviteDoToken(token).status == "pendente"
+        && conviteDoToken(token).expiraEm > request.time
+        && conviteDoToken(token).email == string(request.auth.token.email).lower();
     }
 
     // ---------- Coleções ----------
 
     match /usuarios/{uid} {
-      // Self pode ler o proprio doc mesmo antes dele existir — caso
-      // contrario o auto-provisionamento no primeiro login trava
-      // (catch-22: precisamos checar se o doc existe pra criar, mas a
-      // rule de read antiga exigia que ja existisse).
+      // Self pode ler o proprio doc mesmo antes dele existir, para
+      // que o useSessao consiga detectar o estado "semAcesso" sem
+      // catch-22 nas rules.
       allow read: if autenticado()
         && (request.auth.uid == uid || ehAdm());
-      // Self-create no primeiro sign-in. Anon nao se aplica.
-      // Dois ramos:
-      //   1) sem convite: cria com perfil EQP (default).
-      //   2) com convite pendente para o e-mail autenticado: aceita
-      //      qualquer perfil contanto que bata com o convite.
+      // Self-create SO via convite valido: o cliente passa
+      // tokenConvite no payload e a rule confere o cross-doc.
+      // Sem convite, ninguem cria /usuarios — login direto e
+      // bloqueado pela aplicacao (semAcesso).
       allow create: if autenticado()
         && !ehAnon()
         && request.auth.uid == uid
         && usuarioValido(request.resource.data)
-        && (
-          request.resource.data.perfil == "EQP"
-          || temConvitePendenteParaPerfil(request.resource.data.perfil)
-        );
+        && request.resource.data.keys().hasAny(["tokenConvite"])
+        && temConviteValido(request.resource.data.tokenConvite)
+        && conviteDoToken(request.resource.data.tokenConvite).perfil
+            == request.resource.data.perfil;
       allow create, update: if ehAdm() && usuarioValido(request.resource.data);
-      // Auto-update via convite: o usuario aceita um convite e atualiza
-      // o proprio perfil. O conviteToken e passado no payload e a rule
-      // verifica se o convite existe, esta pendente, e-mail bate e nao
-      // expirou. So permite alterar perfil, barracasCRD, atualizadoEm.
-      allow update: if autenticado()
-        && !ehAnon()
-        && request.auth.uid == uid
-        && request.resource.data.keys().hasAny(["conviteToken"])
-        && exists(/databases/$(database)/documents/convites/$(request.resource.data.conviteToken))
-        && get(/databases/$(database)/documents/convites/$(request.resource.data.conviteToken)).data.status == "pendente"
-        && get(/databases/$(database)/documents/convites/$(request.resource.data.conviteToken)).data.email == request.auth.token.email
-        && get(/databases/$(database)/documents/convites/$(request.resource.data.conviteToken)).data.expiraEm > request.time
-        && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(["perfil", "barracasCRD", "atualizadoEm", "conviteToken"]);
-      allow delete: if ehAdm();
-    }
-
-    match /convites/{email} {
-      // ADM vê tudo. O proprio convidado vê seu doc (necessario para
-      // consultarConvitePendente apos o login).
-      allow read: if ehAdm()
-        || (autenticado() && string(request.auth.token.email).lower() == email);
-
-      // ADM cria, atualiza e revoga.
-      allow create, update: if ehAdm() && conviteValido(request.resource.data);
-
-      // Convidado consome o proprio convite: vira "pendente" → "usado"
-      // mexendo apenas em status/usadoEm/usadoPorUid.
-      allow update: if autenticado()
-        && string(request.auth.token.email).lower() == email
-        && resource.data.status == "pendente"
-        && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(["status", "usadoEm", "usadoPorUid"])
-        && request.resource.data.status == "usado"
-        && request.resource.data.usadoPorUid == request.auth.uid;
-
       allow delete: if ehAdm();
     }
 
@@ -405,30 +366,28 @@ service cloud.firestore {
     }
 
     match /convites/{token} {
-      // Leitura: get publico (token no path e o secret); list so ADM.
-      // O onSnapshot na lista (tabela de convites) usa list; o
-      // doc() na pagina publica usa get.
+      // Get publico para a pagina /convite/:token (token e o secret).
+      // List/query so ADM/ORG, que veem a tabela de convites.
       allow get: if true;
-      allow list: if ehAdm();
-      // Criacao: apenas ADM.
-      allow create: if ehAdm()
-        && request.resource.data.keys().hasAll([
-            "email", "perfil", "status",
-            "criadoEm", "expiraEm",
-            "criadoPorUid", "criadoPorNome"
-          ])
-        && request.resource.data.perfil in ["ADM", "ORG", "CRD", "EQP", "OPC", "REC"]
-        && request.resource.data.status == "pendente"
-        && request.resource.data.expiraEm is timestamp
-        && request.resource.data.expiraEm > request.time;
-      // Update: apenas o destinatario pode aceitar (mudar status para "aceito").
-      allow update: if autenticado() && !ehAnon()
-        && resource.data.email == request.auth.token.email
+      allow list: if ehAdmOuOrg();
+
+      // ADM/ORG cria, atualiza (editar) e revoga.
+      allow create, update: if ehAdmOuOrg()
+        && conviteValido(request.resource.data);
+
+      // Convidado consome o proprio convite: pendente -> usado.
+      // So pode mexer em status/usadoEm/usadoPorUid.
+      allow update: if autenticado()
+        && !ehAnon()
         && resource.data.status == "pendente"
+        && string(request.auth.token.email).lower() == resource.data.email
         && resource.data.expiraEm > request.time
         && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(["status", "aceitoPorUid"])
-        && request.resource.data.status == "aceito";
+            .hasOnly(["status", "usadoEm", "usadoPorUid"])
+        && request.resource.data.status == "usado"
+        && request.resource.data.usadoPorUid == request.auth.uid;
+
+      // Remover historico: ADM apenas.
       allow delete: if ehAdm();
     }
 

@@ -47,6 +47,10 @@ export function PaginaFormacao() {
   } | null>(null);
   const [justificativa, setJustificativa] = useState("");
   const [busca, setBusca] = useState("");
+  const [vendoJustificativa, setVendoJustificativa] = useState<{
+    formacao: Formacao;
+    pessoa: Pessoa;
+  } | null>(null);
 
   const turmaEditando =
     turmas.find((t) => t.id === editandoTurmaId) ?? null;
@@ -89,17 +93,12 @@ export function PaginaFormacao() {
   }, [alocados, busca]);
 
   const pendentes = useMemo(
-    () =>
-      filtrados.filter((p) => {
-        const f = indiceFormacoes.get(p.id);
-        return !f || !f.dadosValidados;
-      }),
+    () => filtrados.filter((p) => !indiceFormacoes.has(p.id)),
     [filtrados, indiceFormacoes]
   );
 
   const validados = useMemo(
-    () =>
-      filtrados.filter((p) => indiceFormacoes.get(p.id)?.dadosValidados),
+    () => filtrados.filter((p) => indiceFormacoes.has(p.id)),
     [filtrados, indiceFormacoes]
   );
 
@@ -372,7 +371,6 @@ export function PaginaFormacao() {
                 <th className="px-4 py-3 font-semibold w-20">Crachá</th>
                 <th className="px-4 py-3 font-semibold">Pessoa</th>
                 <th className="px-4 py-3 font-semibold">Barraca</th>
-                <th className="px-4 py-3 font-semibold w-40">Status</th>
                 <th className="px-4 py-3 font-semibold w-44 text-right">
                   Ações
                 </th>
@@ -381,58 +379,44 @@ export function PaginaFormacao() {
             <tbody>
               {pendentes.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-ardesia">
+                  <td colSpan={4} className="px-4 py-8 text-center text-ardesia">
                     Nenhum pendente.
                   </td>
                 </tr>
               )}
-              {pendentes.map((p) => {
-                const f = indiceFormacoes.get(p.id);
-                return (
-                  <tr
-                    key={p.id}
-                    className="border-t border-pietra-clara hover:bg-pietra-clara/40"
-                  >
-                    <td className="px-4 py-3 font-mono text-ardesia">
-                      #{p.cracha}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link
-                        to={`/pessoas/${p.id}`}
-                        className="font-semibold text-carbone hover:text-verde"
-                      >
-                        {p.nome}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-ardesia">
-                      {indiceBarracaPorPessoa.get(p.id) ?? "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      {f ? (
-                        <span className="badge badge-ouro">
-                          manual · sem validação
-                        </span>
-                      ) : (
-                        <span className="badge badge-vermelho">pendente</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {!f && (
-                        <button
-                          type="button"
-                          className="btn btn-primario btn-pequeno"
-                          onClick={() => {
-                            setMarcandoPara({ pessoa: p });
-                            setJustificativa("");
-                          }}
-                        >
-                          Marcar manual
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+              {pendentes.map((p) => (
+                <tr
+                  key={p.id}
+                  className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                >
+                  <td className="px-4 py-3 font-mono text-ardesia">
+                    #{p.cracha}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      to={`/pessoas/${p.id}`}
+                      className="font-semibold text-carbone hover:text-verde"
+                    >
+                      {p.nome}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-ardesia">
+                    {indiceBarracaPorPessoa.get(p.id) ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      className="btn btn-primario btn-pequeno"
+                      onClick={() => {
+                        setMarcandoPara({ pessoa: p });
+                        setJustificativa("");
+                      }}
+                    >
+                      Marcar manual
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table></div>
         </div>
@@ -448,6 +432,7 @@ export function PaginaFormacao() {
                 <th className="px-4 py-3 font-semibold w-20">Crachá</th>
                 <th className="px-4 py-3 font-semibold">Pessoa</th>
                 <th className="px-4 py-3 font-semibold">Barraca</th>
+                <th className="px-4 py-3 font-semibold w-44">Status</th>
                 <th className="px-4 py-3 font-semibold w-44 text-right">
                   Ações
                 </th>
@@ -456,7 +441,7 @@ export function PaginaFormacao() {
             <tbody>
               {validados.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-ardesia">
+                  <td colSpan={5} className="px-4 py-8 text-center text-ardesia">
                     Nenhum validado.
                   </td>
                 </tr>
@@ -482,6 +467,22 @@ export function PaginaFormacao() {
                     </td>
                     <td className="px-4 py-3 text-ardesia">
                       {indiceBarracaPorPessoa.get(p.id) ?? "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      {f.presencaTipo === "manual" ? (
+                        <button
+                          type="button"
+                          className="badge badge-ouro hover:underline cursor-pointer"
+                          onClick={() =>
+                            setVendoJustificativa({ formacao: f, pessoa: p })
+                          }
+                          title="Ver justificativa"
+                        >
+                          manual
+                        </button>
+                      ) : (
+                        <span className="badge badge-verde">validado</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
@@ -575,6 +576,57 @@ export function PaginaFormacao() {
                   onClick={() => setMarcandoPara(null)}
                 >
                   Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {vendoJustificativa && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] px-4 bg-carbone/40"
+          onClick={() => setVendoJustificativa(null)}
+        >
+          <div
+            className="card w-full max-w-lg shadow-media"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="card-corpo space-y-4">
+              <div>
+                <div className="eyebrow">Presença manual</div>
+                <h3>{vendoJustificativa.pessoa.nome}</h3>
+                <p className="text-ardesia text-sm font-mono">
+                  #{vendoJustificativa.pessoa.cracha}
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <div className="eyebrow">Justificativa</div>
+                <p className="whitespace-pre-wrap">
+                  {vendoJustificativa.formacao.justificativa?.trim() ||
+                    "(sem justificativa registrada)"}
+                </p>
+              </div>
+
+              <div className="text-ardesia text-sm">
+                Registrado por{" "}
+                <strong>
+                  {vendoJustificativa.formacao.registradoPorNome}
+                </strong>{" "}
+                em{" "}
+                <span className="font-mono">
+                  {formatarData(vendoJustificativa.formacao.presencaEm)}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-3 pt-2 border-t border-pietra-clara">
+                <button
+                  type="button"
+                  className="btn btn-secundario"
+                  onClick={() => setVendoJustificativa(null)}
+                >
+                  Fechar
                 </button>
               </div>
             </div>

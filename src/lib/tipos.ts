@@ -7,18 +7,19 @@ export interface Usuario {
   perfil: Perfil;
   pessoaId?: string;
   barracasCRD?: string[];
+  tokenConvite?: string;
   criadoEm?: string;
   atualizadoEm?: string;
 }
 
 export type StatusConvite = "pendente" | "usado" | "revogado";
 
-// Convite emitido pelo ADM (US-01-04). A chave do doc em /convites
-// e o e-mail lowercased; o /usuarios/{uid} e provisionado quando o
-// convidado fizer o primeiro login.
+// Convite gerado por ADM/ORG (US-01-04). A chave do doc em /convites
+// e o proprio token (24 chars hex), que vai na URL publica
+// /convite/{token}. O e-mail e perfil viram campos validados na rule.
 export interface Convite {
-  email: string;
-  nome: string;
+  id: string;            // = token (chave do doc)
+  email: string;         // lowercased
   perfil: Perfil;
   pessoaId?: string;
   barracasCRD?: string[];
@@ -26,6 +27,7 @@ export interface Convite {
   criadoPorUid: string;
   criadoPorNome: string;
   criadoEm: string;
+  expiraEm: string;
   usadoEm?: string;
   usadoPorUid?: string;
 }

@@ -2,19 +2,13 @@ import {
   Timestamp,
   deleteDoc,
   doc,
-  getDoc,
   serverTimestamp,
-  setDoc,
   updateDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { Perfil, Usuario } from "./tipos";
 import { Sessao } from "./sessao";
 import { registrarEvento } from "./auditoria";
-import {
-  consultarConvitePendente,
-  marcarConviteUsado,
-} from "./convites";
 
 const COL = "usuarios";
 
@@ -26,9 +20,8 @@ export class ErroUsuario extends Error {
   }
 }
 
-// Form de edicao de usuario existente. UID nao aparece — eh
-// inalteravel e vem do doc atual. Novos usuarios entram pela
-// fluxo de convite (ver ConviteForm).
+// Form de edicao de usuario existente. Novos usuarios entram pelo
+// fluxo de convite — nao ha mais provisionamento direto sem convite.
 export interface DadosUsuarioForm {
   email: string;
   nome: string;
@@ -54,6 +47,7 @@ export function usuarioDeSnap(
     barracasCRD: Array.isArray(data.barracasCRD)
       ? (data.barracasCRD as string[])
       : undefined,
+    tokenConvite: (data.tokenConvite as string) || undefined,
     criadoEm:
       c instanceof Timestamp ? c.toDate().toISOString() : (c as string) || "",
     atualizadoEm:
@@ -113,58 +107,4 @@ export async function removerUsuario(
     `usuarios/${usuario.uid}`,
     `${usuario.nome} (${usuario.email})`
   );
-}
-
-// Auto-cria o doc do usuário no primeiro sign-in.
-//
-// 1. Se /usuarios/{uid} ja existe → no-op.
-// 2. Se ha convite pendente para o e-mail → cria com perfil do
-//    convite e marca o convite como usado.
-// 3. Senao → cria com perfil EQP (default).
-//
-// Idempotente. Falha silenciosa em camadas superiores; aqui propaga
-// erros pra quem chamar tratar (mas chamadores costumam ignorar).
-export async function garantirDocUsuario(args: {
-  uid: string;
-  email: string;
-  nome: string;
-}): Promise<void> {
-  const ref = doc(db(), COL, args.uid);
-  const snap = await getDoc(ref);
-  if (snap.exists()) return;
-
-  const emailLower = args.email.trim().toLowerCase();
-  const convite = emailLower
-    ? await consultarConvitePendente(emailLower)
-    : null;
-
-  if (convite) {
-    await setDoc(ref, {
-      email: emailLower,
-      nome: convite.nome || args.nome,
-      perfil: convite.perfil,
-      pessoaId: convite.pessoaId ?? null,
-      barracasCRD: convite.barracasCRD ?? null,
-      criadoEm: serverTimestamp(),
-      atualizadoEm: serverTimestamp(),
-    });
-    // Marca o convite depois do setDoc — se isso falhar, o doc
-    // do usuario fica criado e o ADM pode revogar manualmente.
-    try {
-      await marcarConviteUsado(emailLower, args.uid);
-    } catch {
-      // ignora — convite ja foi efetivamente aproveitado
-    }
-    return;
-  }
-
-  await setDoc(ref, {
-    email: emailLower,
-    nome: args.nome,
-    perfil: "EQP" as Perfil,
-    pessoaId: null,
-    barracasCRD: null,
-    criadoEm: serverTimestamp(),
-    atualizadoEm: serverTimestamp(),
-  });
 }

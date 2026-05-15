@@ -28,7 +28,6 @@ const PERFIS: { valor: Perfil; rotulo: string; descricao: string }[] = [
 function inicialDados(c?: Convite | null): DadosConviteForm {
   return {
     email: c?.email ?? "",
-    nome: c?.nome ?? "",
     perfil: c?.perfil ?? "EQP",
     pessoaId: c?.pessoaId ?? "",
     barracasCRD: c?.barracasCRD ?? [],
@@ -125,24 +124,10 @@ export function ConviteForm({
           />
           {erros.email && <p className="input-erro-msg">{erros.email}</p>}
           <p className="input-ajuda">
-            O doc <code className="font-mono">/usuarios/{"{uid}"}</code> é
-            criado automaticamente no primeiro login dessa pessoa, com o
-            perfil escolhido aqui.
+            Um link único é gerado para esse convite. Envie ao novo
+            usuário; ele preenche o nome e a senha (ou usa Google) na
+            página pública.
           </p>
-        </div>
-
-        <div className="input-grupo">
-          <label className="input-label" htmlFor="nome">
-            Nome
-          </label>
-          <input
-            id="nome"
-            className={`input ${erros.nome ? "erro" : ""}`}
-            value={dados.nome}
-            onChange={(e) => set("nome", e.target.value)}
-            required
-          />
-          {erros.nome && <p className="input-erro-msg">{erros.nome}</p>}
         </div>
 
         <div className="input-grupo">

@@ -7,6 +7,12 @@ import {
   sair,
   useSessao,
 } from "../lib/sessao";
+import {
+  consultarBloqueio,
+  formatarTempoBloqueio,
+  limparTentativas,
+  registrarFalha,
+} from "../lib/rateLimitLogin";
 
 interface LocationState {
   from?: { pathname: string };
@@ -29,28 +35,86 @@ export function Login() {
   const [erro, setErro] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [segundosBloqueio, setSegundosBloqueio] = useState(0);
 
   useEffect(() => {
     if (!carregando && sessao) navigate(destino, { replace: true });
   }, [carregando, sessao, destino, navigate]);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  // Reavalia bloqueio a cada segundo quando ha contagem regressiva
+  // ativa; tambem reavalia ao trocar o e-mail digitado.
+  useEffect(() => {
+    const e = email.trim();
+    if (!e) {
+      setSegundosBloqueio(0);
+      return;
+    }
+    const tick = () => {
+      const b = consultarBloqueio(e);
+      setSegundosBloqueio(b.bloqueado ? b.segundosRestantes : 0);
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [email]);
+
+  async function handleSubmit(ev: FormEvent) {
+    ev.preventDefault();
     setErro(null);
     setInfo(null);
+
+    const estado = consultarBloqueio(email);
+    if (estado.bloqueado) {
+      setErro(
+        `Muitas tentativas. Tente novamente em ${formatarTempoBloqueio(
+          estado.segundosRestantes
+        )}.`
+      );
+      setSegundosBloqueio(estado.segundosRestantes);
+      return;
+    }
+
     setEnviando(true);
     try {
       await entrar(email, senha);
+      limparTentativas(email);
       navigate(destino, { replace: true });
     } catch (e: unknown) {
       const cod = (e as { code?: string }).code || "";
-      setErro(
+      const credInvalida =
         cod === "auth/invalid-credential" ||
-          cod === "auth/wrong-password" ||
-          cod === "auth/user-not-found"
-          ? "E-mail ou senha incorretos."
-          : "Não foi possível entrar. Tente novamente em instantes."
-      );
+        cod === "auth/wrong-password" ||
+        cod === "auth/user-not-found";
+
+      if (credInvalida) {
+        const apos = registrarFalha(email);
+        if (apos.bloqueado) {
+          setErro(
+            `Muitas tentativas. Tente novamente em ${formatarTempoBloqueio(
+              apos.segundosRestantes
+            )}.`
+          );
+          setSegundosBloqueio(apos.segundosRestantes);
+        } else if (apos.tentativasRestantes <= 2) {
+          setErro(
+            `E-mail ou senha incorretos. Restam ${apos.tentativasRestantes} tentativa(s) antes do bloqueio.`
+          );
+        } else {
+          setErro("E-mail ou senha incorretos.");
+        }
+      } else if (cod === "auth/too-many-requests") {
+        // Firebase Auth tem rate-limit proprio; aciona o bloqueio
+        // local tambem pra UI ficar consistente.
+        const apos = registrarFalha(email);
+        setErro(
+          `Muitas tentativas. Tente novamente em ${formatarTempoBloqueio(
+            apos.bloqueado ? apos.segundosRestantes : 600
+          )}.`
+        );
+        setSegundosBloqueio(apos.bloqueado ? apos.segundosRestantes : 600);
+      } else {
+        setErro("Não foi possível entrar. Tente novamente em instantes.");
+      }
     } finally {
       setEnviando(false);
     }
@@ -79,7 +143,7 @@ export function Login() {
       // mantém mensagem genérica para não expor existência do e-mail
     }
     setInfo(
-      "Se o endereço estiver cadastrado, em alguns minutos o link de redefinição chega no e-mail."
+      "Se o endereço estiver cadastrado, em alguns minutos o link de redefinição chega no e-mail. O link vale por 1 hora."
     );
   }
 
@@ -114,6 +178,9 @@ export function Login() {
       </div>
     );
   }
+
+  const bloqueado = segundosBloqueio > 0;
+  const desabilitarSubmit = enviando || bloqueado;
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-10">
@@ -161,7 +228,16 @@ export function Login() {
               />
             </div>
 
-            {erro && (
+            {bloqueado && (
+              <div
+                role="alert"
+                className="text-sm text-vermelho-escuro bg-vermelho/5 border border-vermelho/20 rounded-sm px-3 py-2"
+              >
+                Muitas tentativas. Tente novamente em{" "}
+                {formatarTempoBloqueio(segundosBloqueio)}.
+              </div>
+            )}
+            {!bloqueado && erro && (
               <div
                 role="alert"
                 className="text-sm text-vermelho-escuro bg-vermelho/5 border border-vermelho/20 rounded-sm px-3 py-2"
@@ -180,7 +256,7 @@ export function Login() {
 
             <button
               type="submit"
-              disabled={enviando}
+              disabled={desabilitarSubmit}
               className="btn btn-primario w-full"
             >
               {enviando ? "Entrando…" : "Entrar"}

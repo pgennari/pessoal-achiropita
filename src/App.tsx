@@ -19,11 +19,13 @@ import { PendenciasFormacao } from "./pages/PendenciasFormacao";
 import { ValidarPublico } from "./pages/ValidarPublico";
 import { QrTurma } from "./pages/QrTurma";
 import { PaginaConvite } from "./pages/PaginaConvite";
+import { RedefinirSenha } from "./pages/RedefinirSenha";
 
 export function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/redefinir-senha" element={<RedefinirSenha />} />
       <Route path="/convite/:token" element={<PaginaConvite />} />
       <Route path="/v/:token" element={<ValidarPublico />} />
       <Route path="/v-qr/:token" element={<QrTurma />} />

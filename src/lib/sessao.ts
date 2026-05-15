@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  ActionCodeSettings,
   GoogleAuthProvider,
   User,
   onAuthStateChanged,
@@ -109,8 +110,25 @@ export async function entrarComGoogle(): Promise<void> {
   await signInWithPopup(auth(), provider);
 }
 
+// Aponta o link do e-mail de redefinicao para a nossa pagina custom
+// (US-01-03). handleCodeInApp = true faz o Firebase incluir oobCode
+// e mode na URL informada, em vez de usar o handler default. Exige
+// o dominio nos "Authorized domains" do Firebase Auth — localhost ja
+// vem liberado.
+function actionCodeSettingsRedefinir(): ActionCodeSettings | undefined {
+  if (typeof window === "undefined") return undefined;
+  return {
+    url: `${window.location.origin}/redefinir-senha`,
+    handleCodeInApp: true,
+  };
+}
+
 export async function recuperarSenha(email: string): Promise<void> {
-  await sendPasswordResetEmail(auth(), email.trim());
+  await sendPasswordResetEmail(
+    auth(),
+    email.trim(),
+    actionCodeSettingsRedefinir()
+  );
 }
 
 export async function sair(): Promise<void> {

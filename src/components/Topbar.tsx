@@ -57,8 +57,12 @@ export function Topbar({ sessao, onAbrirBusca, onAbrirSidebar }: Props) {
         </svg>
       </button>
 
-      <div className="md:hidden font-display text-lg text-verde mr-auto">
-        Achiropita 100
+      <div className="md:hidden mr-auto">
+        <img
+          src="/logo-achiropita.png"
+          alt="Nossa Senhora Achiropita"
+          className="h-10 w-auto"
+        />
       </div>
 
       <button

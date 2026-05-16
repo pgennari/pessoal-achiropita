@@ -111,11 +111,18 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
         ].join(" ")}
       >
         <div className="px-6 py-7 border-b border-pietra-clara flex items-start justify-between gap-2">
-          <div>
-            <div className="eyebrow">Festa 100ª</div>
-            <div className="font-display text-2xl mt-1">
-              <span className="text-verde">Achiropita</span>{" "}
-              <span className="text-vermelho italic font-light">Bixiga</span>
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo-achiropita.png"
+              alt="Nossa Senhora Achiropita"
+              className="h-14 w-auto shrink-0"
+            />
+            <div>
+              <div className="eyebrow">Festa 100ª</div>
+              <div className="font-display text-2xl mt-1">
+                <span className="text-verde">Achiropita</span>{" "}
+                <span className="text-vermelho italic font-light">Bixiga</span>
+              </div>
             </div>
           </div>
           <button

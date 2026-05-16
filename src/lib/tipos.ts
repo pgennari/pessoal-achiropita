@@ -54,6 +54,14 @@ export interface Filho {
   frequentaRecreacao: boolean;
 }
 
+export interface Carro {
+  id: string;
+  fabricante: string;
+  modelo: string;
+  placa: string;
+  cor: string;
+}
+
 export interface Pessoa {
   id: string;
   cracha: number;
@@ -69,6 +77,7 @@ export interface Pessoa {
   fotoUrl?: string;
   ativo: boolean;
   filhos: Filho[];
+  carros: Carro[];
   criadoEm: string; // ISO timestamp
   atualizadoEm: string;
 }

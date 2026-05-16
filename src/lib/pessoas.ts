@@ -18,7 +18,7 @@ import {
 } from "firebase/storage";
 import { db, storage } from "./firebase";
 import { Sessao } from "./sessao";
-import { Filho, Pessoa } from "./tipos";
+import { Carro, Filho, Pessoa } from "./tipos";
 import { registrarEvento } from "./auditoria";
 import {
   removerBuscaCracha,
@@ -54,6 +54,7 @@ export interface DadosPessoaForm {
   bairro?: string;
   estadoCivil?: Pessoa["estadoCivil"];
   filhos: Filho[];
+  carros: Carro[];
   ativo: boolean;
 }
 
@@ -75,6 +76,7 @@ export function pessoaDeSnap(id: string, data: Record<string, unknown>): Pessoa 
     fotoUrl: (data.fotoUrl as string) || undefined,
     ativo: data.ativo === undefined ? true : (data.ativo as boolean),
     filhos: Array.isArray(data.filhos) ? (data.filhos as Filho[]) : [],
+    carros: Array.isArray(data.carros) ? (data.carros as Carro[]) : [],
     criadoEm:
       criado instanceof Timestamp
         ? criado.toDate().toISOString()
@@ -137,6 +139,13 @@ function validar(
     }
   }
 
+  for (const c of dados.carros) {
+    if (!c.fabricante.trim() || !c.modelo.trim() || !c.placa.trim() || !c.cor.trim()) {
+      erros.carros = "Cada veículo precisa de fabricante, modelo, placa e cor.";
+      break;
+    }
+  }
+
   return erros;
 }
 
@@ -157,6 +166,13 @@ function payloadDeForm(dados: DadosPessoaForm) {
       nome: f.nome.trim(),
       nascimento: f.nascimento,
       frequentaRecreacao: !!f.frequentaRecreacao,
+    })),
+    carros: dados.carros.map((c) => ({
+      id: c.id,
+      fabricante: c.fabricante.trim(),
+      modelo: c.modelo.trim(),
+      placa: c.placa.trim().toUpperCase(),
+      cor: c.cor.trim(),
     })),
   };
   return limpo;
@@ -330,5 +346,15 @@ export function novoFilho(): Filho {
     nome: "",
     nascimento: "",
     frequentaRecreacao: false,
+  };
+}
+
+export function novoCarro(): Carro {
+  return {
+    id: uid("carro"),
+    fabricante: "",
+    modelo: "",
+    placa: "",
+    cor: "",
   };
 }

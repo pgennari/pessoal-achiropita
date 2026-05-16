@@ -1,6 +1,6 @@
 import { FormEvent, useMemo, useState } from "react";
-import { ESTADOS_CIVIS, Filho, Pessoa } from "../lib/tipos";
-import { DadosPessoaForm, novoFilho } from "../lib/pessoas";
+import { Carro, ESTADOS_CIVIS, Filho, Pessoa } from "../lib/tipos";
+import { DadosPessoaForm, novoCarro, novoFilho } from "../lib/pessoas";
 
 interface Props {
   inicial?: Pessoa | null;
@@ -23,6 +23,7 @@ function dadosIniciais(p?: Pessoa | null): DadosPessoaForm {
     bairro: p?.bairro ?? "",
     estadoCivil: p?.estadoCivil,
     filhos: p?.filhos ?? [],
+    carros: p?.carros ?? [],
     ativo: p?.ativo ?? true,
   };
 }
@@ -66,6 +67,21 @@ export function PessoaForm({
 
   function removerFilho(id: string) {
     setDados((d) => ({ ...d, filhos: d.filhos.filter((f) => f.id !== id) }));
+  }
+
+  function atualizarCarro(id: string, patch: Partial<Carro>) {
+    setDados((d) => ({
+      ...d,
+      carros: d.carros.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+    }));
+  }
+
+  function adicionarCarro() {
+    setDados((d) => ({ ...d, carros: [...d.carros, novoCarro()] }));
+  }
+
+  function removerCarro(id: string) {
+    setDados((d) => ({ ...d, carros: d.carros.filter((c) => c.id !== id) }));
   }
 
   async function handleSubmit(ev: FormEvent) {
@@ -322,6 +338,88 @@ export function PessoaForm({
                     type="button"
                     className="btn btn-texto btn-pequeno text-vermelho-escuro"
                     onClick={() => removerFilho(f.id)}
+                  >
+                    Remover
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="m-0">Veículos</h4>
+          <button
+            type="button"
+            className="btn btn-secundario btn-pequeno"
+            onClick={adicionarCarro}
+          >
+            Adicionar veículo
+          </button>
+        </div>
+        {erros.carros && (
+          <p className="input-erro-msg mb-3">{erros.carros}</p>
+        )}
+        {dados.carros.length === 0 ? (
+          <p className="text-ardesia text-sm">Nenhum veículo cadastrado.</p>
+        ) : (
+          <div className="space-y-3">
+            {dados.carros.map((c) => (
+              <div key={c.id} className="card border-pietra-clara">
+                <div className="card-corpo py-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_160px_160px_auto] gap-3 items-end">
+                  <div className="input-grupo m-0">
+                    <label className="input-label">Fabricante</label>
+                    <input
+                      className="input"
+                      value={c.fabricante}
+                      onChange={(e) =>
+                        atualizarCarro(c.id, { fabricante: e.target.value })
+                      }
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="input-grupo m-0">
+                    <label className="input-label">Modelo</label>
+                    <input
+                      className="input"
+                      value={c.modelo}
+                      onChange={(e) =>
+                        atualizarCarro(c.id, { modelo: e.target.value })
+                      }
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="input-grupo m-0">
+                    <label className="input-label">Placa</label>
+                    <input
+                      className="input"
+                      value={c.placa}
+                      onChange={(e) =>
+                        atualizarCarro(c.id, {
+                          placa: e.target.value.toUpperCase(),
+                        })
+                      }
+                      autoComplete="off"
+                      style={{ textTransform: "uppercase" }}
+                    />
+                  </div>
+                  <div className="input-grupo m-0">
+                    <label className="input-label">Cor</label>
+                    <input
+                      className="input"
+                      value={c.cor}
+                      onChange={(e) =>
+                        atualizarCarro(c.id, { cor: e.target.value })
+                      }
+                      autoComplete="off"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                    onClick={() => removerCarro(c.id)}
                   >
                     Remover
                   </button>

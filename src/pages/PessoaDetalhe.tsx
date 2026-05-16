@@ -215,6 +215,33 @@ export function PessoaDetalhe() {
 
       <section className="card">
         <div className="card-corpo">
+          <h4 className="mb-3">Veículos</h4>
+          {pessoa.carros.length === 0 ? (
+            <p className="text-ardesia text-sm">Nenhum veículo cadastrado.</p>
+          ) : (
+            <ul className="divide-y divide-pietra-clara">
+              {pessoa.carros.map((c) => (
+                <li
+                  key={c.id}
+                  className="py-3 flex items-center justify-between gap-3"
+                >
+                  <div>
+                    <div className="font-semibold text-carbone">
+                      {c.fabricante} {c.modelo}
+                    </div>
+                    <div className="text-xs text-ardesia font-mono">
+                      {c.placa} · {c.cor}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      <section className="card">
+        <div className="card-corpo">
           <h4 className="mb-4">Histórico de participações</h4>
           <HistoricoPessoa pessoa={pessoa} />
         </div>

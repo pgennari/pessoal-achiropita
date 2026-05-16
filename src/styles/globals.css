@@ -29,7 +29,9 @@
   }
 
   h1 {
+    @apply text-verde-escuro;
     font-size: clamp(2.75rem, 6vw, 4.5rem);
+    font-weight: 600;
     font-variation-settings: "opsz" 144, "SOFT" 30;
   }
   h2 {

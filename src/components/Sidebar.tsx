@@ -146,7 +146,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
             return (
               <div key={si}>
                 {secao.label && (
-                  <div className="px-3 pt-1 pb-1 text-xs font-mono uppercase tracking-widest text-ardesia">
+                  <div className="px-3 pt-1 pb-1 text-[10px] font-sans uppercase tracking-wider text-ardesia/40">
                     {secao.label}
                   </div>
                 )}

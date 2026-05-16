@@ -367,7 +367,7 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 🟡 Média · MVP
 
 ### US-06-02 — Registrar presença manualmente
-**Como** ORG,
+**Como** ORG ou OPC,  
 **quero** marcar presença manualmente na lista,
 **para** casos em que o equipista não conseguiu validar via link (falta de celular, problemas de acesso).
 
@@ -466,7 +466,7 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 🔴 Alta · MVP
 
 ### US-07-03 — Marcar camiseta entregue
-**Como** OPC,
+**Como** CRD ou ORG,
 **quero** registrar entrega da camiseta com tamanho,
 **para** evitar entrega duplicada.
 

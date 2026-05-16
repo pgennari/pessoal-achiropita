@@ -120,8 +120,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
             <div>
               <div className="eyebrow">Festa 100ª</div>
               <div className="font-display text-2xl mt-1">
-                <span className="text-verde">Achiropita</span>{" "}
-                <span className="text-vermelho italic font-light">Bixiga</span>
+                <span className="text-verde">Achiropita</span>
               </div>
             </div>
           </div>

@@ -99,14 +99,14 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 ## EP-02 · Cadastro de pessoas
 
 ### US-02-01 — Criar nova pessoa
-**Como** ORG ou ADM,
+**Como** ORG ou ADM ou OPC,
 **quero** cadastrar uma nova pessoa,
 **para** incluí-la no banco da equipe.
 
 **Critérios de aceite:**
 - Número de crachá gerado automaticamente (próximo livre) ou definido manualmente
-- Campos obrigatórios: nome, nascimento, telefone celular
-- Campos opcionais: CPF, RG, e-mail, endereço completo, foto, estado civil
+- Campos obrigatórios: nome, nascimento, telefone celular, CPF
+- Campos opcionais: RG, e-mail, endereço completo, foto, estado civil
 - Validação de CPF (algoritmo + duplicidade no banco)
 - Detecção de possível duplicata por nome+nascimento exibe alerta antes de salvar
 

@@ -31,6 +31,7 @@ export function Pessoas() {
   const [filtro, setFiltro] = useState<Filtro>("ativos");
 
   const podeCriar = sessao?.perfil === "ADM" || sessao?.perfil === "ORG";
+  const isAdm = sessao?.perfil === "ADM";
   const [sincronizando, setSincronizando] = useState(false);
   const [mensagemSync, setMensagemSync] = useState<string | null>(null);
 
@@ -68,7 +69,7 @@ export function Pessoas() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {podeCriar && (
+          {isAdm && (
             <button
               type="button"
               className="btn btn-secundario"

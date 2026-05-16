@@ -87,19 +87,17 @@ export async function identificarPessoa(
   const buscaSnap = await getDoc(
     doc(db(), "buscaCracha", String(crachaNum))
   );
+  const MSG_IDENT =
+    "Crachá ou ano de nascimento não conferem. Tente novamente ou fale com a organização.";
   if (!buscaSnap.exists()) {
-    throw new ErroValidacaoPublica(
-      "Crachá não encontrado. Confira o número ou fale com a organização."
-    );
+    throw new ErroValidacaoPublica(MSG_IDENT);
   }
   const busca = buscaSnap.data() as {
     pessoaId: string;
     anoNascimento: string;
   };
   if (busca.anoNascimento !== anoNascimento.trim()) {
-    throw new ErroValidacaoPublica(
-      "Ano de nascimento não confere. Tente novamente ou fale com a organização."
-    );
+    throw new ErroValidacaoPublica(MSG_IDENT);
   }
 
   await updateDoc(doc(db(), "sessoesValidacao", uidAnonimo), {

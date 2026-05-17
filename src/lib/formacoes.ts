@@ -5,6 +5,7 @@ import {
   getDoc,
   serverTimestamp,
   setDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { Formacao, TipoPresenca } from "./tipos";
@@ -80,6 +81,24 @@ export async function marcarPresencaManual(
     "formacao.manual",
     `formacoes/${id}`,
     `${args.pessoaNome} (#${args.cracha}) — ${args.justificativa.trim()}`
+  );
+}
+
+export async function confirmarDadosManual(
+  sessao: Sessao,
+  formacao: Formacao,
+  pessoaNome: string,
+  cracha: number
+): Promise<void> {
+  await updateDoc(doc(db(), COL, formacao.id), {
+    dadosValidados: true,
+    validadoEm: serverTimestamp(),
+  });
+  await registrarEvento(
+    sessao,
+    "formacao.confirmouDados",
+    `formacoes/${formacao.id}`,
+    `${pessoaNome} (#${cracha})`
   );
 }
 

@@ -18,6 +18,7 @@ import {
 } from "../lib/turmas";
 import {
   ErroFormacao,
+  confirmarDadosManual,
   marcarPresencaManual,
   removerFormacao,
 } from "../lib/formacoes";
@@ -109,6 +110,9 @@ export function PaginaFormacao() {
     pessoa: Pessoa;
   } | null>(null);
 
+  // Confirmação manual de dados pelo operador (OPC/ADM/ORG)
+  const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
+
   // Modal compartilhar link individual (US-06-04)
   const [compartilhandoPara, setCompartilhandoPara] = useState<{
     pessoa: Pessoa;
@@ -128,6 +132,12 @@ export function PaginaFormacao() {
 
   const podeAdministrar =
     !!sessao && (sessao.perfil === "ADM" || sessao.perfil === "ORG");
+
+  const podeConfirmarDados =
+    !!sessao &&
+    (sessao.perfil === "ADM" ||
+      sessao.perfil === "ORG" ||
+      sessao.perfil === "OPC");
 
   // Índices derivados ---
 
@@ -257,13 +267,13 @@ export function PaginaFormacao() {
       : 0;
 
   if (!sessao) return null;
-  if (!podeAdministrar) {
+  if (!podeConfirmarDados) {
     return (
       <div className="card">
         <div className="card-corpo">
           <h3 className="mb-2">Sem permissão</h3>
           <p className="text-ardesia">
-            Apenas Administração e Organização gerenciam formação.
+            Sem acesso a esta seção.
           </p>
           <Link to="/" className="btn btn-secundario mt-4">
             Voltar
@@ -339,6 +349,19 @@ export function PaginaFormacao() {
     }
   }
 
+  async function handleConfirmarDados(f: Formacao, p: Pessoa) {
+    if (!sessao) return;
+    setErro(null);
+    setConfirmandoId(f.id);
+    try {
+      await confirmarDadosManual(sessao, f, p.nome, p.cracha);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Falha ao confirmar dados.");
+    } finally {
+      setConfirmandoId(null);
+    }
+  }
+
   async function handleRemoverFormacao(f: Formacao) {
     if (!sessao) return;
     const part = indiceParticipacaoPorPessoa.get(f.pessoaId);
@@ -409,7 +432,7 @@ export function PaginaFormacao() {
       )}
 
       {/* Seção de turmas */}
-      <section>
+      {podeAdministrar && <section>
         <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
           <div>
             <h3>Turmas</h3>
@@ -520,7 +543,7 @@ export function PaginaFormacao() {
             );
           })}
         </div>
-      </section>
+      </section>}
 
       {/* Filtros de pendências (US-06-04) */}
       <section className="space-y-4">
@@ -572,7 +595,7 @@ export function PaginaFormacao() {
         </div>
 
         {/* Lista A — Sem formação */}
-        <div>
+        {podeAdministrar && <div>
           <div className="flex items-center gap-3 mb-3">
             <h4 className="m-0">Sem formação</h4>
             <span className="badge badge-cinza">{semFormacao.length}</span>
@@ -611,7 +634,7 @@ export function PaginaFormacao() {
               ))}
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Lista B — Aguardando validação de dados */}
         <div>
@@ -671,20 +694,37 @@ export function PaginaFormacao() {
                     const f = indiceFormacoes.get(p.id);
                     return (
                       <div className="flex gap-2 justify-end flex-wrap">
-                        <button
-                          type="button"
-                          className="btn btn-primario btn-pequeno"
-                          onClick={() => {
-                            if (f) {
-                              setErroLink(null);
-                              setCopiouLink(null);
-                              setCompartilhandoPara({ pessoa: p, formacao: f });
-                            }
-                          }}
-                        >
-                          Compartilhar link
-                        </button>
-                        {f && (
+                        {podeConfirmarDados && f && (
+                          <button
+                            type="button"
+                            className="btn btn-primario btn-pequeno"
+                            disabled={confirmandoId === f.id}
+                            onClick={() => handleConfirmarDados(f, p)}
+                          >
+                            {confirmandoId === f.id
+                              ? "Confirmando..."
+                              : "Confirmar dados"}
+                          </button>
+                        )}
+                        {podeAdministrar && (
+                          <button
+                            type="button"
+                            className="btn btn-secundario btn-pequeno"
+                            onClick={() => {
+                              if (f) {
+                                setErroLink(null);
+                                setCopiouLink(null);
+                                setCompartilhandoPara({
+                                  pessoa: p,
+                                  formacao: f,
+                                });
+                              }
+                            }}
+                          >
+                            Compartilhar link
+                          </button>
+                        )}
+                        {podeAdministrar && f && (
                           <button
                             type="button"
                             className="btn btn-texto btn-pequeno text-vermelho-escuro"

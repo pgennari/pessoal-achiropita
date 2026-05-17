@@ -157,6 +157,14 @@ export function LinkDaTurma({ turma }: Props) {
               >
                 Abrir QR
               </a>
+              <a
+                href={`/v-qr/${linkAtivo.id}?imprimir=1`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-secundario btn-pequeno"
+              >
+                Imprimir QR
+              </a>
               <button
                 type="button"
                 className="btn btn-texto btn-pequeno text-vermelho-escuro"

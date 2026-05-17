@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import QRCode from "qrcode";
 import { carregarLinkPublico } from "../lib/validacao";
 import { LinkValidacao } from "../lib/tipos";
@@ -10,6 +10,8 @@ type Estado = "carregando" | "ativo" | "expirado" | "revogado" | "naoEncontrado"
 
 export function QrTurma() {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const imprimir = searchParams.get("imprimir") === "1";
   const [estado, setEstado] = useState<Estado>("carregando");
   const [link, setLink] = useState<LinkValidacao | null>(null);
   const [svg, setSvg] = useState<string | null>(null);
@@ -55,6 +57,12 @@ export function QrTurma() {
       cancelado = true;
     };
   }, [token]);
+
+  useEffect(() => {
+    if (imprimir && estado === "ativo" && svg) {
+      window.print();
+    }
+  }, [imprimir, estado, svg]);
 
   if (estado === "carregando") {
     return (

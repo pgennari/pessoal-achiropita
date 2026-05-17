@@ -9,6 +9,7 @@ import {
   DadosPessoaForm,
   atualizarPessoa,
   definirAtivacao,
+  excluirPessoa,
 } from "../lib/pessoas";
 import { calcularIdade, formatarCPF, formatarData } from "../lib/utilsDominio";
 
@@ -21,12 +22,14 @@ export function PessoaDetalhe() {
   const [editando, setEditando] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [acaoOcupado, setAcaoOcupado] = useState(false);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
 
   if (!sessao) return null;
   const ehProprio = !!sessao.pessoaId && sessao.pessoaId === id;
   const podeEditar =
     sessao.perfil === "ADM" || sessao.perfil === "ORG" || ehProprio;
   const podeInativar = sessao.perfil === "ADM" || sessao.perfil === "ORG";
+  const podeExcluir = sessao.perfil === "ADM";
   const bloquearSensivel = sessao.perfil !== "ADM";
 
   if (carregando) {
@@ -62,6 +65,20 @@ export function PessoaDetalhe() {
     } catch (e) {
       setAcaoErro(e instanceof Error ? e.message : "Falha ao atualizar.");
     } finally {
+      setAcaoOcupado(false);
+    }
+  }
+
+  async function handleExcluir() {
+    if (!sessao || !pessoa) return;
+    setAcaoErro(null);
+    setAcaoOcupado(true);
+    try {
+      await excluirPessoa(sessao, pessoa);
+      navigate("/pessoas");
+    } catch (e) {
+      setAcaoErro(e instanceof Error ? e.message : "Falha ao excluir.");
+      setConfirmandoExclusao(false);
       setAcaoOcupado(false);
     }
   }
@@ -144,6 +161,16 @@ export function PessoaDetalhe() {
                   Reativar
                 </button>
               ))}
+            {podeExcluir && !confirmandoExclusao && (
+              <button
+                type="button"
+                className="btn btn-perigo"
+                onClick={() => setConfirmandoExclusao(true)}
+                disabled={acaoOcupado}
+              >
+                Excluir
+              </button>
+            )}
           </div>
         )}
       </header>
@@ -151,6 +178,38 @@ export function PessoaDetalhe() {
       {acaoErro && (
         <div className="card border-vermelho/40">
           <div className="card-corpo text-vermelho-escuro">{acaoErro}</div>
+        </div>
+      )}
+
+      {confirmandoExclusao && (
+        <div className="card border-vermelho/40">
+          <div className="card-corpo space-y-3">
+            <p className="font-semibold text-vermelho-escuro">
+              Excluir {pessoa.nome} definitivamente?
+            </p>
+            <p className="text-sm text-ardesia">
+              Esta acao e irreversivel. O cadastro, a foto e o cracha #{pessoa.cracha}
+              serao removidos permanentemente. O evento ficara registrado na auditoria.
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn btn-perigo"
+                onClick={handleExcluir}
+                disabled={acaoOcupado}
+              >
+                {acaoOcupado ? "Excluindo..." : "Confirmar exclusao"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secundario"
+                onClick={() => setConfirmandoExclusao(false)}
+                disabled={acaoOcupado}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

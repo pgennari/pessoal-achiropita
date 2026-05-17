@@ -32,6 +32,7 @@ export function Login() {
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [manterConectado, setManterConectado] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -76,7 +77,7 @@ export function Login() {
 
     setEnviando(true);
     try {
-      await entrar(email, senha);
+      await entrar(email, senha, manterConectado);
       limparTentativas(email);
       navigate(destino, { replace: true });
     } catch (e: unknown) {
@@ -227,6 +228,17 @@ export function Login() {
                 autoComplete="current-password"
               />
             </div>
+
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                id="manter-conectado"
+                type="checkbox"
+                className="checkbox"
+                checked={manterConectado}
+                onChange={(e) => setManterConectado(e.target.checked)}
+              />
+              <span className="text-sm text-ardesia">Manter conectado</span>
+            </label>
 
             {bloqueado && (
               <div

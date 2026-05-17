@@ -2,6 +2,7 @@ import {
   Timestamp,
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -264,6 +265,27 @@ export async function definirAtivacao(
   await registrarEvento(
     sessao,
     ativo ? "pessoa.reativou" : "pessoa.inativou",
+    `pessoas/${pessoa.id}`,
+    `${pessoa.nome} (#${pessoa.cracha})`
+  );
+}
+
+export async function excluirPessoa(
+  sessao: Sessao,
+  pessoa: Pessoa
+): Promise<void> {
+  if (pessoa.fotoUrl) {
+    try {
+      await deleteObject(ref(storage(), `pessoas/${pessoa.id}/foto.jpg`));
+    } catch {
+      // Pode não existir; ignorar.
+    }
+  }
+  await removerBuscaCracha(pessoa.cracha);
+  await deleteDoc(doc(db(), COL, pessoa.id));
+  await registrarEvento(
+    sessao,
+    "pessoa.excluiu",
     `pessoas/${pessoa.id}`,
     `${pessoa.nome} (#${pessoa.cracha})`
   );

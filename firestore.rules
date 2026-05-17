@@ -238,7 +238,7 @@ service cloud.firestore {
               && linkDaSessaoAtivo()
               && diffPessoaSemSensiveis(request.resource.data, resource.data))
         );
-      allow delete: if false;
+      allow delete: if ehAdm();
     }
 
     match /edicoes/{id} {

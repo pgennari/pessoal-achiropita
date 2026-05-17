@@ -8,6 +8,7 @@ const ACOES: Record<string, string> = {
   "pessoa.atualizou": "atualizou pessoa",
   "pessoa.inativou": "inativou pessoa",
   "pessoa.reativou": "reativou pessoa",
+  "pessoa.excluiu": "excluiu pessoa",
   "pessoa.foto.atualizou": "atualizou foto",
   "pessoa.foto.removeu": "removeu foto",
 };
@@ -91,7 +92,7 @@ export function Auditoria() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {alvoId ? (
+                    {alvoId && ev.acao !== "pessoa.excluiu" ? (
                       <Link
                         to={`/pessoas/${alvoId}`}
                         className="text-verde font-semibold hover:underline"

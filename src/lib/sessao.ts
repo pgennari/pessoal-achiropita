@@ -3,8 +3,11 @@ import {
   ActionCodeSettings,
   GoogleAuthProvider,
   User,
+  browserLocalPersistence,
+  browserSessionPersistence,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  setPersistence,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -101,7 +104,15 @@ export function useSessao(): EstadoSessao {
   return estado;
 }
 
-export async function entrar(email: string, senha: string): Promise<void> {
+export async function entrar(
+  email: string,
+  senha: string,
+  manterConectado: boolean
+): Promise<void> {
+  await setPersistence(
+    auth(),
+    manterConectado ? browserLocalPersistence : browserSessionPersistence
+  );
   await signInWithEmailAndPassword(auth(), email.trim(), senha);
 }
 

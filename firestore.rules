@@ -33,6 +33,39 @@ service cloud.firestore {
       return temPerfilDoc() && perfil() == "ADM";
     }
 
+    // ---------- Helpers de upload de foto publica (US-07-04) ----------
+
+    function temSessaoFoto() {
+      return ehAnon()
+        && exists(/databases/$(database)/documents/sessoesFoto/$(request.auth.uid));
+    }
+
+    function dadosSessaoFoto() {
+      return get(/databases/$(database)/documents/sessoesFoto/$(request.auth.uid)).data;
+    }
+
+    function sessaoFotoVigente() {
+      return temSessaoFoto()
+        && dadosSessaoFoto().expiraEm > request.time;
+    }
+
+    function linkFotoDaSessaoAtivo() {
+      return exists(/databases/$(database)/documents/linksFoto/$(dadosSessaoFoto().token))
+        && get(/databases/$(database)/documents/linksFoto/$(dadosSessaoFoto().token)).data.status == "ativo"
+        && get(/databases/$(database)/documents/linksFoto/$(dadosSessaoFoto().token)).data.expiraEm > request.time;
+    }
+
+    function pessoaIdDaSessaoFoto() {
+      return dadosSessaoFoto().pessoaId;
+    }
+
+    // Sessao de foto so pode alterar fotoUrl; tudo mais inalterado.
+    function diffPessoaSoFoto(novo, velho) {
+      return novo.cracha == velho.cracha
+        && novo.ativo == velho.ativo
+        && novo.cpf == velho.cpf;
+    }
+
     // ---------- Helpers de validacao publica (US-06-06) ----------
 
     function temSessaoValidacao() {
@@ -227,6 +260,7 @@ service cloud.firestore {
       //   ORG: tudo menos cracha/cpf (sensiveis).
       //   EQP self (usuario.pessoaId == id): tudo menos sensiveis.
       //   Sessao anon publica: campos nao sensiveis amplos.
+      //   Sessao foto anon: apenas fotoUrl.
       allow update: if pessoaValida(request.resource.data) && (
           ehAdm()
           || (ehAdmOuOrg() && preservaSensiveis(request.resource.data, resource.data))
@@ -237,6 +271,10 @@ service cloud.firestore {
               && pessoaIdDaSessao() == id
               && linkDaSessaoAtivo()
               && diffPessoaSemSensiveis(request.resource.data, resource.data))
+          || (sessaoFotoVigente()
+              && pessoaIdDaSessaoFoto() == id
+              && linkFotoDaSessaoAtivo()
+              && diffPessoaSoFoto(request.resource.data, resource.data))
         );
       allow delete: if ehAdm();
     }
@@ -412,6 +450,54 @@ service cloud.firestore {
         && request.resource.data.autor == request.auth.uid
         && request.resource.data.keys().hasAll(["acao", "alvo", "autor", "autorNome", "criadoEm"]);
       allow update, delete: if false;
+    }
+
+    match /linksFoto/{token} {
+      // Leitura publica (token e o secret); anon le para validar antes do upload.
+      allow read: if true;
+      allow create: if ehAdmOuOrg()
+        && request.resource.data.keys().hasAll([
+            "pessoaId", "pessoaNome", "expiraEm", "status",
+            "criadoPorUid", "criadoPorNome", "criadoEm"
+          ])
+        && request.resource.data.status == "ativo"
+        && request.resource.data.expiraEm is timestamp;
+      // ADM/ORG revogam. Sessao anon marca como usado.
+      allow update: if (ehAdmOuOrg()
+            && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(["status"])
+            && request.resource.data.status == "revogado")
+          || (sessaoFotoVigente()
+              && dadosSessaoFoto().token == token
+              && request.resource.data.diff(resource.data).affectedKeys()
+                  .hasOnly(["status"])
+              && request.resource.data.status == "usado");
+      allow delete: if ehAdm();
+    }
+
+    match /sessoesFoto/{uid} {
+      allow read: if autenticado() && request.auth.uid == uid;
+      // Anon cria sessao amarrada ao token de foto valido.
+      allow create: if ehAnon()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasAll(["token", "pessoaId", "expiraEm", "criadoEm"])
+        && request.resource.data.expiraEm is timestamp
+        && request.resource.data.expiraEm > request.time
+        && exists(/databases/$(database)/documents/linksFoto/$(request.resource.data.token))
+        && get(/databases/$(database)/documents/linksFoto/$(request.resource.data.token)).data.status == "ativo"
+        && get(/databases/$(database)/documents/linksFoto/$(request.resource.data.token)).data.expiraEm > request.time
+        && get(/databases/$(database)/documents/linksFoto/$(request.resource.data.token)).data.pessoaId == request.resource.data.pessoaId;
+      allow delete: if false;
+    }
+
+    match /participacoesHistoricas/{id} {
+      allow read: if ehAdmOuOrg();
+      allow create: if ehAdm()
+        && request.resource.data.keys().hasAll(["pessoaNome", "edicaoNumero", "barracaNome"])
+        && request.resource.data.pessoaNome is string
+        && request.resource.data.edicaoNumero is int
+        && request.resource.data.barracaNome is string;
+      allow update, delete: if ehAdm();
     }
   }
 }

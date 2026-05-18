@@ -176,14 +176,14 @@ export function PessoaForm({
 
           <div className="input-grupo">
             <label className="input-label" htmlFor="cpf">
-              CPF <span className="opcional">(opcional)</span>
+              CPF
             </label>
             <input
               id="cpf"
               className={`input ${erros.cpf ? "erro" : ""} ${
                 bloquearSensivel ? "opacity-60" : ""
               }`}
-              value={dados.cpf ?? ""}
+              value={dados.cpf}
               onChange={(e) => set("cpf", e.target.value)}
               inputMode="numeric"
               autoComplete="off"

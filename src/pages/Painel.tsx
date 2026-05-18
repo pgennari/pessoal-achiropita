@@ -35,6 +35,9 @@ export function Painel() {
   const totalFormacoes = formacoes.length;
   const pctFormacao =
     alocadas > 0 ? Math.round((totalFormacoes / alocadas) * 100) : 0;
+  const dadosValidados = formacoes.filter((f) => f.dadosValidados).length;
+  const pctValidados =
+    alocadas > 0 ? Math.round((dadosValidados / alocadas) * 100) : 0;
 
   const numero = (n: number, carregando = false) =>
     carregando ? <span className="text-ardesia">…</span> : n;
@@ -95,6 +98,17 @@ export function Painel() {
           {edicao && (
             <Link to="/entregas/crachas" className="kpi-delta positivo">
               {entregues} de {alocadas} alocados →
+            </Link>
+          )}
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">Dados validados</div>
+          <div className="kpi-valor">
+            {edicao ? pctValidados : "—"} <span className="unidade">%</span>
+          </div>
+          {edicao && (
+            <Link to="/formacao" className="kpi-delta positivo">
+              {dadosValidados} de {alocadas} alocados →
             </Link>
           )}
         </div>

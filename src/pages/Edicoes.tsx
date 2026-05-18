@@ -8,6 +8,7 @@ import {
   ativarEdicao,
   criarEdicao,
 } from "../lib/edicoes";
+import { copiarBarracasDeEdicao } from "../lib/barracas";
 import { Edicao } from "../lib/tipos";
 import { formatarData } from "../lib/utilsDominio";
 
@@ -22,6 +23,8 @@ export function Edicoes() {
   const { itens, carregando, erro } = useEdicoes();
   const [criandoNova, setCriandoNova] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
+  const [copiandoDe, setCopiandoDe] = useState<string>("");
+  const [copiouBarracas, setCopiouBarracas] = useState<number | null>(null);
 
   if (!sessao) return null;
   const podeAdministrar =
@@ -29,8 +32,18 @@ export function Edicoes() {
 
   async function handleCriar(dados: DadosEdicaoForm) {
     if (!sessao) return;
-    await criarEdicao(sessao, dados);
+    setAcaoErro(null);
+    const novaId = await criarEdicao(sessao, dados);
+    if (copiandoDe) {
+      try {
+        const n = await copiarBarracasDeEdicao(sessao, copiandoDe, novaId);
+        setCopiouBarracas(n);
+      } catch {
+        setAcaoErro("Edição criada, mas falha ao copiar barracas. Faça manualmente.");
+      }
+    }
     setCriandoNova(false);
+    setCopiandoDe("");
   }
 
   async function handleAtivar(edicao: Edicao) {
@@ -57,7 +70,11 @@ export function Edicoes() {
           <button
             type="button"
             className="btn btn-primario"
-            onClick={() => setCriandoNova(true)}
+            onClick={() => {
+              setCriandoNova(true);
+              setCopiandoDe("");
+              setCopiouBarracas(null);
+            }}
           >
             Nova edição
           </button>
@@ -74,14 +91,52 @@ export function Edicoes() {
           <div className="card-corpo text-vermelho-escuro">{acaoErro}</div>
         </div>
       )}
+      {copiouBarracas !== null && (
+        <div className="card border-verde/40">
+          <div className="card-corpo text-verde-escuro">
+            {copiouBarracas} barraca(s) copiada(s) da edição anterior.
+          </div>
+        </div>
+      )}
 
       {criandoNova && (
         <div className="card">
-          <div className="card-corpo">
-            <h3 className="mb-4">Nova edição</h3>
+          <div className="card-corpo space-y-5">
+            <h3 className="mb-0">Nova edição</h3>
+
+            {itens.length > 0 && (
+              <div className="input-grupo m-0">
+                <label className="input-label" htmlFor="copiarDe">
+                  Copiar barracas e estrutura de edição anterior{" "}
+                  <span className="opcional">(opcional)</span>
+                </label>
+                <select
+                  id="copiarDe"
+                  className="input"
+                  value={copiandoDe}
+                  onChange={(e) => setCopiandoDe(e.target.value)}
+                >
+                  <option value="">— criar vazia —</option>
+                  {[...itens]
+                    .sort((a, b) => b.numero - a.numero)
+                    .map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.numero}ª edição ({e.ano})
+                      </option>
+                    ))}
+                </select>
+                <p className="input-ajuda">
+                  Se selecionada, copia todas as barracas com suas vagas para a nova edição. Pessoas <strong>não</strong> são copiadas.
+                </p>
+              </div>
+            )}
+
             <EdicaoForm
               onSubmit={handleCriar}
-              onCancelar={() => setCriandoNova(false)}
+              onCancelar={() => {
+                setCriandoNova(false);
+                setCopiandoDe("");
+              }}
               textoBotao="Cadastrar edição"
             />
           </div>

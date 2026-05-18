@@ -16,6 +16,7 @@ import {
 import {
   alocar,
   desalocar,
+  moverDeBarraca,
   trocarFuncao,
 } from "../lib/participacoes";
 import { BarracaForm } from "../components/BarracaForm";
@@ -48,6 +49,9 @@ export function BarracaDetalhe() {
   const [alocando, setAlocando] = useState(false);
   const [funcaoInicial, setFuncaoInicial] = useState<Funcao>("Equipista");
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
+  const [movendoLinha, setMovendoLinha] = useState<Linha | null>(null);
+  const [barracaDestinoId, setBarracaDestinoId] = useState("");
+  const [funcaoDestino, setFuncaoDestino] = useState<Funcao>("Equipista");
 
   const podeAdministrar =
     !!sessao && (sessao.perfil === "ADM" || sessao.perfil === "ORG");
@@ -141,6 +145,28 @@ export function BarracaDetalhe() {
       await desalocar(sessao, linha.participacao, linha.pessoa.nome, barraca.nome);
     } catch (e) {
       setAcaoErro(e instanceof Error ? e.message : "Falha ao desalocar.");
+    }
+  }
+
+  async function handleMover() {
+    if (!sessao || !barraca || !movendoLinha || !barracaDestinoId) return;
+    if (!movendoLinha.pessoa) return;
+    const destino = barracas.find((b) => b.id === barracaDestinoId);
+    if (!destino) return;
+    setAcaoErro(null);
+    try {
+      await moverDeBarraca(
+        sessao,
+        movendoLinha.participacao,
+        barracaDestinoId,
+        funcaoDestino,
+        movendoLinha.pessoa.nome,
+        barraca.nome,
+        destino.nome
+      );
+      setMovendoLinha(null);
+    } catch (e) {
+      setAcaoErro(e instanceof Error ? e.message : "Falha ao mover.");
     }
   }
 
@@ -325,13 +351,26 @@ export function BarracaDetalhe() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   {podeAdministrar && (
-                    <button
-                      type="button"
-                      className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                      onClick={() => handleDesalocar(l)}
-                    >
-                      Desalocar
-                    </button>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-secundario btn-pequeno"
+                        onClick={() => {
+                          setMovendoLinha(l);
+                          setBarracaDestinoId("");
+                          setFuncaoDestino(l.participacao.funcao);
+                        }}
+                      >
+                        Mover
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                        onClick={() => handleDesalocar(l)}
+                      >
+                        Desalocar
+                      </button>
+                    </div>
                   )}
                 </td>
               </tr>
@@ -349,6 +388,86 @@ export function BarracaDetalhe() {
           Voltar
         </button>
       </div>
+
+      {/* Modal — Mover pessoa para outra barraca (US-05-04) */}
+      {movendoLinha && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] px-4 bg-carbone/40"
+          onClick={() => setMovendoLinha(null)}
+        >
+          <div
+            className="card w-full max-w-md shadow-media"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="card-corpo space-y-4">
+              <div>
+                <div className="eyebrow">Mover pessoa</div>
+                <h3>{movendoLinha.pessoa?.nome}</h3>
+                <p className="text-ardesia text-sm font-mono">
+                  #{movendoLinha.pessoa?.cracha} · atualmente em {barraca.nome}
+                </p>
+              </div>
+
+              <div className="input-grupo m-0">
+                <label className="input-label" htmlFor="barracaDestino">
+                  Barraca de destino
+                </label>
+                <select
+                  id="barracaDestino"
+                  className="input"
+                  value={barracaDestinoId}
+                  onChange={(e) => setBarracaDestinoId(e.target.value)}
+                >
+                  <option value="">— selecione —</option>
+                  {barracas
+                    .filter((b) => b.id !== id)
+                    .map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.nome}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="input-grupo m-0">
+                <label className="input-label" htmlFor="funcaoDestino">
+                  Função na barraca de destino
+                </label>
+                <select
+                  id="funcaoDestino"
+                  className="input"
+                  value={funcaoDestino}
+                  onChange={(e) => setFuncaoDestino(e.target.value as Funcao)}
+                >
+                  {FUNCOES.map((f) => (
+                    <option key={f} value={f}>
+                      {f}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-wrap gap-3 pt-2 border-t border-pietra-clara">
+                <button
+                  type="button"
+                  className="btn btn-primario"
+                  disabled={!barracaDestinoId}
+                  onClick={handleMover}
+                >
+                  Confirmar mudança
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secundario"
+                  onClick={() => setMovendoLinha(null)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AlocarPessoaDialog
         aberto={alocando}

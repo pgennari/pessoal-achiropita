@@ -126,6 +126,40 @@ export async function atualizarBarraca(
   );
 }
 
+export async function copiarBarracasDeEdicao(
+  sessao: Sessao,
+  edicaoOrigemId: string,
+  edicaoDestinoId: string
+): Promise<number> {
+  const snap = await getDocs(
+    query(collection(db(), COL), where("edicaoId", "==", edicaoOrigemId))
+  );
+  let copiadas = 0;
+  for (const d of snap.docs) {
+    const origem = d.data() as Record<string, unknown>;
+    await addDoc(collection(db(), COL), {
+      edicaoId: edicaoDestinoId,
+      nome: origem.nome,
+      setor: origem.setor,
+      vagasCoordenador: origem.vagasCoordenador,
+      vagasEquipista: origem.vagasEquipista,
+      vagasApoio: origem.vagasApoio,
+      criadoEm: serverTimestamp(),
+      atualizadoEm: serverTimestamp(),
+    });
+    copiadas++;
+  }
+  if (copiadas > 0) {
+    await registrarEvento(
+      sessao,
+      "barraca.copiouEdicao",
+      `barracas/edicao:${edicaoDestinoId}`,
+      `${copiadas} barraca(s) copiada(s) de ${edicaoOrigemId}`
+    );
+  }
+  return copiadas;
+}
+
 export async function removerBarraca(
   sessao: Sessao,
   barraca: Barraca

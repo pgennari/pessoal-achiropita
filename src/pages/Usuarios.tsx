@@ -25,8 +25,10 @@ import {
 } from "../lib/convites";
 import { UsuarioForm } from "../components/UsuarioForm";
 import { ConviteForm } from "../components/ConviteForm";
-import { Convite, Usuario } from "../lib/tipos";
+import { Convite, Perfil, StatusConvite, Usuario } from "../lib/tipos";
 import { formatarData } from "../lib/utilsDominio";
+
+type Aba = "usuarios" | "convites";
 
 const ROTULO_PERFIL: Record<string, string> = {
   ADM: "ADM",
@@ -37,10 +39,33 @@ const ROTULO_PERFIL: Record<string, string> = {
   REC: "REC",
 };
 
+const PERFIS_FILTRO: Array<{ valor: Perfil | ""; rotulo: string }> = [
+  { valor: "", rotulo: "Todos os perfis" },
+  { valor: "ADM", rotulo: "ADM" },
+  { valor: "ORG", rotulo: "ORG" },
+  { valor: "CRD", rotulo: "CRD" },
+  { valor: "EQP", rotulo: "EQP" },
+  { valor: "OPC", rotulo: "OPC" },
+  { valor: "REC", rotulo: "REC" },
+];
+
+const STATUS_CONVITE_FILTRO: Array<{ valor: StatusConvite | ""; rotulo: string }> = [
+  { valor: "", rotulo: "Todos os status" },
+  { valor: "pendente", rotulo: "Pendente" },
+  { valor: "usado", rotulo: "Usado" },
+  { valor: "revogado", rotulo: "Revogado" },
+];
+
 function classePerfilBadge(p: string): string {
   if (p === "ADM") return "badge badge-vermelho";
   if (p === "ORG") return "badge badge-ouro";
   if (p === "CRD") return "badge badge-azul";
+  return "badge badge-cinza";
+}
+
+function classeStatusBadge(s: StatusConvite): string {
+  if (s === "pendente") return "badge badge-ouro";
+  if (s === "usado") return "badge badge-verde";
   return "badge badge-cinza";
 }
 
@@ -51,16 +76,22 @@ export function Usuarios() {
   const { itens: pessoas } = usePessoas();
   const { edicao } = useEdicaoAtiva();
   const { itens: barracas } = useBarracas(edicao?.id);
+
+  const [aba, setAba] = useState<Aba>("usuarios");
   const [editandoUid, setEditandoUid] = useState<string | null>(null);
-  const [editandoConviteId, setEditandoConviteId] = useState<string | null>(
-    null
-  );
+  const [editandoConviteId, setEditandoConviteId] = useState<string | null>(null);
   const [criandoConvite, setCriandoConvite] = useState(false);
-  const [linkRecemCriado, setLinkRecemCriado] =
-    useState<CriarConviteResultado | null>(null);
+  const [linkRecemCriado, setLinkRecemCriado] = useState<CriarConviteResultado | null>(null);
   const [copiouToken, setCopiouToken] = useState<string | null>(null);
-  const [filtro, setFiltro] = useState("");
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
+
+  // Filtros da aba Usuários
+  const [filtroUsuario, setFiltroUsuario] = useState("");
+
+  // Filtros da aba Convites
+  const [filtroConviteEmail, setFiltroConviteEmail] = useState("");
+  const [filtroConvitePerfil, setFiltroConvitePerfil] = useState<Perfil | "">("");
+  const [filtroConviteStatus, setFiltroConviteStatus] = useState<StatusConvite | "">("");
 
   const indicePessoas = useMemo(() => {
     const m = new Map<string, string>();
@@ -84,7 +115,7 @@ export function Usuarios() {
   );
 
   const listaUsuarios = useMemo(() => {
-    const t = filtro.trim().toLowerCase();
+    const t = filtroUsuario.trim().toLowerCase();
     if (!t) return usuarios;
     return usuarios.filter(
       (u) =>
@@ -92,14 +123,20 @@ export function Usuarios() {
         u.email.toLowerCase().includes(t) ||
         u.perfil.toLowerCase() === t
     );
-  }, [usuarios, filtro]);
+  }, [usuarios, filtroUsuario]);
+
+  const listaConvites = useMemo(() => {
+    return convites.filter((c) => {
+      if (filtroConviteEmail && !c.email.includes(filtroConviteEmail.toLowerCase().trim()))
+        return false;
+      if (filtroConvitePerfil && c.perfil !== filtroConvitePerfil) return false;
+      if (filtroConviteStatus && c.status !== filtroConviteStatus) return false;
+      return true;
+    });
+  }, [convites, filtroConviteEmail, filtroConvitePerfil, filtroConviteStatus]);
 
   const convitesPendentes = useMemo(
     () => convites.filter((c) => c.status === "pendente"),
-    [convites]
-  );
-  const convitesEncerrados = useMemo(
-    () => convites.filter((c) => c.status !== "pendente"),
     [convites]
   );
 
@@ -122,10 +159,8 @@ export function Usuarios() {
     );
   }
 
-  const usuarioEditando =
-    usuarios.find((u) => u.uid === editandoUid) ?? null;
-  const conviteEditando =
-    convites.find((c) => c.id === editandoConviteId) ?? null;
+  const usuarioEditando = usuarios.find((u) => u.uid === editandoUid) ?? null;
+  const conviteEditando = convites.find((c) => c.id === editandoConviteId) ?? null;
 
   async function handleCriarConvite(dados: DadosConviteForm) {
     if (!sessao) return;
@@ -205,26 +240,28 @@ export function Usuarios() {
     }
   }
 
-  const podeAbrirNovo =
-    !criandoConvite && !editandoConviteId && !editandoUid;
+  const podeAbrirNovo = !criandoConvite && !editandoConviteId && !editandoUid;
 
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="eyebrow">Administração</div>
-          <h2 className="mt-1">Usuários</h2>
+          <h2 className="mt-1">Usuários e Convites</h2>
           <p className="text-ardesia text-sm">
             {carregando
               ? "Carregando..."
-              : `${listaUsuarios.length} usuário(s) · ${convitesPendentes.length} convite(s) pendente(s)`}
+              : `${usuarios.length} usuário(s) · ${convitesPendentes.length} convite(s) pendente(s)`}
           </p>
         </div>
         {podeAbrirNovo && (
           <button
             type="button"
             className="btn btn-primario"
-            onClick={() => setCriandoConvite(true)}
+            onClick={() => {
+              setAba("convites");
+              setCriandoConvite(true);
+            }}
           >
             Novo convite
           </button>
@@ -263,9 +300,7 @@ export function Usuarios() {
                 className="btn btn-primario btn-pequeno"
                 onClick={() => copiar(linkRecemCriado.token)}
               >
-                {copiouToken === linkRecemCriado.token
-                  ? "Copiado!"
-                  : "Copiar link"}
+                {copiouToken === linkRecemCriado.token ? "Copiado!" : "Copiar link"}
               </button>
               <button
                 type="button"
@@ -279,70 +314,238 @@ export function Usuarios() {
         </div>
       )}
 
-      {criandoConvite && (
-        <div className="card">
-          <div className="card-corpo">
-            <h3 className="mb-4">Novo convite</h3>
-            <ConviteForm
-              pessoas={pessoas}
-              barracasAtivas={barracas}
-              onSubmit={handleCriarConvite}
-              onCancelar={() => setCriandoConvite(false)}
-              textoBotao="Gerar convite"
-            />
-          </div>
-        </div>
-      )}
-
-      {conviteEditando && (
-        <div className="card">
-          <div className="card-corpo">
-            <h3 className="mb-4">
-              Editando convite — {conviteEditando.email}
-            </h3>
-            <ConviteForm
-              inicial={conviteEditando}
-              pessoas={pessoas}
-              barracasAtivas={barracas}
-              onSubmit={handleAtualizarConvite}
-              onCancelar={() => setEditandoConviteId(null)}
-              textoBotao="Salvar convite"
-            />
-          </div>
-        </div>
-      )}
-
-      {usuarioEditando && (
-        <div className="card">
-          <div className="card-corpo">
-            <h3 className="mb-4">Editando {usuarioEditando.nome}</h3>
-            <UsuarioForm
-              inicial={usuarioEditando}
-              pessoas={pessoas}
-              barracasAtivas={barracas}
-              onSubmit={handleAtualizarUsuario}
-              onCancelar={() => setEditandoUid(null)}
-              textoBotao="Salvar alterações"
-            />
-          </div>
-        </div>
-      )}
-
-      <section>
-        <h3 className="mb-3">
-          Convites pendentes
+      {/* Abas */}
+      <div className="border-b border-pietra-clara flex gap-0">
+        <button
+          type="button"
+          className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
+            aba === "usuarios"
+              ? "border-verde text-verde-escuro"
+              : "border-transparent text-ardesia hover:text-carbone"
+          }`}
+          onClick={() => setAba("usuarios")}
+        >
+          Usuários
+          <span className="ml-1.5 text-xs font-normal text-ardesia">
+            ({usuarios.length})
+          </span>
+        </button>
+        <button
+          type="button"
+          className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
+            aba === "convites"
+              ? "border-verde text-verde-escuro"
+              : "border-transparent text-ardesia hover:text-carbone"
+          }`}
+          onClick={() => setAba("convites")}
+        >
+          Convites
           {convitesPendentes.length > 0 && (
-            <span className="text-ardesia text-sm font-normal">
-              {" · "}
+            <span className="ml-1.5 badge badge-ouro text-xs">
               {convitesPendentes.length}
             </span>
           )}
-        </h3>
-        {carregandoConvites ? (
-          <p className="text-ardesia text-sm">Carregando...</p>
-        ) : convitesPendentes.length === 0 ? (
-          <p className="text-ardesia text-sm">Nenhum convite pendente.</p>
-        ) : (
+        </button>
+      </div>
+
+      {/* Aba Usuários */}
+      {aba === "usuarios" && (
+        <section className="space-y-4">
+          {editandoUid && usuarioEditando && (
+            <div className="card">
+              <div className="card-corpo">
+                <h3 className="mb-4">Editando {usuarioEditando.nome}</h3>
+                <UsuarioForm
+                  inicial={usuarioEditando}
+                  pessoas={pessoas}
+                  barracasAtivas={barracas}
+                  onSubmit={handleAtualizarUsuario}
+                  onCancelar={() => setEditandoUid(null)}
+                  textoBotao="Salvar alterações"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="card">
+            <div className="card-corpo">
+              <input
+                className="input"
+                placeholder="Buscar por nome, e-mail ou perfil..."
+                value={filtroUsuario}
+                onChange={(e) => setFiltroUsuario(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="card overflow-hidden">
+            <div className="tabela-rolavel">
+              <table className="tabela-larga">
+                <thead className="bg-pietra-clara/60 text-left">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Nome / e-mail</th>
+                    <th className="px-4 py-3 font-semibold w-24">Perfil</th>
+                    <th className="px-4 py-3 font-semibold hidden md:table-cell">
+                      Vinculada a
+                    </th>
+                    <th className="px-4 py-3 font-semibold hidden lg:table-cell w-36">
+                      Criado em
+                    </th>
+                    <th className="px-4 py-3 font-semibold w-44 text-right">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {listaUsuarios.length === 0 && !carregando && (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-4 py-8 text-center text-ardesia"
+                      >
+                        Nenhum usuário encontrado.
+                      </td>
+                    </tr>
+                  )}
+                  {listaUsuarios.map((u) => (
+                    <tr
+                      key={u.uid}
+                      className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                    >
+                      <td className="px-4 py-3">
+                        <div className="font-semibold">{u.nome}</div>
+                        <div className="text-xs text-ardesia font-mono">
+                          {u.email}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={classePerfilBadge(u.perfil)}>
+                          {ROTULO_PERFIL[u.perfil]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell text-ardesia">
+                        {u.pessoaId
+                          ? indicePessoas.get(u.pessoaId) ?? "(pessoa removida)"
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3 hidden lg:table-cell text-ardesia font-mono text-xs">
+                        {formatarData(u.criadoEm)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-secundario btn-pequeno"
+                            onClick={() => {
+                              setEditandoConviteId(null);
+                              setEditandoUid(u.uid);
+                            }}
+                          >
+                            Editar
+                          </button>
+                          {ehAdm && (
+                            <button
+                              type="button"
+                              className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                              onClick={() => handleRemoverUsuario(u)}
+                              disabled={u.uid === sessao.uid}
+                              title={
+                                u.uid === sessao.uid
+                                  ? "Não pode remover o próprio usuário"
+                                  : ""
+                              }
+                            >
+                              Remover
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Aba Convites */}
+      {aba === "convites" && (
+        <section className="space-y-4">
+          {criandoConvite && (
+            <div className="card">
+              <div className="card-corpo">
+                <h3 className="mb-4">Novo convite</h3>
+                <ConviteForm
+                  pessoas={pessoas}
+                  barracasAtivas={barracas}
+                  onSubmit={handleCriarConvite}
+                  onCancelar={() => setCriandoConvite(false)}
+                  textoBotao="Gerar convite"
+                />
+              </div>
+            </div>
+          )}
+
+          {editandoConviteId && conviteEditando && (
+            <div className="card">
+              <div className="card-corpo">
+                <h3 className="mb-4">
+                  Editando convite — {conviteEditando.email}
+                </h3>
+                <ConviteForm
+                  inicial={conviteEditando}
+                  pessoas={pessoas}
+                  barracasAtivas={barracas}
+                  onSubmit={handleAtualizarConvite}
+                  onCancelar={() => setEditandoConviteId(null)}
+                  textoBotao="Salvar convite"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Filtros */}
+          <div className="card">
+            <div className="card-corpo">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input
+                  className="input"
+                  placeholder="Filtrar por e-mail..."
+                  value={filtroConviteEmail}
+                  onChange={(e) => setFiltroConviteEmail(e.target.value)}
+                />
+                <select
+                  className="input"
+                  value={filtroConvitePerfil}
+                  onChange={(e) =>
+                    setFiltroConvitePerfil(e.target.value as Perfil | "")
+                  }
+                >
+                  {PERFIS_FILTRO.map((p) => (
+                    <option key={p.valor} value={p.valor}>
+                      {p.rotulo}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="input"
+                  value={filtroConviteStatus}
+                  onChange={(e) =>
+                    setFiltroConviteStatus(e.target.value as StatusConvite | "")
+                  }
+                >
+                  {STATUS_CONVITE_FILTRO.map((s) => (
+                    <option key={s.valor} value={s.valor}>
+                      {s.rotulo}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabela de convites */}
           <div className="card overflow-hidden">
             <div className="tabela-rolavel">
               <table className="tabela-larga">
@@ -350,29 +553,47 @@ export function Usuarios() {
                   <tr>
                     <th className="px-4 py-3 font-semibold">E-mail</th>
                     <th className="px-4 py-3 font-semibold w-24">Perfil</th>
+                    <th className="px-4 py-3 font-semibold w-28">Status</th>
                     <th className="px-4 py-3 font-semibold hidden lg:table-cell w-36">
                       Criado em
                     </th>
                     <th className="px-4 py-3 font-semibold hidden lg:table-cell w-36">
                       Expira em
                     </th>
-                    <th className="px-4 py-3 font-semibold w-52 text-right">
+                    <th className="px-4 py-3 font-semibold w-56 text-right">
                       Ações
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {convitesPendentes.map((c) => (
+                  {carregandoConvites && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-6 text-center text-ardesia">
+                        Carregando...
+                      </td>
+                    </tr>
+                  )}
+                  {!carregandoConvites && listaConvites.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-ardesia">
+                        Nenhum convite encontrado.
+                      </td>
+                    </tr>
+                  )}
+                  {listaConvites.map((c) => (
                     <tr
                       key={c.id}
                       className="border-t border-pietra-clara hover:bg-pietra-clara/40"
                     >
-                      <td className="px-4 py-3 font-mono text-xs">
-                        {c.email}
-                      </td>
+                      <td className="px-4 py-3 font-mono text-xs">{c.email}</td>
                       <td className="px-4 py-3">
                         <span className={classePerfilBadge(c.perfil)}>
                           {ROTULO_PERFIL[c.perfil]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={classeStatusBadge(c.status)}>
+                          {c.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell text-ardesia font-mono text-xs">
@@ -383,27 +604,45 @@ export function Usuarios() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2 flex-wrap">
-                          <button
-                            type="button"
-                            className="btn btn-secundario btn-pequeno"
-                            onClick={() => copiar(c.id)}
-                          >
-                            {copiouToken === c.id ? "Copiado!" : "Copiar link"}
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-secundario btn-pequeno"
-                            onClick={() => setEditandoConviteId(c.id)}
-                          >
-                            Editar
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                            onClick={() => handleRevogarConvite(c)}
-                          >
-                            Revogar
-                          </button>
+                          {c.status === "pendente" && (
+                            <button
+                              type="button"
+                              className="btn btn-secundario btn-pequeno"
+                              onClick={() => copiar(c.id)}
+                            >
+                              {copiouToken === c.id ? "Copiado!" : "Copiar link"}
+                            </button>
+                          )}
+                          {c.status === "pendente" && (
+                            <button
+                              type="button"
+                              className="btn btn-secundario btn-pequeno"
+                              onClick={() => {
+                                setEditandoUid(null);
+                                setEditandoConviteId(c.id);
+                              }}
+                            >
+                              Editar
+                            </button>
+                          )}
+                          {c.status === "pendente" && (
+                            <button
+                              type="button"
+                              className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                              onClick={() => handleRevogarConvite(c)}
+                            >
+                              Revogar
+                            </button>
+                          )}
+                          {c.status !== "pendente" && ehAdm && (
+                            <button
+                              type="button"
+                              className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                              onClick={() => handleRemoverConvite(c)}
+                            >
+                              Apagar
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -412,154 +651,7 @@ export function Usuarios() {
               </table>
             </div>
           </div>
-        )}
-      </section>
-
-      <section>
-        <div className="flex items-end justify-between mb-3">
-          <h3 className="m-0">Usuários cadastrados</h3>
-          <span className="text-ardesia text-sm">
-            {listaUsuarios.length} de {usuarios.length}
-          </span>
-        </div>
-
-        <div className="card mb-4">
-          <div className="card-corpo">
-            <input
-              className="input"
-              placeholder="Buscar por nome, e-mail ou perfil..."
-              value={filtro}
-              onChange={(e) => setFiltro(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="card overflow-hidden">
-          <div className="tabela-rolavel">
-            <table className="tabela-larga">
-              <thead className="bg-pietra-clara/60 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Nome / e-mail</th>
-                  <th className="px-4 py-3 font-semibold w-24">Perfil</th>
-                  <th className="px-4 py-3 font-semibold hidden md:table-cell">
-                    Vinculada a
-                  </th>
-                  <th className="px-4 py-3 font-semibold hidden lg:table-cell w-36">
-                    Criado em
-                  </th>
-                  <th className="px-4 py-3 font-semibold w-44 text-right">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {listaUsuarios.length === 0 && !carregando && (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="px-4 py-8 text-center text-ardesia"
-                    >
-                      Nenhum usuário encontrado.
-                    </td>
-                  </tr>
-                )}
-                {listaUsuarios.map((u) => (
-                  <tr
-                    key={u.uid}
-                    className="border-t border-pietra-clara hover:bg-pietra-clara/40"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-semibold">{u.nome}</div>
-                      <div className="text-xs text-ardesia font-mono">
-                        {u.email}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={classePerfilBadge(u.perfil)}>
-                        {ROTULO_PERFIL[u.perfil]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 hidden md:table-cell text-ardesia">
-                      {u.pessoaId
-                        ? indicePessoas.get(u.pessoaId) ?? "(pessoa removida)"
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3 hidden lg:table-cell text-ardesia font-mono text-xs">
-                      {formatarData(u.criadoEm)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          className="btn btn-secundario btn-pequeno"
-                          onClick={() => setEditandoUid(u.uid)}
-                        >
-                          Editar
-                        </button>
-                        {ehAdm && (
-                          <button
-                            type="button"
-                            className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                            onClick={() => handleRemoverUsuario(u)}
-                            disabled={u.uid === sessao.uid}
-                            title={
-                              u.uid === sessao.uid
-                                ? "Não pode remover o próprio usuário"
-                                : ""
-                            }
-                          >
-                            Remover
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {convitesEncerrados.length > 0 && (
-        <details className="text-sm">
-          <summary className="cursor-pointer text-ardesia">
-            Histórico de convites ({convitesEncerrados.length})
-          </summary>
-          <ul className="mt-3 divide-y divide-pietra-clara border border-pietra-clara rounded-sm">
-            {convitesEncerrados.map((c) => (
-              <li
-                key={c.id}
-                className="px-3 py-2 flex flex-wrap items-center gap-2"
-              >
-                <span
-                  className={
-                    c.status === "usado"
-                      ? "badge badge-verde"
-                      : "badge badge-cinza"
-                  }
-                >
-                  {c.status}
-                </span>
-                <span className="font-mono text-xs text-ardesia">
-                  {c.email}
-                </span>
-                <span className={`${classePerfilBadge(c.perfil)} ml-auto`}>
-                  {ROTULO_PERFIL[c.perfil]}
-                </span>
-                {ehAdm && (
-                  <button
-                    type="button"
-                    className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                    onClick={() => handleRemoverConvite(c)}
-                  >
-                    Apagar
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </details>
+        </section>
       )}
     </div>
   );

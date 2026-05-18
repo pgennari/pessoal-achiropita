@@ -126,7 +126,7 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 🔴 Alta · MVP
 
 ### US-02-03 — Anexar foto da pessoa
-**Como** ORG ou EQP,
+**Como** ORG ou OPC ou ADM,
 **quero** enviar uma foto do rosto,
 **para** identificação visual em listas, painéis e na entrega de materiais.
 
@@ -508,7 +508,6 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 
 **Critérios de aceite:**
 - Substitui a aba "FALTA FOTO" da planilha
-- Botão "Solicitar foto por e-mail" dispara mensagem com link de upload (link com expiração, mesma mecânica do EP-06)
 - Filtros por barraca, setor
 
 🔴 Alta · MVP

@@ -147,6 +147,12 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 - Histórico permanece acessível
 - Reativação por ADM com um clique
 
+**Exclusão permanente (ADM):**
+- Só permitida se a pessoa não tem nenhuma participação registrada em edição alguma
+- Remove foto do Storage e o documento em `/pessoas`
+- Registra em `/auditoria` nome, número de crachá, CPF e identificação de quem excluiu
+- Operação irreversível — sistema exige confirmação explícita antes de executar
+
 🟡 Média · MVP
 
 ### US-02-05 — Buscar pessoa
@@ -161,6 +167,19 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 - Limite de 20 resultados, paginação por scroll
 
 🔴 Alta · MVP
+
+### US-02-08 — Registrar veículos da pessoa
+**Como** ORG ou ADM,
+**quero** registrar os veículos de um equipista,
+**para** controlar credenciais de acesso ao estacionamento interno da festa.
+
+**Critérios de aceite:**
+- Adicionar/remover múltiplos veículos no cadastro da pessoa
+- Cada veículo: marca/modelo, cor e placa (placa obrigatória)
+- OPC pode consultar a lista de veículos credenciados para autorizar a entrada na área interna
+- Apenas ORG, ADM e OPC visualizam veículos de outras pessoas; EQP vê apenas os próprios
+
+🟡 Média · MVP
 
 ### US-02-06 — Detectar e tratar duplicatas
 **Como** ADM,
@@ -388,6 +407,7 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 - Ambas agrupadas por barraca, com filtros por setor e função
 - Botão "Gerar link individual de validação" na lista B (envia por WhatsApp/e-mail)
 - Botão "Notificar todos" envia push e e-mail
+- OPC ou ADM podem confirmar dados manualmente (marcar `dadosValidados=true`) diretamente na lista B, com justificativa breve obrigatória; ação fica registrada em `/auditoria`
 
 🔴 Alta · MVP
 
@@ -406,6 +426,9 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
   referência à turma. A identificação acontece quando alguém abre
 - QR Code é exibido na lista de turmas para projeção na sala e
   leitura no celular; URL curta também aparece para copiar
+- Rota `/v-qr/{token}` oferece visualização em tela cheia para projeção:
+  fundo escuro, alto contraste, QR code centralizado, URL curta e nome
+  da turma visíveis; sem necessidade de login
 - Painel mostra status (ativo, expirado, revogado) e contador de
   uso (quantos validaram pelo link)
 - Link pode ser revogado manualmente antes da expiração; ORG pode
@@ -609,6 +632,13 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 **quero** marcar qual edição é a "ativa",
 **para** que o resto do sistema use essa referência.
 
+**Critérios de aceite:**
+- Apenas uma edição pode ter status "ativa" por vez; ao ativar uma, a anterior é automaticamente marcada como "encerrada"
+- Botão "Recriar lookup de crachás" disponível no painel de administração:
+  percorre todos os documentos em `/pessoas` e reconstrói a coleção `/buscaCracha`;
+  exibe progresso durante a execução; operação não destrutiva (só atualiza o índice,
+  não altera dados de pessoas); restrita a ADM
+
 🔴 Alta · MVP
 
 ### US-12-02 — Gerenciar usuários e permissões
@@ -705,4 +735,4 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 🔴 Alta · MVP
 
 
-*Documento vivo — revisar antes de cada planning. Última atualização: 03/05/2026.*
+*Documento vivo — revisar antes de cada planning. Última atualização: 18/05/2026.*

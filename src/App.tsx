@@ -19,6 +19,8 @@ import { ValidarPublico } from "./pages/ValidarPublico";
 import { QrTurma } from "./pages/QrTurma";
 import { PaginaConvite } from "./pages/PaginaConvite";
 import { RedefinirSenha } from "./pages/RedefinirSenha";
+import { UploadFotoPublico } from "./pages/UploadFotoPublico";
+import { Importacao } from "./pages/Importacao";
 
 export function App() {
   return (
@@ -28,6 +30,7 @@ export function App() {
       <Route path="/convite/:token" element={<PaginaConvite />} />
       <Route path="/v/:token" element={<ValidarPublico />} />
       <Route path="/v-qr/:token" element={<QrTurma />} />
+      <Route path="/foto/:token" element={<UploadFotoPublico />} />
       <Route
         element={
           <ProtegerRota>
@@ -51,6 +54,7 @@ export function App() {
         <Route path="formacao" element={<PaginaFormacao />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="auditoria" element={<Auditoria />} />
+        <Route path="importacao" element={<Importacao />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

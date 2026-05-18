@@ -62,6 +62,7 @@ const secoes: Secao[] = [
       { to: "/usuarios", label: "Usuários", perfis: ["ADM"] },
       { to: "/auditoria", label: "Auditoria", perfis: ["ADM", "ORG"] },
       { to: "/importacao", label: "Importação", perfis: ["ADM"] },
+      { to: "/zeramento", label: "Zeramento", perfis: ["ADM"] },
     ],
   },
 ];

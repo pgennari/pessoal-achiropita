@@ -21,6 +21,7 @@ import { PaginaConvite } from "./pages/PaginaConvite";
 import { RedefinirSenha } from "./pages/RedefinirSenha";
 import { UploadFotoPublico } from "./pages/UploadFotoPublico";
 import { Importacao } from "./pages/Importacao";
+import { ZeramentoDados } from "./pages/ZeramentoDados";
 
 export function App() {
   return (
@@ -55,6 +56,7 @@ export function App() {
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="auditoria" element={<Auditoria />} />
         <Route path="importacao" element={<Importacao />} />
+        <Route path="zeramento" element={<ZeramentoDados />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -283,7 +283,7 @@ service cloud.firestore {
       allow read: if temPerfilDoc();
       allow create: if ehAdmOuOrg() && edicaoValida(request.resource.data);
       allow update: if ehAdmOuOrg() && edicaoValida(request.resource.data);
-      allow delete: if false;
+      allow delete: if ehAdm();
     }
 
     match /barracas/{id} {

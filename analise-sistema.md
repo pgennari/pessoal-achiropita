@@ -2,7 +2,7 @@
 
 > Data: 17/05/2026  
 > Branch analisada: `claude/system-analysis-report-B1Iu1`  
-> Base de referência: `user-stories-festa-100.md` (última atualização: 03/05/2026)
+> Base de referência: `user-stories-festa-100.md` (última atualização: 18/05/2026)
 
 ---
 
@@ -29,6 +29,11 @@ Funcionalidades entregues, mas com comportamento ou escopo divergente dos crité
 | **US-06-04** | Botão **"Notificar todos"** envia push e e-mail para pendências | Não implementado | Médio — dependência de v2, mas está marcado como MVP na spec |
 | **US-06-04** | Botão **"Gerar link individual de validação"** para quem fez formação manual e não validou dados | Não implementado | Médio — marcado como MVP |
 | **US-07-04** | Botão **"Solicitar foto por e-mail"** com link de expiração | Página de pendências existe mas sem ação de solicitação por e-mail | Baixo — US marcada como Alta/MVP |
+| **US-02-04** | Exclusão permanente só permitida se pessoa **não tem participações** em nenhuma edição | Exclusão física existe (remove foto, limpa `/buscaCracha`, registra em auditoria) mas verificação prévia de ausência de participações não foi confirmada no código | Alto |
+| **US-02-08** | Veículos: OPC consulta lista de credenciados; EQP vê apenas os próprios; placa obrigatória | CRUD básico de `carros[]` existe; controle de visibilidade por perfil e tela de consulta para o OPC não implementados | Médio |
+| **US-06-04** | Confirmação manual de `dadosValidados` exige **justificativa breve obrigatória** e log em `/auditoria` | Feature existe; obrigatoriedade da justificativa e registro em auditoria não confirmados | Médio |
+| **US-06-05** | Rota `/v-qr/{token}`: fundo escuro, alto contraste, QR centralizado, URL curta e nome da turma visíveis | Rota existe; aderência aos requisitos visuais específicos (fundo escuro, alto contraste, layout de projeção) não verificada | Baixo |
+| **US-12-01** | "Recriar lookup" **exibe progresso** durante execução; operação não-destrutiva | Operação existe; exibição de progresso em tela durante a execução não verificada | Baixo |
 
 ---
 
@@ -36,32 +41,7 @@ Funcionalidades entregues, mas com comportamento ou escopo divergente dos crité
 
 Código que existe e funciona, mas não tem US correspondente descrevendo seus requisitos, critérios de aceite ou motivação de negócio.
 
-### 2.1 Registro de veículos (`carros[]`)
-O modelo `Pessoa` possui um array `carros[]` e o formulário de cadastro permite adicionar/remover veículos. Nenhuma US descreve esse campo, para que ele serve operacionalmente, quem pode editar, ou como ele aparece em relatórios. Se não for usado, polui o formulário.
-
-**Ação sugerida:** Criar US no EP-02 ou EP-03 descrevendo a finalidade (controle de credenciais de acesso ao estacionamento? entrada de veículos na área interna?) e critérios de aceite; ou remover se não for necessário para a festa 100.
-
-### 2.2 Exclusão permanente de pessoa (ADM)
-O sistema permite que ADM exclua fisicamente uma pessoa — remove foto do Storage, limpa `/buscaCracha` e registra em auditoria. US-02-04 descreve apenas **inativação** (soft delete), sem mencionar exclusão física. Não há US que autorize essa operação nem defina em quais condições ela é permitida (ex.: pessoa nunca participou de edição alguma?).
-
-**Ação sugerida:** Criar US ou critério de aceite em US-02-04 descrevendo quando a exclusão é permitida e quais dados são preservados no log de auditoria.
-
-### 2.3 Rota `/v-qr/:token` — página de projeção do QR
-Rota dedicada à exibição do QR code em tela cheia para projeção em sala de formação. US-06-05 menciona "QR Code exibido na lista de turmas para projeção" mas não especifica uma rota separada, requisitos de UI (fullscreen, contraste, logo), ou como acessar.
-
-**Ação sugerida:** Adicionar critério de aceite em US-06-05 descrevendo a página de projeção.
-
-### 2.4 Botão "Recriar lookup" (`sincronizarTodosOsCrachas`)
-Operação de ADM que percorre todos os documentos `/pessoas` e reconstrói a coleção `/buscaCracha`. Não há US descrevendo quando usar, o que acontece durante a execução (bloqueio da UI?), ou o que fazer se falhar parcialmente.
-
-**Ação sugerida:** Criar critério de aceite em US-12-01 ou nova US em EP-12 documentando essa operação de manutenção.
-
-### 2.5 Confirmação de dados pelo OPC/ADM (`dadosValidados`)
-Além da auto-validação via link público (US-06-06), OPC e ADM podem marcar `dadosValidados=true` manualmente numa tela de formação. Não está descrito em nenhuma US — é diferente de US-06-02 (presença manual) e de US-06-06 (validação via link).
-
-**Ação sugerida:** Adicionar critério de aceite em US-06-04 descrevendo quem pode confirmar dados e em que fluxo.
-
-### 2.6 Migração via script Node.js (`seed-fixture.mjs`)
+### 2.1 Migração via script Node.js (`seed-fixture.mjs`)
 EP-13 descreve um **wizard com UI** (pré-visualização, mapeamento de colunas, relatório de qualidade). O que existe é um script executado diretamente no terminal, sem interface, sem pré-visualização linha a linha e sem relatório estruturado.
 
 **Ação sugerida:** Alinhar com o usuário: manter o script como solução definitiva (e atualizar US-13 para refletir isso) ou construir o wizard conforme especificado.
@@ -76,6 +56,7 @@ EP-13 descreve um **wizard com UI** (pré-visualização, mapeamento de colunas,
 |----|---|---|
 | **US-01-06** | Aba "Convites" separada de "Usuários" com filtros (e-mail, perfil, status), links copiáveis e tabela com datas | Parcialmente entregue; critérios de aceite não totalmente verificados |
 | **US-02-01** | CPF obrigatório no cadastro (alinhamento do tipo `Pessoa` e validação no formulário) | Divergência ativa — campo é opcional no código |
+| **US-02-08** | Controle de acesso a veículos: OPC consulta lista de credenciados; EQP restrito aos próprios; placa obrigatória | CRUD básico de `carros[]` existe sem controle de perfil |
 | **US-02-05** | Busca global integrada ao Layout com atalho `⌘K`/`Ctrl+K`, resultado com foto/nome/crachá/barraca, limite 20 resultados | Componente existe isolado; integração e atalho pendentes |
 | **US-05-01** | "Copiar barracas e estrutura da edição anterior" no fluxo de criação de nova edição | Não iniciado |
 | **US-05-04** | Mover pessoa entre barracas com auditoria e notificação ao CRD da barraca de origem | Não iniciado |
@@ -127,7 +108,7 @@ EP-13 descreve um **wizard com UI** (pré-visualização, mapeamento de colunas,
 | Épico | Total de US | MVP implementado | MVP pendente | v2/v3 |
 |---|:---:|:---:|:---:|:---:|
 | EP-01 Autenticação | 6 | 4 | 1 (US-01-06 parcial) | 1 |
-| EP-02 Cadastro | 7 | 4 | 2 (US-02-01 divergente, US-02-05 parcial) | 2 |
+| EP-02 Cadastro | 8 | 5 | 3 (US-02-01 divergente, US-02-05 parcial, US-02-08 parcial) | 2 |
 | EP-03 Família | 3 | 1 | — | 2 |
 | EP-04 Histórico | 3 | 1 | 1 (US-04-02) | 1 |
 | EP-05 Edição & Alocação | 7 | 3 | 3 (US-05-01 parcial, US-05-04, US-05-05) | 2 |
@@ -138,4 +119,4 @@ EP-13 descreve um **wizard com UI** (pré-visualização, mapeamento de colunas,
 | EP-11 Recreação | 3 | — | — | 3 |
 | EP-12 Admin | 5 | 2 | — | 3 |
 | EP-13 Migração | 4 | — | 4 | — |
-| **Total** | **56** | **~21** | **~15** | **~20** |
+| **Total** | **57** | **~22** | **~16** | **~20** |

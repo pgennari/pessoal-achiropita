@@ -169,7 +169,25 @@ export function Importacao() {
   const [relatorioPendencias, setRelatorioPendencias] = useState<Pendencia[]>([]);
   const [relatorioImportados, setRelatorioImportados] = useState(0);
   const [relatorioParticipacoes, setRelatorioParticipacoes] = useState(0);
+  const [relatorioAvisos, setRelatorioAvisos] = useState<
+    Array<{ idx: number; nome: string; avisos: string[] }>
+  >([]);
   const [erro, setErro] = useState<string | null>(null);
+
+  // Deve ficar antes de qualquer return condicional para não violar Rules of Hooks
+  const statsPreview = useMemo(() => {
+    if (!linhasProcessadas.length) return null;
+    const comAvisos = linhasProcessadas.filter((l) => l.avisos.length > 0);
+    const totalHistorico = linhasProcessadas.reduce(
+      (acc, l) => acc + l.historico.length,
+      0
+    );
+    return {
+      total: linhasProcessadas.length,
+      comAvisos: comAvisos.length,
+      totalHistorico,
+    };
+  }, [linhasProcessadas]);
 
   if (!sessao || sessao.perfil !== "ADM") {
     return (
@@ -314,21 +332,6 @@ export function Importacao() {
     setEtapa("preview");
   }
 
-  // Etapa 3: Preview — stats e pendências
-  const statsPreview = useMemo(() => {
-    if (!linhasProcessadas.length) return null;
-    const comAvisos = linhasProcessadas.filter((l) => l.avisos.length > 0);
-    const totalHistorico = linhasProcessadas.reduce(
-      (acc, l) => acc + l.historico.length,
-      0
-    );
-    return {
-      total: linhasProcessadas.length,
-      comAvisos: comAvisos.length,
-      totalHistorico,
-    };
-  }, [linhasProcessadas]);
-
   // Etapa 4: Importação
   async function handleImportar() {
     if (!sessao) return;
@@ -336,6 +339,7 @@ export function Importacao() {
     setEtapa("importando");
     setErro(null);
     const pendencias: Pendencia[] = [];
+    const avisosLocal: Array<{ idx: number; nome: string; avisos: string[] }> = [];
     let importados = 0;
     let totalParticipacoes = 0;
 
@@ -413,6 +417,9 @@ export function Importacao() {
         }
 
         importados++;
+        if (linha.avisos.length > 0) {
+          avisosLocal.push({ idx: linha.idx, nome: linha.nome, avisos: linha.avisos });
+        }
       } catch (e) {
         pendencias.push({
           idx: linha.idx,
@@ -432,6 +439,7 @@ export function Importacao() {
     setRelatorioImportados(importados);
     setRelatorioParticipacoes(totalParticipacoes);
     setRelatorioPendencias(pendencias);
+    setRelatorioAvisos(avisosLocal);
     setImportando(false);
     setEtapa("relatorio");
   }
@@ -694,7 +702,7 @@ export function Importacao() {
           <div className="card">
             <div className="card-corpo space-y-2">
               <h3 className="m-0">Relatório de importação</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-3">
                 <div className="kpi">
                   <div className="kpi-label">Pessoas importadas</div>
                   <div className="kpi-valor">{relatorioImportados}</div>
@@ -704,19 +712,66 @@ export function Importacao() {
                   <div className="kpi-valor">{relatorioParticipacoes}</div>
                 </div>
                 <div className="kpi">
-                  <div className="kpi-label">Pendências</div>
+                  <div className="kpi-label">Fotos importadas</div>
+                  <div className="kpi-valor text-ardesia">0</div>
+                </div>
+                <div className="kpi">
+                  <div className="kpi-label">Falhas de importação</div>
                   <div className="kpi-valor">{relatorioPendencias.length}</div>
                 </div>
               </div>
             </div>
           </div>
 
+          {relatorioAvisos.length > 0 && (
+            <div className="card overflow-hidden">
+              <div className="card-corpo border-b border-pietra-clara">
+                <h4 className="m-0">
+                  Importados com pendências de qualidade ({relatorioAvisos.length})
+                </h4>
+                <p className="text-ardesia text-xs mt-1">
+                  Foram importados, mas requerem revisão manual.
+                </p>
+              </div>
+              <div className="tabela-rolavel">
+                <table className="tabela-larga text-sm">
+                  <thead className="bg-pietra-clara/60 text-left">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold w-16">Linha</th>
+                      <th className="px-4 py-3 font-semibold">Nome</th>
+                      <th className="px-4 py-3 font-semibold">Avisos</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {relatorioAvisos.map((a) => (
+                      <tr
+                        key={a.idx}
+                        className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                      >
+                        <td className="px-4 py-3 font-mono text-ardesia">
+                          {a.idx + 2}
+                        </td>
+                        <td className="px-4 py-3 font-semibold">{a.nome}</td>
+                        <td className="px-4 py-3 text-ouro-escuro">
+                          {a.avisos.join("; ")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {relatorioPendencias.length > 0 && (
             <div className="card overflow-hidden">
               <div className="card-corpo border-b border-pietra-clara">
                 <h4 className="m-0">
-                  Pendências ({relatorioPendencias.length})
+                  Falhas de importação ({relatorioPendencias.length})
                 </h4>
+                <p className="text-ardesia text-xs mt-1">
+                  Não foram importadas — corrija na planilha e reimporte.
+                </p>
               </div>
               <div className="tabela-rolavel">
                 <table className="tabela-larga">
@@ -759,8 +814,9 @@ export function Importacao() {
                 históricas.
               </p>
               <p>
-                <strong>Fotos:</strong> Não importadas. Use o botão "Solicitar
-                foto por e-mail" em Pendências → Fotos para cada equipista.
+                <strong>Fotos:</strong> Não importadas via planilha. Use o
+                botão "Solicitar foto por e-mail" em Pendências → Fotos para
+                cada equipista.
               </p>
             </div>
           </div>
@@ -775,6 +831,7 @@ export function Importacao() {
               setMapeamento({});
               setLinhasProcessadas([]);
               setRelatorioPendencias([]);
+              setRelatorioAvisos([]);
               setRelatorioImportados(0);
               setRelatorioParticipacoes(0);
             }}

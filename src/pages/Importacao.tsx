@@ -3,7 +3,9 @@ import * as XLSX from "xlsx";
 import {
   addDoc,
   collection,
+  doc,
   serverTimestamp,
+  setDoc,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useSessao } from "../lib/sessao";
@@ -166,8 +168,14 @@ export function Importacao() {
   const [mapeamento, setMapeamento] = useState<Mapeamento>({});
   const [linhasProcessadas, setLinhasProcessadas] = useState<LinhaPessoa[]>([]);
   const [importando, setImportando] = useState(false);
+  const [linhasVisiveis, setLinhasVisiveis] = useState(20);
+  const [progressoImportacao, setProgressoImportacao] = useState<{
+    atual: number;
+    total: number;
+  } | null>(null);
   const [relatorioPendencias, setRelatorioPendencias] = useState<Pendencia[]>([]);
   const [relatorioImportados, setRelatorioImportados] = useState(0);
+  const [relatorioJaExistentes, setRelatorioJaExistentes] = useState(0);
   const [relatorioParticipacoes, setRelatorioParticipacoes] = useState(0);
   const [relatorioAvisos, setRelatorioAvisos] = useState<
     Array<{ idx: number; nome: string; avisos: string[] }>
@@ -329,96 +337,129 @@ export function Importacao() {
   function handleConfirmarMapeamento() {
     const processadas = processarLinhas();
     setLinhasProcessadas(processadas);
+    setLinhasVisiveis(20);
     setEtapa("preview");
   }
 
-  // Etapa 4: Importação
+  // Etapa 4: Importação (idempotente por CPF ou nome+nascimento)
   async function handleImportar() {
     if (!sessao) return;
     setImportando(true);
     setEtapa("importando");
     setErro(null);
+    setProgressoImportacao({ atual: 0, total: linhasProcessadas.length });
+
     const pendencias: Pendencia[] = [];
     const avisosLocal: Array<{ idx: number; nome: string; avisos: string[] }> = [];
     let importados = 0;
+    let jaExistentes = 0;
     let totalParticipacoes = 0;
 
-    // Descobre o maior crachá existente para gerar os próximos
+    // Mapas de dedup: carregados das pessoas já existentes no Firestore
+    // e expandidos durante o loop para cobrir intra-importação
+    const cpfParaId = new Map<string, string>();
+    const nomeNascParaId = new Map<string, string>();
+    for (const p of pessoasExistentes) {
+      if (p.cpf) cpfParaId.set(p.cpf, p.id);
+      if (p.nome && p.nascimento) {
+        nomeNascParaId.set(`${p.nome.toLowerCase()}__${p.nascimento}`, p.id);
+      }
+    }
+
     let maxCracha = Math.max(
       0,
       ...pessoasExistentes.map((p) => p.cracha),
       ...linhasProcessadas.filter((l) => l.cracha > 0).map((l) => l.cracha)
     );
 
-    for (const linha of linhasProcessadas) {
+    for (let i = 0; i < linhasProcessadas.length; i++) {
+      const linha = linhasProcessadas[i];
+      setProgressoImportacao({ atual: i + 1, total: linhasProcessadas.length });
+
       if (!linha.nome) {
         pendencias.push({ idx: linha.idx, nome: "(sem nome)", motivo: "Nome em branco" });
         continue;
       }
 
       try {
-        // Usa o crachá da planilha se existir, senão auto-incrementa
-        const cracha = linha.cracha > 0 ? linha.cracha : ++maxCracha;
+        // Verifica se a pessoa já existe (idempotência)
+        let pessoaId: string | null =
+          (linha.cpf ? cpfParaId.get(linha.cpf) : undefined) ??
+          (linha.nome && linha.nascimento
+            ? nomeNascParaId.get(`${linha.nome.toLowerCase()}__${linha.nascimento}`)
+            : undefined) ??
+          null;
 
-        const payload = {
-          cracha,
-          nome: linha.nome,
-          nascimento: linha.nascimento || null,
-          telefone: linha.telefone || null,
-          cpf: linha.cpf || null,
-          rg: linha.rg || null,
-          email: linha.email || null,
-          endereco: linha.endereco || null,
-          bairro: linha.bairro || null,
-          estadoCivil: ESTADOS_CIVIS.includes(linha.estadoCivil as EstadoCivil)
-            ? linha.estadoCivil
-            : null,
-          fotoUrl: null,
-          ativo: true,
-          filhos: [],
-          carros: [],
-          criadoEm: serverTimestamp(),
-          atualizadoEm: serverTimestamp(),
-        };
+        if (pessoaId) {
+          jaExistentes++;
+        } else {
+          const cracha = linha.cracha > 0 ? linha.cracha : ++maxCracha;
 
-        const ref = await addDoc(collection(db(), "pessoas"), payload);
-
-        // Sincroniza lookup de crachá
-        if (linha.nascimento) {
-          await sincronizarBuscaCracha({
-            id: ref.id,
+          const payload = {
             cracha,
-            nascimento: linha.nascimento,
+            nome: linha.nome,
+            nascimento: linha.nascimento || null,
+            telefone: linha.telefone || null,
+            cpf: linha.cpf || null,
+            rg: linha.rg || null,
+            email: linha.email || null,
+            endereco: linha.endereco || null,
+            bairro: linha.bairro || null,
+            estadoCivil: ESTADOS_CIVIS.includes(linha.estadoCivil as EstadoCivil)
+              ? linha.estadoCivil
+              : null,
+            fotoUrl: null,
             ativo: true,
-          } as never);
+            filhos: [],
+            carros: [],
+            criadoEm: serverTimestamp(),
+            atualizadoEm: serverTimestamp(),
+          };
+
+          const ref = await addDoc(collection(db(), "pessoas"), payload);
+          pessoaId = ref.id;
+
+          // Expande mapas locais para dedup dentro da mesma importação
+          if (linha.cpf) cpfParaId.set(linha.cpf, pessoaId);
+          if (linha.nome && linha.nascimento) {
+            nomeNascParaId.set(`${linha.nome.toLowerCase()}__${linha.nascimento}`, pessoaId);
+          }
+
+          // Sincroniza lookup de crachá (só para pessoas novas)
+          if (linha.nascimento) {
+            await sincronizarBuscaCracha({
+              id: pessoaId,
+              cracha,
+              nascimento: linha.nascimento,
+              ativo: true,
+            } as never);
+          }
+
+          importados++;
+          if (linha.avisos.length > 0) {
+            avisosLocal.push({ idx: linha.idx, nome: linha.nome, avisos: linha.avisos });
+          }
         }
 
-        // Histórico horizontal → /participacoes (US-13-03)
-        // Precisamos do edicaoId para cada ano — inferimos a edição pelo ano
-        // Cria participações se existir edição com aquele ano
+        // Histórico → /participacoesHistoricas com ID determinístico (idempotente)
         for (const hist of linha.historico) {
-          // Não bloqueia a importação por falta de edição; registra pendência
           try {
             const anoReal = hist.ano < 30 ? 2000 + hist.ano : 1900 + hist.ano;
-            // Armazena como participação histórica com barracaId = nome da barraca
-            // (sem id real — será reconciliado manualmente ou via script futuro)
-            await addDoc(collection(db(), "participacoesHistoricas"), {
-              pessoaId: ref.id,
-              pessoaNome: linha.nome,
-              anoEdicao: anoReal,
-              barracaNome: hist.barraca,
-              funcao: hist.funcao as Funcao,
-              criadoEm: serverTimestamp(),
-            });
+            await setDoc(
+              doc(db(), "participacoesHistoricas", `${pessoaId}_${anoReal}`),
+              {
+                pessoaId,
+                pessoaNome: linha.nome,
+                anoEdicao: anoReal,
+                barracaNome: hist.barraca,
+                funcao: hist.funcao as Funcao,
+                criadoEm: serverTimestamp(),
+              }
+            );
             totalParticipacoes++;
           } catch {
             // Não bloqueia importação por falha no histórico
           }
-        }
-
-        importados++;
-        if (linha.avisos.length > 0) {
-          avisosLocal.push({ idx: linha.idx, nome: linha.nome, avisos: linha.avisos });
         }
       } catch (e) {
         pendencias.push({
@@ -433,10 +474,11 @@ export function Importacao() {
       sessao,
       "importacao.concluiu",
       "importacao/xlsx",
-      `${importados} pessoas · ${totalParticipacoes} participações históricas · ${pendencias.length} pendências`
+      `${importados} novas · ${jaExistentes} já existentes · ${totalParticipacoes} participações históricas · ${pendencias.length} pendências`
     );
 
     setRelatorioImportados(importados);
+    setRelatorioJaExistentes(jaExistentes);
     setRelatorioParticipacoes(totalParticipacoes);
     setRelatorioPendencias(pendencias);
     setRelatorioAvisos(avisosLocal);
@@ -618,11 +660,12 @@ export function Importacao() {
             </div>
           </div>
 
-          {/* Primeiras 20 linhas processadas */}
+          {/* Linhas processadas com paginação */}
           <div className="card overflow-hidden">
             <div className="card-corpo border-b border-pietra-clara">
               <h4 className="m-0">
-                Prévia — primeiras {Math.min(20, linhasProcessadas.length)} linhas
+                Prévia — {Math.min(linhasVisiveis, linhasProcessadas.length)} de{" "}
+                {linhasProcessadas.length} linhas
               </h4>
             </div>
             <div className="tabela-rolavel">
@@ -639,7 +682,7 @@ export function Importacao() {
                   </tr>
                 </thead>
                 <tbody>
-                  {linhasProcessadas.slice(0, 20).map((l) => (
+                  {linhasProcessadas.slice(0, linhasVisiveis).map((l) => (
                     <tr
                       key={l.idx}
                       className={`border-t border-pietra-clara ${
@@ -662,6 +705,17 @@ export function Importacao() {
                 </tbody>
               </table>
             </div>
+            {linhasVisiveis < linhasProcessadas.length && (
+              <div className="card-corpo border-t border-pietra-clara">
+                <button
+                  type="button"
+                  className="btn btn-secundario text-sm"
+                  onClick={() => setLinhasVisiveis((v) => v + 20)}
+                >
+                  Carregar mais 20...
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3 flex-wrap">
@@ -686,12 +740,32 @@ export function Importacao() {
 
       {/* Etapa 4: Importando */}
       {etapa === "importando" && (
-        <div className="card">
-          <div className="card-corpo text-center space-y-3">
-            <p className="text-ardesia">Importando...</p>
-            <p className="text-sm text-ardesia">
-              Aguarde. Não feche esta página.
-            </p>
+        <div className="card max-w-2xl">
+          <div className="card-corpo space-y-4">
+            <h3 className="m-0">Importando...</h3>
+            {progressoImportacao && (
+              <>
+                <div className="w-full bg-pietra-clara rounded-full h-2.5 overflow-hidden">
+                  <div
+                    className="bg-verde-escuro h-2.5 rounded-full transition-all duration-200"
+                    style={{
+                      width: `${Math.round(
+                        (progressoImportacao.atual / progressoImportacao.total) * 100
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-sm text-ardesia">
+                  {progressoImportacao.atual} de {progressoImportacao.total} pessoas
+                  processadas (
+                  {Math.round(
+                    (progressoImportacao.atual / progressoImportacao.total) * 100
+                  )}
+                  %)
+                </p>
+              </>
+            )}
+            <p className="text-xs text-ardesia">Não feche esta página.</p>
           </div>
         </div>
       )}
@@ -702,10 +776,14 @@ export function Importacao() {
           <div className="card">
             <div className="card-corpo space-y-2">
               <h3 className="m-0">Relatório de importação</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-3">
                 <div className="kpi">
-                  <div className="kpi-label">Pessoas importadas</div>
+                  <div className="kpi-label">Pessoas novas</div>
                   <div className="kpi-valor">{relatorioImportados}</div>
+                </div>
+                <div className="kpi">
+                  <div className="kpi-label">Já existentes</div>
+                  <div className="kpi-valor text-ardesia">{relatorioJaExistentes}</div>
                 </div>
                 <div className="kpi">
                   <div className="kpi-label">Part. históricas</div>
@@ -716,7 +794,7 @@ export function Importacao() {
                   <div className="kpi-valor text-ardesia">0</div>
                 </div>
                 <div className="kpi">
-                  <div className="kpi-label">Falhas de importação</div>
+                  <div className="kpi-label">Falhas</div>
                   <div className="kpi-valor">{relatorioPendencias.length}</div>
                 </div>
               </div>
@@ -830,9 +908,12 @@ export function Importacao() {
               setLinhasXlsx([]);
               setMapeamento({});
               setLinhasProcessadas([]);
+              setLinhasVisiveis(20);
+              setProgressoImportacao(null);
               setRelatorioPendencias([]);
               setRelatorioAvisos([]);
               setRelatorioImportados(0);
+              setRelatorioJaExistentes(0);
               setRelatorioParticipacoes(0);
             }}
           >

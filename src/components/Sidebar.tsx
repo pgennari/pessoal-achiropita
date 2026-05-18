@@ -120,7 +120,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
               className="h-14 w-auto shrink-0"
             />
             <div>
-              <div className="eyebrow">Festa 100ª</div>
+              <div className="eyebrow">Festa Nsa. Sra.</div>
               <div className="font-display text-2xl mt-1">
                 <span className="text-verde">Achiropita</span>
               </div>

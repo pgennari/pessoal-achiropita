@@ -9,7 +9,6 @@ import {
   usePessoas,
 } from "../lib/hooks";
 import { Barraca, Pessoa, SETORES, Setor } from "../lib/tipos";
-import { gerarLinkFoto, urlPublicaFoto } from "../lib/linksFoto";
 
 interface Linha {
   pessoa: Pessoa;
@@ -27,12 +26,7 @@ export function PendenciasFoto() {
   const [filtroSetor, setFiltroSetor] = useState<Setor | "todos">("todos");
   const [filtroBarraca, setFiltroBarraca] = useState<string>("todas");
   const [incluirNaoAlocados, setIncluirNaoAlocados] = useState(false);
-  const [gerandoLinkPara, setGerandoLinkPara] = useState<string | null>(null);
-  const [linkGerado, setLinkGerado] = useState<{ pessoaId: string; url: string } | null>(null);
-  const [copiouLink, setCopiouLink] = useState(false);
-  const [erroLink, setErroLink] = useState<string | null>(null);
-
-  const indiceBarracas = useMemo(() => {
+const indiceBarracas = useMemo(() => {
     const m = new Map<string, Barraca>();
     for (const b of barracas) m.set(b.id, b);
     return m;
@@ -73,31 +67,6 @@ export function PendenciasFoto() {
     filtroBarraca,
     incluirNaoAlocados,
   ]);
-
-  async function handleSolicitarFoto(pessoa: Pessoa) {
-    if (!sessao) return;
-    setErroLink(null);
-    setGerandoLinkPara(pessoa.id);
-    try {
-      const token = await gerarLinkFoto(sessao, pessoa.id, pessoa.nome);
-      const url = urlPublicaFoto(token);
-      setLinkGerado({ pessoaId: pessoa.id, url });
-    } catch (e) {
-      setErroLink(e instanceof Error ? e.message : "Falha ao gerar link.");
-    } finally {
-      setGerandoLinkPara(null);
-    }
-  }
-
-  async function copiarLink(url: string) {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopiouLink(true);
-      setTimeout(() => setCopiouLink(false), 2000);
-    } catch {
-      setErroLink("Não foi possível copiar.");
-    }
-  }
 
   if (!sessao) return null;
   const podeVer = sessao.perfil === "ADM" || sessao.perfil === "ORG";
@@ -204,51 +173,7 @@ export function PendenciasFoto() {
         </div>
       </div>
 
-      {erroLink && (
-        <div className="card border-vermelho/40">
-          <div className="card-corpo text-vermelho-escuro text-sm">{erroLink}</div>
-        </div>
-      )}
-
-      {linkGerado && (
-        <div className="card border-verde/40">
-          <div className="card-corpo space-y-3">
-            <h4 className="m-0">Link gerado</h4>
-            <p className="text-ardesia text-sm">
-              Copie o link abaixo e envie por e-mail ou WhatsApp. O link expira em 7 dias.
-            </p>
-            <code className="block bg-pietra-clara/60 rounded-sm px-2 py-2 text-xs break-all">
-              {linkGerado.url}
-            </code>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="btn btn-primario btn-pequeno"
-                onClick={() => copiarLink(linkGerado.url)}
-              >
-                {copiouLink ? "Copiado!" : "Copiar link"}
-              </button>
-              {linhas.find((l) => l.pessoa.id === linkGerado.pessoaId)?.pessoa.email && (
-                <a
-                  href={`mailto:${linhas.find((l) => l.pessoa.id === linkGerado.pessoaId)?.pessoa.email}?subject=${encodeURIComponent("Foto para o crachá — Festa da Achiropita 2026")}&body=${encodeURIComponent(`Olá,\n\nPor favor acesse o link abaixo para enviar sua foto para o crachá da 100ª Festa da Achiropita:\n\n${linkGerado.url}\n\nO link expira em 7 dias.\n\nObrigado!`)}`}
-                  className="btn btn-secundario btn-pequeno"
-                >
-                  Enviar por e-mail
-                </a>
-              )}
-              <button
-                type="button"
-                className="btn btn-secundario btn-pequeno"
-                onClick={() => setLinkGerado(null)}
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="card overflow-hidden">
+<div className="card overflow-hidden">
         <div className="tabela-rolavel"><table className="tabela-larga">
           <thead className="bg-pietra-clara/60 text-left">
             <tr>
@@ -261,7 +186,6 @@ export function PendenciasFoto() {
                 E-mail
               </th>
               <th className="px-4 py-3 font-semibold w-36 hidden lg:table-cell">Barraca</th>
-              <th className="px-4 py-3 font-semibold w-40 text-right">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -297,18 +221,7 @@ export function PendenciasFoto() {
                 <td className="px-4 py-3 text-ardesia hidden lg:table-cell">
                   {l.barraca?.nome ?? "—"}
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <button
-                    type="button"
-                    className="btn btn-secundario btn-pequeno"
-                    disabled={gerandoLinkPara === l.pessoa.id}
-                    onClick={() => handleSolicitarFoto(l.pessoa)}
-                  >
-                    {gerandoLinkPara === l.pessoa.id
-                      ? "Gerando..."
-                      : "Solicitar foto"}
-                  </button>
-                </td>
+
               </tr>
             ))}
           </tbody>

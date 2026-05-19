@@ -18,3 +18,8 @@ build/
 firebase-debug.log
 firebase-debug.*.log
 serviceAccount*.json
+service-account*.json
+
+# Importação legada (dados sensíveis e relatórios gerados)
+planilha.xlsx
+*-relatorio.json

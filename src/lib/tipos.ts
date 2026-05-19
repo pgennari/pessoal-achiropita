@@ -68,12 +68,20 @@ export interface Pessoa {
   nome: string;
   nascimento: string; // ISO YYYY-MM-DD
   telefone: string;
+  telefoneResidencial?: string;
+  telefoneComercial?: string;
   email?: string;
   cpf?: string;
   rg?: string;
   endereco?: string;
   bairro?: string;
+  cep?: string;
   estadoCivil?: EstadoCivil;
+  nomeConjuge?: string;
+  temEstacionamento?: boolean;
+  frequentaRecreacao?: boolean;
+  parenteFesta?: string;
+  observacoes?: string;
   fotoUrl?: string;
   ativo: boolean;
   filhos: Filho[];

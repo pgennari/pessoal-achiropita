@@ -499,30 +499,36 @@ export function Importacao() {
       {/* Indicador de etapa */}
       <div className="flex gap-2 flex-wrap">
         {(["upload", "mapeamento", "preview", "importando", "relatorio"] as Etapa[]).map(
-          (e, i) => (
-            <div
-              key={e}
-              className={`flex items-center gap-1.5 text-sm ${
-                etapa === e
-                  ? "text-verde-escuro font-semibold"
-                  : "text-ardesia"
-              }`}
-            >
-              {i > 0 && <span className="text-pietra">›</span>}
-              <span>
-                {i + 1}.{" "}
-                {e === "upload"
-                  ? "Arquivo"
-                  : e === "mapeamento"
-                  ? "Colunas"
-                  : e === "preview"
-                  ? "Preview"
-                  : e === "importando"
-                  ? "Importando"
-                  : "Relatório"}
-              </span>
-            </div>
-          )
+          (e, i) => {
+            const isAtiva = etapa === e;
+            const rotulo =
+              e === "upload"
+                ? "Arquivo"
+                : e === "mapeamento"
+                ? "Colunas"
+                : e === "preview"
+                ? "Preview"
+                : e === "importando"
+                ? "Importando"
+                : "Relatório";
+            return (
+              <div
+                key={e}
+                className={`flex items-center gap-1.5 text-sm ${
+                  isAtiva ? "text-verde-escuro font-semibold" : "text-ardesia"
+                }`}
+              >
+                {i > 0 && <span className="text-pietra">›</span>}
+                <span>
+                  {i + 1}
+                  <span className={isAtiva ? "" : "hidden sm:inline"}>
+                    {". "}
+                    {rotulo}
+                  </span>
+                </span>
+              </div>
+            );
+          }
         )}
       </div>
 

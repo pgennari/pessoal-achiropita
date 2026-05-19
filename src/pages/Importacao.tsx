@@ -3,7 +3,6 @@ import * as XLSX from "xlsx";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../lib/firebase";
 import { useSessao } from "../lib/sessao";
-import { usePessoas } from "../lib/hooks";
 import { useImportacaoJob } from "../lib/importacaoJob";
 import {
   CAMPOS_PESSOA,
@@ -22,7 +21,6 @@ type Etapa = "upload" | "mapeamento" | "preview" | "importando" | "relatorio";
 
 export function Importacao() {
   const { sessao } = useSessao();
-  const { itens: pessoasExistentes } = usePessoas();
   const job = useImportacaoJob();
 
   const [etapa, setEtapa] = useState<Etapa>("upload");

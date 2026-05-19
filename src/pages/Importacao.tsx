@@ -1,4 +1,4 @@
-import { ChangeEvent, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import {
   addDoc,
@@ -10,151 +10,22 @@ import {
 import { db } from "../lib/firebase";
 import { useSessao } from "../lib/sessao";
 import { usePessoas } from "../lib/hooks";
-import {
-  soDigitos,
-  validarCPF,
-} from "../lib/utilsDominio";
 import { sincronizarBuscaCracha } from "../lib/buscaCracha";
 import { registrarEvento } from "../lib/auditoria";
 import { EstadoCivil, ESTADOS_CIVIS, Funcao } from "../lib/tipos";
-
-// ---- Mapeamento de colunas ----
-
-const CAMPOS_PESSOA = [
-  { chave: "nome", rotulo: "Nome completo" },
-  { chave: "nascimento", rotulo: "Data de nascimento (YYYY-MM-DD ou DD/MM/YYYY)" },
-  { chave: "telefone", rotulo: "Telefone" },
-  { chave: "cpf", rotulo: "CPF" },
-  { chave: "rg", rotulo: "RG" },
-  { chave: "email", rotulo: "E-mail" },
-  { chave: "endereco", rotulo: "Endereço" },
-  { chave: "bairro", rotulo: "Bairro" },
-  { chave: "estadoCivil", rotulo: "Estado civil" },
-  { chave: "cracha", rotulo: "Número do crachá" },
-] as const;
-
-type CampoPessoa = typeof CAMPOS_PESSOA[number]["chave"];
-
-// Colunas de histórico: Barraca_74...Barraca_99 e Funcao_74...Funcao_99
-function detectarColunasHistorico(colunas: string[]): number[] {
-  const anos: number[] = [];
-  for (const col of colunas) {
-    const m = col.match(/Barraca[_\s](\d{2})/i);
-    if (m) {
-      const ano = parseInt(m[1], 10);
-      // Anos de 74 a 99 → 1974–1999; 00 a 26 → 2000–2026
-      if (!anos.includes(ano)) anos.push(ano);
-    }
-  }
-  return anos.sort((a, b) => a - b);
-}
-
-// ---- Limpeza de dados (US-13-02) ----
-
-const DICIONARIO_BAIRROS: Record<string, string> = {
-  "JD>": "Jardim",
-  "VL>": "Vila",
-  "CJ>": "Conjunto",
-  "PQ>": "Parque",
-  "R>": "Rua",
-};
-
-function normalizarBairro(b: string): string {
-  let r = b.trim();
-  for (const [abrev, expansao] of Object.entries(DICIONARIO_BAIRROS)) {
-    if (r.toUpperCase().startsWith(abrev.toUpperCase())) {
-      r = expansao + " " + r.slice(abrev.length).trim();
-    }
-  }
-  return r;
-}
-
-const MAP_ESTADO_CIVIL: Record<string, EstadoCivil> = {
-  S: "Solteiro(a)",
-  SOLTEIRO: "Solteiro(a)",
-  "SOLTEIRO(A)": "Solteiro(a)",
-  C: "Casado(a)",
-  CASADO: "Casado(a)",
-  "CASADO(A)": "Casado(a)",
-  D: "Divorciado(a)",
-  DIVORCIADO: "Divorciado(a)",
-  "DIVORCIADO(A)": "Divorciado(a)",
-  V: "Viúvo(a)",
-  VIUVO: "Viúvo(a)",
-  "VIUVO(A)": "Viúvo(a)",
-  "VIÚVO(A)": "Viúvo(a)",
-  SEP: "Separado(a)",
-  SEPARADO: "Separado(a)",
-  "SEPARADO(A)": "Separado(a)",
-};
-
-function normalizarEstadoCivil(ec: string): EstadoCivil | undefined {
-  const upper = ec.trim().toUpperCase();
-  return MAP_ESTADO_CIVIL[upper];
-}
-
-// Detecta data numérica XLSX (ex: 11061977 → inválida para auto-conversão)
-// e tenta converter DD/MM/YYYY → YYYY-MM-DD
-function normalizarData(valor: unknown): { data: string; aviso?: string } {
-  if (!valor) return { data: "" };
-  const s = String(valor).trim();
-  // Data serial do Excel (número)
-  if (/^\d{5}$/.test(s)) {
-    const serial = parseInt(s, 10);
-    const d = XLSX.SSF.parse_date_code(serial);
-    if (d) {
-      return {
-        data: `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`,
-      };
-    }
-  }
-  // Data digitada como número DDMMYYYY ou YYYYMMDD
-  if (/^\d{8}$/.test(s)) {
-    return { data: "", aviso: `Data numérica "${s}" requer revisão manual.` };
-  }
-  // DD/MM/YYYY
-  const mDMY = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (mDMY) {
-    return {
-      data: `${mDMY[3]}-${mDMY[2].padStart(2, "0")}-${mDMY[1].padStart(2, "0")}`,
-    };
-  }
-  // Já está em YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return { data: s };
-  return { data: "", aviso: `Data "${s}" não reconhecida.` };
-}
-
-// ---- Tipos internos ----
-
-interface LinhaPessoa {
-  idx: number;
-  nome: string;
-  nascimento: string;
-  telefone: string;
-  cpf: string;
-  rg: string;
-  email: string;
-  endereco: string;
-  bairro: string;
-  estadoCivil: string;
-  cracha: number;
-  historico: Array<{ ano: number; barraca: string; funcao: string }>;
-  avisos: string[];
-}
-
-interface Pendencia {
-  idx: number;
-  nome: string;
-  motivo: string;
-}
+import {
+  CAMPOS_PESSOA,
+  detectarColunasHistorico,
+  LinhaPessoa,
+  Mapeamento,
+  MensagemWorkerEntrada,
+  MensagemWorkerSaida,
+  Pendencia,
+} from "../lib/importacaoUtils";
 
 // ---- Etapas do wizard ----
 
 type Etapa = "upload" | "mapeamento" | "preview" | "importando" | "relatorio";
-
-interface Mapeamento {
-  [campo: string]: string; // campo -> coluna da planilha
-}
 
 // ---- Componente principal ----
 
@@ -167,6 +38,8 @@ export function Importacao() {
   const [linhasXlsx, setLinhasXlsx] = useState<Record<string, unknown>[]>([]);
   const [mapeamento, setMapeamento] = useState<Mapeamento>({});
   const [linhasProcessadas, setLinhasProcessadas] = useState<LinhaPessoa[]>([]);
+  const [processandoPreview, setProcessandoPreview] = useState(false);
+  const [progressoPreview, setProgressoPreview] = useState(0);
   const [importando, setImportando] = useState(false);
   const [linhasVisiveis, setLinhasVisiveis] = useState(20);
   const [progressoImportacao, setProgressoImportacao] = useState<{
@@ -181,6 +54,15 @@ export function Importacao() {
     Array<{ idx: number; nome: string; avisos: string[] }>
   >([]);
   const [erro, setErro] = useState<string | null>(null);
+
+  const workerRef = useRef<Worker | null>(null);
+
+  // Cancela o worker se o componente desmontar durante processamento
+  useEffect(() => {
+    return () => {
+      workerRef.current?.terminate();
+    };
+  }, []);
 
   // Deve ficar antes de qualquer return condicional para não violar Rules of Hooks
   const statsPreview = useMemo(() => {
@@ -250,95 +132,50 @@ export function Importacao() {
     reader.readAsArrayBuffer(f);
   }
 
-  // Etapa 2: Confirmar mapeamento e processar preview
-  function processarLinhas(): LinhaPessoa[] {
-    const anosHistorico = detectarColunasHistorico(colunas);
-    const cpfsVistos = new Set<string>();
-    const nomesVistos = new Map<string, number>(); // nome+nasc -> idx
-
-    return linhasXlsx.map((row, idx) => {
-      const avisos: string[] = [];
-
-      function val(campo: CampoPessoa): string {
-        const col = mapeamento[campo];
-        if (!col) return "";
-        return String(row[col] ?? "").trim();
-      }
-
-      const nome = val("nome");
-      const { data: nascimento, aviso: avisoDt } = normalizarData(val("nascimento"));
-      if (avisoDt) avisos.push(avisoDt);
-
-      const telefoneRaw = val("telefone");
-      const telefone = soDigitos(telefoneRaw);
-
-      const cpfRaw = val("cpf");
-      const cpf = soDigitos(cpfRaw);
-      if (cpf && !validarCPF(cpf)) avisos.push(`CPF inválido: ${cpfRaw}`);
-      if (cpf && cpfsVistos.has(cpf)) avisos.push(`CPF duplicado na planilha: ${cpfRaw}`);
-      if (cpf) cpfsVistos.add(cpf);
-
-      const chaveNome = `${nome.toLowerCase()}__${nascimento}`;
-      if (nome && nascimento) {
-        if (nomesVistos.has(chaveNome)) avisos.push(`Nome+nascimento duplicado na planilha (linha ${nomesVistos.get(chaveNome)! + 2})`);
-        nomesVistos.set(chaveNome, idx);
-      }
-
-      const bairroRaw = val("bairro");
-      const bairro = normalizarBairro(bairroRaw);
-
-      const ecRaw = val("estadoCivil");
-      const estadoCivil = ecRaw ? (normalizarEstadoCivil(ecRaw) ?? ecRaw) : "";
-      if (ecRaw && !ESTADOS_CIVIS.includes(estadoCivil as EstadoCivil)) {
-        avisos.push(`Estado civil não reconhecido: "${ecRaw}"`);
-      }
-
-      const crachaRaw = val("cracha");
-      const cracha = parseInt(crachaRaw, 10);
-
-      // Histórico horizontal → vertical
-      const historico: LinhaPessoa["historico"] = [];
-      for (const ano of anosHistorico) {
-        const colBarraca = colunas.find(
-          (c) => c.match(new RegExp(`Barraca[_\\s]0?${ano}$`, "i"))
-        );
-        const colFuncao = colunas.find(
-          (c) => c.match(new RegExp(`Func[aã]o[_\\s]0?${ano}$`, "i"))
-        );
-        const barraca = colBarraca
-          ? String(row[colBarraca] ?? "").trim()
-          : "";
-        const funcao = colFuncao
-          ? String(row[colFuncao] ?? "").trim()
-          : "";
-        if (barraca) {
-          historico.push({ ano, barraca, funcao: funcao || "Equipista" });
-        }
-      }
-
-      return {
-        idx,
-        nome: nome.replace(/\s+/g, " "),
-        nascimento,
-        telefone,
-        cpf,
-        rg: val("rg"),
-        email: val("email").toLowerCase(),
-        endereco: val("endereco"),
-        bairro,
-        estadoCivil,
-        cracha: isNaN(cracha) ? 0 : cracha,
-        historico,
-        avisos,
-      };
-    });
-  }
-
+  // Etapa 2: Dispara o Web Worker para processar as linhas em segundo plano
   function handleConfirmarMapeamento() {
-    const processadas = processarLinhas();
-    setLinhasProcessadas(processadas);
-    setLinhasVisiveis(20);
-    setEtapa("preview");
+    setErro(null);
+    setProcessandoPreview(true);
+    setProgressoPreview(0);
+
+    const worker = new Worker(
+      new URL("../workers/importacao.worker.ts", import.meta.url),
+      { type: "module" }
+    );
+    workerRef.current = worker;
+
+    worker.onmessage = (ev: MessageEvent<MensagemWorkerSaida>) => {
+      const msg = ev.data;
+      if (msg.tipo === "progresso") {
+        setProgressoPreview(msg.porcentagem);
+      } else if (msg.tipo === "resultado") {
+        setLinhasProcessadas(msg.linhasProcessadas);
+        setLinhasVisiveis(20);
+        setProcessandoPreview(false);
+        setEtapa("preview");
+        worker.terminate();
+        workerRef.current = null;
+      } else if (msg.tipo === "erro") {
+        setErro(msg.mensagem);
+        setProcessandoPreview(false);
+        worker.terminate();
+        workerRef.current = null;
+      }
+    };
+
+    worker.onerror = (e) => {
+      setErro(e.message ?? "Falha no processamento em segundo plano.");
+      setProcessandoPreview(false);
+      worker.terminate();
+      workerRef.current = null;
+    };
+
+    worker.postMessage({
+      tipo: "processar",
+      linhasXlsx,
+      colunas,
+      mapeamento,
+    } satisfies MensagemWorkerEntrada);
   }
 
   // Etapa 4: Importação (idempotente por CPF ou nome+nascimento)
@@ -355,8 +192,6 @@ export function Importacao() {
     let jaExistentes = 0;
     let totalParticipacoes = 0;
 
-    // Mapas de dedup: carregados das pessoas já existentes no Firestore
-    // e expandidos durante o loop para cobrir intra-importação
     const cpfParaId = new Map<string, string>();
     const nomeNascParaId = new Map<string, string>();
     for (const p of pessoasExistentes) {
@@ -382,7 +217,6 @@ export function Importacao() {
       }
 
       try {
-        // Verifica se a pessoa já existe (idempotência)
         let pessoaId: string | null =
           (linha.cpf ? cpfParaId.get(linha.cpf) : undefined) ??
           (linha.nome && linha.nascimento
@@ -419,13 +253,11 @@ export function Importacao() {
           const ref = await addDoc(collection(db(), "pessoas"), payload);
           pessoaId = ref.id;
 
-          // Expande mapas locais para dedup dentro da mesma importação
           if (linha.cpf) cpfParaId.set(linha.cpf, pessoaId);
           if (linha.nome && linha.nascimento) {
             nomeNascParaId.set(`${linha.nome.toLowerCase()}__${linha.nascimento}`, pessoaId);
           }
 
-          // Sincroniza lookup de crachá (só para pessoas novas)
           if (linha.nascimento) {
             await sincronizarBuscaCracha({
               id: pessoaId,
@@ -441,7 +273,6 @@ export function Importacao() {
           }
         }
 
-        // Histórico → /participacoesHistoricas com ID determinístico (idempotente)
         for (const hist of linha.historico) {
           try {
             const anoReal = hist.ano < 30 ? 2000 + hist.ano : 1900 + hist.ano;
@@ -624,18 +455,37 @@ export function Importacao() {
             </div>
           )}
 
+          {/* Barra de progresso do processamento em segundo plano */}
+          {processandoPreview && (
+            <div className="card">
+              <div className="card-corpo space-y-3">
+                <p className="text-sm text-ardesia">
+                  Processando linhas em segundo plano... {progressoPreview}%
+                </p>
+                <div className="w-full bg-pietra-clara rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-verde-escuro h-2 rounded-full transition-all duration-200"
+                    style={{ width: `${progressoPreview}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-3">
             <button
               type="button"
               className="btn btn-primario"
               onClick={handleConfirmarMapeamento}
+              disabled={processandoPreview}
             >
-              Próximo — ver preview
+              {processandoPreview ? "Processando..." : "Próximo — ver preview"}
             </button>
             <button
               type="button"
               className="btn btn-secundario"
               onClick={() => setEtapa("upload")}
+              disabled={processandoPreview}
             >
               Voltar
             </button>

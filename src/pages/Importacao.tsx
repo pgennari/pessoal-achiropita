@@ -1,18 +1,10 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
-import {
-  addDoc,
-  collection,
-  doc,
-  serverTimestamp,
-  setDoc,
-} from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../lib/firebase";
 import { useSessao } from "../lib/sessao";
 import { usePessoas } from "../lib/hooks";
-import { sincronizarBuscaCracha } from "../lib/buscaCracha";
-import { registrarEvento } from "../lib/auditoria";
-import { EstadoCivil, ESTADOS_CIVIS, Funcao } from "../lib/tipos";
+import { useImportacaoJob } from "../lib/importacaoJob";
 import {
   CAMPOS_PESSOA,
   detectarColunasHistorico,
@@ -20,7 +12,6 @@ import {
   Mapeamento,
   MensagemWorkerEntrada,
   MensagemWorkerSaida,
-  Pendencia,
 } from "../lib/importacaoUtils";
 
 // ---- Etapas do wizard ----
@@ -32,6 +23,7 @@ type Etapa = "upload" | "mapeamento" | "preview" | "importando" | "relatorio";
 export function Importacao() {
   const { sessao } = useSessao();
   const { itens: pessoasExistentes } = usePessoas();
+  const job = useImportacaoJob();
 
   const [etapa, setEtapa] = useState<Etapa>("upload");
   const [colunas, setColunas] = useState<string[]>([]);
@@ -40,29 +32,35 @@ export function Importacao() {
   const [linhasProcessadas, setLinhasProcessadas] = useState<LinhaPessoa[]>([]);
   const [processandoPreview, setProcessandoPreview] = useState(false);
   const [progressoPreview, setProgressoPreview] = useState(0);
-  const [importando, setImportando] = useState(false);
   const [linhasVisiveis, setLinhasVisiveis] = useState(20);
-  const [progressoImportacao, setProgressoImportacao] = useState<{
-    atual: number;
-    total: number;
-  } | null>(null);
-  const [relatorioPendencias, setRelatorioPendencias] = useState<Pendencia[]>([]);
-  const [relatorioImportados, setRelatorioImportados] = useState(0);
-  const [relatorioJaExistentes, setRelatorioJaExistentes] = useState(0);
-  const [relatorioParticipacoes, setRelatorioParticipacoes] = useState(0);
-  const [relatorioAvisos, setRelatorioAvisos] = useState<
-    Array<{ idx: number; nome: string; avisos: string[] }>
-  >([]);
   const [erro, setErro] = useState<string | null>(null);
 
   const workerRef = useRef<Worker | null>(null);
 
-  // Cancela o worker se o componente desmontar durante processamento
+  // Cancela o worker se o componente desmontar durante processamento do preview
   useEffect(() => {
     return () => {
       workerRef.current?.terminate();
     };
   }, []);
+
+  // Ao montar: se já existe um job ativo ou concluído, vai direto para a etapa certa
+  useEffect(() => {
+    if (job.status === "processando") setEtapa("importando");
+    else if (job.status === "concluido") setEtapa("relatorio");
+    else if (job.status === "erro") setEtapa("importando");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Enquanto montado: avança de "importando" para "relatorio" ao concluir
+  useEffect(() => {
+    if (job.status === "concluido" && etapa === "importando") {
+      setEtapa("relatorio");
+    }
+    if (job.status === "erro" && etapa === "importando") {
+      setErro(job.erroMsg ?? "Erro na importação no servidor.");
+    }
+  }, [job.status, etapa, job.erroMsg]);
 
   // Deve ficar antes de qualquer return condicional para não violar Rules of Hooks
   const statsPreview = useMemo(() => {
@@ -178,143 +176,21 @@ export function Importacao() {
     } satisfies MensagemWorkerEntrada);
   }
 
-  // Etapa 4: Importação (idempotente por CPF ou nome+nascimento)
-  async function handleImportar() {
+  // Etapa 4: Dispara a Cloud Function e libera o usuário para navegar
+  function handleImportar() {
     if (!sessao) return;
-    setImportando(true);
-    setEtapa("importando");
     setErro(null);
-    setProgressoImportacao({ atual: 0, total: linhasProcessadas.length });
+    const jobId = crypto.randomUUID();
+    job.iniciarJob(jobId);
+    setEtapa("importando");
 
-    const pendencias: Pendencia[] = [];
-    const avisosLocal: Array<{ idx: number; nome: string; avisos: string[] }> = [];
-    let importados = 0;
-    let jaExistentes = 0;
-    let totalParticipacoes = 0;
-
-    const cpfParaId = new Map<string, string>();
-    const nomeNascParaId = new Map<string, string>();
-    for (const p of pessoasExistentes) {
-      if (p.cpf) cpfParaId.set(p.cpf, p.id);
-      if (p.nome && p.nascimento) {
-        nomeNascParaId.set(`${p.nome.toLowerCase()}__${p.nascimento}`, p.id);
-      }
-    }
-
-    let maxCracha = Math.max(
-      0,
-      ...pessoasExistentes.map((p) => p.cracha),
-      ...linhasProcessadas.filter((l) => l.cracha > 0).map((l) => l.cracha)
-    );
-
-    for (let i = 0; i < linhasProcessadas.length; i++) {
-      const linha = linhasProcessadas[i];
-      setProgressoImportacao({ atual: i + 1, total: linhasProcessadas.length });
-
-      if (!linha.nome) {
-        pendencias.push({ idx: linha.idx, nome: "(sem nome)", motivo: "Nome em branco" });
-        continue;
-      }
-
-      try {
-        let pessoaId: string | null =
-          (linha.cpf ? cpfParaId.get(linha.cpf) : undefined) ??
-          (linha.nome && linha.nascimento
-            ? nomeNascParaId.get(`${linha.nome.toLowerCase()}__${linha.nascimento}`)
-            : undefined) ??
-          null;
-
-        if (pessoaId) {
-          jaExistentes++;
-        } else {
-          const cracha = linha.cracha > 0 ? linha.cracha : ++maxCracha;
-
-          const payload = {
-            cracha,
-            nome: linha.nome,
-            nascimento: linha.nascimento || null,
-            telefone: linha.telefone || null,
-            cpf: linha.cpf || null,
-            rg: linha.rg || null,
-            email: linha.email || null,
-            endereco: linha.endereco || null,
-            bairro: linha.bairro || null,
-            estadoCivil: ESTADOS_CIVIS.includes(linha.estadoCivil as EstadoCivil)
-              ? linha.estadoCivil
-              : null,
-            fotoUrl: null,
-            ativo: true,
-            filhos: [],
-            carros: [],
-            criadoEm: serverTimestamp(),
-            atualizadoEm: serverTimestamp(),
-          };
-
-          const ref = await addDoc(collection(db(), "pessoas"), payload);
-          pessoaId = ref.id;
-
-          if (linha.cpf) cpfParaId.set(linha.cpf, pessoaId);
-          if (linha.nome && linha.nascimento) {
-            nomeNascParaId.set(`${linha.nome.toLowerCase()}__${linha.nascimento}`, pessoaId);
-          }
-
-          if (linha.nascimento) {
-            await sincronizarBuscaCracha({
-              id: pessoaId,
-              cracha,
-              nascimento: linha.nascimento,
-              ativo: true,
-            } as never);
-          }
-
-          importados++;
-          if (linha.avisos.length > 0) {
-            avisosLocal.push({ idx: linha.idx, nome: linha.nome, avisos: linha.avisos });
-          }
-        }
-
-        for (const hist of linha.historico) {
-          try {
-            const anoReal = hist.ano < 30 ? 2000 + hist.ano : 1900 + hist.ano;
-            await setDoc(
-              doc(db(), "participacoesHistoricas", `${pessoaId}_${anoReal}`),
-              {
-                pessoaId,
-                pessoaNome: linha.nome,
-                anoEdicao: anoReal,
-                barracaNome: hist.barraca,
-                funcao: hist.funcao as Funcao,
-                criadoEm: serverTimestamp(),
-              }
-            );
-            totalParticipacoes++;
-          } catch {
-            // Não bloqueia importação por falha no histórico
-          }
-        }
-      } catch (e) {
-        pendencias.push({
-          idx: linha.idx,
-          nome: linha.nome,
-          motivo: e instanceof Error ? e.message : "Falha desconhecida",
-        });
-      }
-    }
-
-    await registrarEvento(
-      sessao,
-      "importacao.concluiu",
-      "importacao/xlsx",
-      `${importados} novas · ${jaExistentes} já existentes · ${totalParticipacoes} participações históricas · ${pendencias.length} pendências`
-    );
-
-    setRelatorioImportados(importados);
-    setRelatorioJaExistentes(jaExistentes);
-    setRelatorioParticipacoes(totalParticipacoes);
-    setRelatorioPendencias(pendencias);
-    setRelatorioAvisos(avisosLocal);
-    setImportando(false);
-    setEtapa("relatorio");
+    const fn = httpsCallable(functions(), "importarPlanilha");
+    fn({ jobId, linhasProcessadas }).catch((err: unknown) => {
+      // Só chega aqui se o cliente ainda estiver conectado e a função lançar erro
+      setErro(
+        err instanceof Error ? err.message : "Falha ao comunicar com o servidor."
+      );
+    });
   }
 
   return (
@@ -579,7 +455,6 @@ export function Importacao() {
               type="button"
               className="btn btn-primario"
               onClick={handleImportar}
-              disabled={importando}
             >
               Importar {statsPreview.total} pessoas
             </button>
@@ -598,36 +473,43 @@ export function Importacao() {
       {etapa === "importando" && (
         <div className="card max-w-2xl">
           <div className="card-corpo space-y-4">
-            <h3 className="m-0">Importando...</h3>
-            {progressoImportacao && (
+            <h3 className="m-0">
+              {job.status === "erro" ? "Falha na importação" : "Importando..."}
+            </h3>
+            {job.status !== "erro" && job.progresso && (
               <>
                 <div className="w-full bg-pietra-clara rounded-full h-2.5 overflow-hidden">
                   <div
                     className="bg-verde-escuro h-2.5 rounded-full transition-all duration-200"
                     style={{
                       width: `${Math.round(
-                        (progressoImportacao.atual / progressoImportacao.total) * 100
+                        (job.progresso.atual / job.progresso.total) * 100
                       )}%`,
                     }}
                   />
                 </div>
                 <p className="text-sm text-ardesia">
-                  {progressoImportacao.atual} de {progressoImportacao.total} pessoas
+                  {job.progresso.atual} de {job.progresso.total} pessoas
                   processadas (
                   {Math.round(
-                    (progressoImportacao.atual / progressoImportacao.total) * 100
+                    (job.progresso.atual / job.progresso.total) * 100
                   )}
                   %)
                 </p>
               </>
             )}
-            <p className="text-xs text-ardesia">Não feche esta página.</p>
+            {job.status !== "erro" && (
+              <p className="text-xs text-ardesia">
+                Você pode fechar o navegador — a importação continua nos
+                servidores e estará pronta quando voltar.
+              </p>
+            )}
           </div>
         </div>
       )}
 
       {/* Etapa 5: Relatório de qualidade (US-13-04) */}
-      {etapa === "relatorio" && (
+      {etapa === "relatorio" && job.resultado && (
         <div className="space-y-4">
           <div className="card">
             <div className="card-corpo space-y-2">
@@ -635,15 +517,15 @@ export function Importacao() {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-3">
                 <div className="kpi">
                   <div className="kpi-label">Pessoas novas</div>
-                  <div className="kpi-valor">{relatorioImportados}</div>
+                  <div className="kpi-valor">{job.resultado.importados}</div>
                 </div>
                 <div className="kpi">
                   <div className="kpi-label">Já existentes</div>
-                  <div className="kpi-valor text-ardesia">{relatorioJaExistentes}</div>
+                  <div className="kpi-valor text-ardesia">{job.resultado.jaExistentes}</div>
                 </div>
                 <div className="kpi">
                   <div className="kpi-label">Part. históricas</div>
-                  <div className="kpi-valor">{relatorioParticipacoes}</div>
+                  <div className="kpi-valor">{job.resultado.participacoes}</div>
                 </div>
                 <div className="kpi">
                   <div className="kpi-label">Fotos importadas</div>
@@ -651,17 +533,17 @@ export function Importacao() {
                 </div>
                 <div className="kpi">
                   <div className="kpi-label">Falhas</div>
-                  <div className="kpi-valor">{relatorioPendencias.length}</div>
+                  <div className="kpi-valor">{job.resultado.pendencias.length}</div>
                 </div>
               </div>
             </div>
           </div>
 
-          {relatorioAvisos.length > 0 && (
+          {job.resultado.avisos.length > 0 && (
             <div className="card overflow-hidden">
               <div className="card-corpo border-b border-pietra-clara">
                 <h4 className="m-0">
-                  Importados com pendências de qualidade ({relatorioAvisos.length})
+                  Importados com pendências de qualidade ({job.resultado.avisos.length})
                 </h4>
                 <p className="text-ardesia text-xs mt-1">
                   Foram importados, mas requerem revisão manual.
@@ -677,7 +559,7 @@ export function Importacao() {
                     </tr>
                   </thead>
                   <tbody>
-                    {relatorioAvisos.map((a) => (
+                    {job.resultado.avisos.map((a) => (
                       <tr
                         key={a.idx}
                         className="border-t border-pietra-clara hover:bg-pietra-clara/40"
@@ -685,7 +567,7 @@ export function Importacao() {
                         <td className="px-4 py-3 font-mono text-ardesia">
                           {a.idx + 2}
                         </td>
-                        <td className="px-4 py-3 font-semibold">{a.nome}</td>
+<td className="px-4 py-3 font-semibold">{a.nome}</td>
                         <td className="px-4 py-3 text-ouro-escuro">
                           {a.avisos.join("; ")}
                         </td>
@@ -697,11 +579,11 @@ export function Importacao() {
             </div>
           )}
 
-          {relatorioPendencias.length > 0 && (
+          {job.resultado.pendencias.length > 0 && (
             <div className="card overflow-hidden">
               <div className="card-corpo border-b border-pietra-clara">
                 <h4 className="m-0">
-                  Falhas de importação ({relatorioPendencias.length})
+                  Falhas de importação ({job.resultado.pendencias.length})
                 </h4>
                 <p className="text-ardesia text-xs mt-1">
                   Não foram importadas — corrija na planilha e reimporte.
@@ -717,7 +599,7 @@ export function Importacao() {
                     </tr>
                   </thead>
                   <tbody>
-                    {relatorioPendencias.map((p) => (
+                    {job.resultado.pendencias.map((p) => (
                       <tr
                         key={p.idx}
                         className="border-t border-pietra-clara hover:bg-pietra-clara/40"
@@ -759,18 +641,13 @@ export function Importacao() {
             type="button"
             className="btn btn-secundario"
             onClick={() => {
+              job.limpar();
               setEtapa("upload");
               setColunas([]);
               setLinhasXlsx([]);
               setMapeamento({});
               setLinhasProcessadas([]);
               setLinhasVisiveis(20);
-              setProgressoImportacao(null);
-              setRelatorioPendencias([]);
-              setRelatorioAvisos([]);
-              setRelatorioImportados(0);
-              setRelatorioJaExistentes(0);
-              setRelatorioParticipacoes(0);
             }}
           >
             Nova importação

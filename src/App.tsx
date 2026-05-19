@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { ImportacaoJobProvider } from "./lib/importacaoJob";
 import { Layout } from "./components/Layout";
 import { ProtegerRota } from "./components/ProtegerRota";
 import { Login } from "./pages/Login";
@@ -35,7 +36,9 @@ export function App() {
       <Route
         element={
           <ProtegerRota>
-            <Layout />
+            <ImportacaoJobProvider>
+              <Layout />
+            </ImportacaoJobProvider>
           </ProtegerRota>
         }
       >

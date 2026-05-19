@@ -19,7 +19,7 @@ jobs:
   deploy:
     name: Build & deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     permissions:
       contents: read
     steps:
@@ -33,6 +33,9 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      - name: Instala deps das funções
+        run: npm ci --prefix functions
+
       - name: Build
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
@@ -43,6 +46,9 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
           VITE_USE_EMULATORS: "0"
         run: npm run build
+
+      - name: Compila funções
+        run: npm run build --prefix functions
 
       - name: Authenticate to Firebase
         run: printf '%s' '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
@@ -55,6 +61,6 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
         run: |
           firebase deploy \
-            --only hosting,firestore:rules,firestore:indexes,storage \
+            --only hosting,firestore:rules,firestore:indexes,storage,functions \
             --project ${{ secrets.VITE_FIREBASE_PROJECT_ID }} \
             --non-interactive

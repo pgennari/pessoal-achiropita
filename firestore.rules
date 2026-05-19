@@ -499,5 +499,13 @@ service cloud.firestore {
         && request.resource.data.barracaNome is string;
       allow update, delete: if ehAdm();
     }
+
+    match /importacoesStatus/{jobId} {
+      // A Cloud Function usa Admin SDK e não passa pelas rules.
+      // O cliente ADM lê apenas o próprio job de importação.
+      allow read: if autenticado() && ehAdm()
+        && request.auth.uid == resource.data.uid;
+      allow write: if false;
+    }
   }
 }

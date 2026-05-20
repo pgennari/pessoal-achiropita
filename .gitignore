@@ -23,3 +23,4 @@ service-account*.json
 # Importação legada (dados sensíveis e relatórios gerados)
 planilha.xlsx
 *-relatorio.json
+scripts/achiropita-pessoal-firebase-adminsdk-fbsvc-1c5992d325.json

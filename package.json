@@ -10,6 +10,7 @@
     "lint": "tsc -b --noEmit",
     "seed:fixture": "node scripts/seed-fixture.mjs",
     "import:edicoes-barracas": "node scripts/import-edicoes-barracas.mjs"
+    "importar:planilha": "node scripts/importar-planilha.mjs"
   },
   "dependencies": {
     "firebase": "10.14.1",

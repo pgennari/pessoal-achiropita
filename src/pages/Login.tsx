@@ -187,10 +187,14 @@ export function Login() {
     <div className="min-h-screen flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="eyebrow">Festa 100ª · Bixiga</div>
-          <h1 className="mt-3 font-display">
-            <span className="text-verde">Achiropita</span>{" "}
-            <em className="text-vermelho not-italic font-light">100</em>
+          <div className="eyebrow">Festa de Nossa Senhora</div>
+          <h1 className="mt-3 font-display flex items-center justify-center gap-3">
+            <span className="text-verde">Achiropita</span>
+            <img
+              src="/logo-achiropita.png"
+              alt="Logo Achiropita"
+              className="h-[1.4em] w-auto"
+            />
           </h1>
           <p className="mt-3 text-ardesia">Sistema de gestão da equipe.</p>
         </div>

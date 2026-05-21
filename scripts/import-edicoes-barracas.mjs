@@ -39,6 +39,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import readline from "node:readline";
 import * as XLSX from "xlsx";
 import {
   applicationDefault,
@@ -146,6 +147,127 @@ function chaveCanonica(s) {
     .replace(/[̀-ͯ]/g, "");
 }
 
+// Artigos e preposições que ficam em minúsculas quando no meio do nome.
+const PREP_PT = new Set([
+  "de", "da", "do", "das", "dos",
+  "e", "a", "o", "em",
+  "no", "na", "nos", "nas",
+  "por", "para", "com",
+]);
+
+// Converte para Title Case PT-BR: capitaliza cada palavra, mantendo
+// artigos/preposições em minúsculas quando não são a primeira palavra.
+function normalizarNomeBarraca(s) {
+  return normalizarNome(s)
+    .normalize("NFC")
+    .split(" ")
+    .filter(Boolean)
+    .map((p, i) =>
+      i > 0 && PREP_PT.has(p.toLowerCase())
+        ? p.toLowerCase()
+        : p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()
+    )
+    .join(" ");
+}
+
+// Distância de edição (Levenshtein) entre duas strings.
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, (_, i) =>
+    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] =
+        a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+  return dp[m][n];
+}
+
+// Agrupa nomes parecidos usando Union-Find. Considera dois nomes parecidos
+// se a distância Levenshtein entre suas chaves canônicas for <= 25% do
+// comprimento do menor, com mínimo de 1.
+function agruparSimilares(nomes) {
+  const n = nomes.length;
+  const pai = Array.from({ length: n }, (_, i) => i);
+
+  function encontrar(x) {
+    while (pai[x] !== x) {
+      pai[x] = pai[pai[x]];
+      x = pai[x];
+    }
+    return x;
+  }
+  function unir(x, y) {
+    pai[encontrar(x)] = encontrar(y);
+  }
+
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const ca = chaveCanonica(nomes[i]);
+      const cb = chaveCanonica(nomes[j]);
+      const lim = Math.max(1, Math.floor(Math.min(ca.length, cb.length) * 0.25));
+      if (levenshtein(ca, cb) <= lim) unir(i, j);
+    }
+  }
+
+  const mapa = new Map();
+  for (let i = 0; i < n; i++) {
+    const raiz = encontrar(i);
+    if (!mapa.has(raiz)) mapa.set(raiz, []);
+    mapa.get(raiz).push(nomes[i]);
+  }
+  return [...mapa.values()];
+}
+
+// Para cada grupo com 2+ nomes, pergunta ao usuário qual manter.
+// Em dry-run apenas exibe os grupos sem bloquear.
+async function resolverGruposFuzzy(nomes) {
+  const grupos = agruparSimilares(nomes);
+  const resultado = [];
+
+  for (const grupo of grupos) {
+    if (grupo.length === 1) {
+      resultado.push(grupo[0]);
+      continue;
+    }
+
+    console.log(`\n  Nomes parecidos encontrados:`);
+    grupo.forEach((n, i) => console.log(`    [${i + 1}] ${n}`));
+
+    if (dryRun) {
+      console.log(`  [dry-run] Será necessário escolher um. Usando "${grupo[0]}" como referência.`);
+      resultado.push(grupo[0]);
+      continue;
+    }
+
+    const escolhido = await new Promise((resolve) => {
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+      function perguntar() {
+        rl.question(`  Qual manter? (1-${grupo.length}) > `, (resp) => {
+          const idx = parseInt(resp.trim(), 10) - 1;
+          if (idx >= 0 && idx < grupo.length) {
+            rl.close();
+            resolve(grupo[idx]);
+          } else {
+            console.log(`  Resposta inválida. Digite um número entre 1 e ${grupo.length}.`);
+            perguntar();
+          }
+        });
+      }
+      perguntar();
+    });
+
+    resultado.push(escolhido);
+  }
+
+  return resultado;
+}
+
 // ---------------------------- escrita no Firestore ----------------------------
 
 async function garantirEdicao(numero) {
@@ -250,12 +372,13 @@ async function main() {
     );
 
     // Nomes distintos não-vazios na coluna (case/acento-insensitive).
+    // normalizarNomeBarraca aplica Title Case PT-BR antes da deduplicação.
     const vistos = new Map();
     for (const row of linhas) {
-      const bruto = normalizarNome(row[coluna]);
-      if (!bruto) continue;
-      const chave = chaveCanonica(bruto);
-      if (!vistos.has(chave)) vistos.set(chave, bruto);
+      const normalizado = normalizarNomeBarraca(row[coluna]);
+      if (!normalizado) continue;
+      const chave = chaveCanonica(normalizado);
+      if (!vistos.has(chave)) vistos.set(chave, normalizado);
     }
 
     if (vistos.size === 0) {
@@ -263,9 +386,13 @@ async function main() {
       continue;
     }
 
+    // Aproxima erros de grafia: agrupa nomes parecidos e pede ao usuário
+    // que escolha o canônico quando há ambiguidade.
+    const nomesResolvidos = await resolverGruposFuzzy([...vistos.values()]);
+
     let criadas = 0;
     let existentes = 0;
-    for (const nome of vistos.values()) {
+    for (const nome of nomesResolvidos) {
       const b = await garantirBarraca(ed.id, nome);
       if (b.criada) criadas++;
       else existentes++;
@@ -273,7 +400,7 @@ async function main() {
     barracasCriadas += criadas;
     barracasExistentes += existentes;
     console.log(
-      `  ${vistos.size} barraca(s): ${criadas} criada(s), ${existentes} já existente(s)`
+      `  ${nomesResolvidos.length} barraca(s): ${criadas} criada(s), ${existentes} já existente(s)`
     );
   }
 

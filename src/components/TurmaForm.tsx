@@ -140,15 +140,14 @@ export function TurmaForm({
           <input
             id="capacidade"
             type="number"
+            inputMode="numeric"
             min={1}
             className={`input ${erros.capacidadeMaxima ? "erro" : ""}`}
-            value={dados.capacidadeMaxima}
-            onChange={(e) =>
-              set(
-                "capacidadeMaxima",
-                Math.max(1, parseInt(e.target.value, 10) || 1)
-              )
-            }
+            value={dados.capacidadeMaxima ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              set("capacidadeMaxima", v === "" ? undefined : parseInt(v, 10));
+            }}
           />
         </div>
 

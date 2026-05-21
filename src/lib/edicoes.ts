@@ -17,8 +17,8 @@ import { registrarEvento } from "./auditoria";
 const COL = "edicoes";
 
 export interface DadosEdicaoForm {
-  numero: number;
-  ano: number;
+  numero: number | undefined;
+  ano: number | undefined;
   inicio: string;
   fim: string;
   status: StatusEdicao;
@@ -54,9 +54,14 @@ export function edicaoDeSnap(
 
 function validar(d: DadosEdicaoForm): Record<string, string> {
   const erros: Record<string, string> = {};
-  if (!Number.isInteger(d.numero) || d.numero <= 0)
+  if (typeof d.numero !== "number" || !Number.isInteger(d.numero) || d.numero <= 0)
     erros.numero = "Número da edição inválido.";
-  if (!Number.isInteger(d.ano) || d.ano < 1926 || d.ano > 2200)
+  if (
+    typeof d.ano !== "number" ||
+    !Number.isInteger(d.ano) ||
+    d.ano < 1926 ||
+    d.ano > 2200
+  )
     erros.ano = "Ano inválido.";
   if (!d.inicio) erros.inicio = "Data de início é obrigatória.";
   if (!d.fim) erros.fim = "Data de fim é obrigatória.";

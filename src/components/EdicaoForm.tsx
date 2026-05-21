@@ -11,7 +11,7 @@ interface Props {
 
 function inicialDados(e?: Edicao | null): DadosEdicaoForm {
   return {
-    numero: e?.numero ?? 0,
+    numero: e?.numero,
     ano: e?.ano ?? new Date().getFullYear(),
     inicio: e?.inicio ?? "",
     fim: e?.fim ?? "",
@@ -73,10 +73,14 @@ export function EdicaoForm({
           <input
             id="numero"
             type="number"
+            inputMode="numeric"
             min={1}
             className={`input ${erros.numero ? "erro" : ""}`}
-            value={dados.numero || ""}
-            onChange={(e) => set("numero", parseInt(e.target.value, 10) || 0)}
+            value={dados.numero ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              set("numero", v === "" ? undefined : parseInt(v, 10));
+            }}
             required
           />
           {erros.numero && <p className="input-erro-msg">{erros.numero}</p>}
@@ -89,11 +93,15 @@ export function EdicaoForm({
           <input
             id="ano"
             type="number"
+            inputMode="numeric"
             min={1926}
             max={2200}
             className={`input ${erros.ano ? "erro" : ""}`}
-            value={dados.ano || ""}
-            onChange={(e) => set("ano", parseInt(e.target.value, 10) || 0)}
+            value={dados.ano ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              set("ano", v === "" ? undefined : parseInt(v, 10));
+            }}
             required
           />
           {erros.ano && <p className="input-erro-msg">{erros.ano}</p>}

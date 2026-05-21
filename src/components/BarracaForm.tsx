@@ -107,12 +107,14 @@ export function BarracaForm({
           <input
             id="vagasCoordenador"
             type="number"
+            inputMode="numeric"
             min={0}
             className={`input ${erros.vagasCoordenador ? "erro" : ""}`}
-            value={dados.vagasCoordenador}
-            onChange={(e) =>
-              set("vagasCoordenador", parseInt(e.target.value, 10) || 0)
-            }
+            value={dados.vagasCoordenador ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              set("vagasCoordenador", v === "" ? undefined : parseInt(v, 10));
+            }}
           />
         </div>
         <div className="input-grupo">
@@ -122,12 +124,14 @@ export function BarracaForm({
           <input
             id="vagasEquipista"
             type="number"
+            inputMode="numeric"
             min={0}
             className={`input ${erros.vagasEquipista ? "erro" : ""}`}
-            value={dados.vagasEquipista}
-            onChange={(e) =>
-              set("vagasEquipista", parseInt(e.target.value, 10) || 0)
-            }
+            value={dados.vagasEquipista ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              set("vagasEquipista", v === "" ? undefined : parseInt(v, 10));
+            }}
           />
         </div>
         <div className="input-grupo">
@@ -137,12 +141,14 @@ export function BarracaForm({
           <input
             id="vagasApoio"
             type="number"
+            inputMode="numeric"
             min={0}
             className={`input ${erros.vagasApoio ? "erro" : ""}`}
-            value={dados.vagasApoio}
-            onChange={(e) =>
-              set("vagasApoio", parseInt(e.target.value, 10) || 0)
-            }
+            value={dados.vagasApoio ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              set("vagasApoio", v === "" ? undefined : parseInt(v, 10));
+            }}
           />
         </div>
       </div>

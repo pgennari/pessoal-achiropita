@@ -25,7 +25,7 @@ export interface DadosTurmaForm {
   horarioInicio: string;
   horarioFim?: string;
   local: string;
-  capacidadeMaxima: number;
+  capacidadeMaxima: number | undefined;
   setorVinculo?: Setor;
   barracaIdVinculo?: string;
 }
@@ -66,7 +66,11 @@ function validar(d: DadosTurmaForm): Record<string, string> {
   if (!d.data) erros.data = "Data é obrigatória.";
   if (!d.horarioInicio) erros.horarioInicio = "Horário é obrigatório.";
   if (!d.local.trim()) erros.local = "Local é obrigatório.";
-  if (!Number.isInteger(d.capacidadeMaxima) || d.capacidadeMaxima <= 0)
+  if (
+    typeof d.capacidadeMaxima !== "number" ||
+    !Number.isInteger(d.capacidadeMaxima) ||
+    d.capacidadeMaxima <= 0
+  )
     erros.capacidadeMaxima = "Capacidade inválida.";
   return erros;
 }

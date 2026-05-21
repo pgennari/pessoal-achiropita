@@ -1,5 +1,4 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { ImportacaoJobProvider } from "./lib/importacaoJob";
 import { Layout } from "./components/Layout";
 import { ProtegerRota } from "./components/ProtegerRota";
 import { Login } from "./pages/Login";
@@ -21,7 +20,6 @@ import { QrTurma } from "./pages/QrTurma";
 import { PaginaConvite } from "./pages/PaginaConvite";
 import { RedefinirSenha } from "./pages/RedefinirSenha";
 import { UploadFotoPublico } from "./pages/UploadFotoPublico";
-import { Importacao } from "./pages/Importacao";
 import { ZeramentoDados } from "./pages/ZeramentoDados";
 
 export function App() {
@@ -36,9 +34,7 @@ export function App() {
       <Route
         element={
           <ProtegerRota>
-            <ImportacaoJobProvider>
-              <Layout />
-            </ImportacaoJobProvider>
+            <Layout />
           </ProtegerRota>
         }
       >
@@ -58,7 +54,6 @@ export function App() {
         <Route path="formacao" element={<PaginaFormacao />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="auditoria" element={<Auditoria />} />
-        <Route path="importacao" element={<Importacao />} />
         <Route path="zeramento" element={<ZeramentoDados />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

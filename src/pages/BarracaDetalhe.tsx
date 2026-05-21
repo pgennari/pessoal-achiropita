@@ -475,6 +475,8 @@ export function BarracaDetalhe() {
         onConfirmar={handleAlocar}
         participacoesDaEdicao={participacoes}
         funcaoInicial={funcaoInicial}
+        vagasPrevistas={totais.previstas}
+        vagasAlocadas={totais.alocadas}
       />
     </div>
   );

@@ -19,7 +19,10 @@ function combina(p: Pessoa, termo: string): boolean {
   if (!t) return true;
   if (String(p.cracha) === termo.trim()) return true;
   if (normalizar(p.nome).includes(t)) return true;
-  if (soDigitos(p.cpf).includes(soDigitos(termo))) return true;
+  // Só compara dígitos quando o termo tem dígitos — evita que
+  // "".includes("") retorne true para pessoas sem CPF cadastrado.
+  const digTermo = soDigitos(termo);
+  if (digTermo && soDigitos(p.cpf).includes(digTermo)) return true;
   if (normalizar(p.email ?? "").includes(t)) return true;
   return false;
 }

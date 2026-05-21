@@ -21,9 +21,9 @@ const COL = "barracas";
 export interface DadosBarracaForm {
   nome: string;
   setor: Setor;
-  vagasCoordenador: number;
-  vagasEquipista: number;
-  vagasApoio: number;
+  vagasCoordenador: number | undefined;
+  vagasEquipista: number | undefined;
+  vagasApoio: number | undefined;
 }
 
 export class ErroBarraca extends Error {
@@ -74,7 +74,8 @@ function validar(
     "vagasApoio",
   ] as const) {
     const v = d[chave];
-    if (!Number.isInteger(v) || v < 0) erros[chave] = "Valor inválido.";
+    if (typeof v !== "number" || !Number.isInteger(v) || v < 0)
+      erros[chave] = "Valor inválido.";
   }
   return erros;
 }

@@ -50,7 +50,7 @@ export function Historico() {
 
   const [nomeBarraca, setNomeBarraca] = useState<string>("todas");
   const [funcao, setFuncao] = useState<Funcao | "todas">("todas");
-  const [edicoesMin, setEdicoesMin] = useState<number>(1);
+  const [edicoesMin, setEdicoesMin] = useState<number | undefined>(1);
   const [idadeMin, setIdadeMin] = useState<string>("");
   const [idadeMax, setIdadeMax] = useState<string>("");
 
@@ -113,8 +113,9 @@ export function Historico() {
       if (nome) linha.barracas.add(nome);
     }
 
+    const minEdicoes = edicoesMin ?? 1;
     return Array.from(por.values())
-      .filter((l) => l.edicoes.size >= edicoesMin)
+      .filter((l) => l.edicoes.size >= minEdicoes)
       .sort((a, b) => {
         if (b.edicoes.size !== a.edicoes.size)
           return b.edicoes.size - a.edicoes.size;
@@ -240,13 +241,15 @@ export function Historico() {
             <input
               id="edicoesMin"
               type="number"
+              inputMode="numeric"
               min={1}
               max={totalEdicoes || 99}
               className="input"
-              value={edicoesMin}
-              onChange={(e) =>
-                setEdicoesMin(Math.max(1, parseInt(e.target.value, 10) || 1))
-              }
+              value={edicoesMin ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                setEdicoesMin(v === "" ? undefined : parseInt(v, 10));
+              }}
             />
           </div>
 
@@ -255,6 +258,7 @@ export function Historico() {
             <div className="flex gap-2">
               <input
                 type="number"
+                inputMode="numeric"
                 min={0}
                 max={120}
                 placeholder="mín"
@@ -264,6 +268,7 @@ export function Historico() {
               />
               <input
                 type="number"
+                inputMode="numeric"
                 min={0}
                 max={120}
                 placeholder="máx"

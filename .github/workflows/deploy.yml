@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - claude/restart
   workflow_dispatch:
 
 concurrency:

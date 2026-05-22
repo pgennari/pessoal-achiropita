@@ -240,6 +240,20 @@ function vazio(v) {
   return v === null || v === undefined || String(v).trim() === "";
 }
 
+// Normaliza para comparação: minúsculas, sem acentos, espaços simples.
+function normParaComparacao(s) {
+  return String(s ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+// Palavras/frases nos campos de barraca que indicam estado da pessoa.
+// "faleceu" → marca ativo=false; os demais → entrada ignorada no histórico.
+const PALAVRAS_ESTADO_BARRACA = ["saiu", "desistiu", "sem contato", "duplicidade", "trabalhar"];
+
 // ---------------------------- Mapeamento por letra de coluna ----------------------------
 // A planilha tem cabeçalhos duplicados ("FUNÇÃO" 4×) e nomes variados
 // (BARRACA 100 vs Barraca_95). Mapeamos pela letra fixa.
@@ -388,10 +402,24 @@ function processarLinha(row, idxLinha) {
   };
 
   // Histórico horizontal → vertical.
+  // Valores especiais nas colunas de barraca são tratados antes de registrar
+  // a participação: "faleceu" inativa a pessoa; os demais são ignorados.
   const historico = [];
   for (const [colBarraca, colFuncao, ano] of HISTORICO) {
     const barraca = texto(cel(colBarraca));
     if (!barraca) continue;
+
+    const barracaNorm = normParaComparacao(barraca);
+
+    if (barracaNorm === "faleceu") {
+      pessoa.ativo = false;
+      continue;
+    }
+
+    if (PALAVRAS_ESTADO_BARRACA.some((p) => barracaNorm.includes(normParaComparacao(p)))) {
+      continue;
+    }
+
     const funcao = colFuncao
       ? normalizarFuncao(cel(colFuncao))
       : "Equipista";

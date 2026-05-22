@@ -242,10 +242,7 @@ export function useBarracas(edicaoId: string | undefined): EstadoLista<Barraca> 
         const itens = snap.docs.map((d) =>
           barracaDeSnap(d.id, d.data() as Record<string, unknown>)
         );
-        itens.sort(
-          (a, b) =>
-            a.setor.localeCompare(b.setor) || a.nome.localeCompare(b.nome)
-        );
+        itens.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
         setEstado({ itens, carregando: false, erro: null });
       },
       (err) =>

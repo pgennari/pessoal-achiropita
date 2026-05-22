@@ -157,7 +157,11 @@ const PREP_PT = new Set([
 // Valores que indicam estado ou situação da pessoa — não são nomes de barraca.
 // "faleceu" → pessoa deve ser inativada via importar-planilha.mjs.
 // Demais → entrada descartada sem ação adicional.
-const VALORES_ESTADO_PESSOA = ["faleceu", "saiu", "desistiu", "sem contato", "duplicidade", "trabalhar"];
+const VALORES_ESTADO_PESSOA = [
+  "faleceu", "saiu", "desistiu", "desisitiu", "sem contato", "duplicidade", "trabalhar",
+  "responde", "alocar", "alocado", "chamar", "não", "fora", "coord", "sub-coord",
+  "excluído", "localizado", "passar", "muito novo", "contatado", "verificar",
+];
 
 // Retorna true se o nome normalizado corresponde a um desses valores especiais
 // (comparação case/acento-insensitive, busca por substring para capturar

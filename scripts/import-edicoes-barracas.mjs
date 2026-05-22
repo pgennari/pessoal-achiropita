@@ -155,6 +155,19 @@ const PREP_PT = new Set([
   "por", "para", "com",
 ]);
 
+// Valores que indicam estado ou situação da pessoa — não são nomes de barraca.
+// "faleceu" → pessoa deve ser inativada via importar-planilha.mjs.
+// Demais → entrada descartada sem ação adicional.
+const VALORES_ESTADO_PESSOA = ["faleceu", "saiu", "desistiu", "sem contato", "duplicidade", "trabalhar"];
+
+// Retorna true se o nome normalizado corresponde a um desses valores especiais
+// (comparação case/acento-insensitive, busca por substring para capturar
+// variações como "foi trabalhar" ou "saiu da equipe").
+function ehValorEspecial(nome) {
+  const chave = chaveCanonica(nome);
+  return VALORES_ESTADO_PESSOA.some((v) => chave.includes(chaveCanonica(v)));
+}
+
 // Converte para Title Case PT-BR: capitaliza cada palavra, mantendo
 // artigos/preposições em minúsculas quando não são a primeira palavra.
 function normalizarNomeBarraca(s) {
@@ -222,6 +235,7 @@ function agruparSimilares(nomes) {
 }
 
 // Para cada grupo com 2+ nomes, pergunta ao usuário qual manter.
+// A opção "Manter todos" preserva todos os nomes do grupo como barracas distintas.
 // Em dry-run apenas exibe os grupos sem bloquear.
 async function resolverGruposFuzzy(nomes) {
   const grupos = agruparSimilares(nomes);
@@ -235,26 +249,31 @@ async function resolverGruposFuzzy(nomes) {
 
     console.log(`\n  Nomes parecidos encontrados:`);
     grupo.forEach((n, i) => console.log(`    [${i + 1}] ${n}`));
+    console.log(`    [${grupo.length + 1}] Manter todos`);
 
     if (dryRun) {
-      console.log(`  [dry-run] Será necessário escolher um. Usando "${grupo[0]}" como referência.`);
+      console.log(`  [dry-run] Será necessário escolher. Usando "${grupo[0]}" como referência.`);
       resultado.push(grupo[0]);
       continue;
     }
 
-    const escolhido = await new Promise((resolve) => {
+    const escolhidos = await new Promise((resolve) => {
       const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout,
       });
       function perguntar() {
-        rl.question(`  Qual manter? (1-${grupo.length}) > `, (resp) => {
+        rl.question(`  Qual manter? (1-${grupo.length + 1}) > `, (resp) => {
           const idx = parseInt(resp.trim(), 10) - 1;
-          if (idx >= 0 && idx < grupo.length) {
+          if (idx === grupo.length) {
+            // "Manter todos"
             rl.close();
-            resolve(grupo[idx]);
+            resolve(grupo);
+          } else if (idx >= 0 && idx < grupo.length) {
+            rl.close();
+            resolve([grupo[idx]]);
           } else {
-            console.log(`  Resposta inválida. Digite um número entre 1 e ${grupo.length}.`);
+            console.log(`  Resposta inválida. Digite um número entre 1 e ${grupo.length + 1}.`);
             perguntar();
           }
         });
@@ -262,7 +281,7 @@ async function resolverGruposFuzzy(nomes) {
       perguntar();
     });
 
-    resultado.push(escolhido);
+    resultado.push(...escolhidos);
   }
 
   return resultado;
@@ -373,12 +392,22 @@ async function main() {
 
     // Nomes distintos não-vazios na coluna (case/acento-insensitive).
     // normalizarNomeBarraca aplica Title Case PT-BR antes da deduplicação.
+    // Valores que representam estado da pessoa (faleceu, saiu, etc.) são
+    // descartados — não geram barraca e são tratados em importar-planilha.mjs.
     const vistos = new Map();
+    let ignoradosEspeciais = 0;
     for (const row of linhas) {
       const normalizado = normalizarNomeBarraca(row[coluna]);
       if (!normalizado) continue;
+      if (ehValorEspecial(normalizado)) {
+        ignoradosEspeciais++;
+        continue;
+      }
       const chave = chaveCanonica(normalizado);
       if (!vistos.has(chave)) vistos.set(chave, normalizado);
+    }
+    if (ignoradosEspeciais > 0) {
+      console.log(`  (${ignoradosEspeciais} ocorrência(s) de valor de estado ignoradas: faleceu/saiu/desistiu/…)`);
     }
 
     if (vistos.size === 0) {

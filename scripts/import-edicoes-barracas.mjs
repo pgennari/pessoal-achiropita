@@ -39,7 +39,6 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import readline from "node:readline";
 import * as XLSX from "xlsx";
 import {
   applicationDefault,
@@ -183,110 +182,6 @@ function normalizarNomeBarraca(s) {
     .join(" ");
 }
 
-// Distância de edição (Levenshtein) entre duas strings.
-function levenshtein(a, b) {
-  const m = a.length, n = b.length;
-  const dp = Array.from({ length: m + 1 }, (_, i) =>
-    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
-  );
-  for (let i = 1; i <= m; i++)
-    for (let j = 1; j <= n; j++)
-      dp[i][j] =
-        a[i - 1] === b[j - 1]
-          ? dp[i - 1][j - 1]
-          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-  return dp[m][n];
-}
-
-// Agrupa nomes parecidos usando Union-Find. Considera dois nomes parecidos
-// se a distância Levenshtein entre suas chaves canônicas for <= 25% do
-// comprimento do menor, com mínimo de 1.
-function agruparSimilares(nomes) {
-  const n = nomes.length;
-  const pai = Array.from({ length: n }, (_, i) => i);
-
-  function encontrar(x) {
-    while (pai[x] !== x) {
-      pai[x] = pai[pai[x]];
-      x = pai[x];
-    }
-    return x;
-  }
-  function unir(x, y) {
-    pai[encontrar(x)] = encontrar(y);
-  }
-
-  for (let i = 0; i < n; i++) {
-    for (let j = i + 1; j < n; j++) {
-      const ca = chaveCanonica(nomes[i]);
-      const cb = chaveCanonica(nomes[j]);
-      const lim = Math.max(1, Math.floor(Math.min(ca.length, cb.length) * 0.25));
-      if (levenshtein(ca, cb) <= lim) unir(i, j);
-    }
-  }
-
-  const mapa = new Map();
-  for (let i = 0; i < n; i++) {
-    const raiz = encontrar(i);
-    if (!mapa.has(raiz)) mapa.set(raiz, []);
-    mapa.get(raiz).push(nomes[i]);
-  }
-  return [...mapa.values()];
-}
-
-// Para cada grupo com 2+ nomes, pergunta ao usuário qual manter.
-// A opção "Manter todos" preserva todos os nomes do grupo como barracas distintas.
-// Em dry-run apenas exibe os grupos sem bloquear.
-async function resolverGruposFuzzy(nomes) {
-  const grupos = agruparSimilares(nomes);
-  const resultado = [];
-
-  for (const grupo of grupos) {
-    if (grupo.length === 1) {
-      resultado.push(grupo[0]);
-      continue;
-    }
-
-    console.log(`\n  Nomes parecidos encontrados:`);
-    grupo.forEach((n, i) => console.log(`    [${i + 1}] ${n}`));
-    console.log(`    [${grupo.length + 1}] Manter todos`);
-
-    if (dryRun) {
-      console.log(`  [dry-run] Será necessário escolher. Usando "${grupo[0]}" como referência.`);
-      resultado.push(grupo[0]);
-      continue;
-    }
-
-    const escolhidos = await new Promise((resolve) => {
-      const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-      });
-      function perguntar() {
-        rl.question(`  Qual manter? (1-${grupo.length + 1}) > `, (resp) => {
-          const idx = parseInt(resp.trim(), 10) - 1;
-          if (idx === grupo.length) {
-            // "Manter todos"
-            rl.close();
-            resolve(grupo);
-          } else if (idx >= 0 && idx < grupo.length) {
-            rl.close();
-            resolve([grupo[idx]]);
-          } else {
-            console.log(`  Resposta inválida. Digite um número entre 1 e ${grupo.length + 1}.`);
-            perguntar();
-          }
-        });
-      }
-      perguntar();
-    });
-
-    resultado.push(...escolhidos);
-  }
-
-  return resultado;
-}
-
 // ---------------------------- escrita no Firestore ----------------------------
 
 async function garantirEdicao(numero) {
@@ -377,6 +272,9 @@ async function main() {
   let barracasCriadas = 0;
   let barracasExistentes = 0;
 
+  // Mapa numero → lista de nomes importados (para o relatório final).
+  const relatorioBarracas = new Map();
+
   for (const numero of numerosOrdenados) {
     const coluna = colunasBarraca.get(numero);
     const ano = anoDaEdicao(numero);
@@ -412,36 +310,51 @@ async function main() {
 
     if (vistos.size === 0) {
       console.log(`  (nenhuma barraca preenchida nessa coluna)`);
+      relatorioBarracas.set(numero, []);
       continue;
     }
 
-    // Aproxima erros de grafia: agrupa nomes parecidos e pede ao usuário
-    // que escolha o canônico quando há ambiguidade.
-    const nomesResolvidos = await resolverGruposFuzzy([...vistos.values()]);
+    const nomes = [...vistos.values()].sort((a, b) => a.localeCompare(b, "pt-BR"));
 
     let criadas = 0;
     let existentes = 0;
-    for (const nome of nomesResolvidos) {
+    for (const nome of nomes) {
       const b = await garantirBarraca(ed.id, nome);
       if (b.criada) criadas++;
       else existentes++;
     }
     barracasCriadas += criadas;
     barracasExistentes += existentes;
+    relatorioBarracas.set(numero, nomes);
     console.log(
-      `  ${nomesResolvidos.length} barraca(s): ${criadas} criada(s), ${existentes} já existente(s)`
+      `  ${nomes.length} barraca(s): ${criadas} criada(s), ${existentes} já existente(s)`
     );
   }
 
   console.log("");
-  console.log("Resumo:");
+  console.log("=== Resumo ===");
   console.log(
     `  Edições  · criadas: ${edicoesCriadas} · já existentes: ${edicoesExistentes}`
   );
   console.log(
     `  Barracas · criadas: ${barracasCriadas} · já existentes: ${barracasExistentes}`
   );
-  if (dryRun) console.log("(dry-run — nada foi persistido)");
+  if (dryRun) console.log("  (dry-run — nada foi persistido)");
+
+  console.log("");
+  console.log("=== Barracas por edição ===");
+  for (const numero of numerosOrdenados) {
+    const ano = anoDaEdicao(numero);
+    const nomes = relatorioBarracas.get(numero) ?? [];
+    if (nomes.length === 0) {
+      console.log(`  Edição ${numero}/${ano}: (nenhuma)`);
+    } else {
+      console.log(`  Edição ${numero}/${ano} (${nomes.length}):`);
+      for (const nome of nomes) {
+        console.log(`    - ${nome}`);
+      }
+    }
+  }
 }
 
 main().catch((e) => {

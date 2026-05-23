@@ -173,10 +173,9 @@ function main() {
       }
     }
 
-    const itens = [...contagem.values()].sort((a, b) => {
-      if (b.qtd !== a.qtd) return b.qtd - a.qtd;
-      return a.nome.localeCompare(b.nome, "pt-BR");
-    });
+    const itens = [...contagem.values()].sort((a, b) =>
+      a.nome.localeCompare(b.nome, "pt-BR")
+    );
 
     const linhasCsv = ["edicao,ano,nome,qtd"];
     for (const { nome, qtd } of itens) {

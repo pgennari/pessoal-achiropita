@@ -2,7 +2,6 @@ import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { LinkValidacao, Pessoa, ESTADOS_CIVIS, Filho } from "../lib/tipos";
 import {
-  abrirSessaoVazia,
   carregarLinkPublico,
   DadosValidacao,
   ErroValidacaoPublica,
@@ -47,27 +46,13 @@ export function ValidarPublico() {
   const [etapa, setEtapa] = useState<Etapa>("carregando");
   const [link, setLink] = useState<LinkValidacao | null>(null);
   const [pessoa, setPessoa] = useState<Pessoa | null>(null);
-  const [uidAnonimo, setUidAnonimo] = useState<string | null>(null);
+  const [sessaoJwt, setSessaoJwt] = useState<string | null>(null);
   const [cracha, setCracha] = useState("");
   const [anoNasc, setAnoNasc] = useState("");
   const [erroIdent, setErroIdent] = useState<string | null>(null);
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
   const [erroAbertura, setErroAbertura] = useState<string | null>(null);
   const [dados, setDados] = useState<EstadoForm | null>(null);
-
-  function descreverErro(e: unknown): string {
-    if (e && typeof e === "object" && "code" in e) {
-      const code = (e as { code?: string }).code ?? "";
-      if (code === "auth/operation-not-allowed") {
-        return 'Login anônimo não está habilitado no Firebase. Peça à organização para ativar "Anonymous" em Authentication → Sign-in method.';
-      }
-      if (code === "permission-denied") {
-        return "Sem permissão para abrir esta sessão. As regras do banco podem estar desatualizadas.";
-      }
-    }
-    if (e instanceof Error) return e.message;
-    return "Erro desconhecido.";
-  }
 
   useEffect(() => {
     if (!token) {
@@ -84,46 +69,30 @@ export function ValidarPublico() {
           return;
         }
         setLink(r.link);
-        if (r.status === "expirado") {
-          setEtapa("expirado");
-          return;
-        }
+        if (r.status === "expirado") { setEtapa("expirado"); return; }
         if (r.status === "revogado" || r.status === "usado") {
-          setEtapa(r.status === "revogado" ? "revogado" : "expirado");
+          setEtapa("revogado");
           return;
         }
-        // Fase 1: ja abre sessao anonima vazia. A identificacao via
-        // /buscaCracha so acontece quando o usuario submete o form.
-        try {
-          const uid = await abrirSessaoVazia(r.link);
-          if (cancelado) return;
-          setUidAnonimo(uid);
-          setEtapa("identificacao");
-        } catch (e) {
-          if (cancelado) return;
-          console.error(e);
-          setErroAbertura(descreverErro(e));
-          setEtapa("erro");
-        }
+        setEtapa("identificacao");
       } catch (e) {
         if (cancelado) return;
         console.error(e);
-        setErroAbertura(descreverErro(e));
+        setErroAbertura(e instanceof Error ? e.message : "Erro desconhecido.");
         setEtapa("erro");
       }
     })();
-    return () => {
-      cancelado = true;
-    };
+    return () => { cancelado = true; };
   }, [token]);
 
   async function handleIdentificacao(ev: FormEvent) {
     ev.preventDefault();
-    if (!link || !uidAnonimo) return;
+    if (!link) return;
     setErroIdent(null);
     setEtapa("verificando");
     try {
-      const r = await identificarPessoa(link, uidAnonimo, cracha, anoNasc);
+      const r = await identificarPessoa(link, cracha, anoNasc);
+      setSessaoJwt(r.sessaoJwt);
       setPessoa(r.pessoa);
       setDados(dadosIniciaisForm(r.pessoa));
       setEtapa("form");
@@ -145,43 +114,32 @@ export function ValidarPublico() {
   }
 
   function adicionarFilho() {
-    setDados((d) =>
-      d ? { ...d, filhos: [...d.filhos, novoFilho()] } : d
-    );
+    setDados((d) => d ? { ...d, filhos: [...d.filhos, novoFilho()] } : d);
   }
 
   function atualizarFilho(id: string, patch: Partial<Filho>) {
     setDados((d) =>
       d
-        ? {
-            ...d,
-            filhos: d.filhos.map((f) =>
-              f.id === id ? { ...f, ...patch } : f
-            ),
-          }
+        ? { ...d, filhos: d.filhos.map((f) => f.id === id ? { ...f, ...patch } : f) }
         : d
     );
   }
 
   function removerFilho(id: string) {
-    setDados((d) =>
-      d ? { ...d, filhos: d.filhos.filter((f) => f.id !== id) } : d
-    );
+    setDados((d) => d ? { ...d, filhos: d.filhos.filter((f) => f.id !== id) } : d);
   }
 
   async function handleConfirmar(ev: FormEvent) {
     ev.preventDefault();
-    if (!link || !pessoa || !dados || !uidAnonimo) return;
+    if (!link || !pessoa || !dados || !sessaoJwt) return;
     setErroSalvar(null);
     setEtapa("salvando");
     try {
-      await salvarValidacao({ link, pessoa, dados, uidAnonimo });
+      await salvarValidacao({ link, pessoa, dados, sessaoJwt });
       setEtapa("sucesso");
     } catch (e) {
       console.error(e);
-      setErroSalvar(
-        e instanceof Error ? e.message : "Não foi possível salvar."
-      );
+      setErroSalvar(e instanceof Error ? e.message : "Não foi possível salvar.");
       setEtapa("form");
     }
   }
@@ -277,9 +235,7 @@ export function ValidarPublico() {
                   className="btn btn-primario btn-grande"
                   disabled={etapa === "verificando"}
                 >
-                  {etapa === "verificando"
-                    ? "Verificando..."
-                    : "Confirmar identidade"}
+                  {etapa === "verificando" ? "Verificando..." : "Confirmar identidade"}
                 </button>
               </div>
             </div>
@@ -298,8 +254,7 @@ export function ValidarPublico() {
                 <p className="text-ardesia text-sm">
                   Atualize o que mudou e clique em <strong>Confirmar</strong>{" "}
                   no fim do formulário. Seu crachá não é alterado por aqui;
-                  fale com a organização se estiver errado. A foto do crachá
-                  é atualizada pelo aplicativo da organização.
+                  fale com a organização se estiver errado.
                 </p>
               </div>
             </div>
@@ -458,9 +413,7 @@ export function ValidarPublico() {
                               className="input"
                               value={f.nascimento}
                               onChange={(e) =>
-                                atualizarFilho(f.id, {
-                                  nascimento: e.target.value,
-                                })
+                                atualizarFilho(f.id, { nascimento: e.target.value })
                               }
                             />
                           </div>
@@ -479,9 +432,7 @@ export function ValidarPublico() {
                               Frequenta a Recreação
                             </label>
                             {idade !== null && (
-                              <span className="text-ardesia">
-                                {idade} anos
-                              </span>
+                              <span className="text-ardesia">{idade} anos</span>
                             )}
                             <button
                               type="button"
@@ -501,9 +452,7 @@ export function ValidarPublico() {
 
             {erroSalvar && (
               <div className="card border-vermelho/40">
-                <div className="card-corpo text-vermelho-escuro">
-                  {erroSalvar}
-                </div>
+                <div className="card-corpo text-vermelho-escuro">{erroSalvar}</div>
               </div>
             )}
 

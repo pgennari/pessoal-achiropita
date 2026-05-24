@@ -1,22 +1,8 @@
-import {
-  Timestamp,
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where,
-} from "firebase/firestore";
-import { db } from "./firebase";
+import { api } from "./api";
+import { queryClient } from "./queryClient";
 import { Barraca, Setor } from "./tipos";
 import { Sessao } from "./sessao";
-import { registrarEvento } from "./auditoria";
 import { normalizar } from "./utilsDominio";
-
-const COL = "barracas";
 
 export interface DadosBarracaForm {
   nome: string;
@@ -34,12 +20,7 @@ export class ErroBarraca extends Error {
   }
 }
 
-export function barracaDeSnap(
-  id: string,
-  data: Record<string, unknown>
-): Barraca {
-  const c = data.criadoEm as Timestamp | string | null | undefined;
-  const a = data.atualizadoEm as Timestamp | string | null | undefined;
+export function barracaDeSnap(id: string, data: Record<string, unknown>): Barraca {
   return {
     id,
     edicaoId: (data.edicaoId as string) ?? "",
@@ -48,10 +29,8 @@ export function barracaDeSnap(
     vagasCoordenador: (data.vagasCoordenador as number) ?? 0,
     vagasEquipista: (data.vagasEquipista as number) ?? 0,
     vagasApoio: (data.vagasApoio as number) ?? 0,
-    criadoEm:
-      c instanceof Timestamp ? c.toDate().toISOString() : (c as string) || "",
-    atualizadoEm:
-      a instanceof Timestamp ? a.toDate().toISOString() : (a as string) || "",
+    criadoEm: (data.criadoEm as string) || "",
+    atualizadoEm: (data.atualizadoEm as string) || "",
   };
 }
 
@@ -68,11 +47,7 @@ function validar(
     );
     if (dup) erros.nome = "Já existe uma barraca com este nome nesta edição.";
   }
-  for (const chave of [
-    "vagasCoordenador",
-    "vagasEquipista",
-    "vagasApoio",
-  ] as const) {
+  for (const chave of ["vagasCoordenador", "vagasEquipista", "vagasApoio"] as const) {
     const v = d[chave];
     if (typeof v !== "number" || !Number.isInteger(v) || v < 0)
       erros[chave] = "Valor inválido.";
@@ -80,8 +55,13 @@ function validar(
   return erros;
 }
 
+function invalidarBarracas(edicaoId?: string) {
+  queryClient.invalidateQueries({ queryKey: ["barracas"] });
+  if (edicaoId) queryClient.invalidateQueries({ queryKey: ["barracas", edicaoId] });
+}
+
 export async function criarBarraca(
-  sessao: Sessao,
+  _sessao: Sessao,
   edicaoId: string,
   dados: DadosBarracaForm,
   existentes: Barraca[]
@@ -89,24 +69,17 @@ export async function criarBarraca(
   const erros = validar(dados, existentes);
   if (Object.keys(erros).length) throw new ErroBarraca(erros);
 
-  const ref = await addDoc(collection(db(), COL), {
+  const barraca = await api.post<Barraca>("/api/barracas", {
     ...dados,
     nome: dados.nome.trim(),
     edicaoId,
-    criadoEm: serverTimestamp(),
-    atualizadoEm: serverTimestamp(),
   });
-  await registrarEvento(
-    sessao,
-    "barraca.criou",
-    `barracas/${ref.id}`,
-    dados.nome
-  );
-  return ref.id;
+  invalidarBarracas(edicaoId);
+  return barraca.id as string;
 }
 
 export async function atualizarBarraca(
-  sessao: Sessao,
+  _sessao: Sessao,
   barraca: Barraca,
   dados: DadosBarracaForm,
   existentes: Barraca[]
@@ -114,69 +87,26 @@ export async function atualizarBarraca(
   const erros = validar(dados, existentes, barraca.id);
   if (Object.keys(erros).length) throw new ErroBarraca(erros);
 
-  await updateDoc(doc(db(), COL, barraca.id), {
-    ...dados,
-    nome: dados.nome.trim(),
-    atualizadoEm: serverTimestamp(),
-  });
-  await registrarEvento(
-    sessao,
-    "barraca.atualizou",
-    `barracas/${barraca.id}`,
-    dados.nome
-  );
+  await api.put(`/api/barracas/${barraca.id}`, { ...dados, nome: dados.nome.trim() });
+  invalidarBarracas(barraca.edicaoId);
 }
 
 export async function copiarBarracasDeEdicao(
-  sessao: Sessao,
+  _sessao: Sessao,
   edicaoOrigemId: string,
   edicaoDestinoId: string
 ): Promise<number> {
-  const snap = await getDocs(
-    query(collection(db(), COL), where("edicaoId", "==", edicaoOrigemId))
-  );
-  let copiadas = 0;
-  for (const d of snap.docs) {
-    const origem = d.data() as Record<string, unknown>;
-    await addDoc(collection(db(), COL), {
-      edicaoId: edicaoDestinoId,
-      nome: origem.nome,
-      setor: origem.setor,
-      vagasCoordenador: origem.vagasCoordenador,
-      vagasEquipista: origem.vagasEquipista,
-      vagasApoio: origem.vagasApoio,
-      criadoEm: serverTimestamp(),
-      atualizadoEm: serverTimestamp(),
-    });
-    copiadas++;
-  }
-  if (copiadas > 0) {
-    await registrarEvento(
-      sessao,
-      "barraca.copiouEdicao",
-      `barracas/edicao:${edicaoDestinoId}`,
-      `${copiadas} barraca(s) copiada(s) de ${edicaoOrigemId}`
-    );
-  }
+  const { copiadas } = await api.post<{ copiadas: number }>("/api/barracas/copiar", {
+    edicaoOrigemId,
+    edicaoDestinoId,
+  });
+  invalidarBarracas(edicaoDestinoId);
   return copiadas;
 }
 
-export async function removerBarraca(
-  sessao: Sessao,
-  barraca: Barraca
-): Promise<void> {
-  // Remove participações antes da própria barraca.
-  const partsSnap = await getDocs(
-    query(collection(db(), "participacoes"), where("barracaId", "==", barraca.id))
-  );
-  for (const p of partsSnap.docs) {
-    await deleteDoc(p.ref);
-  }
-  await deleteDoc(doc(db(), COL, barraca.id));
-  await registrarEvento(
-    sessao,
-    "barraca.removeu",
-    `barracas/${barraca.id}`,
-    barraca.nome
-  );
+export async function removerBarraca(_sessao: Sessao, barraca: Barraca): Promise<void> {
+  await api.delete(`/api/barracas/${barraca.id}`);
+  invalidarBarracas(barraca.edicaoId);
+  // Participações são removidas em cascade pelo banco.
+  queryClient.invalidateQueries({ queryKey: ["participacoes"] });
 }

@@ -1,24 +1,8 @@
-import {
-  Timestamp,
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  serverTimestamp,
-  updateDoc,
-} from "firebase/firestore";
-import { db } from "./firebase";
+import { api } from "./api";
+import { queryClient } from "./queryClient";
 import { Setor, TurmaFormacao } from "./tipos";
 import { Sessao } from "./sessao";
-import { registrarEvento } from "./auditoria";
-import {
-  ajustarPrazoDosLinksAtivos,
-  gerarLinkDeTurma,
-  revogarLinksDaTurma,
-} from "./links";
-
-const COL = "turmasFormacao";
+import { gerarLinkDeTurma } from "./links";
 
 export interface DadosTurmaForm {
   data: string;
@@ -38,12 +22,7 @@ export class ErroTurma extends Error {
   }
 }
 
-export function turmaDeSnap(
-  id: string,
-  data: Record<string, unknown>
-): TurmaFormacao {
-  const c = data.criadoEm as Timestamp | string | null | undefined;
-  const a = data.atualizadoEm as Timestamp | string | null | undefined;
+export function turmaDeSnap(id: string, data: Record<string, unknown>): TurmaFormacao {
   return {
     id,
     edicaoId: (data.edicaoId as string) ?? "",
@@ -54,10 +33,8 @@ export function turmaDeSnap(
     capacidadeMaxima: (data.capacidadeMaxima as number) ?? 0,
     setorVinculo: (data.setorVinculo as Setor) || undefined,
     barracaIdVinculo: (data.barracaIdVinculo as string) || undefined,
-    criadoEm:
-      c instanceof Timestamp ? c.toDate().toISOString() : (c as string) || "",
-    atualizadoEm:
-      a instanceof Timestamp ? a.toDate().toISOString() : (a as string) || "",
+    criadoEm: (data.criadoEm as string) || "",
+    atualizadoEm: (data.atualizadoEm as string) || "",
   };
 }
 
@@ -75,17 +52,9 @@ function validar(d: DadosTurmaForm): Record<string, string> {
   return erros;
 }
 
-function payload(edicaoId: string, d: DadosTurmaForm) {
-  return {
-    edicaoId,
-    data: d.data,
-    horarioInicio: d.horarioInicio,
-    horarioFim: d.horarioFim || null,
-    local: d.local.trim(),
-    capacidadeMaxima: d.capacidadeMaxima,
-    setorVinculo: d.setorVinculo || null,
-    barracaIdVinculo: d.barracaIdVinculo || null,
-  };
+function invalidarTurmas(edicaoId?: string) {
+  queryClient.invalidateQueries({ queryKey: ["turmas"] });
+  if (edicaoId) queryClient.invalidateQueries({ queryKey: ["turmas", edicaoId] });
 }
 
 export async function criarTurma(
@@ -95,29 +64,25 @@ export async function criarTurma(
 ): Promise<string> {
   const erros = validar(dados);
   if (Object.keys(erros).length) throw new ErroTurma(erros);
-  const ref = await addDoc(collection(db(), COL), {
-    ...payload(edicaoId, dados),
-    criadoEm: serverTimestamp(),
-    atualizadoEm: serverTimestamp(),
+
+  const turma = await api.post<TurmaFormacao>("/api/turmas", {
+    edicaoId,
+    data: dados.data,
+    horarioInicio: dados.horarioInicio,
+    horarioFim: dados.horarioFim || null,
+    local: dados.local.trim(),
+    capacidadeMaxima: dados.capacidadeMaxima,
+    setorVinculo: dados.setorVinculo || null,
+    barracaIdVinculo: dados.barracaIdVinculo || null,
   });
-  await registrarEvento(
-    sessao,
-    "turma.criou",
-    `turmasFormacao/${ref.id}`,
-    `${dados.data} ${dados.horarioInicio}`
-  );
 
-  // Gera o link publico automaticamente (US-06-01 + US-06-05).
-  // Falhas aqui nao desfazem a turma criada, mas sao logadas e
-  // borbulham para que ORG saiba o que aconteceu.
-  const snap = await getDoc(ref);
-  const turmaCompleta = turmaDeSnap(
-    ref.id,
-    snap.data() as Record<string, unknown>
-  );
-  await gerarLinkDeTurma(sessao, turmaCompleta);
+  invalidarTurmas(edicaoId);
 
-  return ref.id;
+  // Gera link público automaticamente (US-06-01 + US-06-05).
+  // Falhas aqui não desfazem a turma, mas borbulham para que a ORG saiba.
+  await gerarLinkDeTurma(sessao, turma as TurmaFormacao);
+
+  return turma.id as string;
 }
 
 export async function atualizarTurma(
@@ -127,42 +92,39 @@ export async function atualizarTurma(
 ): Promise<void> {
   const erros = validar(dados);
   if (Object.keys(erros).length) throw new ErroTurma(erros);
-  await updateDoc(doc(db(), COL, turma.id), {
-    ...payload(turma.edicaoId, dados),
-    atualizadoEm: serverTimestamp(),
-  });
-  await registrarEvento(
-    sessao,
-    "turma.atualizou",
-    `turmasFormacao/${turma.id}`,
-    `${dados.data} ${dados.horarioInicio}`
-  );
 
-  // Se data ou horario mudaram, ajusta o prazo dos links ativos.
-  if (
-    turma.data !== dados.data ||
-    turma.horarioInicio !== dados.horarioInicio
-  ) {
-    await ajustarPrazoDosLinksAtivos(sessao, {
-      ...turma,
-      data: dados.data,
-      horarioInicio: dados.horarioInicio,
-    });
+  await api.put(`/api/turmas/${turma.id}`, {
+    data: dados.data,
+    horarioInicio: dados.horarioInicio,
+    horarioFim: dados.horarioFim || null,
+    local: dados.local.trim(),
+    capacidadeMaxima: dados.capacidadeMaxima,
+    setorVinculo: dados.setorVinculo || null,
+    barracaIdVinculo: dados.barracaIdVinculo || null,
+  });
+
+  invalidarTurmas(turma.edicaoId);
+
+  // Se data ou horário mudaram, ajusta o prazo dos links ativos.
+  if (turma.data !== dados.data || turma.horarioInicio !== dados.horarioInicio) {
+    await ajustarPrazoDosLinksAtivos(sessao, { ...turma, data: dados.data, horarioInicio: dados.horarioInicio });
   }
 }
 
-export async function removerTurma(
-  sessao: Sessao,
+// Auxiliar: ajusta prazo de links ativos de uma turma após reagendamento.
+async function ajustarPrazoDosLinksAtivos(
+  _sessao: Sessao,
   turma: TurmaFormacao
 ): Promise<void> {
-  // Revoga os links antes de deletar a turma para preservar o
-  // historico (delete cascade simples nao e possivel sem batch).
-  await revogarLinksDaTurma(sessao, turma.id);
-  await deleteDoc(doc(db(), COL, turma.id));
-  await registrarEvento(
-    sessao,
-    "turma.removeu",
-    `turmasFormacao/${turma.id}`,
-    `${turma.data} ${turma.horarioInicio}`
-  );
+  await api.put(`/api/links/turma/${turma.id}/ajustar-prazo`, {
+    turmaData: turma.data,
+    turmaHorarioInicio: turma.horarioInicio,
+  });
+  queryClient.invalidateQueries({ queryKey: ["links"] });
+}
+
+export async function removerTurma(_sessao: Sessao, turma: TurmaFormacao): Promise<void> {
+  await api.delete(`/api/turmas/${turma.id}`);
+  invalidarTurmas(turma.edicaoId);
+  queryClient.invalidateQueries({ queryKey: ["links"] });
 }

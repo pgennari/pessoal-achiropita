@@ -1,19 +1,7 @@
-import {
-  Timestamp,
-  doc,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-} from "firebase/firestore";
-import { db } from "./firebase";
 import { Sessao } from "./sessao";
-import { registrarEvento } from "./auditoria";
-import { gerarToken } from "./links";
 
-const COL = "linksFoto";
-
-// Prazo padrao: 7 dias para o equipista enviar a foto.
-const DIAS_VALIDADE = 7;
+// TODO(US-07-01): links de foto removidos do MVP.
+// O upload de foto via link público será implementado em iteração futura.
 
 export interface LinkFoto {
   id: string;
@@ -26,55 +14,29 @@ export interface LinkFoto {
   criadoEm: string;
 }
 
-export function linkFotoDeSnap(
-  id: string,
-  data: Record<string, unknown>
-): LinkFoto {
-  const e = data.expiraEm as Timestamp | string | null | undefined;
-  const c = data.criadoEm as Timestamp | string | null | undefined;
+export function linkFotoDeSnap(id: string, data: Record<string, unknown>): LinkFoto {
   return {
     id,
     pessoaId: (data.pessoaId as string) ?? "",
     pessoaNome: (data.pessoaNome as string) ?? "",
-    expiraEm:
-      e instanceof Timestamp ? e.toDate().toISOString() : (e as string) || "",
+    expiraEm: (data.expiraEm as string) || "",
     status: (data.status as LinkFoto["status"]) ?? "ativo",
     criadoPorUid: (data.criadoPorUid as string) ?? "",
     criadoPorNome: (data.criadoPorNome as string) ?? "",
-    criadoEm:
-      c instanceof Timestamp ? c.toDate().toISOString() : (c as string) || "",
+    criadoEm: (data.criadoEm as string) || "",
   };
 }
 
 export async function gerarLinkFoto(
-  sessao: Sessao,
-  pessoaId: string,
-  pessoaNome: string
+  _sessao: Sessao,
+  _pessoaId: string,
+  _pessoaNome: string
 ): Promise<string> {
-  const expiraEm = new Date(
-    Date.now() + DIAS_VALIDADE * 24 * 60 * 60 * 1000
-  );
-  const token = gerarToken();
-  await setDoc(doc(db(), COL, token), {
-    pessoaId,
-    pessoaNome,
-    expiraEm: Timestamp.fromDate(expiraEm),
-    status: "ativo",
-    criadoPorUid: sessao.uid,
-    criadoPorNome: sessao.nome,
-    criadoEm: serverTimestamp(),
-  });
-  await registrarEvento(
-    sessao,
-    "linkFoto.gerou",
-    `linksFoto/${token}`,
-    `${pessoaNome} · expira ${expiraEm.toLocaleDateString("pt-BR")}`
-  );
-  return token;
+  throw new Error("TODO(US-07-01): links de foto não implementados no MVP.");
 }
 
-export async function marcarLinkFotoUsado(token: string): Promise<void> {
-  await updateDoc(doc(db(), COL, token), { status: "usado" });
+export async function marcarLinkFotoUsado(_token: string): Promise<void> {
+  throw new Error("TODO(US-07-01): links de foto não implementados no MVP.");
 }
 
 export function urlPublicaFoto(token: string): string {

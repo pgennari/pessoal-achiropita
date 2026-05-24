@@ -12,17 +12,17 @@ import {
   signInWithPopup,
   signOut,
 } from "firebase/auth";
-import { doc, onSnapshot } from "firebase/firestore";
-import { auth, db } from "./firebase";
+import { auth } from "./firebase";
 import { Perfil, Usuario } from "./tipos";
+
+const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
 
 export interface Sessao extends Usuario {}
 
 export interface EstadoSessao {
   sessao: Sessao | null;
-  // Verdadeiro quando ha um usuario autenticado no Firebase Auth mas
-  // ele nao tem doc em /usuarios — ou seja, nao passou por um convite
-  // valido. Login.tsx mostra mensagem de "sem acesso" + Sair.
+  // Verdadeiro quando há um usuário autenticado no Firebase Auth mas
+  // ele não tem registro em /usuarios — acesso negado.
   semAcesso: boolean;
   carregando: boolean;
 }
@@ -35,70 +35,54 @@ export function useSessao(): EstadoSessao {
   });
 
   useEffect(() => {
-    let cancelarUsuarioDoc: (() => void) | null = null;
-
-    const cancelarAuth = onAuthStateChanged(auth(), (user: User | null) => {
-      if (cancelarUsuarioDoc) {
-        cancelarUsuarioDoc();
-        cancelarUsuarioDoc = null;
-      }
-
+    const cancelarAuth = onAuthStateChanged(auth(), async (user: User | null) => {
       if (!user) {
         setEstado({ sessao: null, semAcesso: false, carregando: false });
         return;
       }
 
-      // Anon e usado pela pagina publica /v/{token}; nao tem perfil.
-      if (user.isAnonymous) {
-        setEstado({ sessao: null, semAcesso: false, carregando: false });
-        return;
-      }
+      try {
+        const token = await user.getIdToken();
+        const res = await fetch(`${BASE}/api/usuarios/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-      cancelarUsuarioDoc = onSnapshot(
-        doc(db(), "usuarios", user.uid),
-        (snap) => {
-          if (!snap.exists()) {
-            // Usuario autenticado mas sem doc em /usuarios — acesso
-            // negado. So entra quem passou pelo /convite/{token}.
-            setEstado({
-              sessao: null,
-              semAcesso: true,
-              carregando: false,
-            });
-            return;
-          }
-          const dados = snap.data() as
-            | {
-                perfil?: Perfil;
-                nome?: string;
-                pessoaId?: string;
-                barracasCRD?: string[];
-                tokenConvite?: string;
-              }
-            | undefined;
-          setEstado({
-            sessao: {
-              uid: user.uid,
-              email: user.email ?? "",
-              nome: dados?.nome ?? user.displayName ?? user.email ?? "",
-              perfil: dados?.perfil ?? "EQP",
-              pessoaId: dados?.pessoaId,
-              barracasCRD: dados?.barracasCRD,
-              tokenConvite: dados?.tokenConvite,
-            },
-            semAcesso: false,
-            carregando: false,
-          });
-        },
-        () =>
-          setEstado({ sessao: null, semAcesso: false, carregando: false })
-      );
+        if (res.status === 403 || res.status === 404) {
+          setEstado({ sessao: null, semAcesso: true, carregando: false });
+          return;
+        }
+        if (!res.ok) {
+          // Falha de rede ou servidor — limpa o estado sem bloquear
+          setEstado({ sessao: null, semAcesso: false, carregando: false });
+          return;
+        }
+
+        const dados = await res.json() as {
+          perfil?: Perfil;
+          nome?: string;
+          pessoaId?: string;
+          barracasCRD?: string[];
+          tokenConvite?: string;
+        };
+        setEstado({
+          sessao: {
+            uid: user.uid,
+            email: user.email ?? "",
+            nome: dados.nome ?? user.displayName ?? user.email ?? "",
+            perfil: dados.perfil ?? "EQP",
+            pessoaId: dados.pessoaId,
+            barracasCRD: dados.barracasCRD,
+            tokenConvite: dados.tokenConvite,
+          },
+          semAcesso: false,
+          carregando: false,
+        });
+      } catch {
+        setEstado({ sessao: null, semAcesso: false, carregando: false });
+      }
     });
 
-    return () => {
-      cancelarAuth();
-      if (cancelarUsuarioDoc) cancelarUsuarioDoc();
-    };
+    return () => cancelarAuth();
   }, []);
 
   return estado;
@@ -121,11 +105,6 @@ export async function entrarComGoogle(): Promise<void> {
   await signInWithPopup(auth(), provider);
 }
 
-// Aponta o link do e-mail de redefinicao para a nossa pagina custom
-// (US-01-03). handleCodeInApp = true faz o Firebase incluir oobCode
-// e mode na URL informada, em vez de usar o handler default. Exige
-// o dominio nos "Authorized domains" do Firebase Auth — localhost ja
-// vem liberado.
 function actionCodeSettingsRedefinir(): ActionCodeSettings | undefined {
   if (typeof window === "undefined") return undefined;
   return {
@@ -135,11 +114,7 @@ function actionCodeSettingsRedefinir(): ActionCodeSettings | undefined {
 }
 
 export async function recuperarSenha(email: string): Promise<void> {
-  await sendPasswordResetEmail(
-    auth(),
-    email.trim(),
-    actionCodeSettingsRedefinir()
-  );
+  await sendPasswordResetEmail(auth(), email.trim(), actionCodeSettingsRedefinir());
 }
 
 export async function sair(): Promise<void> {

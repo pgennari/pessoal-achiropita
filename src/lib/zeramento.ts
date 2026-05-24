@@ -1,13 +1,8 @@
-import { collection, getDocs, writeBatch } from "firebase/firestore";
-import { db } from "./firebase";
+import { api } from "./api";
+import { queryClient } from "./queryClient";
 
-export async function zerarColecao(nome: string): Promise<number> {
-  const snap = await getDocs(collection(db(), nome));
-  const docs = snap.docs;
-  for (let i = 0; i < docs.length; i += 500) {
-    const lote = writeBatch(db());
-    docs.slice(i, i + 500).forEach((d) => lote.delete(d.ref));
-    await lote.commit();
-  }
-  return docs.length;
+export async function zerarDados(): Promise<void> {
+  await api.post("/api/admin/zerar");
+  // Invalida todo o cache para forcar recarregamento limpo.
+  await queryClient.invalidateQueries();
 }

@@ -1,0 +1,1736 @@
+{
+  "arquivo": "/root/.claude/uploads/5617f206-e369-4291-a515-e1c82b756ffa/b7a91451-USAR_ESSA_Festa_100___2026__26.12.2025.xlsx",
+  "geradoEm": "2026-05-25T21:32:45.970Z",
+  "contadores": {
+    "linhasProcessadas": 5871,
+    "pessoasImportadas": 5869,
+    "pessoasDescartadas": 2,
+    "nascimentoSentinela": 1226,
+    "barracasEdicao100": 103,
+    "participacoesEdicao100": 1260,
+    "participacoesHistoricas": 28433
+  },
+  "descartadas": [
+    {
+      "idx": 5074,
+      "nome": "Alessandra Dias Santa Clara Kalil",
+      "cracha": 7234,
+      "motivo": "crachá duplicado (mantida a primeira ocorrência)"
+    },
+    {
+      "idx": 5725,
+      "nome": "Miriam Lamana",
+      "cracha": 7891,
+      "motivo": "crachá duplicado (mantida a primeira ocorrência)"
+    }
+  ],
+  "avisos": [
+    {
+      "idx": 37,
+      "cracha": 39,
+      "nome": "Balbina S. Almeida",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"8649113869\""
+      ]
+    },
+    {
+      "idx": 59,
+      "cracha": 62,
+      "nome": "Luiz Carlos Cruz Junior",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"8913723859\""
+      ]
+    },
+    {
+      "idx": 74,
+      "cracha": 77,
+      "nome": "Claudio Adalberto Torres",
+      "avisos": [
+        "CPF inválido: 19161859835"
+      ]
+    },
+    {
+      "idx": 222,
+      "cracha": 226,
+      "nome": "José Manoel Pires Vasconcellos",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"1015891829\""
+      ]
+    },
+    {
+      "idx": 226,
+      "cracha": 230,
+      "nome": "Diva Francisco dos Santos",
+      "avisos": [
+        "Estado civil não reconhecido: \"Outros\""
+      ]
+    },
+    {
+      "idx": 245,
+      "cracha": 250,
+      "nome": "Heloisa Marina Massela",
+      "avisos": [
+        "Estado civil não reconhecido: \"Outros\""
+      ]
+    },
+    {
+      "idx": 295,
+      "cracha": 316,
+      "nome": "Irani Gomes da Silva Freitas",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"1463912846\""
+      ]
+    },
+    {
+      "idx": 316,
+      "cracha": 6457,
+      "nome": "Andreia Govea",
+      "avisos": [
+        "Estado civil não reconhecido: \"não informou\""
+      ]
+    },
+    {
+      "idx": 363,
+      "cracha": 401,
+      "nome": "Francisca Teixeira Josino",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"1084806827\""
+      ]
+    },
+    {
+      "idx": 365,
+      "cracha": 4053,
+      "nome": "Antonia Aparecida Costa Cavalcanti",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"1278648818\""
+      ]
+    },
+    {
+      "idx": 489,
+      "cracha": 583,
+      "nome": "Regina Aparecida Iório de Oliveira",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"8523537821\""
+      ]
+    },
+    {
+      "idx": 494,
+      "cracha": 590,
+      "nome": "Vera Lúcia da Silva Ataide",
+      "avisos": [
+        "Estado civil não reconhecido: \"Desquitado(a)\""
+      ]
+    },
+    {
+      "idx": 598,
+      "cracha": 872,
+      "nome": "Marcos Nicolini Vasconcelos",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"1182962807\""
+      ]
+    },
+    {
+      "idx": 615,
+      "cracha": 5757,
+      "nome": "Carlos Alberto Teccioni",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"12322536X\""
+      ]
+    },
+    {
+      "idx": 646,
+      "cracha": 969,
+      "nome": "Eloisa Cruz Ary",
+      "avisos": [
+        "Estado civil não reconhecido: \"Desquitado(a)\""
+      ]
+    },
+    {
+      "idx": 647,
+      "cracha": 170,
+      "nome": "Carmela Di Siervi",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"328282847\""
+      ]
+    },
+    {
+      "idx": 688,
+      "cracha": 1051,
+      "nome": "Jane dos Santos",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"114531249\""
+      ]
+    },
+    {
+      "idx": 824,
+      "cracha": 1279,
+      "nome": "Angela Cammarosano",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"5227261865\""
+      ]
+    },
+    {
+      "idx": 900,
+      "cracha": 2180,
+      "nome": "Glória de Sá",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"8821265803\""
+      ]
+    },
+    {
+      "idx": 925,
+      "cracha": 970,
+      "nome": "Cristiane Baldini Luiz",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"9002814801\""
+      ]
+    },
+    {
+      "idx": 935,
+      "cracha": 887,
+      "nome": "Cristina Blanco Padovani",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"8987125807\""
+      ]
+    },
+    {
+      "idx": 1048,
+      "cracha": 1699,
+      "nome": "Juliano Augusto da Cruz",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"6411365873\""
+      ]
+    },
+    {
+      "idx": 1060,
+      "cracha": 1715,
+      "nome": "Marcia Borges de Lima Xavier",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"5947291819\""
+      ]
+    },
+    {
+      "idx": 1123,
+      "cracha": 1815,
+      "nome": "Walter Carreiro",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"1083912801\""
+      ]
+    },
+    {
+      "idx": 1124,
+      "cracha": 1816,
+      "nome": "Maria de Lourdes C. Carreiro",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"1081930802\""
+      ]
+    },
+    {
+      "idx": 1127,
+      "cracha": 1819,
+      "nome": "Mérces Monteiro Brito",
+      "avisos": [
+        "CPF inválido: 11296972874"
+      ]
+    },
+    {
+      "idx": 1145,
+      "cracha": 1917,
+      "nome": "Ives Cavalcante Monteiro",
+      "avisos": [
+        "Estado civil não reconhecido: \"Outros\""
+      ]
+    },
+    {
+      "idx": 1167,
+      "cracha": 6271,
+      "nome": "Ed Carlos Hamilton Jorge",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"107004717808\""
+      ]
+    },
+    {
+      "idx": 1199,
+      "cracha": 2037,
+      "nome": "Sueli Aparecida Rodrigues dos Santos",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"4468850884\""
+      ]
+    },
+    {
+      "idx": 1213,
+      "cracha": 2055,
+      "nome": "Nelson de A. Neto",
+      "avisos": [
+        "Estado civil não reconhecido: \"Outros\""
+      ]
+    },
+    {
+      "idx": 1234,
+      "cracha": 2091,
+      "nome": "Marta Janete de Almeida",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"2303245842\""
+      ]
+    },
+    {
+      "idx": 1250,
+      "cracha": 2181,
+      "nome": "Catarina da Silva",
+      "avisos": [
+        "Estado civil não reconhecido: \"Outros\""
+      ]
+    },
+    {
+      "idx": 1252,
+      "cracha": 2184,
+      "nome": "Carla Fogaça Andrino",
+      "avisos": [
+        "CPF inválido: 14998076331"
+      ]
+    },
+    {
+      "idx": 1286,
+      "cracha": 2437,
+      "nome": "Edson Renato de Souza",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"1470569850\""
+      ]
+    },
+    {
+      "idx": 1296,
+      "cracha": 2267,
+      "nome": "Antonio Brito dos Santos",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"298463660\""
+      ]
+    },
+    {
+      "idx": 1377,
+      "cracha": 6462,
+      "nome": "Eliane Omena dos Santos",
+      "avisos": [
+        "Data não reconhecida: \"MAIOR\"",
+        "Estado civil não reconhecido: \"não informou\""
+      ]
+    },
+    {
+      "idx": 1423,
+      "cracha": 2543,
+      "nome": "Lais Rodrigues da Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"3820702830\""
+      ]
+    },
+    {
+      "idx": 1434,
+      "cracha": 2566,
+      "nome": "Odila Cucchi de Oliveira",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"8625160808\""
+      ]
+    },
+    {
+      "idx": 1496,
+      "cracha": 2655,
+      "nome": "Jonathas Chedid",
+      "avisos": [
+        "CPF inválido: 084333608-62"
+      ]
+    },
+    {
+      "idx": 1502,
+      "cracha": 2663,
+      "nome": "Daiane Vigati Camisa Nova",
+      "avisos": [
+        "CPF inválido: 384.488.288-66"
+      ]
+    },
+    {
+      "idx": 1510,
+      "cracha": 2677,
+      "nome": "Ioneide Neves Lucena",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"5650864802\""
+      ]
+    },
+    {
+      "idx": 1524,
+      "cracha": 2695,
+      "nome": "Maria Helena dos Santos",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"17527740\""
+      ]
+    },
+    {
+      "idx": 1526,
+      "cracha": 2698,
+      "nome": "Dalva Maria de Oliveira",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"1223331873\""
+      ]
+    },
+    {
+      "idx": 1550,
+      "cracha": 2789,
+      "nome": "Ricardo Ferreira Leite",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"133845893\""
+      ]
+    },
+    {
+      "idx": 1618,
+      "cracha": 2903,
+      "nome": "Magda Aparecida Felix de Barros",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"147157838\""
+      ]
+    },
+    {
+      "idx": 1642,
+      "cracha": 2934,
+      "nome": "Roquelia Santos Pinto Lopes",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"2950508383\""
+      ]
+    },
+    {
+      "idx": 1643,
+      "cracha": 2935,
+      "nome": "Neusa Morilla Gorzoni",
+      "avisos": [
+        "CPF inválido: 276116788-57"
+      ]
+    },
+    {
+      "idx": 1703,
+      "cracha": 2393,
+      "nome": "Anderson Barbosa Martins",
+      "avisos": [
+        "CPF inválido: 38268242856"
+      ]
+    },
+    {
+      "idx": 1815,
+      "cracha": 3227,
+      "nome": "Joana Aparecida de Campos",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"8435318869\""
+      ]
+    },
+    {
+      "idx": 1840,
+      "cracha": 3257,
+      "nome": "Edvilson Antônio Marcelino de Souza",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"1019886803\""
+      ]
+    },
+    {
+      "idx": 1911,
+      "cracha": 3411,
+      "nome": "Ricardo Carelli",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"6021944828\""
+      ]
+    },
+    {
+      "idx": 1960,
+      "cracha": 3468,
+      "nome": "Neusa Aparecida Vitorino Fraga",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"1355569885\""
+      ]
+    },
+    {
+      "idx": 2027,
+      "cracha": 3555,
+      "nome": "Ana Lucia Santos de Oliveira",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"FUNCIONÁRIA\""
+      ]
+    },
+    {
+      "idx": 2085,
+      "cracha": 3692,
+      "nome": "Mauricio Antonio Da Cruz",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"1163718890\""
+      ]
+    },
+    {
+      "idx": 2152,
+      "cracha": 6463,
+      "nome": "Gabriela Dias Porto Coelho",
+      "avisos": [
+        "Estado civil não reconhecido: \"não informou\""
+      ]
+    },
+    {
+      "idx": 2238,
+      "cracha": 7832,
+      "nome": "Gizelda Aparecida Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"gizeldaaparecidasilva@gmail.com\""
+      ]
+    },
+    {
+      "idx": 2360,
+      "cracha": 4333,
+      "nome": "Roberta Curti",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"7597459866\""
+      ]
+    },
+    {
+      "idx": 2452,
+      "cracha": 4456,
+      "nome": "Aparecida de Fátima Scarlino",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"2303763800\""
+      ]
+    },
+    {
+      "idx": 2582,
+      "cracha": 4652,
+      "nome": "Claudio Carbonaro",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"3639146840\""
+      ]
+    },
+    {
+      "idx": 2593,
+      "cracha": 4663,
+      "nome": "Luciana Alvares Duarte",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"1591689708\""
+      ]
+    },
+    {
+      "idx": 2607,
+      "cracha": 4678,
+      "nome": "Márcia Galdino de Freitas",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"6635191879\""
+      ]
+    },
+    {
+      "idx": 2619,
+      "cracha": 3678,
+      "nome": "Isidoro Pereira Nobre",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"6571475839\""
+      ]
+    },
+    {
+      "idx": 2623,
+      "cracha": 4694,
+      "nome": "Catharina Soasiotta Ciolli",
+      "avisos": [
+        "Estado civil não reconhecido: \"Outros\""
+      ]
+    },
+    {
+      "idx": 2660,
+      "cracha": 4736,
+      "nome": "Ana Cristina de Almeida",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"3931542890\""
+      ]
+    },
+    {
+      "idx": 2663,
+      "cracha": 4739,
+      "nome": "Flavia de Lucia",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"3887183401\""
+      ]
+    },
+    {
+      "idx": 2741,
+      "cracha": 4818,
+      "nome": "Rebeca Cristiana de Oliveira Santos",
+      "avisos": [
+        "CPF inválido: 44054678899"
+      ]
+    },
+    {
+      "idx": 2754,
+      "cracha": 4832,
+      "nome": "Maria Rachel Tolosa Jorge",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"2950316891\""
+      ]
+    },
+    {
+      "idx": 2824,
+      "cracha": 4904,
+      "nome": "Anderson dos Santos Santana",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"7782175828\""
+      ]
+    },
+    {
+      "idx": 2893,
+      "cracha": 384,
+      "nome": "José Luiz Gallão",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"7021688220\""
+      ]
+    },
+    {
+      "idx": 2901,
+      "cracha": 4985,
+      "nome": "José Marcelo Sigoli",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"761050833\""
+      ]
+    },
+    {
+      "idx": 2907,
+      "cracha": 4992,
+      "nome": "Zuleide Suely dos Santos Cordeiro",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"5560990442\""
+      ]
+    },
+    {
+      "idx": 2908,
+      "cracha": 4993,
+      "nome": "José Carlos dos Santos Oliveira",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"6970998495\""
+      ]
+    },
+    {
+      "idx": 3109,
+      "cracha": 5200,
+      "nome": "Washington Luiz Leandro",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"8924484826\""
+      ]
+    },
+    {
+      "idx": 3222,
+      "cracha": 5319,
+      "nome": "Vitor Hugo de Castro Maciel",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"5486105509\""
+      ]
+    },
+    {
+      "idx": 3304,
+      "cracha": 5403,
+      "nome": "Sérgio Paco de Carvalho",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"3828977901\""
+      ]
+    },
+    {
+      "idx": 3355,
+      "cracha": 5455,
+      "nome": "Eduardo Oliveira Couto",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"6616765873\""
+      ]
+    },
+    {
+      "idx": 3382,
+      "cracha": 5483,
+      "nome": "Ronaldo da Fonseca",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"9146746846\""
+      ]
+    },
+    {
+      "idx": 3511,
+      "cracha": 5614,
+      "nome": "Mauro Jorcovix",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"7262776819\""
+      ]
+    },
+    {
+      "idx": 3583,
+      "cracha": 6329,
+      "nome": "Larissa Carolina Novaes Marchesano",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"Rg 38.031.001-6\""
+      ]
+    },
+    {
+      "idx": 3607,
+      "cracha": 5710,
+      "nome": "Ademilde Gomes Costa",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"6360735806\""
+      ]
+    },
+    {
+      "idx": 3629,
+      "cracha": 5732,
+      "nome": "Denise Daiane Conceição Guimarães",
+      "avisos": [
+        "CPF inválido: 422.499.649-07"
+      ]
+    },
+    {
+      "idx": 3669,
+      "cracha": 5772,
+      "nome": "Bianca Delibe Beneduci",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"50.438.822-8\""
+      ]
+    },
+    {
+      "idx": 3680,
+      "cracha": 5783,
+      "nome": "Ana Beatriz Pietracatelli Pereira",
+      "avisos": [
+        "CPF inválido: 36904537909"
+      ]
+    },
+    {
+      "idx": 3727,
+      "cracha": 4520,
+      "nome": "Liliam Franciane Claudino",
+      "avisos": [
+        "CPF inválido: 19475897944"
+      ]
+    },
+    {
+      "idx": 3838,
+      "cracha": 5949,
+      "nome": "João Guilherme Pereira Borges",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"56.733.235-4\""
+      ]
+    },
+    {
+      "idx": 3856,
+      "cracha": 5968,
+      "nome": "Gilson Pereira da Silva",
+      "avisos": [
+        "Data não reconhecida: \"MAIOR\""
+      ]
+    },
+    {
+      "idx": 3907,
+      "cracha": 6707,
+      "nome": "Lívia Araujo Sanches",
+      "avisos": [
+        "CPF inválido: 368.422.988-30"
+      ]
+    },
+    {
+      "idx": 3931,
+      "cracha": 6057,
+      "nome": "Maria Joseane Da Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"3549718403\"",
+        "Estado civil não reconhecido: \"União Estável\""
+      ]
+    },
+    {
+      "idx": 3936,
+      "cracha": 6063,
+      "nome": "Lucimara Lima Pueyo",
+      "avisos": [
+        "CPF inválido: 27343229841"
+      ]
+    },
+    {
+      "idx": 3938,
+      "cracha": 6065,
+      "nome": "Marileide Silva De Sousa",
+      "avisos": [
+        "Estado civil não reconhecido: \"União Estável\""
+      ]
+    },
+    {
+      "idx": 3952,
+      "cracha": 6080,
+      "nome": "Filipe Uehara",
+      "avisos": [
+        "Estado civil não reconhecido: \"União Estável\""
+      ]
+    },
+    {
+      "idx": 3953,
+      "cracha": 6081,
+      "nome": "Laís Cristina Dias Pereira",
+      "avisos": [
+        "Estado civil não reconhecido: \"União Estável\""
+      ]
+    },
+    {
+      "idx": 3965,
+      "cracha": 6094,
+      "nome": "Suzane Almeida Da Silva",
+      "avisos": [
+        "Estado civil não reconhecido: \"União Estável\""
+      ]
+    },
+    {
+      "idx": 3966,
+      "cracha": 6095,
+      "nome": "Diego Cavalcante Bastos",
+      "avisos": [
+        "Estado civil não reconhecido: \"União Estável\""
+      ]
+    },
+    {
+      "idx": 3978,
+      "cracha": 6108,
+      "nome": "Laiene Lança Cunha",
+      "avisos": [
+        "Estado civil não reconhecido: \"União Estável\""
+      ]
+    },
+    {
+      "idx": 3983,
+      "cracha": 6114,
+      "nome": "Carla Regina Bullara",
+      "avisos": [
+        "Estado civil não reconhecido: \"União Estável\""
+      ]
+    },
+    {
+      "idx": 3989,
+      "cracha": 6122,
+      "nome": "Andreia Cristina De Paula",
+      "avisos": [
+        "Estado civil não reconhecido: \"União Estável\""
+      ]
+    },
+    {
+      "idx": 4006,
+      "cracha": 6143,
+      "nome": "Katia Maria Gardin",
+      "avisos": [
+        "CPF inválido: 084333608-62"
+      ]
+    },
+    {
+      "idx": 4032,
+      "cracha": 6181,
+      "nome": "Maria Aparecida Domingues Dias",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"6541310823\""
+      ]
+    },
+    {
+      "idx": 4043,
+      "cracha": 6195,
+      "nome": "Gabriel Garcia Dias",
+      "avisos": [
+        "Estado civil não reconhecido: \"União Estável\""
+      ]
+    },
+    {
+      "idx": 4053,
+      "cracha": 6205,
+      "nome": "Rosely Max Da Rocha",
+      "avisos": [
+        "Estado civil não reconhecido: \"União Estável\""
+      ]
+    },
+    {
+      "idx": 4054,
+      "cracha": 6206,
+      "nome": "Mauro Sérgio De Oliveira Júnior",
+      "avisos": [
+        "Estado civil não reconhecido: \"União Estável\""
+      ]
+    },
+    {
+      "idx": 4115,
+      "cracha": 6466,
+      "nome": "Lucitelma Galeno de Araujo",
+      "avisos": [
+        "CPF inválido: 327.443.313-08"
+      ]
+    },
+    {
+      "idx": 4117,
+      "cracha": 6275,
+      "nome": "Leidjane da Silva Sousa",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"86.900.024-13\""
+      ]
+    },
+    {
+      "idx": 4143,
+      "cracha": 6301,
+      "nome": "Camila Chiaradia",
+      "avisos": [
+        "CPF inválido: 33828086844"
+      ]
+    },
+    {
+      "idx": 4182,
+      "cracha": 6341,
+      "nome": "Adriana dos Santos",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"46.683.910-8\""
+      ]
+    },
+    {
+      "idx": 4251,
+      "cracha": 6410,
+      "nome": "Jhenifer Martins Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"380.361.975-5\""
+      ]
+    },
+    {
+      "idx": 4255,
+      "cracha": 6414,
+      "nome": "Vanderlei Dini",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"6657018-86\""
+      ]
+    },
+    {
+      "idx": 4261,
+      "cracha": 6420,
+      "nome": "Adeilton Plácido dos Santos Júnior",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"3966664500\""
+      ]
+    },
+    {
+      "idx": 4262,
+      "cracha": 6421,
+      "nome": "Gabriela Oliveira e Costa Plácido",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"5495304527\""
+      ]
+    },
+    {
+      "idx": 4271,
+      "cracha": 6430,
+      "nome": "Luiz Guilherme Marcelino",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"37.514.689-1\""
+      ]
+    },
+    {
+      "idx": 4277,
+      "cracha": 6951,
+      "nome": "Luzia de Fátima Oliveira da Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"1939865824\""
+      ]
+    },
+    {
+      "idx": 4287,
+      "cracha": 3597,
+      "nome": "Marcela Merlo",
+      "avisos": [
+        "CPF inválido: 21381208882"
+      ]
+    },
+    {
+      "idx": 4289,
+      "cracha": 6448,
+      "nome": "Sidmar Neves de Almeida",
+      "avisos": [
+        "CPF inválido: 316.311.218-09"
+      ]
+    },
+    {
+      "idx": 4302,
+      "cracha": 6950,
+      "nome": "Márcio da Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"2173587803\""
+      ]
+    },
+    {
+      "idx": 4306,
+      "cracha": 6667,
+      "nome": "Margarida Maria Ruivo",
+      "avisos": [
+        "CPF inválido: 279.919.978-57"
+      ]
+    },
+    {
+      "idx": 4307,
+      "cracha": 2612,
+      "nome": "Maria Antonieta Duarte",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"5640700840\""
+      ]
+    },
+    {
+      "idx": 4316,
+      "cracha": 1268,
+      "nome": "Maria da Conceição Tiburtino de Souza",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"2955894850\""
+      ]
+    },
+    {
+      "idx": 4317,
+      "cracha": 6476,
+      "nome": "Nilma Francisca da Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"não tem na ficha\""
+      ]
+    },
+    {
+      "idx": 4318,
+      "cracha": 6477,
+      "nome": "Patricia Alves de Oliveira",
+      "avisos": [
+        "Estado civil não reconhecido: \"não informou\""
+      ]
+    },
+    {
+      "idx": 4368,
+      "cracha": 6527,
+      "nome": "Clinger Lagoa Bellei",
+      "avisos": [
+        "Data não reconhecida: \"MAIOR\""
+      ]
+    },
+    {
+      "idx": 4371,
+      "cracha": 6530,
+      "nome": "Eloisa Helena do Amaral",
+      "avisos": [
+        "Data não reconhecida: \"MAIOR\""
+      ]
+    },
+    {
+      "idx": 4375,
+      "cracha": 1985,
+      "nome": "Maria do Carmo Cavalcanti da Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"6433225829\""
+      ]
+    },
+    {
+      "idx": 4381,
+      "cracha": 6540,
+      "nome": "Luciana Bernardi",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"2614035\""
+      ]
+    },
+    {
+      "idx": 4382,
+      "cracha": 6541,
+      "nome": "Sérgio Manoel da Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"54.829.129-9\""
+      ]
+    },
+    {
+      "idx": 4383,
+      "cracha": 6542,
+      "nome": "Maria Cristina Silvério Miguel",
+      "avisos": [
+        "Data não reconhecida: \"MAIOR\""
+      ]
+    },
+    {
+      "idx": 4384,
+      "cracha": 6543,
+      "nome": "Maria de Lourdes Silva",
+      "avisos": [
+        "Data não reconhecida: \"MAIOR\""
+      ]
+    },
+    {
+      "idx": 4386,
+      "cracha": 6545,
+      "nome": "Nadir Francisco do Amaral",
+      "avisos": [
+        "Data não reconhecida: \"MAIOR\""
+      ]
+    },
+    {
+      "idx": 4399,
+      "cracha": 6558,
+      "nome": "Cristiane Chaves Cordeiro",
+      "avisos": [
+        "CPF inválido: 322 268 018 85"
+      ]
+    },
+    {
+      "idx": 4400,
+      "cracha": 6559,
+      "nome": "Gabriel Cordeiro de Araújo",
+      "avisos": [
+        "CPF inválido: 458 150 878 08"
+      ]
+    },
+    {
+      "idx": 4404,
+      "cracha": 6563,
+      "nome": "Anna Paula da Silva Barreto",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"267.679.688-6\""
+      ]
+    },
+    {
+      "idx": 4415,
+      "cracha": 6575,
+      "nome": "Marinalva Felix",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"275697050\""
+      ]
+    },
+    {
+      "idx": 4431,
+      "cracha": 6591,
+      "nome": "Ana Rosa Chagas Cavalcanti",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"6008588479\""
+      ]
+    },
+    {
+      "idx": 4446,
+      "cracha": 6606,
+      "nome": "Dolores Helena Lopes Camino",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"9514857-7\""
+      ]
+    },
+    {
+      "idx": 4447,
+      "cracha": 6607,
+      "nome": "Bruna Camino do Carmo Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"38912229-4\""
+      ]
+    },
+    {
+      "idx": 4461,
+      "cracha": 6621,
+      "nome": "Maria Margareth Oliveira da Silva Souza",
+      "avisos": [
+        "CPF inválido: 417 535 872. 87"
+      ]
+    },
+    {
+      "idx": 4467,
+      "cracha": 6627,
+      "nome": "Adenildo Gomes de Oliveira",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"8288175880\""
+      ]
+    },
+    {
+      "idx": 4483,
+      "cracha": 6643,
+      "nome": "Victor Daniel Costa de Freitas",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"450.878.88-28\""
+      ]
+    },
+    {
+      "idx": 4513,
+      "cracha": 6673,
+      "nome": "Solange Lourdes Boccalao",
+      "avisos": [
+        "CPF inválido: 173.270.015-80"
+      ]
+    },
+    {
+      "idx": 4517,
+      "cracha": 6677,
+      "nome": "Maria Luiza Silva Queiroz",
+      "avisos": [
+        "CPF inválido: 423974388-20"
+      ]
+    },
+    {
+      "idx": 4550,
+      "cracha": 6710,
+      "nome": "Severino Joaquim da Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"18.313.403-5\""
+      ]
+    },
+    {
+      "idx": 4554,
+      "cracha": 6714,
+      "nome": "Davi Joaquim Correia",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"57.706.452-6\""
+      ]
+    },
+    {
+      "idx": 4555,
+      "cracha": 6715,
+      "nome": "Regina Célia Maciel",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"8.619.681-9\""
+      ]
+    },
+    {
+      "idx": 4556,
+      "cracha": 6716,
+      "nome": "Gustavo Leandro de Lira Santos",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"62.358.341-0\""
+      ]
+    },
+    {
+      "idx": 4557,
+      "cracha": 6717,
+      "nome": "Thiago Batista dos Santos",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"35657809-4\""
+      ]
+    },
+    {
+      "idx": 4558,
+      "cracha": 6718,
+      "nome": "Lucas Sabino",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"37.762.005-1\""
+      ]
+    },
+    {
+      "idx": 4559,
+      "cracha": 6719,
+      "nome": "Flavio Climas Ferreira",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"33.233.400-4\""
+      ]
+    },
+    {
+      "idx": 4560,
+      "cracha": 6720,
+      "nome": "Israel de Paula",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"44.754.394-5\""
+      ]
+    },
+    {
+      "idx": 4561,
+      "cracha": 6721,
+      "nome": "Nelson Honorato de Paula",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"22.307.270-9\""
+      ]
+    },
+    {
+      "idx": 4562,
+      "cracha": 6722,
+      "nome": "Marco Aurélio Moreira de Sales Santos",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"22.592.189-3\""
+      ]
+    },
+    {
+      "idx": 4563,
+      "cracha": 6723,
+      "nome": "Silvano Alves Siqueira",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"41.634.279-6\""
+      ]
+    },
+    {
+      "idx": 4564,
+      "cracha": 6724,
+      "nome": "William da Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"48.950.890-X\""
+      ]
+    },
+    {
+      "idx": 4565,
+      "cracha": 6725,
+      "nome": "Paulo Andre da Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"MG23.545.056\""
+      ]
+    },
+    {
+      "idx": 4566,
+      "cracha": 6726,
+      "nome": "Marcos Antonio Machado",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"17.095.923-5\""
+      ]
+    },
+    {
+      "idx": 4567,
+      "cracha": 6727,
+      "nome": "Angelo Cintra Correa",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"15.229.181-7\""
+      ]
+    },
+    {
+      "idx": 4568,
+      "cracha": 6728,
+      "nome": "Engelberto Galvão da Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"21.543.963-6\""
+      ]
+    },
+    {
+      "idx": 4583,
+      "cracha": 6471,
+      "nome": "Mariana Nunes Oliveira",
+      "avisos": [
+        "Data não reconhecida: \"MAIOR\""
+      ]
+    },
+    {
+      "idx": 4596,
+      "cracha": 6756,
+      "nome": "Namá Miguel Saraiva",
+      "avisos": [
+        "Data não reconhecida: \"Maior\""
+      ]
+    },
+    {
+      "idx": 4598,
+      "cracha": 6758,
+      "nome": "David Fonseca Nascimento",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"43.048.253-X\""
+      ]
+    },
+    {
+      "idx": 4599,
+      "cracha": 6759,
+      "nome": "Wagner Mariano",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"19466871\""
+      ]
+    },
+    {
+      "idx": 4600,
+      "cracha": 6760,
+      "nome": "Thomas Angelo Schianti Polovodoff",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"52.473.260-7\""
+      ]
+    },
+    {
+      "idx": 4603,
+      "cracha": 6763,
+      "nome": "Vanderlei de Souza",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"4.775.251-8\""
+      ]
+    },
+    {
+      "idx": 4606,
+      "cracha": 6766,
+      "nome": "Ana Karolina de Almeida Souza",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"50.335.701-7\""
+      ]
+    },
+    {
+      "idx": 4664,
+      "cracha": 6824,
+      "nome": "Lidia Maria F. Amiki",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"O5096992861\""
+      ]
+    },
+    {
+      "idx": 4670,
+      "cracha": 6830,
+      "nome": "Lucimar César de Freitas",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"9249022808\""
+      ]
+    },
+    {
+      "idx": 4711,
+      "cracha": 6871,
+      "nome": "Clara Alicia Santos",
+      "avisos": [
+        "CPF inválido: 57329900793"
+      ]
+    },
+    {
+      "idx": 4800,
+      "cracha": 6960,
+      "nome": "Solange Aparecida Natali de Azevedo",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"7088629852\""
+      ]
+    },
+    {
+      "idx": 4830,
+      "cracha": 6990,
+      "nome": "Ivonete da Costa Araújo",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"2639590405\""
+      ]
+    },
+    {
+      "idx": 4833,
+      "cracha": 6993,
+      "nome": "Rodrigo Alexandre Barbosa Gonçalves",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"20466008\""
+      ]
+    },
+    {
+      "idx": 4884,
+      "cracha": 7044,
+      "nome": "Tereza Cristina dos Reis",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"7107729802\""
+      ]
+    },
+    {
+      "idx": 4902,
+      "cracha": 7062,
+      "nome": "Lucina Tieko Makiyama",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"6646772827\""
+      ]
+    },
+    {
+      "idx": 4903,
+      "cracha": 6474,
+      "nome": "Marlete de Souza Santos",
+      "avisos": [
+        "CPF inválido: 004.956.025-51"
+      ]
+    },
+    {
+      "idx": 4968,
+      "cracha": 7128,
+      "nome": "Kleber José Vieira",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"8750791648\""
+      ]
+    },
+    {
+      "idx": 4977,
+      "cracha": 7137,
+      "nome": "Daniel Blanco",
+      "avisos": [
+        "CPF inválido: 92225306854"
+      ]
+    },
+    {
+      "idx": 5005,
+      "cracha": 7165,
+      "nome": "Mara Regina Molina",
+      "avisos": [
+        "Data não reconhecida: \"0/03/1960\""
+      ]
+    },
+    {
+      "idx": 5044,
+      "cracha": 7204,
+      "nome": "Antonia Keliane Bezerra",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"4564959328\""
+      ]
+    },
+    {
+      "idx": 5073,
+      "cracha": 7234,
+      "nome": "Alessandra Dias Santa Clara Kalil",
+      "avisos": [
+        "CPF inválido: 109.840.438-16"
+      ]
+    },
+    {
+      "idx": 5103,
+      "cracha": 6031,
+      "nome": "Maurício Victor",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"5116218848\""
+      ]
+    },
+    {
+      "idx": 5130,
+      "cracha": 7290,
+      "nome": "Leandro Gomes de Menezes",
+      "avisos": [
+        "CPF inválido: 22913251839"
+      ]
+    },
+    {
+      "idx": 5150,
+      "cracha": 7310,
+      "nome": "Daniel Pereira Lima",
+      "avisos": [
+        "CPF inválido: 56880401825"
+      ]
+    },
+    {
+      "idx": 5211,
+      "cracha": 7371,
+      "nome": "João Henrique da Costa Leme",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"93.539.816-38\""
+      ]
+    },
+    {
+      "idx": 5224,
+      "cracha": 7384,
+      "nome": "Letícia Spricido Batista",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"4.013.700-38\""
+      ]
+    },
+    {
+      "idx": 5237,
+      "cracha": 7397,
+      "nome": "Clarice Torquato Gomes da Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"3542278823\""
+      ]
+    },
+    {
+      "idx": 5244,
+      "cracha": 7404,
+      "nome": "Marcos Rodrigues Araujo",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"8866409545\""
+      ]
+    },
+    {
+      "idx": 5249,
+      "cracha": 7409,
+      "nome": "Maria Helena Baldan Lemes",
+      "avisos": [
+        "CPF inválido: 43608549816"
+      ]
+    },
+    {
+      "idx": 5278,
+      "cracha": 7438,
+      "nome": "Mariana Freitas de Oliveira",
+      "avisos": [
+        "CPF inválido: 35702324800"
+      ]
+    },
+    {
+      "idx": 5308,
+      "cracha": 7468,
+      "nome": "Deise Vieira",
+      "avisos": [
+        "CPF inválido: 15735864845"
+      ]
+    },
+    {
+      "idx": 5366,
+      "cracha": 7724,
+      "nome": "Patrícia Carmo Moreira",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"460.252.6888-86\""
+      ]
+    },
+    {
+      "idx": 5404,
+      "cracha": 7564,
+      "nome": "Vinicius Almeida Bueno",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"49376608-60\""
+      ]
+    },
+    {
+      "idx": 5435,
+      "cracha": 7595,
+      "nome": "Ana Beatriz Ferreira de Souza",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"583578317\""
+      ]
+    },
+    {
+      "idx": 5440,
+      "cracha": 7600,
+      "nome": "Beatriz Brandão Vitório",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"661841856\""
+      ]
+    },
+    {
+      "idx": 5492,
+      "cracha": 7652,
+      "nome": "Anna Grando",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"5503039955\""
+      ]
+    },
+    {
+      "idx": 5499,
+      "cracha": 7659,
+      "nome": "IZILDA APARECIDA DE SOUZA",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"5.773.070-2\""
+      ]
+    },
+    {
+      "idx": 5529,
+      "cracha": 7689,
+      "nome": "Henry Chaves Damas",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"1724989294\""
+      ]
+    },
+    {
+      "idx": 5630,
+      "cracha": 136,
+      "nome": "Rita de Cassia G. Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"7800478858\""
+      ]
+    },
+    {
+      "idx": 5636,
+      "cracha": 7800,
+      "nome": "Daniele Apolinário Zucchi",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"5609299942\""
+      ]
+    },
+    {
+      "idx": 5641,
+      "cracha": 7805,
+      "nome": "Veronica Cesar Ton Gimenex",
+      "avisos": [
+        "CPF inválido: 17343608877"
+      ]
+    },
+    {
+      "idx": 5648,
+      "cracha": 7812,
+      "nome": "Caio Camargo",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"88.888.888-88\""
+      ]
+    },
+    {
+      "idx": 5666,
+      "cracha": 7825,
+      "nome": "Roselandia Gomes de Carvalho",
+      "avisos": [
+        "CPF inválido: 085.875.219-98"
+      ]
+    },
+    {
+      "idx": 5690,
+      "cracha": 7854,
+      "nome": "Ludmila Pinheiro",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"2089182725\""
+      ]
+    },
+    {
+      "idx": 5692,
+      "cracha": 7856,
+      "nome": "Sabrina Moura Jacob Moreira",
+      "avisos": [
+        "Data não reconhecida: \"13081897\""
+      ]
+    },
+    {
+      "idx": 5702,
+      "cracha": 7867,
+      "nome": "Maria Elizabeth de Carvalho",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"7560636802\""
+      ]
+    },
+    {
+      "idx": 5708,
+      "cracha": 7873,
+      "nome": "Rosa Lima Soares Dantas Martins",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"6022845467\""
+      ]
+    },
+    {
+      "idx": 5712,
+      "cracha": 6820,
+      "nome": "Sonia Regina Araujo Silva",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"777069809\""
+      ]
+    },
+    {
+      "idx": 5737,
+      "cracha": 2565,
+      "nome": "Valentina Datre Garcia Costa",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"9298313810\""
+      ]
+    },
+    {
+      "idx": 5770,
+      "cracha": 7936,
+      "nome": "Rodrigo Obtusa Vieira de Oliveira",
+      "avisos": [
+        "Data não reconhecida: \"24/05/201\""
+      ]
+    },
+    {
+      "idx": 5809,
+      "cracha": 7995,
+      "nome": "Bryan Emmanuel da Conceição de Almeida",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"486870758\""
+      ]
+    },
+    {
+      "idx": 5810,
+      "cracha": 7996,
+      "nome": "Isabella Santana",
+      "avisos": [
+        "CPF inválido: 45281546883"
+      ]
+    },
+    {
+      "idx": 5817,
+      "cracha": 8003,
+      "nome": "Hanna Kévylla da Silva Pereira",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"5206911480\""
+      ]
+    },
+    {
+      "idx": 5841,
+      "cracha": 8027,
+      "nome": "Fernando Vinicius da Silva Landevar Correa",
+      "avisos": [
+        "CPF inválido: 55084375856"
+      ]
+    },
+    {
+      "idx": 5851,
+      "cracha": 8036,
+      "nome": "Mariana ferreira scherrer",
+      "avisos": [
+        "Data não reconhecida: \"14/03/07\"",
+        "CPF inválido: 49258003850"
+      ]
+    },
+    {
+      "idx": 5858,
+      "cracha": 7871,
+      "nome": "Genny Souza",
+      "avisos": [
+        "CPF não tem 11 dígitos: \"2685489436\""
+      ]
+    },
+    {
+      "idx": 5862,
+      "cracha": 8047,
+      "nome": "Paulo Micillo junior",
+      "avisos": [
+        "CPF inválido: 40920609895"
+      ]
+    }
+  ]
+}

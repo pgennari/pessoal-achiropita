@@ -1,16 +1,7 @@
-import {
-  Timestamp,
-  deleteDoc,
-  doc,
-  serverTimestamp,
-  updateDoc,
-} from "firebase/firestore";
-import { db } from "./firebase";
+import { api } from "./api";
+import { queryClient } from "./queryClient";
 import { Perfil, Usuario } from "./tipos";
 import { Sessao } from "./sessao";
-import { registrarEvento } from "./auditoria";
-
-const COL = "usuarios";
 
 export class ErroUsuario extends Error {
   campos: Record<string, string>;
@@ -20,8 +11,6 @@ export class ErroUsuario extends Error {
   }
 }
 
-// Form de edicao de usuario existente. Novos usuarios entram pelo
-// fluxo de convite — nao ha mais provisionamento direto sem convite.
 export interface DadosUsuarioForm {
   email: string;
   nome: string;
@@ -32,26 +21,17 @@ export interface DadosUsuarioForm {
 
 const PERFIS_VALIDOS: Perfil[] = ["ADM", "ORG", "CRD", "EQP", "OPC", "REC"];
 
-export function usuarioDeSnap(
-  uid: string,
-  data: Record<string, unknown>
-): Usuario {
-  const c = data.criadoEm as Timestamp | string | null | undefined;
-  const a = data.atualizadoEm as Timestamp | string | null | undefined;
+export function usuarioDeSnap(uid: string, data: Record<string, unknown>): Usuario {
   return {
     uid,
     email: (data.email as string) ?? "",
     nome: (data.nome as string) ?? "",
     perfil: (data.perfil as Perfil) ?? "EQP",
     pessoaId: (data.pessoaId as string) || undefined,
-    barracasCRD: Array.isArray(data.barracasCRD)
-      ? (data.barracasCRD as string[])
-      : undefined,
+    barracasCRD: Array.isArray(data.barracasCRD) ? (data.barracasCRD as string[]) : undefined,
     tokenConvite: (data.tokenConvite as string) || undefined,
-    criadoEm:
-      c instanceof Timestamp ? c.toDate().toISOString() : (c as string) || "",
-    atualizadoEm:
-      a instanceof Timestamp ? a.toDate().toISOString() : (a as string) || "",
+    criadoEm: (data.criadoEm as string) || "",
+    atualizadoEm: (data.atualizadoEm as string) || "",
   };
 }
 
@@ -66,45 +46,24 @@ function validar(d: DadosUsuarioForm): Record<string, string> {
   return erros;
 }
 
-function payload(d: DadosUsuarioForm): Record<string, unknown> {
-  return {
-    email: d.email.trim().toLowerCase(),
-    nome: d.nome.trim(),
-    perfil: d.perfil,
-    pessoaId: d.pessoaId?.trim() || null,
-    barracasCRD:
-      d.perfil === "CRD" && d.barracasCRD ? d.barracasCRD : null,
-  };
-}
-
 export async function atualizarUsuario(
-  sessao: Sessao,
+  _sessao: Sessao,
   uid: string,
   dados: DadosUsuarioForm
 ): Promise<void> {
   const erros = validar(dados);
   if (Object.keys(erros).length) throw new ErroUsuario(erros);
-  await updateDoc(doc(db(), COL, uid), {
-    ...payload(dados),
-    atualizadoEm: serverTimestamp(),
+  await api.put(`/api/usuarios/${uid}`, {
+    email: dados.email.trim().toLowerCase(),
+    nome: dados.nome.trim(),
+    perfil: dados.perfil,
+    pessoaId: dados.pessoaId?.trim() || null,
+    barracasCRD: dados.perfil === "CRD" && dados.barracasCRD ? dados.barracasCRD : null,
   });
-  await registrarEvento(
-    sessao,
-    "usuario.atualizou",
-    `usuarios/${uid}`,
-    `${dados.nome} (${dados.perfil})`
-  );
+  await queryClient.invalidateQueries({ queryKey: ["usuarios"] });
 }
 
-export async function removerUsuario(
-  sessao: Sessao,
-  usuario: Usuario
-): Promise<void> {
-  await deleteDoc(doc(db(), COL, usuario.uid));
-  await registrarEvento(
-    sessao,
-    "usuario.removeu",
-    `usuarios/${usuario.uid}`,
-    `${usuario.nome} (${usuario.email})`
-  );
+export async function removerUsuario(_sessao: Sessao, usuario: Usuario): Promise<void> {
+  await api.delete(`/api/usuarios/${usuario.uid}`);
+  await queryClient.invalidateQueries({ queryKey: ["usuarios"] });
 }

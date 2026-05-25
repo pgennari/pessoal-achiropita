@@ -122,21 +122,8 @@ export async function redimensionarParaJpeg(
 ): Promise<Blob> {
   let entrada: Blob = arquivo;
 
-  // HEIC: lazy import só quando o formato exige.
-  const tipo = (arquivo as File).type || "";
-  const ehHeic =
-    tipo === "image/heic" ||
-    tipo === "image/heif" ||
-    /\.heic$|\.heif$/i.test((arquivo as File).name || "");
-  if (ehHeic) {
-    const { default: heic2any } = await import("heic2any");
-    const convertido = await heic2any({
-      blob: arquivo,
-      toType: "image/jpeg",
-      quality: 0.92,
-    });
-    entrada = Array.isArray(convertido) ? convertido[0] : convertido;
-  }
+  // TODO(US-07-01): conversão HEIC removida do MVP junto com o upload de foto.
+  void arquivo;
 
   const url = URL.createObjectURL(entrada);
   try {

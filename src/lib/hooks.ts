@@ -1,13 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  collection,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-} from "firebase/firestore";
-import { db } from "./firebase";
+// Hooks de leitura de dados — substituem o padrão onSnapshot do Firestore.
+// Usa @tanstack/react-query: cache, loading state e refetch após mutações.
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "./api";
 import {
   Barraca,
   Convite,
@@ -21,51 +16,11 @@ import {
   TurmaFormacao,
   Usuario,
 } from "./tipos";
-import { pessoaDeSnap } from "./pessoas";
-import { consultaAuditoriaRecente, eventoDeSnap } from "./auditoria";
-import { edicaoDeSnap } from "./edicoes";
-import { barracaDeSnap } from "./barracas";
-import { participacaoDeSnap } from "./participacoes";
-import { entregaDeSnap } from "./entregas";
-import { usuarioDeSnap } from "./usuarios";
-import { conviteDeSnap } from "./convites";
-import { turmaDeSnap } from "./turmas";
-import { formacaoDeSnap } from "./formacoes";
-import { linkDeSnap } from "./links";
 
 export interface EstadoLista<T> {
   itens: T[];
   carregando: boolean;
   erro: string | null;
-}
-
-export function usePessoas(): EstadoLista<Pessoa> {
-  const [estado, setEstado] = useState<EstadoLista<Pessoa>>({
-    itens: [],
-    carregando: true,
-    erro: null,
-  });
-
-  useEffect(() => {
-    const cancelar = onSnapshot(
-      query(collection(db(), "pessoas"), orderBy("cracha", "asc")),
-      (snap) => {
-        const itens = snap.docs.map((d) =>
-          pessoaDeSnap(d.id, d.data() as Record<string, unknown>)
-        );
-        setEstado({ itens, carregando: false, erro: null });
-      },
-      (err) =>
-        setEstado({
-          itens: [],
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar pessoas.",
-        })
-    );
-    return () => cancelar();
-  }, []);
-
-  return estado;
 }
 
 export interface EstadoItem<T> {
@@ -74,74 +29,33 @@ export interface EstadoItem<T> {
   erro: string | null;
 }
 
-export function usePessoa(id: string | undefined): EstadoItem<Pessoa> {
-  const [estado, setEstado] = useState<EstadoItem<Pessoa>>({
-    item: null,
-    carregando: true,
-    erro: null,
+// ─── Pessoas ─────────────────────────────────────────────────────────────────
+
+export function usePessoas(): EstadoLista<Pessoa> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["pessoas"],
+    queryFn: () => api.get<Pessoa[]>("/api/pessoas"),
   });
-
-  useEffect(() => {
-    if (!id) {
-      setEstado({ item: null, carregando: false, erro: null });
-      return;
-    }
-    const cancelar = onSnapshot(
-      doc(db(), "pessoas", id),
-      (snap) => {
-        if (!snap.exists())
-          setEstado({
-            item: null,
-            carregando: false,
-            erro: "Pessoa não encontrada.",
-          });
-        else
-          setEstado({
-            item: pessoaDeSnap(snap.id, snap.data() as Record<string, unknown>),
-            carregando: false,
-            erro: null,
-          });
-      },
-      (err) =>
-        setEstado({
-          item: null,
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar pessoa.",
-        })
-    );
-    return () => cancelar();
-  }, [id]);
-
-  return estado;
+  return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
 }
 
-export function useEdicoes(): EstadoLista<Edicao> {
-  const [estado, setEstado] = useState<EstadoLista<Edicao>>({
-    itens: [],
-    carregando: true,
-    erro: null,
+export function usePessoa(id: string | undefined): EstadoItem<Pessoa> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["pessoas", id],
+    queryFn: () => api.get<Pessoa>(`/api/pessoas/${id}`),
+    enabled: !!id,
   });
+  return { item: data ?? null, carregando: isLoading && !!id, erro: erroMsg(error) };
+}
 
-  useEffect(() => {
-    const cancelar = onSnapshot(
-      query(collection(db(), "edicoes"), orderBy("ano", "desc")),
-      (snap) => {
-        const itens = snap.docs.map((d) =>
-          edicaoDeSnap(d.id, d.data() as Record<string, unknown>)
-        );
-        setEstado({ itens, carregando: false, erro: null });
-      },
-      (err) =>
-        setEstado({
-          itens: [],
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar edições.",
-        })
-    );
-    return () => cancelar();
-  }, []);
+// ─── Edições ─────────────────────────────────────────────────────────────────
 
-  return estado;
+export function useEdicoes(): EstadoLista<Edicao> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["edicoes"],
+    queryFn: () => api.get<Edicao[]>("/api/edicoes"),
+  });
+  return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
 }
 
 export interface EstadoEdicaoAtiva {
@@ -151,197 +65,79 @@ export interface EstadoEdicaoAtiva {
 }
 
 export function useEdicaoAtiva(): EstadoEdicaoAtiva {
-  const [estado, setEstado] = useState<EstadoEdicaoAtiva>({
-    edicao: null,
-    carregando: true,
-    erro: null,
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["edicoes", "ativa"],
+    queryFn: () => api.get<Edicao | null>("/api/edicoes/ativa"),
   });
-
-  useEffect(() => {
-    const cancelar = onSnapshot(
-      query(collection(db(), "edicoes"), where("status", "==", "ativa")),
-      (snap) => {
-        const docSnap = snap.docs[0];
-        const edicao = docSnap
-          ? edicaoDeSnap(docSnap.id, docSnap.data() as Record<string, unknown>)
-          : null;
-        setEstado({ edicao, carregando: false, erro: null });
-      },
-      (err) =>
-        setEstado({
-          edicao: null,
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar edição ativa.",
-        })
-    );
-    return () => cancelar();
-  }, []);
-
-  return estado;
+  return { edicao: data ?? null, carregando: isLoading, erro: erroMsg(error) };
 }
 
 export function useEdicao(id: string | undefined): EstadoItem<Edicao> {
-  const [estado, setEstado] = useState<EstadoItem<Edicao>>({
-    item: null,
-    carregando: true,
-    erro: null,
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["edicoes", id],
+    queryFn: () => api.get<Edicao>(`/api/edicoes/${id}`),
+    enabled: !!id,
   });
-
-  useEffect(() => {
-    if (!id) {
-      setEstado({ item: null, carregando: false, erro: null });
-      return;
-    }
-    const cancelar = onSnapshot(
-      doc(db(), "edicoes", id),
-      (snap) => {
-        if (!snap.exists())
-          setEstado({
-            item: null,
-            carregando: false,
-            erro: "Edição não encontrada.",
-          });
-        else
-          setEstado({
-            item: edicaoDeSnap(
-              snap.id,
-              snap.data() as Record<string, unknown>
-            ),
-            carregando: false,
-            erro: null,
-          });
-      },
-      (err) =>
-        setEstado({
-          item: null,
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar edição.",
-        })
-    );
-    return () => cancelar();
-  }, [id]);
-
-  return estado;
+  return { item: data ?? null, carregando: isLoading && !!id, erro: erroMsg(error) };
 }
 
+// ─── Barracas ─────────────────────────────────────────────────────────────────
+
 export function useBarracas(edicaoId: string | undefined): EstadoLista<Barraca> {
-  const [estado, setEstado] = useState<EstadoLista<Barraca>>({
-    itens: [],
-    carregando: true,
-    erro: null,
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["barracas", edicaoId],
+    queryFn: () => api.get<Barraca[]>(`/api/barracas?edicaoId=${edicaoId}`),
+    enabled: !!edicaoId,
   });
-
-  useEffect(() => {
-    if (!edicaoId) {
-      setEstado({ itens: [], carregando: false, erro: null });
-      return;
-    }
-    const cancelar = onSnapshot(
-      query(collection(db(), "barracas"), where("edicaoId", "==", edicaoId)),
-      (snap) => {
-        const itens = snap.docs.map((d) =>
-          barracaDeSnap(d.id, d.data() as Record<string, unknown>)
-        );
-        itens.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-        setEstado({ itens, carregando: false, erro: null });
-      },
-      (err) =>
-        setEstado({
-          itens: [],
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar barracas.",
-        })
-    );
-    return () => cancelar();
-  }, [edicaoId]);
-
-  return estado;
+  return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
 }
 
 export function useBarraca(id: string | undefined): EstadoItem<Barraca> {
-  const [estado, setEstado] = useState<EstadoItem<Barraca>>({
-    item: null,
-    carregando: true,
-    erro: null,
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["barracas", id],
+    queryFn: () => api.get<Barraca>(`/api/barracas/${id}`),
+    enabled: !!id,
   });
-
-  useEffect(() => {
-    if (!id) {
-      setEstado({ item: null, carregando: false, erro: null });
-      return;
-    }
-    const cancelar = onSnapshot(
-      doc(db(), "barracas", id),
-      (snap) => {
-        if (!snap.exists())
-          setEstado({
-            item: null,
-            carregando: false,
-            erro: "Barraca não encontrada.",
-          });
-        else
-          setEstado({
-            item: barracaDeSnap(
-              snap.id,
-              snap.data() as Record<string, unknown>
-            ),
-            carregando: false,
-            erro: null,
-          });
-      },
-      (err) =>
-        setEstado({
-          item: null,
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar barraca.",
-        })
-    );
-    return () => cancelar();
-  }, [id]);
-
-  return estado;
+  return { item: data ?? null, carregando: isLoading && !!id, erro: erroMsg(error) };
 }
 
-export function useParticipacoes(
-  edicaoId: string | undefined
-): EstadoLista<Participacao> {
-  const [estado, setEstado] = useState<EstadoLista<Participacao>>({
-    itens: [],
-    carregando: true,
-    erro: null,
+export function useTodasBarracas(): EstadoLista<Barraca> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["barracas"],
+    queryFn: () => api.get<Barraca[]>("/api/barracas"),
   });
-
-  useEffect(() => {
-    if (!edicaoId) {
-      setEstado({ itens: [], carregando: false, erro: null });
-      return;
-    }
-    const cancelar = onSnapshot(
-      query(
-        collection(db(), "participacoes"),
-        where("edicaoId", "==", edicaoId)
-      ),
-      (snap) => {
-        const itens = snap.docs.map((d) =>
-          participacaoDeSnap(d.id, d.data() as Record<string, unknown>)
-        );
-        setEstado({ itens, carregando: false, erro: null });
-      },
-      (err) =>
-        setEstado({
-          itens: [],
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar participações.",
-        })
-    );
-    return () => cancelar();
-  }, [edicaoId]);
-
-  return estado;
+  return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
 }
 
-// Indexa pessoas por id e por crachá; útil em telas que cruzam
-// participações com pessoas sem buscar uma a uma.
+// ─── Participações ────────────────────────────────────────────────────────────
+
+export function useParticipacoes(edicaoId: string | undefined): EstadoLista<Participacao> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["participacoes", "edicao", edicaoId],
+    queryFn: () => api.get<Participacao[]>(`/api/participacoes?edicaoId=${edicaoId}`),
+    enabled: !!edicaoId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
+}
+
+export function useParticipacoesDePessoa(pessoaId: string | undefined): EstadoLista<Participacao> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["participacoes", "pessoa", pessoaId],
+    queryFn: () => api.get<Participacao[]>(`/api/participacoes?pessoaId=${pessoaId}`),
+    enabled: !!pessoaId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!pessoaId, erro: erroMsg(error) };
+}
+
+export function useTodasParticipacoes(): EstadoLista<Participacao> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["participacoes"],
+    queryFn: () => api.get<Participacao[]>("/api/participacoes"),
+  });
+  return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
+}
+
+// Indexa pessoas por id — útil em telas que cruzam participações com pessoas.
 export function useIndicePessoas(pessoas: Pessoa[]) {
   return useMemo(() => {
     const porId = new Map<string, Pessoa>();
@@ -350,386 +146,92 @@ export function useIndicePessoas(pessoas: Pessoa[]) {
   }, [pessoas]);
 }
 
-export function useAuditoriaRecente(qtd = 100): EstadoLista<EventoAuditoria> {
-  const [estado, setEstado] = useState<EstadoLista<EventoAuditoria>>({
-    itens: [],
-    carregando: true,
-    erro: null,
+// ─── Entregas de crachá ───────────────────────────────────────────────────────
+
+export function useEntregasCracha(edicaoId: string | undefined): EstadoLista<EntregaCracha> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["entregas", edicaoId],
+    queryFn: () => api.get<EntregaCracha[]>(`/api/entregas?edicaoId=${edicaoId}`),
+    enabled: !!edicaoId,
   });
-
-  useEffect(() => {
-    const cancelar = onSnapshot(
-      consultaAuditoriaRecente(qtd),
-      (snap) => {
-        const itens = snap.docs.map((d) =>
-          eventoDeSnap(d.id, d.data() as Record<string, unknown>)
-        );
-        setEstado({ itens, carregando: false, erro: null });
-      },
-      (err) =>
-        setEstado({
-          itens: [],
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar auditoria.",
-        })
-    );
-    return () => cancelar();
-  }, [qtd]);
-
-  return estado;
+  return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
 }
 
-export function useParticipacoesDePessoa(
-  pessoaId: string | undefined
-): EstadoLista<Participacao> {
-  const [estado, setEstado] = useState<EstadoLista<Participacao>>({
-    itens: [],
-    carregando: true,
-    erro: null,
-  });
-
-  useEffect(() => {
-    if (!pessoaId) {
-      setEstado({ itens: [], carregando: false, erro: null });
-      return;
-    }
-    const cancelar = onSnapshot(
-      query(
-        collection(db(), "participacoes"),
-        where("pessoaId", "==", pessoaId)
-      ),
-      (snap) => {
-        const itens = snap.docs.map((d) =>
-          participacaoDeSnap(d.id, d.data() as Record<string, unknown>)
-        );
-        setEstado({ itens, carregando: false, erro: null });
-      },
-      (err) =>
-        setEstado({
-          itens: [],
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar histórico.",
-        })
-    );
-    return () => cancelar();
-  }, [pessoaId]);
-
-  return estado;
-}
-
-export function useTodasBarracas(): EstadoLista<Barraca> {
-  const [estado, setEstado] = useState<EstadoLista<Barraca>>({
-    itens: [],
-    carregando: true,
-    erro: null,
-  });
-
-  useEffect(() => {
-    const cancelar = onSnapshot(
-      query(collection(db(), "barracas")),
-      (snap) => {
-        const itens = snap.docs.map((d) =>
-          barracaDeSnap(d.id, d.data() as Record<string, unknown>)
-        );
-        setEstado({ itens, carregando: false, erro: null });
-      },
-      (err) =>
-        setEstado({
-          itens: [],
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar barracas.",
-        })
-    );
-    return () => cancelar();
-  }, []);
-
-  return estado;
-}
-
-// Carrega todas as participações via onSnapshot. Em escala MVP
-// (~100 pessoas × 27 edições) cabe; quando o legado for importado
-// (~50 mil docs) será preciso paginar ou trocar por getDocs sob
-// demanda — TODO(US-04-02).
-export function useTodasParticipacoes(): EstadoLista<Participacao> {
-  const [estado, setEstado] = useState<EstadoLista<Participacao>>({
-    itens: [],
-    carregando: true,
-    erro: null,
-  });
-
-  useEffect(() => {
-    const cancelar = onSnapshot(
-      query(collection(db(), "participacoes")),
-      (snap) => {
-        const itens = snap.docs.map((d) =>
-          participacaoDeSnap(d.id, d.data() as Record<string, unknown>)
-        );
-        setEstado({ itens, carregando: false, erro: null });
-      },
-      (err) =>
-        setEstado({
-          itens: [],
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar participações.",
-        })
-    );
-    return () => cancelar();
-  }, []);
-
-  return estado;
-}
-
-export function useEntregasCracha(
-  edicaoId: string | undefined
-): EstadoLista<EntregaCracha> {
-  const [estado, setEstado] = useState<EstadoLista<EntregaCracha>>({
-    itens: [],
-    carregando: true,
-    erro: null,
-  });
-
-  useEffect(() => {
-    if (!edicaoId) {
-      setEstado({ itens: [], carregando: false, erro: null });
-      return;
-    }
-    const cancelar = onSnapshot(
-      query(
-        collection(db(), "entregasCracha"),
-        where("edicaoId", "==", edicaoId)
-      ),
-      (snap) => {
-        const itens = snap.docs.map((d) =>
-          entregaDeSnap(d.id, d.data() as Record<string, unknown>)
-        );
-        setEstado({ itens, carregando: false, erro: null });
-      },
-      (err) =>
-        setEstado({
-          itens: [],
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar entregas.",
-        })
-    );
-    return () => cancelar();
-  }, [edicaoId]);
-
-  return estado;
-}
+// ─── Usuários ─────────────────────────────────────────────────────────────────
 
 export function useUsuarios(): EstadoLista<Usuario> {
-  const [estado, setEstado] = useState<EstadoLista<Usuario>>({
-    itens: [],
-    carregando: true,
-    erro: null,
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["usuarios"],
+    queryFn: () => api.get<Usuario[]>("/api/usuarios"),
   });
-
-  useEffect(() => {
-    const cancelar = onSnapshot(
-      query(collection(db(), "usuarios")),
-      (snap) => {
-        const itens = snap.docs.map((d) =>
-          usuarioDeSnap(d.id, d.data() as Record<string, unknown>)
-        );
-        itens.sort((a, b) => a.nome.localeCompare(b.nome));
-        setEstado({ itens, carregando: false, erro: null });
-      },
-      (err) =>
-        setEstado({
-          itens: [],
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar usuários.",
-        })
-    );
-    return () => cancelar();
-  }, []);
-
-  return estado;
+  return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
 }
 
-export function useTurmasFormacao(
-  edicaoId: string | undefined
-): EstadoLista<TurmaFormacao> {
-  const [estado, setEstado] = useState<EstadoLista<TurmaFormacao>>({
-    itens: [],
-    carregando: true,
-    erro: null,
+// ─── Turmas de formação ───────────────────────────────────────────────────────
+
+export function useTurmasFormacao(edicaoId: string | undefined): EstadoLista<TurmaFormacao> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["turmas", edicaoId],
+    queryFn: () => api.get<TurmaFormacao[]>(`/api/turmas?edicaoId=${edicaoId}`),
+    enabled: !!edicaoId,
   });
-
-  useEffect(() => {
-    if (!edicaoId) {
-      setEstado({ itens: [], carregando: false, erro: null });
-      return;
-    }
-    const cancelar = onSnapshot(
-      query(
-        collection(db(), "turmasFormacao"),
-        where("edicaoId", "==", edicaoId)
-      ),
-      (snap) => {
-        const itens = snap.docs.map((d) =>
-          turmaDeSnap(d.id, d.data() as Record<string, unknown>)
-        );
-        itens.sort((a, b) =>
-          (a.data + a.horarioInicio).localeCompare(b.data + b.horarioInicio)
-        );
-        setEstado({ itens, carregando: false, erro: null });
-      },
-      (err) =>
-        setEstado({
-          itens: [],
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar turmas.",
-        })
-    );
-    return () => cancelar();
-  }, [edicaoId]);
-
-  return estado;
+  return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
 }
 
-export function useFormacoes(
-  edicaoId: string | undefined
-): EstadoLista<Formacao> {
-  const [estado, setEstado] = useState<EstadoLista<Formacao>>({
-    itens: [],
-    carregando: true,
-    erro: null,
+// ─── Formações ────────────────────────────────────────────────────────────────
+
+export function useFormacoes(edicaoId: string | undefined): EstadoLista<Formacao> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["formacoes", edicaoId],
+    queryFn: () => api.get<Formacao[]>(`/api/formacoes?edicaoId=${edicaoId}`),
+    enabled: !!edicaoId,
   });
-
-  useEffect(() => {
-    if (!edicaoId) {
-      setEstado({ itens: [], carregando: false, erro: null });
-      return;
-    }
-    const cancelar = onSnapshot(
-      query(
-        collection(db(), "formacoes"),
-        where("edicaoId", "==", edicaoId)
-      ),
-      (snap) => {
-        const itens = snap.docs.map((d) =>
-          formacaoDeSnap(d.id, d.data() as Record<string, unknown>)
-        );
-        setEstado({ itens, carregando: false, erro: null });
-      },
-      (err) =>
-        setEstado({
-          itens: [],
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar formações.",
-        })
-    );
-    return () => cancelar();
-  }, [edicaoId]);
-
-  return estado;
+  return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
 }
 
-export function useLinksEdicao(
-  edicaoId: string | undefined
-): EstadoLista<LinkValidacao> {
-  const [estado, setEstado] = useState<EstadoLista<LinkValidacao>>({
-    itens: [],
-    carregando: true,
-    erro: null,
+// ─── Links de validação ───────────────────────────────────────────────────────
+
+export function useLinksEdicao(edicaoId: string | undefined): EstadoLista<LinkValidacao> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["links", "edicao", edicaoId],
+    queryFn: () => api.get<LinkValidacao[]>(`/api/links?edicaoId=${edicaoId}`),
+    enabled: !!edicaoId,
   });
-
-  useEffect(() => {
-    if (!edicaoId) {
-      setEstado({ itens: [], carregando: false, erro: null });
-      return;
-    }
-    const cancelar = onSnapshot(
-      query(
-        collection(db(), "linksValidacao"),
-        where("edicaoId", "==", edicaoId)
-      ),
-      (snap) => {
-        const itens = snap.docs.map((d) =>
-          linkDeSnap(d.id, d.data() as Record<string, unknown>)
-        );
-        itens.sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
-        setEstado({ itens, carregando: false, erro: null });
-      },
-      (err) =>
-        setEstado({
-          itens: [],
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar links.",
-        })
-    );
-    return () => cancelar();
-  }, [edicaoId]);
-
-  return estado;
+  return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
 }
 
-export function useLinksDaTurma(
-  turmaId: string | undefined
-): EstadoLista<LinkValidacao> {
-  const [estado, setEstado] = useState<EstadoLista<LinkValidacao>>({
-    itens: [],
-    carregando: true,
-    erro: null,
+export function useLinksDaTurma(turmaId: string | undefined): EstadoLista<LinkValidacao> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["links", "turma", turmaId],
+    queryFn: () => api.get<LinkValidacao[]>(`/api/links?turmaId=${turmaId}`),
+    enabled: !!turmaId,
   });
-
-  useEffect(() => {
-    if (!turmaId) {
-      setEstado({ itens: [], carregando: false, erro: null });
-      return;
-    }
-    const cancelar = onSnapshot(
-      query(
-        collection(db(), "linksValidacao"),
-        where("turmaId", "==", turmaId)
-      ),
-      (snap) => {
-        const itens = snap.docs.map((d) =>
-          linkDeSnap(d.id, d.data() as Record<string, unknown>)
-        );
-        itens.sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
-        setEstado({ itens, carregando: false, erro: null });
-      },
-      (err) =>
-        setEstado({
-          itens: [],
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar links.",
-        })
-    );
-    return () => cancelar();
-  }, [turmaId]);
-
-  return estado;
+  return { itens: data ?? [], carregando: isLoading && !!turmaId, erro: erroMsg(error) };
 }
+
+// ─── Convites ─────────────────────────────────────────────────────────────────
 
 export function useConvites(): EstadoLista<Convite> {
-  const [estado, setEstado] = useState<EstadoLista<Convite>>({
-    itens: [],
-    carregando: true,
-    erro: null,
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["convites"],
+    queryFn: () => api.get<Convite[]>("/api/convites"),
   });
+  return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
+}
 
-  useEffect(() => {
-    const cancelar = onSnapshot(
-      query(collection(db(), "convites")),
-      (snap) => {
-        const itens = snap.docs.map((d) =>
-          conviteDeSnap(d.id, d.data() as Record<string, unknown>)
-        );
-        itens.sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
-        setEstado({ itens, carregando: false, erro: null });
-      },
-      (err) =>
-        setEstado({
-          itens: [],
-          carregando: false,
-          erro: err.message ?? "Falha ao carregar convites.",
-        })
-    );
-    return () => cancelar();
-  }, []);
+// ─── Auditoria ────────────────────────────────────────────────────────────────
 
-  return estado;
+export function useAuditoriaRecente(qtd = 100): EstadoLista<EventoAuditoria> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["auditoria", qtd],
+    queryFn: () => api.get<EventoAuditoria[]>(`/api/auditoria?qtd=${qtd}`),
+  });
+  return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
+}
+
+// ─── Utilitário ───────────────────────────────────────────────────────────────
+
+function erroMsg(error: unknown): string | null {
+  if (!error) return null;
+  return (error as Error).message ?? "Falha ao carregar dados.";
 }

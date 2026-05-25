@@ -1,40 +1,8 @@
-import {
-  Timestamp,
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where,
-} from "firebase/firestore";
-import {
-  deleteObject,
-  getDownloadURL,
-  ref,
-  uploadBytes,
-} from "firebase/storage";
-import { db, storage } from "./firebase";
+import { api } from "./api";
+import { queryClient } from "./queryClient";
 import { Sessao } from "./sessao";
 import { Carro, Filho, Pessoa } from "./tipos";
-import { registrarEvento } from "./auditoria";
-import {
-  removerBuscaCracha,
-  sincronizarBuscaCracha,
-} from "./buscaCracha";
-import {
-  ehDuplicataPorCpf,
-  ehDuplicataPorNomeNascimento,
-  redimensionarParaJpeg,
-  soDigitos,
-  uid,
-  validarCPF,
-} from "./utilsDominio";
-
-const COL = "pessoas";
+import { uid, validarCPF, soDigitos, ehDuplicataPorCpf, ehDuplicataPorNomeNascimento } from "./utilsDominio";
 
 export class ErroValidacao extends Error {
   campos: Record<string, string>;
@@ -59,9 +27,8 @@ export interface DadosPessoaForm {
   ativo: boolean;
 }
 
+// Mapper necessário para retrocompatibilidade com código que usa pessoaDeSnap.
 export function pessoaDeSnap(id: string, data: Record<string, unknown>): Pessoa {
-  const criado = data.criadoEm as Timestamp | string | null | undefined;
-  const atualizado = data.atualizadoEm as Timestamp | string | null | undefined;
   return {
     id,
     cracha: (data.cracha as number) ?? 0,
@@ -74,18 +41,11 @@ export function pessoaDeSnap(id: string, data: Record<string, unknown>): Pessoa 
     endereco: (data.endereco as string) || undefined,
     bairro: (data.bairro as string) || undefined,
     estadoCivil: (data.estadoCivil as Pessoa["estadoCivil"]) || undefined,
-    fotoUrl: (data.fotoUrl as string) || undefined,
     ativo: data.ativo === undefined ? true : (data.ativo as boolean),
     filhos: Array.isArray(data.filhos) ? (data.filhos as Filho[]) : [],
     carros: Array.isArray(data.carros) ? (data.carros as Carro[]) : [],
-    criadoEm:
-      criado instanceof Timestamp
-        ? criado.toDate().toISOString()
-        : (criado as string) || "",
-    atualizadoEm:
-      atualizado instanceof Timestamp
-        ? atualizado.toDate().toISOString()
-        : (atualizado as string) || "",
+    criadoEm: (data.criadoEm as string) || "",
+    atualizadoEm: (data.atualizadoEm as string) || "",
   };
 }
 
@@ -111,8 +71,8 @@ function validar(
     erros.telefone = "Telefone deve ter 10 ou 11 dígitos.";
 
   if (dados.email && dados.email.trim()) {
-    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dados.email.trim());
-    if (!ok) erros.email = "E-mail inválido.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dados.email.trim()))
+      erros.email = "E-mail inválido.";
   }
 
   if (!dados.cpf || !dados.cpf.trim()) {
@@ -125,12 +85,7 @@ function validar(
   }
 
   if (!erros.nome && !erros.nascimento) {
-    const dup = ehDuplicataPorNomeNascimento(
-      pessoas,
-      dados.nome,
-      dados.nascimento,
-      excetoId
-    );
+    const dup = ehDuplicataPorNomeNascimento(pessoas, dados.nome, dados.nascimento, excetoId);
     if (dup) erros.nome = `Já existe ${dup.nome} (#${dup.cracha}) com esta data.`;
   }
 
@@ -140,19 +95,17 @@ function validar(
       break;
     }
   }
-
   for (const c of dados.carros) {
     if (!c.fabricante.trim() || !c.modelo.trim() || !c.placa.trim() || !c.cor.trim()) {
       erros.carros = "Cada veículo precisa de fabricante, modelo, placa e cor.";
       break;
     }
   }
-
   return erros;
 }
 
 function payloadDeForm(dados: DadosPessoaForm) {
-  const limpo: Record<string, unknown> = {
+  return {
     nome: dados.nome.trim(),
     nascimento: dados.nascimento,
     telefone: soDigitos(dados.telefone),
@@ -177,11 +130,10 @@ function payloadDeForm(dados: DadosPessoaForm) {
       cor: c.cor.trim(),
     })),
   };
-  return limpo;
 }
 
 export async function criarPessoa(
-  sessao: Sessao,
+  _sessao: Sessao,
   dados: DadosPessoaForm,
   pessoasExistentes: Pessoa[],
   cracha: number
@@ -189,33 +141,17 @@ export async function criarPessoa(
   const erros = validar(dados, pessoasExistentes);
   if (Object.keys(erros).length > 0) throw new ErroValidacao(erros);
 
-  const ref = await addDoc(collection(db(), COL), {
+  const pessoa = await api.post<Pessoa>("/api/pessoas", {
     ...payloadDeForm(dados),
     cracha,
-    fotoUrl: null,
-    criadoEm: serverTimestamp(),
-    atualizadoEm: serverTimestamp(),
   });
 
-  await sincronizarBuscaCracha({
-    id: ref.id,
-    cracha,
-    nascimento: dados.nascimento,
-    ativo: dados.ativo,
-  } as Pessoa);
-
-  await registrarEvento(
-    sessao,
-    "pessoa.criou",
-    `pessoas/${ref.id}`,
-    `${dados.nome} (#${cracha})`
-  );
-
-  return ref.id;
+  await queryClient.invalidateQueries({ queryKey: ["pessoas"] });
+  return pessoa.id;
 }
 
 export async function atualizarPessoa(
-  sessao: Sessao,
+  _sessao: Sessao,
   pessoaId: string,
   dados: DadosPessoaForm,
   pessoasExistentes: Pessoa[]
@@ -223,161 +159,63 @@ export async function atualizarPessoa(
   const erros = validar(dados, pessoasExistentes, pessoaId);
   if (Object.keys(erros).length > 0) throw new ErroValidacao(erros);
 
-  const anterior = pessoasExistentes.find((p) => p.id === pessoaId);
-
-  await updateDoc(doc(db(), COL, pessoaId), {
-    ...payloadDeForm(dados),
-    atualizadoEm: serverTimestamp(),
-  });
-
-  // Sempre ressincroniza — garante integridade mesmo se o doc estava
-  // ausente por importacao direta ou falha anterior.
-  if (anterior) {
-    await sincronizarBuscaCracha({
-      id: pessoaId,
-      cracha: anterior.cracha,
-      nascimento: dados.nascimento,
-      ativo: dados.ativo,
-    } as Pessoa);
-  }
-
-  await registrarEvento(
-    sessao,
-    "pessoa.atualizou",
-    `pessoas/${pessoaId}`,
-    dados.nome
-  );
+  await api.put(`/api/pessoas/${pessoaId}`, payloadDeForm(dados));
+  await queryClient.invalidateQueries({ queryKey: ["pessoas"] });
 }
 
 export async function definirAtivacao(
-  sessao: Sessao,
+  _sessao: Sessao,
   pessoa: Pessoa,
   ativo: boolean
 ): Promise<void> {
-  await updateDoc(doc(db(), COL, pessoa.id), {
-    ativo,
-    atualizadoEm: serverTimestamp(),
-  });
-  if (ativo) {
-    await sincronizarBuscaCracha({ ...pessoa, ativo } as Pessoa);
-  } else {
-    await removerBuscaCracha(pessoa.cracha);
-  }
-  await registrarEvento(
-    sessao,
-    ativo ? "pessoa.reativou" : "pessoa.inativou",
-    `pessoas/${pessoa.id}`,
-    `${pessoa.nome} (#${pessoa.cracha})`
-  );
+  await api.put(`/api/pessoas/${pessoa.id}/ativacao`, { ativo });
+  await queryClient.invalidateQueries({ queryKey: ["pessoas"] });
 }
 
-export async function excluirPessoa(
-  sessao: Sessao,
-  pessoa: Pessoa
-): Promise<void> {
-  if (pessoa.fotoUrl) {
-    try {
-      await deleteObject(ref(storage(), `pessoas/${pessoa.id}/foto.jpg`));
-    } catch {
-      // Pode não existir; ignorar.
-    }
-  }
-  await removerBuscaCracha(pessoa.cracha);
-  await deleteDoc(doc(db(), COL, pessoa.id));
-  await registrarEvento(
-    sessao,
-    "pessoa.excluiu",
-    `pessoas/${pessoa.id}`,
-    `${pessoa.nome} (#${pessoa.cracha})`
-  );
+export async function excluirPessoa(_sessao: Sessao, pessoa: Pessoa): Promise<void> {
+  await api.delete(`/api/pessoas/${pessoa.id}`);
+  await queryClient.invalidateQueries({ queryKey: ["pessoas"] });
 }
 
 export async function carregarPessoa(id: string): Promise<Pessoa | null> {
-  const snap = await getDoc(doc(db(), COL, id));
-  if (!snap.exists()) return null;
-  return pessoaDeSnap(snap.id, snap.data() as Record<string, unknown>);
+  try {
+    return await api.get<Pessoa>(`/api/pessoas/${id}`);
+  } catch {
+    return null;
+  }
 }
 
 export async function listarPessoasPorCracha(): Promise<Pessoa[]> {
-  // Carregamos todo o catálogo (até 100 pessoas no MVP). Se crescer, paginar.
-  const snap = await getDocs(query(collection(db(), COL)));
-  const pessoas = snap.docs.map((d) =>
-    pessoaDeSnap(d.id, d.data() as Record<string, unknown>)
-  );
-  pessoas.sort((a, b) => a.cracha - b.cracha);
-  return pessoas;
+  return api.get<Pessoa[]>("/api/pessoas");
 }
 
 export async function buscarPorCracha(cracha: number): Promise<Pessoa | null> {
-  const snap = await getDocs(
-    query(collection(db(), COL), where("cracha", "==", cracha))
-  );
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return pessoaDeSnap(d.id, d.data() as Record<string, unknown>);
+  const todas = await api.get<Pessoa[]>("/api/pessoas");
+  return todas.find((p) => p.cracha === cracha) ?? null;
 }
 
-// Caminho previsível para regras: pessoas/{id}/foto.jpg.
+// TODO(US-07-01): upload de foto removido do MVP.
 export async function enviarFoto(
-  sessao: Sessao,
-  pessoa: Pessoa,
-  arquivo: Blob
+  _sessao: Sessao,
+  _pessoa: Pessoa,
+  _arquivo: Blob
 ): Promise<string> {
-  const jpeg = await redimensionarParaJpeg(arquivo, 600, 0.85);
-  const caminho = `pessoas/${pessoa.id}/foto.jpg`;
-  const r = ref(storage(), caminho);
-  await uploadBytes(r, jpeg, { contentType: "image/jpeg" });
-  const url = await getDownloadURL(r);
-  await updateDoc(doc(db(), COL, pessoa.id), {
-    fotoUrl: url,
-    atualizadoEm: serverTimestamp(),
-  });
-  await registrarEvento(
-    sessao,
-    "pessoa.foto.atualizou",
-    `pessoas/${pessoa.id}`,
-    pessoa.nome
-  );
-  return url;
+  throw new Error("Upload de foto não disponível nesta versão. TODO(US-07-01)");
 }
 
-export async function removerFoto(
-  sessao: Sessao,
-  pessoa: Pessoa
-): Promise<void> {
-  const caminho = `pessoas/${pessoa.id}/foto.jpg`;
-  try {
-    await deleteObject(ref(storage(), caminho));
-  } catch {
-    // Pode não existir; tudo bem.
-  }
-  await updateDoc(doc(db(), COL, pessoa.id), {
-    fotoUrl: null,
-    atualizadoEm: serverTimestamp(),
-  });
-  await registrarEvento(
-    sessao,
-    "pessoa.foto.removeu",
-    `pessoas/${pessoa.id}`,
-    pessoa.nome
-  );
+export async function removerFoto(_sessao: Sessao, _pessoa: Pessoa): Promise<void> {
+  throw new Error("Remoção de foto não disponível nesta versão. TODO(US-07-01)");
+}
+
+export async function proximoCracha(): Promise<number> {
+  const { proximo } = await api.get<{ proximo: number }>("/api/pessoas/proximo-cracha");
+  return proximo;
 }
 
 export function novoFilho(): Filho {
-  return {
-    id: uid("filho"),
-    nome: "",
-    nascimento: "",
-    frequentaRecreacao: false,
-  };
+  return { id: uid("filho"), nome: "", nascimento: "", frequentaRecreacao: false };
 }
 
 export function novoCarro(): Carro {
-  return {
-    id: uid("carro"),
-    fabricante: "",
-    modelo: "",
-    placa: "",
-    cor: "",
-  };
+  return { id: uid("carro"), fabricante: "", modelo: "", placa: "", cor: "" };
 }

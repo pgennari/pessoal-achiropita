@@ -1,65 +1,28 @@
-import {
-  Timestamp,
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where,
-} from "firebase/firestore";
-import { db } from "./firebase";
+import { api } from "./api";
+import { queryClient } from "./queryClient";
 import { Funcao, Participacao } from "./tipos";
 import { Sessao } from "./sessao";
-import { registrarEvento } from "./auditoria";
-
-const COL = "participacoes";
 
 export class ErroAlocacao extends Error {}
 
-export function participacaoDeSnap(
-  id: string,
-  data: Record<string, unknown>
-): Participacao {
-  const c = data.criadoEm as Timestamp | string | null | undefined;
-  const a = data.atualizadoEm as Timestamp | string | null | undefined;
+export function participacaoDeSnap(id: string, data: Record<string, unknown>): Participacao {
   return {
     id,
     edicaoId: (data.edicaoId as string) ?? "",
     barracaId: (data.barracaId as string) ?? "",
     pessoaId: (data.pessoaId as string) ?? "",
     funcao: (data.funcao as Funcao) ?? "Equipista",
-    criadoEm:
-      c instanceof Timestamp ? c.toDate().toISOString() : (c as string) || "",
-    atualizadoEm:
-      a instanceof Timestamp ? a.toDate().toISOString() : (a as string) || "",
+    criadoEm: (data.criadoEm as string) || "",
+    atualizadoEm: (data.atualizadoEm as string) || "",
   };
 }
 
-// US-05-03 critério: a mesma pessoa não pode estar em duas barracas na mesma edição.
-async function jaParticipa(
-  edicaoId: string,
-  pessoaId: string,
-  excetoId?: string
-): Promise<Participacao | null> {
-  const snap = await getDocs(
-    query(
-      collection(db(), COL),
-      where("edicaoId", "==", edicaoId),
-      where("pessoaId", "==", pessoaId)
-    )
-  );
-  for (const d of snap.docs) {
-    if (d.id === excetoId) continue;
-    return participacaoDeSnap(d.id, d.data() as Record<string, unknown>);
-  }
-  return null;
+function invalidarParticipacoes() {
+  queryClient.invalidateQueries({ queryKey: ["participacoes"] });
 }
 
 export async function alocar(
-  sessao: Sessao,
+  _sessao: Sessao,
   args: {
     edicaoId: string;
     barracaId: string;
@@ -69,31 +32,13 @@ export async function alocar(
     barracaNome: string;
   }
 ): Promise<string> {
-  const conflito = await jaParticipa(args.edicaoId, args.pessoaId);
-  if (conflito) {
-    throw new ErroAlocacao(
-      "Esta pessoa já está alocada em outra barraca nesta edição."
-    );
-  }
-  const ref = await addDoc(collection(db(), COL), {
-    edicaoId: args.edicaoId,
-    barracaId: args.barracaId,
-    pessoaId: args.pessoaId,
-    funcao: args.funcao,
-    criadoEm: serverTimestamp(),
-    atualizadoEm: serverTimestamp(),
-  });
-  await registrarEvento(
-    sessao,
-    "participacao.alocou",
-    `participacoes/${ref.id}`,
-    `${args.pessoaNome} → ${args.barracaNome} (${args.funcao})`
-  );
-  return ref.id;
+  const part = await api.post<Participacao>("/api/participacoes", args);
+  invalidarParticipacoes();
+  return part.id as string;
 }
 
 export async function moverDeBarraca(
-  sessao: Sessao,
+  _sessao: Sessao,
   participacao: Participacao,
   novoBarracaId: string,
   novaFuncao: Funcao,
@@ -101,48 +46,35 @@ export async function moverDeBarraca(
   barracaOrigemNome: string,
   barracaDestinoNome: string
 ): Promise<void> {
-  await updateDoc(doc(db(), COL, participacao.id), {
+  await api.put(`/api/participacoes/${participacao.id}`, {
     barracaId: novoBarracaId,
     funcao: novaFuncao,
-    atualizadoEm: serverTimestamp(),
+    pessoaNome,
+    barracaOrigemNome,
+    barracaDestinoNome,
   });
-  await registrarEvento(
-    sessao,
-    "participacao.moveu",
-    `participacoes/${participacao.id}`,
-    `${pessoaNome}: ${barracaOrigemNome} → ${barracaDestinoNome} (${novaFuncao})`
-  );
+  invalidarParticipacoes();
 }
 
 export async function trocarFuncao(
-  sessao: Sessao,
+  _sessao: Sessao,
   participacao: Participacao,
   novaFuncao: Funcao,
-  pessoaNome: string
+  _pessoaNome: string
 ): Promise<void> {
-  await updateDoc(doc(db(), COL, participacao.id), {
+  await api.put(`/api/participacoes/${participacao.id}`, {
+    barracaId: participacao.barracaId,
     funcao: novaFuncao,
-    atualizadoEm: serverTimestamp(),
   });
-  await registrarEvento(
-    sessao,
-    "participacao.funcao",
-    `participacoes/${participacao.id}`,
-    `${pessoaNome} agora ${novaFuncao}`
-  );
+  invalidarParticipacoes();
 }
 
 export async function desalocar(
-  sessao: Sessao,
+  _sessao: Sessao,
   participacao: Participacao,
-  pessoaNome: string,
-  barracaNome: string
+  _pessoaNome: string,
+  _barracaNome: string
 ): Promise<void> {
-  await deleteDoc(doc(db(), COL, participacao.id));
-  await registrarEvento(
-    sessao,
-    "participacao.desalocou",
-    `participacoes/${participacao.id}`,
-    `${pessoaNome} de ${barracaNome}`
-  );
+  await api.delete(`/api/participacoes/${participacao.id}`);
+  invalidarParticipacoes();
 }

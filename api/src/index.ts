@@ -18,12 +18,22 @@ import admin from "./rotas/admin.js";
 
 const app = new Hono();
 
-// CORS: aceita apenas a origem do Firebase Hosting em produção.
-const origemPermitida = process.env.ALLOWED_ORIGIN ?? "*";
+// CORS: aceita uma lista de origens em ALLOWED_ORIGIN (separadas por vírgula).
+// Firebase Hosting expõe o site em <projeto>.web.app e <projeto>.firebaseapp.com,
+// então as duas precisam estar na lista.
+const origensPermitidas = (process.env.ALLOWED_ORIGIN ?? "*")
+  .split(",")
+  .map((o) => o.trim().replace(/\/$/, ""))
+  .filter((o) => o.length > 0);
+
 app.use(
   "*",
   cors({
-    origin: origemPermitida,
+    origin: (origem) => {
+      if (origensPermitidas.includes("*")) return origem ?? "*";
+      if (!origem) return null;
+      return origensPermitidas.includes(origem) ? origem : null;
+    },
     allowHeaders: ["Authorization", "Content-Type"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     maxAge: 86400,

@@ -46,13 +46,17 @@ jobs:
       - name: Deploy no Cloud Run
         run: |
           IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/achiropita/api:${{ github.sha }}"
+          PROJETO="${{ secrets.VITE_FIREBASE_PROJECT_ID }}"
+          ORIGENS="https://${PROJETO}.web.app,https://${PROJETO}.firebaseapp.com"
+          if [ -n "${{ secrets.VITE_HOSTING_URL }}" ]; then
+            ORIGENS="${ORIGENS},${{ secrets.VITE_HOSTING_URL }}"
+          fi
           gcloud run deploy achiropita-api \
             --image "$IMAGE" \
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             --allow-unauthenticated \
-            --set-env-vars "FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}" \
-            --set-env-vars "ALLOWED_ORIGIN=${{ secrets.VITE_HOSTING_URL }}" \
+            --set-env-vars "^|^FIREBASE_PROJECT_ID=${PROJETO}|ALLOWED_ORIGIN=${ORIGENS}" \
             --set-secrets "DATABASE_URL=achiropita-db-url:latest" \
             --set-secrets "API_SECRET=achiropita-api-secret:latest" \
             --project ${{ secrets.GCP_PROJECT_ID }} \

@@ -61,7 +61,7 @@ export function useSessao(): EstadoSessao {
           perfil?: Perfil;
           nome?: string;
           pessoaId?: string;
-          barracasCRD?: string[];
+          equipesCRD?: string[];
           tokenConvite?: string;
         };
         setEstado({
@@ -71,7 +71,7 @@ export function useSessao(): EstadoSessao {
             nome: dados.nome ?? user.displayName ?? user.email ?? "",
             perfil: dados.perfil ?? "EQP",
             pessoaId: dados.pessoaId,
-            barracasCRD: dados.barracasCRD,
+            equipesCRD: dados.equipesCRD,
             tokenConvite: dados.tokenConvite,
           },
           semAcesso: false,

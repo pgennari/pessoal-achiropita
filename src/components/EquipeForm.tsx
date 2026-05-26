@@ -1,37 +1,37 @@
 import { FormEvent, useState } from "react";
-import { Barraca, SETORES, Setor } from "../lib/tipos";
-import { DadosBarracaForm } from "../lib/barracas";
+import { Equipe, SETORES, Setor } from "../lib/tipos";
+import { DadosEquipeForm } from "../lib/equipes";
 
 interface Props {
-  inicial?: Barraca | null;
-  onSubmit: (dados: DadosBarracaForm) => Promise<void>;
+  inicial?: Equipe | null;
+  onSubmit: (dados: DadosEquipeForm) => Promise<void>;
   onCancelar: () => void;
   textoBotao?: string;
 }
 
-function inicialDados(b?: Barraca | null): DadosBarracaForm {
+function inicialDados(e?: Equipe | null): DadosEquipeForm {
   return {
-    nome: b?.nome ?? "",
-    setor: b?.setor ?? "Interna",
-    vagasCoordenador: b?.vagasCoordenador ?? 1,
-    vagasEquipista: b?.vagasEquipista ?? 0,
-    vagasApoio: b?.vagasApoio ?? 0,
+    nome: e?.nome ?? "",
+    setor: e?.setor ?? "Interna",
+    vagasCoordenador: e?.vagasCoordenador ?? 1,
+    vagasEquipista: e?.vagasEquipista ?? 0,
+    vagasApoio: e?.vagasApoio ?? 0,
   };
 }
 
-export function BarracaForm({
+export function EquipeForm({
   inicial,
   onSubmit,
   onCancelar,
   textoBotao = "Salvar",
 }: Props) {
-  const [dados, setDados] = useState<DadosBarracaForm>(() => inicialDados(inicial));
+  const [dados, setDados] = useState<DadosEquipeForm>(() => inicialDados(inicial));
   const [enviando, setEnviando] = useState(false);
   const [erros, setErros] = useState<Record<string, string>>({});
 
-  function set<K extends keyof DadosBarracaForm>(
+  function set<K extends keyof DadosEquipeForm>(
     chave: K,
-    valor: DadosBarracaForm[K]
+    valor: DadosEquipeForm[K]
   ) {
     setDados((d) => ({ ...d, [chave]: valor }));
   }
@@ -68,7 +68,7 @@ export function BarracaForm({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="input-grupo sm:col-span-2">
           <label className="input-label" htmlFor="nome">
-            Nome da barraca
+            Nome da equipe
           </label>
           <input
             id="nome"

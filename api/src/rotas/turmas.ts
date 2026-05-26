@@ -19,7 +19,7 @@ function turmaDeRow(r: Record<string, unknown>) {
     local: r.local,
     capacidadeMaxima: r.capacidade_maxima,
     setorVinculo: (r.setor_vinculo as string | null) ?? undefined,
-    barracaIdVinculo: (r.barraca_id_vinculo as string | null) ?? undefined,
+    equipeIdVinculo: (r.equipe_id_vinculo as string | null) ?? undefined,
     criadoEm,
     atualizadoEm,
   };
@@ -54,15 +54,15 @@ app.post("/", comAuth, async (c) => {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
-  const { edicaoId, data, horarioInicio, horarioFim, local, capacidadeMaxima, setorVinculo, barracaIdVinculo } = body;
+  const { edicaoId, data, horarioInicio, horarioFim, local, capacidadeMaxima, setorVinculo, equipeIdVinculo } = body;
   const [row] = await sql`
-    INSERT INTO turmas_formacao (edicao_id, data, horario_inicio, horario_fim, local, capacidade_maxima, setor_vinculo, barraca_id_vinculo)
+    INSERT INTO turmas_formacao (edicao_id, data, horario_inicio, horario_fim, local, capacidade_maxima, setor_vinculo, equipe_id_vinculo)
     VALUES (
       ${String(edicaoId ?? "")}, ${String(data ?? "")}, ${String(horarioInicio ?? "")},
       ${(horarioFim as string | null) ?? null}, ${String(local ?? "")},
       ${Number(capacidadeMaxima ?? 0)},
       ${(setorVinculo as string | null) ?? null},
-      ${(barracaIdVinculo as string | null) ?? null}
+      ${(equipeIdVinculo as string | null) ?? null}
     ) RETURNING *
   `;
   await registrarEvento(
@@ -79,7 +79,7 @@ app.put("/:id", comAuth, async (c) => {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
-  const { data, horarioInicio, horarioFim, local, capacidadeMaxima, setorVinculo, barracaIdVinculo } = body;
+  const { data, horarioInicio, horarioFim, local, capacidadeMaxima, setorVinculo, equipeIdVinculo } = body;
   const [row] = await sql`
     UPDATE turmas_formacao SET
       data               = ${String(data ?? "")},
@@ -88,7 +88,7 @@ app.put("/:id", comAuth, async (c) => {
       local              = ${String(local ?? "")},
       capacidade_maxima  = ${Number(capacidadeMaxima ?? 0)},
       setor_vinculo      = ${(setorVinculo as string | null) ?? null},
-      barraca_id_vinculo = ${(barracaIdVinculo as string | null) ?? null},
+      equipe_id_vinculo  = ${(equipeIdVinculo as string | null) ?? null},
       atualizado_em      = NOW()
     WHERE id = ${id} RETURNING *
   `;

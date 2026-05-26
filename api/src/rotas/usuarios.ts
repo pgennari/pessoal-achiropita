@@ -15,7 +15,7 @@ function usuarioDeRow(r: Record<string, unknown>) {
     nome: r.nome,
     perfil: r.perfil,
     pessoaId: (r.pessoa_id as string | null) ?? undefined,
-    barracasCRD: (r.barracas_crd as string[] | null) ?? undefined,
+    equipesCRD: (r.equipes_crd as string[] | null) ?? undefined,
     tokenConvite: (r.token_convite as string | null) ?? undefined,
     criadoEm,
     atualizadoEm,
@@ -54,7 +54,7 @@ app.put("/:uid", comAuth, async (c) => {
       nome          = ${String(body.nome ?? "")},
       perfil        = ${String(body.perfil ?? "EQP")},
       pessoa_id     = ${(body.pessoaId as string | null) ?? null},
-      barracas_crd  = ${(body.barracasCRD as string[] | null) ?? null},
+      equipes_crd   = ${(body.equipesCRD as string[] | null) ?? null},
       atualizado_em = NOW()
     WHERE uid = ${uid} RETURNING *
   `;

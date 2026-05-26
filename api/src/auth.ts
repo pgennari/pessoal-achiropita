@@ -29,7 +29,7 @@ export const comAuth = createMiddleware<Variaveis>(async (c, next) => {
   }
 
   const rows = await sql`
-    SELECT uid, email, nome, perfil, pessoa_id, barracas_crd
+    SELECT uid, email, nome, perfil, pessoa_id, equipes_crd
     FROM usuarios WHERE uid = ${decoded.uid}
   `;
   if (rows.length === 0) {
@@ -42,7 +42,7 @@ export const comAuth = createMiddleware<Variaveis>(async (c, next) => {
     nome: u.nome as string,
     perfil: u.perfil as string,
     pessoaId: (u.pessoa_id as string | null) ?? undefined,
-    barracasCRD: (u.barracas_crd as string[] | null) ?? undefined,
+    equipesCRD: (u.equipes_crd as string[] | null) ?? undefined,
   });
   await next();
 });

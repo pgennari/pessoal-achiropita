@@ -21,7 +21,7 @@ app.post("/zerar", comAuth, async (c) => {
     await t`TRUNCATE TABLE links_foto CASCADE`;
     await t`TRUNCATE TABLE turmas_formacao CASCADE`;
     await t`TRUNCATE TABLE participacoes CASCADE`;
-    await t`TRUNCATE TABLE barracas CASCADE`;
+    await t`TRUNCATE TABLE equipes CASCADE`;
     await t`TRUNCATE TABLE edicoes CASCADE`;
     await t`TRUNCATE TABLE pessoas CASCADE`;
     await t`TRUNCATE TABLE convites CASCADE`;

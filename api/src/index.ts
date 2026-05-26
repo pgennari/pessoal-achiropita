@@ -4,7 +4,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import pessoas from "./rotas/pessoas.js";
 import edicoes from "./rotas/edicoes.js";
-import barracas from "./rotas/barracas.js";
+import equipes from "./rotas/equipes.js";
 import participacoes from "./rotas/participacoes.js";
 import usuarios from "./rotas/usuarios.js";
 import convites from "./rotas/convites.js";
@@ -49,7 +49,7 @@ app.get("/health", (c) => c.json({ ok: true, ts: new Date().toISOString() }));
 
 app.route("/api/pessoas", pessoas);
 app.route("/api/edicoes", edicoes);
-app.route("/api/barracas", barracas);
+app.route("/api/equipes", equipes);
 app.route("/api/participacoes", participacoes);
 app.route("/api/usuarios", usuarios);
 app.route("/api/convites", convites);

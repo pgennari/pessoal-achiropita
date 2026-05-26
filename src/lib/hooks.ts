@@ -4,10 +4,10 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "./api";
 import {
-  Barraca,
   Convite,
   Edicao,
   EntregaCracha,
+  Equipe,
   EventoAuditoria,
   Formacao,
   LinkValidacao,
@@ -82,30 +82,30 @@ export function useEdicao(id: string | undefined): EstadoItem<Edicao> {
   return { item: data ?? null, carregando: isLoading && !!id, erro: erroMsg(error) };
 }
 
-// ─── Barracas ─────────────────────────────────────────────────────────────────
+// ─── Equipes ──────────────────────────────────────────────────────────────────
 
-export function useBarracas(edicaoId: string | undefined): EstadoLista<Barraca> {
+export function useEquipes(edicaoId: string | undefined): EstadoLista<Equipe> {
   const { data, isLoading, error } = useQuery({
-    queryKey: ["barracas", edicaoId],
-    queryFn: () => api.get<Barraca[]>(`/api/barracas?edicaoId=${edicaoId}`),
+    queryKey: ["equipes", edicaoId],
+    queryFn: () => api.get<Equipe[]>(`/api/equipes?edicaoId=${edicaoId}`),
     enabled: !!edicaoId,
   });
   return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
 }
 
-export function useBarraca(id: string | undefined): EstadoItem<Barraca> {
+export function useEquipe(id: string | undefined): EstadoItem<Equipe> {
   const { data, isLoading, error } = useQuery({
-    queryKey: ["barracas", id],
-    queryFn: () => api.get<Barraca>(`/api/barracas/${id}`),
+    queryKey: ["equipes", id],
+    queryFn: () => api.get<Equipe>(`/api/equipes/${id}`),
     enabled: !!id,
   });
   return { item: data ?? null, carregando: isLoading && !!id, erro: erroMsg(error) };
 }
 
-export function useTodasBarracas(): EstadoLista<Barraca> {
+export function useTodasEquipes(): EstadoLista<Equipe> {
   const { data, isLoading, error } = useQuery({
-    queryKey: ["barracas"],
-    queryFn: () => api.get<Barraca[]>("/api/barracas"),
+    queryKey: ["equipes"],
+    queryFn: () => api.get<Equipe[]>("/api/equipes"),
   });
   return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
 }

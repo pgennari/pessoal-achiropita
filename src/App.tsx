@@ -9,7 +9,7 @@ import { PessoaDetalhe } from "./pages/PessoaDetalhe";
 import { Auditoria } from "./pages/Auditoria";
 import { Edicoes } from "./pages/Edicoes";
 import { EdicaoDetalhe } from "./pages/EdicaoDetalhe";
-import { BarracaDetalhe } from "./pages/BarracaDetalhe";
+import { EquipeDetalhe } from "./pages/EquipeDetalhe";
 import { Historico } from "./pages/Historico";
 import { EntregaCrachas } from "./pages/EntregaCrachas";
 import { PendenciasFoto } from "./pages/PendenciasFoto";
@@ -45,8 +45,8 @@ export function App() {
         <Route path="edicoes" element={<Edicoes />} />
         <Route path="edicoes/:id" element={<EdicaoDetalhe />} />
         <Route
-          path="edicoes/:edicaoId/barracas/:id"
-          element={<BarracaDetalhe />}
+          path="edicoes/:edicaoId/equipes/:id"
+          element={<EquipeDetalhe />}
         />
         <Route path="historico" element={<Historico />} />
         <Route path="entregas/crachas" element={<EntregaCrachas />} />

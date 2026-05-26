@@ -12,7 +12,7 @@ function participacaoDeRow(r: Record<string, unknown>) {
   return {
     id: r.id,
     edicaoId: r.edicao_id,
-    barracaId: r.barraca_id,
+    equipeId: r.equipe_id,
     pessoaId: r.pessoa_id,
     funcao: r.funcao,
     criadoEm,
@@ -36,53 +36,53 @@ app.get("/", comAuth, async (c) => {
   return c.json(rows.map(participacaoDeRow));
 });
 
-// POST /api/participacoes — alocar pessoa em barraca
+// POST /api/participacoes — alocar pessoa em equipe
 app.post("/", comAuth, async (c) => {
   const sessao = c.get("sessao");
   const body = await c.req.json() as {
     edicaoId: string;
-    barracaId: string;
+    equipeId: string;
     pessoaId: string;
     funcao: string;
     pessoaNome: string;
-    barracaNome: string;
+    equipeNome: string;
   };
 
   try {
     const [row] = await sql`
-      INSERT INTO participacoes (edicao_id, barraca_id, pessoa_id, funcao)
-      VALUES (${body.edicaoId}, ${body.barracaId}, ${body.pessoaId}, ${body.funcao})
+      INSERT INTO participacoes (edicao_id, equipe_id, pessoa_id, funcao)
+      VALUES (${body.edicaoId}, ${body.equipeId}, ${body.pessoaId}, ${body.funcao})
       RETURNING *
     `;
     await registrarEvento(
       sessao, "participacao.alocou", `participacoes/${row.id}`,
-      `${body.pessoaNome} → ${body.barracaNome} (${body.funcao})`
+      `${body.pessoaNome} → ${body.equipeNome} (${body.funcao})`
     );
     return c.json(participacaoDeRow(row), 201);
   } catch (err: unknown) {
     const e = err as { code?: string };
     // UNIQUE(edicao_id, pessoa_id) violation
     if (e.code === "23505") {
-      return c.json({ erro: "Esta pessoa já está alocada em outra barraca nesta edição." }, 409);
+      return c.json({ erro: "Esta pessoa já está alocada em outra equipe nesta edição." }, 409);
     }
     throw err;
   }
 });
 
-// PUT /api/participacoes/:id — mover barraca ou trocar função
+// PUT /api/participacoes/:id — mover equipe ou trocar função
 app.put("/:id", comAuth, async (c) => {
   const id = c.req.param("id");
   const sessao = c.get("sessao");
   const body = await c.req.json() as {
-    barracaId: string;
+    equipeId: string;
     funcao: string;
     pessoaNome?: string;
-    barracaOrigemNome?: string;
-    barracaDestinoNome?: string;
+    equipeOrigemNome?: string;
+    equipeDestinoNome?: string;
   };
   const [row] = await sql`
     UPDATE participacoes SET
-      barraca_id    = ${body.barracaId},
+      equipe_id     = ${body.equipeId},
       funcao        = ${body.funcao},
       atualizado_em = NOW()
     WHERE id = ${id} RETURNING *
@@ -90,7 +90,7 @@ app.put("/:id", comAuth, async (c) => {
   if (!row) return c.json({ erro: "Participação não encontrada." }, 404);
 
   const detalhe = body.pessoaNome
-    ? `${body.pessoaNome}: ${body.barracaOrigemNome ?? "?"} → ${body.barracaDestinoNome ?? "?"} (${body.funcao})`
+    ? `${body.pessoaNome}: ${body.equipeOrigemNome ?? "?"} → ${body.equipeDestinoNome ?? "?"} (${body.funcao})`
     : `funcao: ${body.funcao}`;
   await registrarEvento(sessao, "participacao.moveu", `participacoes/${id}`, detalhe);
   return c.json(participacaoDeRow(row));
@@ -102,13 +102,13 @@ app.delete("/:id", comAuth, async (c) => {
   const sessao = c.get("sessao");
   const body = await c.req.json().catch(() => ({})) as {
     pessoaNome?: string;
-    barracaNome?: string;
+    equipeNome?: string;
   };
   const [row] = await sql`DELETE FROM participacoes WHERE id = ${id} RETURNING *`;
   if (!row) return c.json({ erro: "Participação não encontrada." }, 404);
   await registrarEvento(
     sessao, "participacao.desalocou", `participacoes/${id}`,
-    body.pessoaNome ? `${body.pessoaNome} de ${body.barracaNome ?? ""}` : id
+    body.pessoaNome ? `${body.pessoaNome} de ${body.equipeNome ?? ""}` : id
   );
   return c.json({ ok: true });
 });

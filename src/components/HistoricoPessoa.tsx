@@ -4,7 +4,7 @@ import {
   useEdicoes,
   useHistoricoParticipacoesDePessoa,
   useParticipacoesDePessoa,
-  useTodasBarracas,
+  useTodasEquipes,
 } from "../lib/hooks";
 import { Edicao, Funcao, Pessoa, SETORES } from "../lib/tipos";
 
@@ -16,8 +16,8 @@ interface ItemTimeline {
   edicaoAno: number | null;
   // Presente apenas em participações da tabela `participacoes`
   edicaoId: string | null;
-  barracaId: string | null;
-  barracaNome: string;
+  equipeId: string | null;
+  equipeNome: string;
   setorRotulo: string;
   funcao: Funcao | null;
   fonte: "atual" | "historico";
@@ -53,7 +53,7 @@ export function HistoricoPessoa({ pessoa }: { pessoa: Pessoa }) {
   const { itens: historico, carregando: carregandoHistorico } =
     useHistoricoParticipacoesDePessoa(pessoa.id);
   const { itens: edicoes, carregando: carregandoEdicoes } = useEdicoes();
-  const { itens: barracas, carregando: carregandoBarracas } = useTodasBarracas();
+  const { itens: equipes, carregando: carregandoEquipes } = useTodasEquipes();
 
   const indiceEdicoes = useMemo(() => {
     const m = new Map<string, Edicao>();
@@ -68,24 +68,24 @@ export function HistoricoPessoa({ pessoa }: { pessoa: Pessoa }) {
     return m;
   }, [edicoes]);
 
-  const indiceBarracas = useMemo(() => {
+  const indiceEquipes = useMemo(() => {
     const m = new Map<string, { nome: string; setor: string }>();
-    for (const b of barracas) m.set(b.id, { nome: b.nome, setor: b.setor });
+    for (const e of equipes) m.set(e.id, { nome: e.nome, setor: e.setor });
     return m;
-  }, [barracas]);
+  }, [equipes]);
 
   const linhas = useMemo<ItemTimeline[]>(() => {
     const atuais: ItemTimeline[] = parts.map((p) => {
       const e = indiceEdicoes.get(p.edicaoId) ?? null;
-      const b = indiceBarracas.get(p.barracaId);
+      const eq = indiceEquipes.get(p.equipeId);
       return {
         id: p.id,
         edicaoNumero: e?.numero ?? 0,
         edicaoAno: e?.ano ?? null,
         edicaoId: p.edicaoId,
-        barracaId: p.barracaId,
-        barracaNome: b?.nome ?? "Barraca removida",
-        setorRotulo: b ? (ROTULO_SETOR[b.setor] ?? b.setor) : "—",
+        equipeId: p.equipeId,
+        equipeNome: eq?.nome ?? "Equipe removida",
+        setorRotulo: eq ? (ROTULO_SETOR[eq.setor] ?? eq.setor) : "—",
         funcao: p.funcao,
         fonte: "atual",
       };
@@ -98,8 +98,8 @@ export function HistoricoPessoa({ pessoa }: { pessoa: Pessoa }) {
         edicaoNumero: h.edicaoNumero,
         edicaoAno: e?.ano ?? null,
         edicaoId: e?.id ?? null,
-        barracaId: null,
-        barracaNome: h.barracaNome,
+        equipeId: null,
+        equipeNome: h.equipeNome,
         setorRotulo: "—",
         funcao: h.funcao,
         fonte: "historico",
@@ -110,20 +110,20 @@ export function HistoricoPessoa({ pessoa }: { pessoa: Pessoa }) {
     // Mais recente primeiro: ordena pelo número da edição decrescente.
     todos.sort((x, y) => y.edicaoNumero - x.edicaoNumero);
     return todos;
-  }, [parts, historico, indiceEdicoes, indiceEdicoesPorNumero, indiceBarracas]);
+  }, [parts, historico, indiceEdicoes, indiceEdicoesPorNumero, indiceEquipes]);
 
   const carregando =
     carregandoParts ||
     carregandoHistorico ||
     carregandoEdicoes ||
-    carregandoBarracas;
+    carregandoEquipes;
 
   const resumo = useMemo(() => {
     const totalEdicoes = new Set(linhas.map((l) => l.edicaoNumero)).size;
     const consecutivos = calcularAnosConsecutivos(linhas);
     const contagem = new Map<string, number>();
     for (const l of linhas) {
-      contagem.set(l.barracaNome, (contagem.get(l.barracaNome) ?? 0) + 1);
+      contagem.set(l.equipeNome, (contagem.get(l.equipeNome) ?? 0) + 1);
     }
     const top = Array.from(contagem.entries())
       .sort((a, b) => b[1] - a[1])
@@ -169,7 +169,7 @@ export function HistoricoPessoa({ pessoa }: { pessoa: Pessoa }) {
         </div>
         <div>
           <div className="text-xs uppercase tracking-wide text-ardesia font-mono">
-            Top barracas
+            Top equipes
           </div>
           <div className="text-sm">
             {resumo.top.length === 0
@@ -208,16 +208,16 @@ export function HistoricoPessoa({ pessoa }: { pessoa: Pessoa }) {
               ) : null}
             </div>
             <div className="text-sm text-carbone">
-              {/* Participação da edição ativa tem link para a barraca */}
-              {l.fonte === "atual" && l.edicaoId && l.barracaId ? (
+              {/* Participação da edição ativa tem link para a equipe */}
+              {l.fonte === "atual" && l.edicaoId && l.equipeId ? (
                 <Link
-                  to={`/edicoes/${l.edicaoId}/barracas/${l.barracaId}`}
+                  to={`/edicoes/${l.edicaoId}/equipes/${l.equipeId}`}
                   className="font-semibold hover:text-verde"
                 >
-                  {l.barracaNome}
+                  {l.equipeNome}
                 </Link>
               ) : (
-                <span className="font-semibold">{l.barracaNome}</span>
+                <span className="font-semibold">{l.equipeNome}</span>
               )}
               {l.setorRotulo !== "—" && (
                 <span className="text-ardesia"> · {l.setorRotulo}</span>

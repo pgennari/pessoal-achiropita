@@ -15,7 +15,7 @@ function historicoDeRow(r: Record<string, unknown>) {
     pessoaId: String(r.pessoa_id ?? ""),
     pessoaNome: String(r.pessoa_nome ?? ""),
     edicaoNumero: Number(r.edicao_numero),
-    barracaNome: String(r.barraca_nome ?? ""),
+    equipeNome: String(r.equipe_nome ?? ""),
     funcao: r.funcao ? String(r.funcao) : null,
     criadoEm,
   };

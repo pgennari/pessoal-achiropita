@@ -79,7 +79,7 @@ export function AlocarPessoaDialog({
   async function escolher(p: Pessoa) {
     if (idsAlocados.has(p.id)) {
       setErro(
-        "Esta pessoa já está alocada em outra barraca nesta edição. Mova-a a partir da barraca atual."
+        "Esta pessoa já está alocada em outra equipe nesta edição. Mova-a a partir da equipe atual."
       );
       return;
     }
@@ -87,7 +87,7 @@ export function AlocarPessoaDialog({
     setErro(null);
     try {
       await onConfirmar({ pessoa: p, funcao });
-      // Fecha apenas quando a barraca atingir 100% das vagas.
+      // Fecha apenas quando a equipe atingir 100% das vagas.
       // Caso contrário, mantém a janela aberta para alocações consecutivas.
       const barracaCheia =
         vagasPrevistas > 0 && vagasAlocadas + 1 >= vagasPrevistas;

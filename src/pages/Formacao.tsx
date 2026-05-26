@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
 import {
-  useBarracas,
+  useEquipes,
   useEdicaoAtiva,
   useFormacoes,
   useLinksEdicao,
@@ -27,7 +27,7 @@ import { urlPublica } from "../lib/links";
 import { TurmaForm } from "../components/TurmaForm";
 import { LinkDaTurma } from "../components/LinkDaTurma";
 import {
-  Barraca,
+  Equipe,
   Formacao,
   FUNCOES,
   Funcao,
@@ -42,36 +42,36 @@ import { formatarData, normalizar, soDigitos } from "../lib/utilsDominio";
 
 // --- tipos auxiliares ---
 
-interface GrupoBarraca {
-  barracaId: string;
-  barracaNome: string;
+interface GrupoEquipe {
+  equipeId: string;
+  equipeNome: string;
   setor: Setor;
   pessoas: Pessoa[];
 }
 
-function agruparPorBarraca(
+function agruparPorEquipe(
   pessoas: Pessoa[],
   indiceParticipacao: Map<string, Participacao>,
-  indiceBarraca: Map<string, Barraca>
-): GrupoBarraca[] {
-  const grupos = new Map<string, GrupoBarraca>();
+  indiceEquipe: Map<string, Equipe>
+): GrupoEquipe[] {
+  const grupos = new Map<string, GrupoEquipe>();
   for (const p of pessoas) {
     const part = indiceParticipacao.get(p.id);
     if (!part) continue;
-    const barraca = indiceBarraca.get(part.barracaId);
-    if (!barraca) continue;
-    if (!grupos.has(part.barracaId)) {
-      grupos.set(part.barracaId, {
-        barracaId: part.barracaId,
-        barracaNome: barraca.nome,
-        setor: barraca.setor,
+    const equipe = indiceEquipe.get(part.equipeId);
+    if (!equipe) continue;
+    if (!grupos.has(part.equipeId)) {
+      grupos.set(part.equipeId, {
+        equipeId: part.equipeId,
+        equipeNome: equipe.nome,
+        setor: equipe.setor,
         pessoas: [],
       });
     }
-    grupos.get(part.barracaId)!.pessoas.push(p);
+    grupos.get(part.equipeId)!.pessoas.push(p);
   }
   return [...grupos.values()].sort((a, b) =>
-    a.barracaNome.localeCompare(b.barracaNome, "pt-BR")
+    a.equipeNome.localeCompare(b.equipeNome, "pt-BR")
   );
 }
 
@@ -87,7 +87,7 @@ export function PaginaFormacao() {
   const { itens: turmas, carregando: carregandoTurmas } = useTurmasFormacao(
     edicao?.id
   );
-  const { itens: barracas } = useBarracas(edicao?.id);
+  const { itens: equipes } = useEquipes(edicao?.id);
   const { itens: participacoes } = useParticipacoes(edicao?.id);
   const { itens: formacoes } = useFormacoes(edicao?.id);
   const { itens: pessoas } = usePessoas();
@@ -147,11 +147,11 @@ export function PaginaFormacao() {
     return m;
   }, [participacoes]);
 
-  const indiceBarracaById = useMemo(() => {
-    const m = new Map<string, Barraca>();
-    for (const b of barracas) m.set(b.id, b);
+  const indiceEquipeById = useMemo(() => {
+    const m = new Map<string, Equipe>();
+    for (const e of equipes) m.set(e.id, e);
     return m;
-  }, [barracas]);
+  }, [equipes]);
 
   const indiceFormacoes = useMemo(() => {
     const m = new Map<string, Formacao>();
@@ -200,8 +200,8 @@ export function PaginaFormacao() {
 
       if (filtroSetor) {
         if (!part) return false;
-        const barraca = indiceBarracaById.get(part.barracaId);
-        if (!barraca || barraca.setor !== filtroSetor) return false;
+        const equipe = indiceEquipeById.get(part.equipeId);
+        if (!equipe || equipe.setor !== filtroSetor) return false;
       }
 
       return true;
@@ -212,7 +212,7 @@ export function PaginaFormacao() {
     filtroSetor,
     filtroFuncao,
     indiceParticipacaoPorPessoa,
-    indiceBarracaById,
+    indiceEquipeById,
   ]);
 
   // Lista A: sem formação registrada
@@ -239,25 +239,25 @@ export function PaginaFormacao() {
     [alocadosFiltrados, indiceFormacoes]
   );
 
-  // Agrupamentos por barraca para Lista A e Lista B
+  // Agrupamentos por equipe para Lista A e Lista B
   const gruposSemFormacao = useMemo(
     () =>
-      agruparPorBarraca(
+      agruparPorEquipe(
         semFormacao,
         indiceParticipacaoPorPessoa,
-        indiceBarracaById
+        indiceEquipeById
       ),
-    [semFormacao, indiceParticipacaoPorPessoa, indiceBarracaById]
+    [semFormacao, indiceParticipacaoPorPessoa, indiceEquipeById]
   );
 
   const gruposPendentesValidacao = useMemo(
     () =>
-      agruparPorBarraca(
+      agruparPorEquipe(
         pendentesValidacao,
         indiceParticipacaoPorPessoa,
-        indiceBarracaById
+        indiceEquipeById
       ),
-    [pendentesValidacao, indiceParticipacaoPorPessoa, indiceBarracaById]
+    [pendentesValidacao, indiceParticipacaoPorPessoa, indiceEquipeById]
   );
 
   const totalPresencas = formacoes.length;
@@ -365,8 +365,8 @@ export function PaginaFormacao() {
   async function handleRemoverFormacao(f: Formacao) {
     if (!sessao) return;
     const part = indiceParticipacaoPorPessoa.get(f.pessoaId);
-    const barraca = part ? indiceBarracaById.get(part.barracaId) : undefined;
-    const pessoaNome = barraca?.nome ?? f.pessoaId;
+    const equipe = part ? indiceEquipeById.get(part.equipeId) : undefined;
+    const pessoaNome = equipe?.nome ?? f.pessoaId;
     const snap = pessoas.find((p) => p.id === f.pessoaId);
     const nome = snap?.nome ?? pessoaNome;
     const cracha = snap?.cracha ?? 0;
@@ -458,7 +458,7 @@ export function PaginaFormacao() {
             <div className="card-corpo">
               <h4 className="mb-3">Nova turma</h4>
               <TurmaForm
-                barracas={barracas}
+                equipes={equipes}
                 onSubmit={handleCriarTurma}
                 onCancelar={() => setCriandoTurma(false)}
                 textoBotao="Cadastrar turma"
@@ -476,7 +476,7 @@ export function PaginaFormacao() {
               </h4>
               <TurmaForm
                 inicial={turmaEditando}
-                barracas={barracas}
+                equipes={equipes}
                 onSubmit={handleSalvarTurma}
                 onCancelar={() => setEditandoTurmaId(null)}
                 textoBotao="Salvar alterações"
@@ -495,7 +495,7 @@ export function PaginaFormacao() {
 
         <div className="space-y-4">
           {turmas.map((t) => {
-            const barraca = barracas.find((b) => b.id === t.barracaIdVinculo);
+            const equipe = equipes.find((e) => e.id === t.equipeIdVinculo);
             return (
               <div key={t.id} className="card">
                 <div className="card-corpo space-y-4">
@@ -510,8 +510,8 @@ export function PaginaFormacao() {
                       </div>
                       <div className="text-ardesia text-sm">
                         {t.local} · capacidade {t.capacidadeMaxima}
-                        {barraca
-                          ? ` · ${barraca.nome}`
+                        {equipe
+                          ? ` · ${equipe.nome}`
                           : t.setorVinculo
                           ? ` · setor ${rotuloSetor(t.setorVinculo)}`
                           : ""}
@@ -615,7 +615,7 @@ export function PaginaFormacao() {
             <div className="space-y-4">
               {gruposSemFormacao.map((grupo) => (
                 <GrupoBarracaTabela
-                  key={grupo.barracaId}
+                  key={grupo.equipeId}
                   grupo={grupo}
                   colunaStatus={false}
                   onRowClick={(p) => {
@@ -675,7 +675,7 @@ export function PaginaFormacao() {
             <div className="space-y-4">
               {gruposPendentesValidacao.map((grupo) => (
                 <GrupoBarracaTabela
-                  key={grupo.barracaId}
+                  key={grupo.equipeId}
                   grupo={grupo}
                   colunaStatus
                   renderStatus={(p) => {
@@ -766,7 +766,7 @@ export function PaginaFormacao() {
                     <tr>
                       <th className="px-4 py-3 font-semibold w-20">Crachá</th>
                       <th className="px-4 py-3 font-semibold">Pessoa</th>
-                      <th className="px-4 py-3 font-semibold">Barraca</th>
+                      <th className="px-4 py-3 font-semibold">Equipe</th>
                       <th className="px-4 py-3 font-semibold w-36">Status</th>
                       <th className="px-4 py-3 font-semibold w-32 text-right">
                         Ações
@@ -777,8 +777,8 @@ export function PaginaFormacao() {
                     {confirmados.map((p) => {
                       const f = indiceFormacoes.get(p.id);
                       const part = indiceParticipacaoPorPessoa.get(p.id);
-                      const barraca = part
-                        ? indiceBarracaById.get(part.barracaId)
+                      const equipe = part
+                        ? indiceEquipeById.get(part.equipeId)
                         : undefined;
                       return (
                         <tr
@@ -797,7 +797,7 @@ export function PaginaFormacao() {
                             </Link>
                           </td>
                           <td className="px-4 py-3 text-ardesia">
-                            {barraca?.nome ?? "—"}
+                            {equipe?.nome ?? "—"}
                           </td>
                           <td className="px-4 py-3">
                             <span className="badge badge-verde">validado</span>
@@ -1112,10 +1112,10 @@ export function PaginaFormacao() {
   );
 }
 
-// --- componente auxiliar para tabela por barraca ---
+// --- componente auxiliar para tabela por equipe ---
 
-interface GrupoBarracaTabelaProps {
-  grupo: GrupoBarraca;
+interface GrupoEquipeTabelaProps {
+  grupo: GrupoEquipe;
   colunaStatus: boolean;
   renderStatus?: (p: Pessoa) => React.ReactNode;
   renderAcoes: (p: Pessoa) => React.ReactNode;
@@ -1128,11 +1128,11 @@ function GrupoBarracaTabela({
   renderStatus,
   renderAcoes,
   onRowClick,
-}: GrupoBarracaTabelaProps) {
+}: GrupoEquipeTabelaProps) {
   return (
     <div className="card overflow-hidden">
       <div className="card-corpo flex flex-wrap items-center gap-3 border-b border-pietra-clara py-3">
-        <span className="font-semibold">{grupo.barracaNome}</span>
+        <span className="font-semibold">{grupo.equipeNome}</span>
         <span className="badge badge-cinza text-xs">
           {rotuloSetor(grupo.setor)}
         </span>

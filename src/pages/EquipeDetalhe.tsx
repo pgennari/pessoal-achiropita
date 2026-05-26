@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  useBarraca,
-  useBarracas,
+  useEquipe,
+  useEquipes,
   useEdicao,
   useIndicePessoas,
   useParticipacoes,
@@ -10,16 +10,16 @@ import {
 } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import {
-  DadosBarracaForm,
-  atualizarBarraca,
-} from "../lib/barracas";
+  DadosEquipeForm,
+  atualizarEquipe,
+} from "../lib/equipes";
 import {
   alocar,
   desalocar,
-  moverDeBarraca,
+  moverDeEquipe,
   trocarFuncao,
 } from "../lib/participacoes";
-import { BarracaForm } from "../components/BarracaForm";
+import { EquipeForm } from "../components/EquipeForm";
 import { AlocarPessoaDialog } from "../components/AlocarPessoaDialog";
 import {
   FUNCOES,
@@ -34,13 +34,13 @@ interface Linha {
   pessoa: Pessoa | null;
 }
 
-export function BarracaDetalhe() {
+export function EquipeDetalhe() {
   const { id, edicaoId } = useParams<{ id: string; edicaoId: string }>();
   const navigate = useNavigate();
   const { sessao } = useSessao();
   const { item: edicao, carregando: carregandoEdicao } = useEdicao(edicaoId);
-  const { item: barraca, carregando, erro } = useBarraca(id);
-  const { itens: barracas } = useBarracas(edicaoId);
+  const { item: equipe, carregando, erro } = useEquipe(id);
+  const { itens: equipes } = useEquipes(edicaoId);
   const { itens: participacoes, carregando: carregandoParticipacoes } = useParticipacoes(edicaoId);
   const { itens: pessoas } = usePessoas();
   const indice = useIndicePessoas(pessoas);
@@ -50,16 +50,16 @@ export function BarracaDetalhe() {
   const [funcaoInicial, setFuncaoInicial] = useState<Funcao>("Equipista");
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [movendoLinha, setMovendoLinha] = useState<Linha | null>(null);
-  const [barracaDestinoId, setBarracaDestinoId] = useState("");
+  const [equipeDestinoId, setEquipeDestinoId] = useState("");
   const [funcaoDestino, setFuncaoDestino] = useState<Funcao>("Equipista");
 
   const podeAdministrar =
     !!sessao && (sessao.perfil === "ADM" || sessao.perfil === "ORG");
 
-  const linhasDaBarraca: Linha[] = useMemo(
+  const linhasDaEquipe: Linha[] = useMemo(
     () =>
       participacoes
-        .filter((p) => p.barracaId === id)
+        .filter((p) => p.equipeId === id)
         .map((p) => ({ participacao: p, pessoa: indice.get(p.pessoaId) ?? null }))
         .sort((a, b) => {
           const fa = FUNCOES.indexOf(a.participacao.funcao);
@@ -71,18 +71,18 @@ export function BarracaDetalhe() {
   );
 
   const totais = useMemo(() => {
-    const previstas = barraca
-      ? barraca.vagasCoordenador + barraca.vagasEquipista + barraca.vagasApoio
+    const previstas = equipe
+      ? equipe.vagasCoordenador + equipe.vagasEquipista + equipe.vagasApoio
       : 0;
-    const alocadas = linhasDaBarraca.length;
+    const alocadas = linhasDaEquipe.length;
     const porFuncao = {
-      Coordenador: linhasDaBarraca.filter(
+      Coordenador: linhasDaEquipe.filter(
         (l) => l.participacao.funcao === "Coordenador"
       ).length,
-      Equipista: linhasDaBarraca.filter(
+      Equipista: linhasDaEquipe.filter(
         (l) => l.participacao.funcao === "Equipista"
       ).length,
-      Apoio: linhasDaBarraca.filter((l) => l.participacao.funcao === "Apoio")
+      Apoio: linhasDaEquipe.filter((l) => l.participacao.funcao === "Apoio")
         .length,
     };
     return {
@@ -91,17 +91,17 @@ export function BarracaDetalhe() {
       pct: previstas > 0 ? Math.round((alocadas / previstas) * 100) : 0,
       porFuncao,
     };
-  }, [barraca, linhasDaBarraca]);
+  }, [equipe, linhasDaEquipe]);
 
   if (!sessao) return null;
   if (carregando || carregandoEdicao || carregandoParticipacoes)
     return <p className="text-ardesia">Carregando...</p>;
 
-  if (erro || !barraca || !edicao) {
+  if (erro || !equipe || !edicao) {
     return (
       <div className="card">
         <div className="card-corpo">
-          <h3 className="mb-2">Barraca não encontrada</h3>
+          <h3 className="mb-2">Equipe não encontrada</h3>
           <p className="text-ardesia">{erro ?? "Verifique o link."}</p>
           <Link to="/edicoes" className="btn btn-secundario mt-4">
             Voltar
@@ -111,9 +111,9 @@ export function BarracaDetalhe() {
     );
   }
 
-  async function handleSalvarBarraca(dados: DadosBarracaForm) {
-    if (!sessao || !barraca) return;
-    await atualizarBarraca(sessao, barraca, dados, barracas);
+  async function handleSalvarEquipe(dados: DadosEquipeForm) {
+    if (!sessao || !equipe) return;
+    await atualizarEquipe(sessao, equipe, dados, equipes);
     setEditando(false);
   }
 
@@ -123,46 +123,46 @@ export function BarracaDetalhe() {
   }
 
   async function handleAlocar(args: { pessoa: Pessoa; funcao: Funcao }) {
-    if (!sessao || !barraca || !edicao) return;
+    if (!sessao || !equipe || !edicao) return;
     await alocar(sessao, {
       edicaoId: edicao.id,
-      barracaId: barraca.id,
+      equipeId: equipe.id,
       pessoaId: args.pessoa.id,
       funcao: args.funcao,
       pessoaNome: args.pessoa.nome,
-      barracaNome: barraca.nome,
+      equipeNome: equipe.nome,
     });
   }
 
   async function handleDesalocar(linha: Linha) {
-    if (!sessao || !barraca) return;
+    if (!sessao || !equipe) return;
     if (!linha.pessoa) return;
     if (
-      !confirm(`Remover ${linha.pessoa.nome} de ${barraca.nome}?`)
+      !confirm(`Remover ${linha.pessoa.nome} de ${equipe.nome}?`)
     )
       return;
     setAcaoErro(null);
     try {
-      await desalocar(sessao, linha.participacao, linha.pessoa.nome, barraca.nome);
+      await desalocar(sessao, linha.participacao, linha.pessoa.nome, equipe.nome);
     } catch (e) {
       setAcaoErro(e instanceof Error ? e.message : "Falha ao desalocar.");
     }
   }
 
   async function handleMover() {
-    if (!sessao || !barraca || !movendoLinha || !barracaDestinoId) return;
+    if (!sessao || !equipe || !movendoLinha || !equipeDestinoId) return;
     if (!movendoLinha.pessoa) return;
-    const destino = barracas.find((b) => b.id === barracaDestinoId);
+    const destino = equipes.find((e) => e.id === equipeDestinoId);
     if (!destino) return;
     setAcaoErro(null);
     try {
-      await moverDeBarraca(
+      await moverDeEquipe(
         sessao,
         movendoLinha.participacao,
-        barracaDestinoId,
+        equipeDestinoId,
         funcaoDestino,
         movendoLinha.pessoa.nome,
-        barraca.nome,
+        equipe.nome,
         destino.nome
       );
       setMovendoLinha(null);
@@ -187,13 +187,13 @@ export function BarracaDetalhe() {
       <div className="space-y-6 max-w-3xl">
         <header>
           <div className="eyebrow">Editando</div>
-          <h2 className="mt-1">{barraca.nome}</h2>
+          <h2 className="mt-1">{equipe.nome}</h2>
         </header>
         <div className="card">
           <div className="card-corpo">
-            <BarracaForm
-              inicial={barraca}
-              onSubmit={handleSalvarBarraca}
+            <EquipeForm
+              inicial={equipe}
+              onSubmit={handleSalvarEquipe}
               onCancelar={() => setEditando(false)}
               textoBotao="Salvar alterações"
             />
@@ -213,9 +213,9 @@ export function BarracaDetalhe() {
           >
             ← {edicao.numero}ª edição
           </Link>
-          <h2 className="mt-1">{barraca.nome}</h2>
+          <h2 className="mt-1">{equipe.nome}</h2>
           <div className="text-ardesia text-sm">
-            {SETORES.find((s) => s.valor === barraca.setor)?.rotulo}
+            {SETORES.find((s) => s.valor === equipe.setor)?.rotulo}
           </div>
         </div>
         {podeAdministrar && (
@@ -249,21 +249,21 @@ export function BarracaDetalhe() {
           <div className="kpi-label">Coordenadores</div>
           <div className="kpi-valor">
             {totais.porFuncao.Coordenador}{" "}
-            <span className="unidade">/ {barraca.vagasCoordenador}</span>
+            <span className="unidade">/ {equipe.vagasCoordenador}</span>
           </div>
         </div>
         <div className="kpi">
           <div className="kpi-label">Equipistas</div>
           <div className="kpi-valor">
             {totais.porFuncao.Equipista}{" "}
-            <span className="unidade">/ {barraca.vagasEquipista}</span>
+            <span className="unidade">/ {equipe.vagasEquipista}</span>
           </div>
         </div>
         <div className="kpi">
           <div className="kpi-label">Apoio</div>
           <div className="kpi-valor">
             {totais.porFuncao.Apoio}{" "}
-            <span className="unidade">/ {barraca.vagasApoio}</span>
+            <span className="unidade">/ {equipe.vagasApoio}</span>
           </div>
         </div>
         <div className="kpi">
@@ -302,14 +302,14 @@ export function BarracaDetalhe() {
             </tr>
           </thead>
           <tbody>
-            {linhasDaBarraca.length === 0 && (
+            {linhasDaEquipe.length === 0 && (
               <tr>
                 <td colSpan={4} className="px-4 py-8 text-center text-ardesia">
-                  Ninguém alocado nesta barraca.
+                  Ninguém alocado nesta equipe.
                 </td>
               </tr>
             )}
-            {linhasDaBarraca.map((l) => (
+            {linhasDaEquipe.map((l) => (
               <tr
                 key={l.participacao.id}
                 className="border-t border-pietra-clara"
@@ -358,7 +358,7 @@ export function BarracaDetalhe() {
                         className="btn btn-secundario btn-pequeno"
                         onClick={() => {
                           setMovendoLinha(l);
-                          setBarracaDestinoId("");
+                          setEquipeDestinoId("");
                           setFuncaoDestino(l.participacao.funcao);
                         }}
                       >
@@ -390,7 +390,7 @@ export function BarracaDetalhe() {
         </button>
       </div>
 
-      {/* Modal — Mover pessoa para outra barraca (US-05-04) */}
+      {/* Modal — Mover pessoa para outra equipe (US-05-04) */}
       {movendoLinha && (
         <div
           className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] px-4 bg-carbone/40"
@@ -405,26 +405,26 @@ export function BarracaDetalhe() {
                 <div className="eyebrow">Mover pessoa</div>
                 <h3>{movendoLinha.pessoa?.nome}</h3>
                 <p className="text-ardesia text-sm font-mono">
-                  #{movendoLinha.pessoa?.cracha} · atualmente em {barraca.nome}
+                  #{movendoLinha.pessoa?.cracha} · atualmente em {equipe.nome}
                 </p>
               </div>
 
               <div className="input-grupo m-0">
-                <label className="input-label" htmlFor="barracaDestino">
-                  Barraca de destino
+                <label className="input-label" htmlFor="equipeDestino">
+                  Equipe de destino
                 </label>
                 <select
-                  id="barracaDestino"
+                  id="equipeDestino"
                   className="input"
-                  value={barracaDestinoId}
-                  onChange={(e) => setBarracaDestinoId(e.target.value)}
+                  value={equipeDestinoId}
+                  onChange={(e) => setEquipeDestinoId(e.target.value)}
                 >
                   <option value="">— selecione —</option>
-                  {barracas
-                    .filter((b) => b.id !== id)
-                    .map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.nome}
+                  {equipes
+                    .filter((e) => e.id !== id)
+                    .map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.nome}
                       </option>
                     ))}
                 </select>
@@ -432,7 +432,7 @@ export function BarracaDetalhe() {
 
               <div className="input-grupo m-0">
                 <label className="input-label" htmlFor="funcaoDestino">
-                  Função na barraca de destino
+                  Função na equipe de destino
                 </label>
                 <select
                   id="funcaoDestino"
@@ -452,7 +452,7 @@ export function BarracaDetalhe() {
                 <button
                   type="button"
                   className="btn btn-primario"
-                  disabled={!barracaDestinoId}
+                  disabled={!equipeDestinoId}
                   onClick={handleMover}
                 >
                   Confirmar mudança

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
 import {
-  useBarracas,
+  useEquipes,
   useEdicaoAtiva,
   useEntregasCracha,
   useIndicePessoas,
@@ -14,7 +14,7 @@ import {
   marcarEntregue,
 } from "../lib/entregas";
 import { normalizar, soDigitos, formatarData } from "../lib/utilsDominio";
-import { Barraca, EntregaCracha, Pessoa, Participacao } from "../lib/tipos";
+import { Equipe, EntregaCracha, Pessoa, Participacao } from "../lib/tipos";
 
 interface LinhaPessoa {
   pessoa: Pessoa;
@@ -22,8 +22,8 @@ interface LinhaPessoa {
   entrega: EntregaCracha | null;
 }
 
-interface GrupoBarraca {
-  barraca: Barraca;
+interface GrupoEquipe {
+  equipe: Equipe;
   linhas: LinhaPessoa[];
   entregues: number;
 }
@@ -32,7 +32,7 @@ export function EntregaCrachas() {
   const { sessao } = useSessao();
   const { edicao, carregando: carregandoEdicao } = useEdicaoAtiva();
   const { itens: pessoas } = usePessoas();
-  const { itens: barracas } = useBarracas(edicao?.id);
+  const { itens: equipes } = useEquipes(edicao?.id);
   const { itens: participacoes } = useParticipacoes(edicao?.id);
   const { itens: entregas } = useEntregasCracha(edicao?.id);
   const indicePessoas = useIndicePessoas(pessoas);
@@ -47,26 +47,26 @@ export function EntregaCrachas() {
     return m;
   }, [entregas]);
 
-  const indiceBarracas = useMemo(() => {
-    const m = new Map<string, Barraca>();
-    for (const b of barracas) m.set(b.id, b);
+  const indiceEquipes = useMemo(() => {
+    const m = new Map<string, Equipe>();
+    for (const e of equipes) m.set(e.id, e);
     return m;
-  }, [barracas]);
+  }, [equipes]);
 
-  const grupos = useMemo<GrupoBarraca[]>(() => {
+  const grupos = useMemo<GrupoEquipe[]>(() => {
     const t = normalizar(termo);
     const tDigitos = soDigitos(termo);
-    const porBarraca = new Map<string, GrupoBarraca>();
+    const porEquipe = new Map<string, GrupoEquipe>();
 
-    for (const b of barracas) {
-      porBarraca.set(b.id, { barraca: b, linhas: [], entregues: 0 });
+    for (const e of equipes) {
+      porEquipe.set(e.id, { equipe: e, linhas: [], entregues: 0 });
     }
 
     for (const part of participacoes) {
       const pessoa = indicePessoas.get(part.pessoaId);
       if (!pessoa) continue;
-      const barraca = indiceBarracas.get(part.barracaId);
-      if (!barraca) continue;
+      const equipe = indiceEquipes.get(part.equipeId);
+      if (!equipe) continue;
       const entrega = indiceEntregas.get(pessoa.id) ?? null;
 
       if (pendencia && entrega) continue;
@@ -78,19 +78,19 @@ export function EntregaCrachas() {
         if (!matchNome && !matchCracha && !matchCpf) continue;
       }
 
-      const grupo = porBarraca.get(barraca.id);
+      const grupo = porEquipe.get(equipe.id);
       if (!grupo) continue;
       grupo.linhas.push({ pessoa, participacao: part, entrega });
       if (entrega) grupo.entregues++;
     }
 
-    const arr = Array.from(porBarraca.values()).filter(
+    const arr = Array.from(porEquipe.values()).filter(
       (g) => g.linhas.length > 0
     );
     arr.sort(
       (a, b) =>
-        a.barraca.setor.localeCompare(b.barraca.setor) ||
-        a.barraca.nome.localeCompare(b.barraca.nome)
+        a.equipe.setor.localeCompare(b.equipe.setor) ||
+        a.equipe.nome.localeCompare(b.equipe.nome)
     );
     for (const g of arr) {
       g.linhas.sort(
@@ -99,10 +99,10 @@ export function EntregaCrachas() {
     }
     return arr;
   }, [
-    barracas,
+    equipes,
     participacoes,
     indicePessoas,
-    indiceBarracas,
+    indiceEquipes,
     indiceEntregas,
     termo,
     pendencia,
@@ -248,13 +248,13 @@ export function EntregaCrachas() {
 
       <div className="space-y-6">
         {grupos.map((g) => (
-          <section key={g.barraca.id} className="card overflow-hidden">
+          <section key={g.equipe.id} className="card overflow-hidden">
             <div className="card-corpo flex flex-wrap items-center gap-3 border-b border-pietra-clara py-4">
-              <h4 className="m-0 mr-auto">{g.barraca.nome}</h4>
+              <h4 className="m-0 mr-auto">{g.equipe.nome}</h4>
               <span className="badge badge-cinza">
-                {g.barraca.setor === "Alimentacao"
+                {g.equipe.setor === "Alimentacao"
                   ? "Alimentação"
-                  : g.barraca.setor}
+                  : g.equipe.setor}
               </span>
               <span
                 className={`badge ${

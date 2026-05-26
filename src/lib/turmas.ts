@@ -11,7 +11,7 @@ export interface DadosTurmaForm {
   local: string;
   capacidadeMaxima: number | undefined;
   setorVinculo?: Setor;
-  barracaIdVinculo?: string;
+  equipeIdVinculo?: string;
 }
 
 export class ErroTurma extends Error {
@@ -32,7 +32,7 @@ export function turmaDeSnap(id: string, data: Record<string, unknown>): TurmaFor
     local: (data.local as string) ?? "",
     capacidadeMaxima: (data.capacidadeMaxima as number) ?? 0,
     setorVinculo: (data.setorVinculo as Setor) || undefined,
-    barracaIdVinculo: (data.barracaIdVinculo as string) || undefined,
+    equipeIdVinculo: (data.equipeIdVinculo as string) || undefined,
     criadoEm: (data.criadoEm as string) || "",
     atualizadoEm: (data.atualizadoEm as string) || "",
   };
@@ -73,7 +73,7 @@ export async function criarTurma(
     local: dados.local.trim(),
     capacidadeMaxima: dados.capacidadeMaxima,
     setorVinculo: dados.setorVinculo || null,
-    barracaIdVinculo: dados.barracaIdVinculo || null,
+    equipeIdVinculo: dados.equipeIdVinculo || null,
   });
 
   invalidarTurmas(edicaoId);
@@ -100,7 +100,7 @@ export async function atualizarTurma(
     local: dados.local.trim(),
     capacidadeMaxima: dados.capacidadeMaxima,
     setorVinculo: dados.setorVinculo || null,
-    barracaIdVinculo: dados.barracaIdVinculo || null,
+    equipeIdVinculo: dados.equipeIdVinculo || null,
   });
 
   invalidarTurmas(turma.edicaoId);

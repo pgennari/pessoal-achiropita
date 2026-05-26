@@ -15,6 +15,7 @@ import links from "./rotas/links.js";
 import auditoria from "./rotas/auditoria.js";
 import publico from "./rotas/publico.js";
 import admin from "./rotas/admin.js";
+import historicoParticipacoes from "./rotas/historicoParticipacoes.js";
 
 const app = new Hono();
 
@@ -59,6 +60,7 @@ app.route("/api/links", links);
 app.route("/api/auditoria", auditoria);
 app.route("/api/publico", publico);
 app.route("/api/admin", admin);
+app.route("/api/historico-participacoes", historicoParticipacoes);
 
 app.onError((err, c) => {
   console.error("[API Error]", err);

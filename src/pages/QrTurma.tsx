@@ -35,9 +35,9 @@ export function QrTurma() {
           const url = urlPublica(token);
           const out = await QRCode.toString(url, {
             type: "svg",
-            errorCorrectionLevel: "M",
+            errorCorrectionLevel: "H",
             margin: 1,
-            color: { dark: "#1A1A1A", light: "#FFFFFF" },
+            color: { dark: "#000000", light: "#FFFFFF" },
           });
           if (!cancelado) {
             setSvg(out);
@@ -93,6 +93,159 @@ export function QrTurma() {
 
   const url = token ? urlPublica(token) : "";
 
+  if (imprimir) {
+    return (
+      <>
+        <style>{`
+          @page {
+            size: A4 portrait;
+            margin: 12mm;
+          }
+          @media print {
+            body {
+              background: #fff !important;
+              background-image: none !important;
+            }
+            .qr-print-nao-imprimir {
+              display: none !important;
+            }
+          }
+        `}</style>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "space-between",
+            minHeight: "100vh",
+            padding: "24px 32px 20px",
+            background: "#fff",
+            color: "#000",
+            fontFamily: "sans-serif",
+            boxSizing: "border-box",
+          }}
+        >
+          {/* Cabeçalho */}
+          <div style={{ textAlign: "center", width: "100%" }}>
+            <div
+              style={{
+                fontSize: "clamp(2rem, 5vw, 3rem)",
+                fontWeight: 800,
+                lineHeight: 1.1,
+                letterSpacing: "-0.02em",
+                color: "#000",
+                marginBottom: "8px",
+              }}
+            >
+              Confirme sua presença
+            </div>
+            <div
+              style={{
+                fontSize: "clamp(1.1rem, 2.5vw, 1.5rem)",
+                color: "#000",
+                fontWeight: 500,
+              }}
+            >
+              Aponte a câmera do celular para o QR Code
+            </div>
+          </div>
+
+          {/* QR Code — elemento dominante */}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "100%",
+              padding: "16px 0",
+            }}
+          >
+            <div
+              style={{
+                width: "min(72vmin, 560px)",
+                height: "min(72vmin, 560px)",
+                flexShrink: 0,
+              }}
+              dangerouslySetInnerHTML={{ __html: svg ?? "" }}
+            />
+          </div>
+
+          {/* Rodapé */}
+          <div style={{ textAlign: "center", width: "100%" }}>
+            <div
+              style={{
+                fontSize: "clamp(0.95rem, 2vw, 1.25rem)",
+                color: "#333",
+                marginBottom: "6px",
+              }}
+            >
+              Ou acesse diretamente:
+            </div>
+            <div
+              style={{
+                fontSize: "clamp(1rem, 2vw, 1.3rem)",
+                fontFamily: "monospace",
+                fontWeight: 700,
+                color: "#000",
+                wordBreak: "break-all",
+                marginBottom: "12px",
+              }}
+            >
+              {url}
+            </div>
+            <div
+              style={{
+                fontSize: "clamp(1rem, 2vw, 1.25rem)",
+                color: "#444",
+                marginBottom: "4px",
+              }}
+            >
+              Informe seu número de crachá e ano de nascimento
+            </div>
+            {link && (
+              <div style={{ fontSize: "clamp(0.85rem, 1.8vw, 1.1rem)", color: "#666" }}>
+                Válido até {formatarData(link.expiraEm)}{" "}
+                {new Date(link.expiraEm).toLocaleTimeString("pt-BR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Botão visível apenas na tela, não no papel */}
+        <div
+          className="qr-print-nao-imprimir"
+          style={{
+            position: "fixed",
+            bottom: "24px",
+            right: "24px",
+          }}
+        >
+          <button
+            onClick={() => window.print()}
+            style={{
+              background: "#000",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              padding: "12px 24px",
+              fontSize: "1rem",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Imprimir
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  /* Versão de tela normal */
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 text-center">
       <div className="max-w-2xl w-full space-y-6">

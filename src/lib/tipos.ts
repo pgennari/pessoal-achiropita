@@ -153,6 +153,18 @@ export interface Participacao {
   atualizadoEm: string;
 }
 
+// Registro importado de edições passadas (74–99). Não tem FK para barracas
+// nem para edicoes — armazena numero e nome diretamente.
+export interface ParticipacaoHistorica {
+  id: string;
+  pessoaId: string;
+  pessoaNome: string;
+  edicaoNumero: number;
+  barracaNome: string;
+  funcao: Funcao | null;
+  criadoEm: string;
+}
+
 export interface EntregaCracha {
   id: string; // formato: `${edicaoId}__${pessoaId}`
   edicaoId: string;

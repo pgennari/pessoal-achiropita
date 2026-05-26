@@ -12,6 +12,7 @@ import {
   Formacao,
   LinkValidacao,
   Participacao,
+  ParticipacaoHistorica,
   Pessoa,
   TurmaFormacao,
   Usuario,
@@ -135,6 +136,20 @@ export function useTodasParticipacoes(): EstadoLista<Participacao> {
     queryFn: () => api.get<Participacao[]>("/api/participacoes"),
   });
   return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
+}
+
+export function useHistoricoParticipacoesDePessoa(
+  pessoaId: string | undefined
+): EstadoLista<ParticipacaoHistorica> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["historico-participacoes", pessoaId],
+    queryFn: () =>
+      api.get<ParticipacaoHistorica[]>(
+        `/api/historico-participacoes?pessoaId=${pessoaId}`
+      ),
+    enabled: !!pessoaId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!pessoaId, erro: erroMsg(error) };
 }
 
 // Indexa pessoas por id — útil em telas que cruzam participações com pessoas.

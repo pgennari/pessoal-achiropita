@@ -38,10 +38,10 @@ export function BarracaDetalhe() {
   const { id, edicaoId } = useParams<{ id: string; edicaoId: string }>();
   const navigate = useNavigate();
   const { sessao } = useSessao();
-  const { item: edicao } = useEdicao(edicaoId);
+  const { item: edicao, carregando: carregandoEdicao } = useEdicao(edicaoId);
   const { item: barraca, carregando, erro } = useBarraca(id);
   const { itens: barracas } = useBarracas(edicaoId);
-  const { itens: participacoes } = useParticipacoes(edicaoId);
+  const { itens: participacoes, carregando: carregandoParticipacoes } = useParticipacoes(edicaoId);
   const { itens: pessoas } = usePessoas();
   const indice = useIndicePessoas(pessoas);
 
@@ -94,7 +94,8 @@ export function BarracaDetalhe() {
   }, [barraca, linhasDaBarraca]);
 
   if (!sessao) return null;
-  if (carregando) return <p className="text-ardesia">Carregando...</p>;
+  if (carregando || carregandoEdicao || carregandoParticipacoes)
+    return <p className="text-ardesia">Carregando...</p>;
 
   if (erro || !barraca || !edicao) {
     return (

@@ -618,6 +618,10 @@ export function PaginaFormacao() {
                   key={grupo.barracaId}
                   grupo={grupo}
                   colunaStatus={false}
+                  onRowClick={(p) => {
+                    setMarcandoPara({ pessoa: p });
+                    setJustificativa("");
+                  }}
                   renderAcoes={(p) => (
                     <button
                       type="button"
@@ -1115,6 +1119,7 @@ interface GrupoBarracaTabelaProps {
   colunaStatus: boolean;
   renderStatus?: (p: Pessoa) => React.ReactNode;
   renderAcoes: (p: Pessoa) => React.ReactNode;
+  onRowClick?: (p: Pessoa) => void;
 }
 
 function GrupoBarracaTabela({
@@ -1122,6 +1127,7 @@ function GrupoBarracaTabela({
   colunaStatus,
   renderStatus,
   renderAcoes,
+  onRowClick,
 }: GrupoBarracaTabelaProps) {
   return (
     <div className="card overflow-hidden">
@@ -1150,7 +1156,8 @@ function GrupoBarracaTabela({
             {grupo.pessoas.map((p) => (
               <tr
                 key={p.id}
-                className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                className={`border-t border-pietra-clara hover:bg-pietra-clara/40${onRowClick ? " cursor-pointer" : ""}`}
+                onClick={onRowClick ? () => onRowClick(p) : undefined}
               >
                 <td className="px-4 py-3 font-mono text-ardesia">
                   #{p.cracha}
@@ -1159,6 +1166,7 @@ function GrupoBarracaTabela({
                   <Link
                     to={`/pessoas/${p.id}`}
                     className="font-semibold text-carbone hover:text-verde"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     {p.nome}
                   </Link>
@@ -1168,7 +1176,12 @@ function GrupoBarracaTabela({
                     {renderStatus ? renderStatus(p) : null}
                   </td>
                 )}
-                <td className="px-4 py-3 text-right">{renderAcoes(p)}</td>
+                <td
+                  className="px-4 py-3 text-right"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {renderAcoes(p)}
+                </td>
               </tr>
             ))}
           </tbody>

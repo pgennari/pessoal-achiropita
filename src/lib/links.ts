@@ -53,13 +53,15 @@ export async function gerarLinkDeTurma(
   if (prazo <= new Date()) {
     throw new ErroLink("Prazo de expiração precisa ser no futuro.");
   }
-  const resultado = await api.post<{ token: string }>("/api/links", {
+  const token = gerarToken();
+  await api.post<LinkValidacao>("/api/links", {
+    token,
     turmaId: turma.id,
     edicaoId: turma.edicaoId,
     expiraEm: prazo.toISOString(),
   });
   queryClient.invalidateQueries({ queryKey: ["links"] });
-  return resultado.token;
+  return token;
 }
 
 export async function revogarLink(_sessao: Sessao, link: LinkValidacao): Promise<void> {

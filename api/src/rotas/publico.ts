@@ -108,7 +108,7 @@ app.get("/link/:token", async (c) => {
 
 // POST /api/publico/identificar — fase de identificação (substitui buscaCracha)
 // Recebe: { token, cracha, anoNascimento }
-// Retorna: { sessaoJwt, pessoaId, nome }
+// Retorna: { sessaoJwt, pessoa }
 app.post("/identificar", async (c) => {
   const body = await c.req.json() as {
     token: string;
@@ -133,28 +133,63 @@ app.post("/identificar", async (c) => {
 
   // Identifica a pessoa pelo crachá (apenas ativas)
   const MSG = "Crachá ou ano de nascimento não conferem. Tente novamente ou fale com a organização.";
-  const [pessoa] = await sql`
-    SELECT id, nome, nascimento FROM pessoas WHERE cracha = ${crachaNum} AND ativo = true
+  const [row] = await sql`
+    SELECT * FROM pessoas WHERE cracha = ${crachaNum} AND ativo = true
   `;
-  if (!pessoa) return c.json({ erro: MSG }, 400);
+  if (!row) return c.json({ erro: MSG }, 400);
 
-  const anoReal = pessoa.nascimento instanceof Date
-    ? String(pessoa.nascimento.getUTCFullYear())
-    : String(pessoa.nascimento ?? "").slice(0, 4);
+  const nascimentoStr = row.nascimento instanceof Date
+    ? row.nascimento.toISOString().slice(0, 10)
+    : String(row.nascimento ?? "");
+  const anoReal = nascimentoStr.slice(0, 4);
 
   if (anoReal !== String(body.anoNascimento ?? "").trim()) {
     return c.json({ erro: MSG }, 400);
   }
 
   const sessaoJwt = await criarSessaoJwt({
-    pessoaId: String(pessoa.id),
+    pessoaId: String(row.id),
     turmaId: String(link.turma_id),
     edicaoId: String(link.edicao_id),
     cracha: crachaNum,
     linkToken: token,
   });
 
-  return c.json({ sessaoJwt, pessoaId: pessoa.id, nome: pessoa.nome });
+  const criadoEm = row.criado_em instanceof Date
+    ? row.criado_em.toISOString()
+    : String(row.criado_em ?? "");
+  const atualizadoEm = row.atualizado_em instanceof Date
+    ? row.atualizado_em.toISOString()
+    : String(row.atualizado_em ?? "");
+
+  const pessoa = {
+    id: row.id,
+    cracha: row.cracha,
+    nome: row.nome,
+    nascimento: nascimentoStr,
+    telefone: row.telefone ?? "",
+    telefoneResidencial: row.telefone_residencial ?? undefined,
+    telefoneComercial: row.telefone_comercial ?? undefined,
+    email: row.email ?? undefined,
+    cpf: row.cpf ?? undefined,
+    rg: row.rg ?? undefined,
+    endereco: row.endereco ?? undefined,
+    bairro: row.bairro ?? undefined,
+    cep: row.cep ?? undefined,
+    estadoCivil: row.estado_civil ?? undefined,
+    nomeConjuge: row.nome_conjuge ?? undefined,
+    temEstacionamento: row.tem_estacionamento ?? false,
+    frequentaRecreacao: row.frequenta_recreacao ?? false,
+    parenteFesta: row.parente_festa ?? undefined,
+    observacoes: row.observacoes ?? undefined,
+    ativo: row.ativo,
+    filhos: row.filhos ?? [],
+    carros: row.carros ?? [],
+    criadoEm,
+    atualizadoEm,
+  };
+
+  return c.json({ sessaoJwt, pessoa });
 });
 
 // POST /api/publico/validacao — salva dados após identificação pública

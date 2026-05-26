@@ -52,7 +52,7 @@ export function EdicaoDetalhe() {
   const { sessao } = useSessao();
   const { item: edicao, carregando, erro } = useEdicao(id);
   const { itens: barracas, carregando: carregandoBarracas } = useBarracas(id);
-  const { itens: participacoes } = useParticipacoes(id);
+  const { itens: participacoes, carregando: carregandoParticipacoes } = useParticipacoes(id);
 
   const [editandoEdicao, setEditandoEdicao] = useState(false);
   const [criandoBarraca, setCriandoBarraca] = useState(false);
@@ -81,7 +81,8 @@ export function EdicaoDetalhe() {
   );
 
   if (!sessao) return null;
-  if (carregando) return <p className="text-ardesia">Carregando...</p>;
+  if (carregando || carregandoBarracas || carregandoParticipacoes)
+    return <p className="text-ardesia">Carregando...</p>;
 
   if (erro || !edicao) {
     return (

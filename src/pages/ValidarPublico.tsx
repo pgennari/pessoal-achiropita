@@ -147,9 +147,14 @@ export function ValidarPublico() {
   return (
     <div className="min-h-screen flex items-start justify-center px-4 py-10">
       <div className="w-full max-w-2xl space-y-6">
-        <header className="text-center">
-          <div className="eyebrow">Festa 100ª Achiropita</div>
-          <h1 className="mt-2">Validação de cadastro</h1>
+        <header className="text-center space-y-3">
+          <img
+            src="/logo-achiropita.png"
+            alt="Logo Festa Nossa Senhora Achiropita"
+            className="mx-auto h-20 w-auto"
+          />
+          <div className="eyebrow">Festa Nsa. Sra. Achiropita</div>
+          <h1 className="mt-1">Validação de cadastro</h1>
         </header>
 
         {etapa === "carregando" && (
@@ -480,7 +485,7 @@ export function ValidarPublico() {
         )}
 
         <footer className="text-center text-xs text-ardesia font-mono">
-          Achiropita 100 · {new Date().getFullYear()}
+          Achiropita • 2026
         </footer>
       </div>
     </div>

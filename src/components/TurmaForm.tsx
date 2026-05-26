@@ -1,10 +1,10 @@
 import { FormEvent, useState } from "react";
-import { Barraca, SETORES, Setor, TurmaFormacao } from "../lib/tipos";
+import { Equipe, SETORES, Setor, TurmaFormacao } from "../lib/tipos";
 import { DadosTurmaForm } from "../lib/turmas";
 
 interface Props {
   inicial?: TurmaFormacao | null;
-  barracas: Barraca[];
+  equipes: Equipe[];
   onSubmit: (dados: DadosTurmaForm) => Promise<void>;
   onCancelar: () => void;
   textoBotao?: string;
@@ -18,13 +18,13 @@ function inicialDados(t?: TurmaFormacao | null): DadosTurmaForm {
     local: t?.local ?? "",
     capacidadeMaxima: t?.capacidadeMaxima ?? 50,
     setorVinculo: t?.setorVinculo,
-    barracaIdVinculo: t?.barracaIdVinculo,
+    equipeIdVinculo: t?.equipeIdVinculo,
   };
 }
 
 export function TurmaForm({
   inicial,
-  barracas,
+  equipes,
   onSubmit,
   onCancelar,
   textoBotao = "Salvar",
@@ -59,9 +59,9 @@ export function TurmaForm({
     }
   }
 
-  const barracasFiltradas = dados.setorVinculo
-    ? barracas.filter((b) => b.setor === dados.setorVinculo)
-    : barracas;
+  const equipesFiltradas = dados.setorVinculo
+    ? equipes.filter((e) => e.setor === dados.setorVinculo)
+    : equipes;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -164,7 +164,7 @@ export function TurmaForm({
               setDados((d) => ({
                 ...d,
                 setorVinculo: v,
-                barracaIdVinculo: undefined,
+                equipeIdVinculo: undefined,
               }));
             }}
           >
@@ -178,21 +178,21 @@ export function TurmaForm({
         </div>
 
         <div className="input-grupo sm:col-span-2">
-          <label className="input-label" htmlFor="barracaVinculo">
-            Barraca vinculada <span className="opcional">(opcional)</span>
+          <label className="input-label" htmlFor="equipeVinculo">
+            Equipe vinculada <span className="opcional">(opcional)</span>
           </label>
           <select
-            id="barracaVinculo"
+            id="equipeVinculo"
             className="input"
-            value={dados.barracaIdVinculo ?? ""}
+            value={dados.equipeIdVinculo ?? ""}
             onChange={(e) =>
-              set("barracaIdVinculo", e.target.value || undefined)
+              set("equipeIdVinculo", e.target.value || undefined)
             }
           >
             <option value="">—</option>
-            {barracasFiltradas.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.nome}
+            {equipesFiltradas.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.nome}
               </option>
             ))}
           </select>

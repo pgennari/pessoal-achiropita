@@ -6,7 +6,7 @@ export interface Usuario {
   nome: string;
   perfil: Perfil;
   pessoaId?: string;
-  barracasCRD?: string[];
+  equipesCRD?: string[];
   tokenConvite?: string;
   criadoEm?: string;
   atualizadoEm?: string;
@@ -22,7 +22,7 @@ export interface Convite {
   email: string;         // lowercased
   perfil: Perfil;
   pessoaId?: string;
-  barracasCRD?: string[];
+  equipesCRD?: string[];
   status: StatusConvite;
   criadoPorUid: string;
   criadoPorNome: string;
@@ -127,7 +127,7 @@ export const SETORES: { valor: Setor; rotulo: string }[] = [
   { valor: "Alimentacao", rotulo: "Alimentação" },
 ];
 
-export interface Barraca {
+export interface Equipe {
   id: string;
   edicaoId: string;
   nome: string;
@@ -146,21 +146,21 @@ export const FUNCOES: Funcao[] = ["Coordenador", "Equipista", "Apoio"];
 export interface Participacao {
   id: string;
   edicaoId: string;
-  barracaId: string;
+  equipeId: string;
   pessoaId: string;
   funcao: Funcao;
   criadoEm: string;
   atualizadoEm: string;
 }
 
-// Registro importado de edições passadas (74–99). Não tem FK para barracas
+// Registro importado de edições passadas (74–99). Não tem FK para equipes
 // nem para edicoes — armazena numero e nome diretamente.
 export interface ParticipacaoHistorica {
   id: string;
   pessoaId: string;
   pessoaNome: string;
   edicaoNumero: number;
-  barracaNome: string;
+  equipeNome: string;
   funcao: Funcao | null;
   criadoEm: string;
 }
@@ -184,7 +184,7 @@ export interface TurmaFormacao {
   local: string;
   capacidadeMaxima: number;
   setorVinculo?: Setor;
-  barracaIdVinculo?: string;
+  equipeIdVinculo?: string;
   criadoEm: string;
   atualizadoEm: string;
 }
@@ -236,4 +236,3 @@ export interface Formacao {
   dadosValidados: boolean;
   validadoEm?: string;
 }
-

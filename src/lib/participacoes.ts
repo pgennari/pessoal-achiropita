@@ -9,7 +9,7 @@ export function participacaoDeSnap(id: string, data: Record<string, unknown>): P
   return {
     id,
     edicaoId: (data.edicaoId as string) ?? "",
-    barracaId: (data.barracaId as string) ?? "",
+    equipeId: (data.equipeId as string) ?? "",
     pessoaId: (data.pessoaId as string) ?? "",
     funcao: (data.funcao as Funcao) ?? "Equipista",
     criadoEm: (data.criadoEm as string) || "",
@@ -25,11 +25,11 @@ export async function alocar(
   _sessao: Sessao,
   args: {
     edicaoId: string;
-    barracaId: string;
+    equipeId: string;
     pessoaId: string;
     funcao: Funcao;
     pessoaNome: string;
-    barracaNome: string;
+    equipeNome: string;
   }
 ): Promise<string> {
   const part = await api.post<Participacao>("/api/participacoes", args);
@@ -37,21 +37,21 @@ export async function alocar(
   return part.id as string;
 }
 
-export async function moverDeBarraca(
+export async function moverDeEquipe(
   _sessao: Sessao,
   participacao: Participacao,
-  novoBarracaId: string,
+  novoEquipeId: string,
   novaFuncao: Funcao,
   pessoaNome: string,
-  barracaOrigemNome: string,
-  barracaDestinoNome: string
+  equipeOrigemNome: string,
+  equipeDestinoNome: string
 ): Promise<void> {
   await api.put(`/api/participacoes/${participacao.id}`, {
-    barracaId: novoBarracaId,
+    equipeId: novoEquipeId,
     funcao: novaFuncao,
     pessoaNome,
-    barracaOrigemNome,
-    barracaDestinoNome,
+    equipeOrigemNome,
+    equipeDestinoNome,
   });
   invalidarParticipacoes();
 }
@@ -63,7 +63,7 @@ export async function trocarFuncao(
   _pessoaNome: string
 ): Promise<void> {
   await api.put(`/api/participacoes/${participacao.id}`, {
-    barracaId: participacao.barracaId,
+    equipeId: participacao.equipeId,
     funcao: novaFuncao,
   });
   invalidarParticipacoes();
@@ -73,7 +73,7 @@ export async function desalocar(
   _sessao: Sessao,
   participacao: Participacao,
   _pessoaNome: string,
-  _barracaNome: string
+  _equipeNome: string
 ): Promise<void> {
   await api.delete(`/api/participacoes/${participacao.id}`);
   invalidarParticipacoes();

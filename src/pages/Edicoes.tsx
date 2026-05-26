@@ -8,7 +8,7 @@ import {
   ativarEdicao,
   criarEdicao,
 } from "../lib/edicoes";
-import { copiarBarracasDeEdicao } from "../lib/barracas";
+import { copiarEquipesDeEdicao } from "../lib/equipes";
 import { Edicao } from "../lib/tipos";
 import { formatarData } from "../lib/utilsDominio";
 
@@ -24,7 +24,7 @@ export function Edicoes() {
   const [criandoNova, setCriandoNova] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [copiandoDe, setCopiandoDe] = useState<string>("");
-  const [copiouBarracas, setCopiouBarracas] = useState<number | null>(null);
+  const [copiouEquipes, setCopiouEquipes] = useState<number | null>(null);
 
   if (!sessao) return null;
   const podeAdministrar =
@@ -36,10 +36,10 @@ export function Edicoes() {
     const novaId = await criarEdicao(sessao, dados);
     if (copiandoDe) {
       try {
-        const n = await copiarBarracasDeEdicao(sessao, copiandoDe, novaId);
-        setCopiouBarracas(n);
+        const n = await copiarEquipesDeEdicao(sessao, copiandoDe, novaId);
+        setCopiouEquipes(n);
       } catch {
-        setAcaoErro("Edição criada, mas falha ao copiar barracas. Faça manualmente.");
+        setAcaoErro("Edição criada, mas falha ao copiar equipes. Faça manualmente.");
       }
     }
     setCriandoNova(false);
@@ -73,7 +73,7 @@ export function Edicoes() {
             onClick={() => {
               setCriandoNova(true);
               setCopiandoDe("");
-              setCopiouBarracas(null);
+              setCopiouEquipes(null);
             }}
           >
             Nova edição
@@ -91,10 +91,10 @@ export function Edicoes() {
           <div className="card-corpo text-vermelho-escuro">{acaoErro}</div>
         </div>
       )}
-      {copiouBarracas !== null && (
+      {copiouEquipes !== null && (
         <div className="card border-verde/40">
           <div className="card-corpo text-verde-escuro">
-            {copiouBarracas} barraca(s) copiada(s) da edição anterior.
+            {copiouEquipes} equipe(s) copiada(s) da edição anterior.
           </div>
         </div>
       )}
@@ -107,7 +107,7 @@ export function Edicoes() {
             {itens.length > 0 && (
               <div className="input-grupo m-0">
                 <label className="input-label" htmlFor="copiarDe">
-                  Copiar barracas e estrutura de edição anterior{" "}
+                  Copiar equipes e estrutura de edição anterior{" "}
                   <span className="opcional">(opcional)</span>
                 </label>
                 <select
@@ -126,7 +126,7 @@ export function Edicoes() {
                     ))}
                 </select>
                 <p className="input-ajuda">
-                  Se selecionada, copia todas as barracas com suas vagas para a nova edição. Pessoas <strong>não</strong> são copiadas.
+                  Se selecionada, copia todas as equipes com suas vagas para a nova edição. Pessoas <strong>não</strong> são copiadas.
                 </p>
               </div>
             )}

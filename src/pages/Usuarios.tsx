@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
 import {
-  useBarracas,
+  useEquipes,
   useConvites,
   useEdicaoAtiva,
   usePessoas,
@@ -75,7 +75,7 @@ export function Usuarios() {
   const { itens: convites, carregando: carregandoConvites } = useConvites();
   const { itens: pessoas } = usePessoas();
   const { edicao } = useEdicaoAtiva();
-  const { itens: barracas } = useBarracas(edicao?.id);
+  const { itens: equipes } = useEquipes(edicao?.id);
 
   const [aba, setAba] = useState<Aba>("usuarios");
   const [editandoUid, setEditandoUid] = useState<string | null>(null);
@@ -358,7 +358,7 @@ export function Usuarios() {
                 <UsuarioForm
                   inicial={usuarioEditando}
                   pessoas={pessoas}
-                  barracasAtivas={barracas}
+                  equipesAtivas={equipes}
                   onSubmit={handleAtualizarUsuario}
                   onCancelar={() => setEditandoUid(null)}
                   textoBotao="Salvar alterações"
@@ -478,7 +478,7 @@ export function Usuarios() {
                 <h3 className="mb-4">Novo convite</h3>
                 <ConviteForm
                   pessoas={pessoas}
-                  barracasAtivas={barracas}
+                  equipesAtivas={equipes}
                   onSubmit={handleCriarConvite}
                   onCancelar={() => setCriandoConvite(false)}
                   textoBotao="Gerar convite"
@@ -496,7 +496,7 @@ export function Usuarios() {
                 <ConviteForm
                   inicial={conviteEditando}
                   pessoas={pessoas}
-                  barracasAtivas={barracas}
+                  equipesAtivas={equipes}
                   onSubmit={handleAtualizarConvite}
                   onCancelar={() => setEditandoConviteId(null)}
                   textoBotao="Salvar convite"

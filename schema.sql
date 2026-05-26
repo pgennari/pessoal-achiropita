@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TYPE perfil_usuario        AS ENUM ('ADM','ORG','CRD','EQP','OPC','REC');
 CREATE TYPE status_convite        AS ENUM ('pendente','usado','revogado');
 CREATE TYPE status_edicao         AS ENUM ('planejamento','ativa','encerrada');
-CREATE TYPE setor_barraca         AS ENUM ('Interna','Externa','Alimentacao');
+CREATE TYPE setor_equipe          AS ENUM ('Interna','Externa','Alimentacao');
 CREATE TYPE funcao_participacao   AS ENUM ('Coordenador','Equipista','Apoio');
 CREATE TYPE tipo_presenca         AS ENUM ('manual','validacao');
 CREATE TYPE status_link           AS ENUM ('ativo','revogado','usado');
@@ -20,7 +20,7 @@ CREATE TABLE usuarios (
   nome          TEXT NOT NULL,
   perfil        perfil_usuario NOT NULL,
   pessoa_id     TEXT,
-  barracas_crd  TEXT[],
+  equipes_crd   TEXT[],
   token_convite TEXT,
   criado_em     TIMESTAMPTZ NOT NULL DEFAULT now(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -72,25 +72,25 @@ CREATE TABLE edicoes (
 -- Garante que só uma edição pode ter status 'ativa' por vez.
 CREATE UNIQUE INDEX idx_edicoes_so_uma_ativa ON edicoes(status) WHERE status = 'ativa';
 
--- barracas
-CREATE TABLE barracas (
+-- equipes
+CREATE TABLE equipes (
   id                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   edicao_id           TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
   nome                TEXT NOT NULL,
-  setor               setor_barraca NOT NULL,
+  setor               setor_equipe NOT NULL,
   vagas_coordenador   INTEGER NOT NULL DEFAULT 0,
   vagas_equipista     INTEGER NOT NULL DEFAULT 0,
   vagas_apoio         INTEGER NOT NULL DEFAULT 0,
   criado_em           TIMESTAMPTZ NOT NULL DEFAULT now(),
   atualizado_em       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_barracas_edicao ON barracas(edicao_id);
+CREATE INDEX idx_equipes_edicao ON equipes(edicao_id);
 
--- participacoes: UNIQUE(edicao_id, pessoa_id) = uma barraca por edição por pessoa
+-- participacoes: UNIQUE(edicao_id, pessoa_id) = uma equipe por edição por pessoa
 CREATE TABLE participacoes (
   id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   edicao_id     TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
-  barraca_id    TEXT NOT NULL REFERENCES barracas(id) ON DELETE CASCADE,
+  equipe_id     TEXT NOT NULL REFERENCES equipes(id) ON DELETE CASCADE,
   pessoa_id     TEXT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
   funcao        funcao_participacao NOT NULL,
   criado_em     TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -99,7 +99,7 @@ CREATE TABLE participacoes (
 );
 CREATE INDEX idx_participacoes_edicao  ON participacoes(edicao_id);
 CREATE INDEX idx_participacoes_pessoa  ON participacoes(pessoa_id);
-CREATE INDEX idx_participacoes_barraca ON participacoes(barraca_id);
+CREATE INDEX idx_participacoes_equipe  ON participacoes(equipe_id);
 
 -- convites: id = token hexadecimal (32 chars)
 CREATE TABLE convites (
@@ -107,7 +107,7 @@ CREATE TABLE convites (
   email           TEXT NOT NULL,
   perfil          perfil_usuario NOT NULL,
   pessoa_id       TEXT,
-  barracas_crd    TEXT[],
+  equipes_crd     TEXT[],
   status          status_convite NOT NULL DEFAULT 'pendente',
   criado_por_uid  TEXT NOT NULL,
   criado_por_nome TEXT NOT NULL,
@@ -128,8 +128,8 @@ CREATE TABLE turmas_formacao (
   horario_fim         TEXT,
   local               TEXT NOT NULL,
   capacidade_maxima   INTEGER NOT NULL,
-  setor_vinculo       setor_barraca,
-  barraca_id_vinculo  TEXT,
+  setor_vinculo       setor_equipe,
+  equipe_id_vinculo   TEXT,
   criado_em           TIMESTAMPTZ NOT NULL DEFAULT now(),
   atualizado_em       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -212,7 +212,7 @@ CREATE TABLE participacoes_historicas (
   pessoa_id     TEXT REFERENCES pessoas(id),
   pessoa_nome   TEXT NOT NULL,
   edicao_numero INTEGER NOT NULL,
-  barraca_nome  TEXT NOT NULL,
+  equipe_nome   TEXT NOT NULL,
   funcao        TEXT,
   criado_em     TIMESTAMPTZ NOT NULL DEFAULT now()
 );

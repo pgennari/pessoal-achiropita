@@ -2,58 +2,58 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
 import {
-  useBarracas,
+  useEquipes,
   useEdicaoAtiva,
   useIndicePessoas,
   useParticipacoes,
   usePessoas,
 } from "../lib/hooks";
-import { Barraca, Pessoa, SETORES, Setor } from "../lib/tipos";
+import { Equipe, Pessoa, SETORES, Setor } from "../lib/tipos";
 
 interface Linha {
   pessoa: Pessoa;
-  barraca: Barraca | null;
+  equipe: Equipe | null;
 }
 
 export function PendenciasFoto() {
   const { sessao } = useSessao();
   const { edicao, carregando: carregandoEdicao } = useEdicaoAtiva();
   const { itens: pessoas } = usePessoas();
-  const { itens: barracas } = useBarracas(edicao?.id);
+  const { itens: equipes } = useEquipes(edicao?.id);
   const { itens: participacoes } = useParticipacoes(edicao?.id);
   const indicePessoas = useIndicePessoas(pessoas);
 
   const [filtroSetor, setFiltroSetor] = useState<Setor | "todos">("todos");
-  const [filtroBarraca, setFiltroBarraca] = useState<string>("todas");
+  const [filtroEquipe, setFiltroEquipe] = useState<string>("todas");
   const [incluirNaoAlocados, setIncluirNaoAlocados] = useState(false);
-const indiceBarracas = useMemo(() => {
-    const m = new Map<string, Barraca>();
-    for (const b of barracas) m.set(b.id, b);
+const indiceEquipes = useMemo(() => {
+    const m = new Map<string, Equipe>();
+    for (const e of equipes) m.set(e.id, e);
     return m;
-  }, [barracas]);
+  }, [equipes]);
 
   const linhas = useMemo<Linha[]>(() => {
     if (incluirNaoAlocados) {
       return pessoas
         .filter((p) => p.ativo && !p.fotoUrl)
-        .map((p) => ({ pessoa: p, barraca: null }));
+        .map((p) => ({ pessoa: p, equipe: null }));
     }
     const result: Linha[] = [];
     for (const part of participacoes) {
       const pessoa = indicePessoas.get(part.pessoaId);
       if (!pessoa) continue;
       if (pessoa.fotoUrl) continue;
-      const barraca = indiceBarracas.get(part.barracaId) ?? null;
-      if (filtroSetor !== "todos" && barraca?.setor !== filtroSetor) continue;
-      if (filtroBarraca !== "todas" && barraca?.id !== filtroBarraca) continue;
-      result.push({ pessoa, barraca });
+      const equipe = indiceEquipes.get(part.equipeId) ?? null;
+      if (filtroSetor !== "todos" && equipe?.setor !== filtroSetor) continue;
+      if (filtroEquipe !== "todas" && equipe?.id !== filtroEquipe) continue;
+      result.push({ pessoa, equipe });
     }
     result.sort((a, b) => {
-      const sa = a.barraca?.setor ?? "";
-      const sb = b.barraca?.setor ?? "";
+      const sa = a.equipe?.setor ?? "";
+      const sb = b.equipe?.setor ?? "";
       if (sa !== sb) return sa.localeCompare(sb);
-      const na = a.barraca?.nome ?? "";
-      const nb = b.barraca?.nome ?? "";
+      const na = a.equipe?.nome ?? "";
+      const nb = b.equipe?.nome ?? "";
       if (na !== nb) return na.localeCompare(nb);
       return a.pessoa.nome.localeCompare(b.pessoa.nome);
     });
@@ -62,9 +62,9 @@ const indiceBarracas = useMemo(() => {
     pessoas,
     participacoes,
     indicePessoas,
-    indiceBarracas,
+    indiceEquipes,
     filtroSetor,
-    filtroBarraca,
+    filtroEquipe,
     incluirNaoAlocados,
   ]);
 
@@ -154,17 +154,17 @@ const indiceBarracas = useMemo(() => {
               </div>
               <select
                 className="input min-h-[40px] py-1.5"
-                value={filtroBarraca}
-                onChange={(e) => setFiltroBarraca(e.target.value)}
+                value={filtroEquipe}
+                onChange={(e) => setFiltroEquipe(e.target.value)}
               >
-                <option value="todas">Todas as barracas</option>
-                {barracas
+                <option value="todas">Todas as equipes</option>
+                {equipes
                   .filter(
-                    (b) => filtroSetor === "todos" || b.setor === filtroSetor
+                    (e) => filtroSetor === "todos" || e.setor === filtroSetor
                   )
-                  .map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.nome}
+                  .map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.nome}
                     </option>
                   ))}
               </select>
@@ -185,7 +185,7 @@ const indiceBarracas = useMemo(() => {
               <th className="px-4 py-3 font-semibold hidden md:table-cell">
                 E-mail
               </th>
-              <th className="px-4 py-3 font-semibold w-36 hidden lg:table-cell">Barraca</th>
+              <th className="px-4 py-3 font-semibold w-36 hidden lg:table-cell">Equipe</th>
             </tr>
           </thead>
           <tbody>
@@ -198,7 +198,7 @@ const indiceBarracas = useMemo(() => {
             )}
             {linhas.map((l) => (
               <tr
-                key={`${l.pessoa.id}-${l.barraca?.id ?? ""}`}
+                key={`${l.pessoa.id}-${l.equipe?.id ?? ""}`}
                 className="border-t border-pietra-clara hover:bg-pietra-clara/40"
               >
                 <td className="px-4 py-3 font-mono text-ardesia">
@@ -219,7 +219,7 @@ const indiceBarracas = useMemo(() => {
                   {l.pessoa.email || "—"}
                 </td>
                 <td className="px-4 py-3 text-ardesia hidden lg:table-cell">
-                  {l.barraca?.nome ?? "—"}
+                  {l.equipe?.nome ?? "—"}
                 </td>
 
               </tr>

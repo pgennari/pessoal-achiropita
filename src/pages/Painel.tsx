@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
 import {
-  useBarracas,
+  useEquipes,
   useEdicaoAtiva,
   useEntregasCracha,
   useFormacoes,
@@ -13,7 +13,7 @@ export function Painel() {
   const { sessao } = useSessao();
   const { itens: pessoas, carregando: carregandoPessoas } = usePessoas();
   const { edicao, carregando: carregandoEdicao } = useEdicaoAtiva();
-  const { itens: barracas } = useBarracas(edicao?.id);
+  const { itens: equipes } = useEquipes(edicao?.id);
   const { itens: participacoes } = useParticipacoes(edicao?.id);
   const { itens: entregas } = useEntregasCracha(edicao?.id);
   const { itens: formacoes } = useFormacoes(edicao?.id);
@@ -22,8 +22,8 @@ export function Painel() {
 
   const ativas = pessoas.filter((p) => p.ativo).length;
   const total = pessoas.length;
-  const previstas = barracas.reduce(
-    (acc, b) => acc + b.vagasCoordenador + b.vagasEquipista + b.vagasApoio,
+  const previstas = equipes.reduce(
+    (acc, e) => acc + e.vagasCoordenador + e.vagasEquipista + e.vagasApoio,
     0
   );
   const alocadas = participacoes.length;

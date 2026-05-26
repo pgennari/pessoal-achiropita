@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import {
-  Barraca,
+  Equipe,
   Pessoa,
   Perfil,
   Usuario,
@@ -11,7 +11,7 @@ import { normalizar } from "../lib/utilsDominio";
 interface Props {
   inicial?: Usuario | null;
   pessoas: Pessoa[];
-  barracasAtivas: Barraca[];
+  equipesAtivas: Equipe[];
   onSubmit: (dados: DadosUsuarioForm) => Promise<void>;
   onCancelar: () => void;
   textoBotao?: string;
@@ -23,7 +23,7 @@ const PERFIS: { valor: Perfil; rotulo: string; descricao: string }[] = [
   {
     valor: "CRD",
     rotulo: "CRD",
-    descricao: "Coordenador (precisa de barracas)",
+    descricao: "Coordenador (precisa de equipes)",
   },
   { valor: "EQP", rotulo: "EQP", descricao: "Equipista" },
   { valor: "OPC", rotulo: "OPC", descricao: "Operador de campo" },
@@ -36,14 +36,14 @@ function inicialDados(u?: Usuario | null): DadosUsuarioForm {
     nome: u?.nome ?? "",
     perfil: u?.perfil ?? "EQP",
     pessoaId: u?.pessoaId ?? "",
-    barracasCRD: u?.barracasCRD ?? [],
+    equipesCRD: u?.equipesCRD ?? [],
   };
 }
 
 export function UsuarioForm({
   inicial,
   pessoas,
-  barracasAtivas,
+  equipesAtivas,
   onSubmit,
   onCancelar,
   textoBotao = "Salvar",
@@ -62,12 +62,12 @@ export function UsuarioForm({
     setDados((d) => ({ ...d, [chave]: valor }));
   }
 
-  function alternarBarraca(id: string) {
+  function alternarEquipe(id: string) {
     setDados((d) => {
-      const set = new Set(d.barracasCRD ?? []);
+      const set = new Set(d.equipesCRD ?? []);
       if (set.has(id)) set.delete(id);
       else set.add(id);
-      return { ...d, barracasCRD: Array.from(set) };
+      return { ...d, equipesCRD: Array.from(set) };
     });
   }
 
@@ -165,35 +165,35 @@ export function UsuarioForm({
 
         {dados.perfil === "CRD" && (
           <div className="input-grupo sm:col-span-2">
-            <label className="input-label">Barracas coordenadas</label>
-            {barracasAtivas.length === 0 ? (
+            <label className="input-label">Equipes coordenadas</label>
+            {equipesAtivas.length === 0 ? (
               <p className="input-ajuda">
-                Nenhuma barraca cadastrada na edição ativa. Crie barracas
+                Nenhuma equipe cadastrada na edição ativa. Crie equipes
                 primeiro em Edições → ativa.
               </p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                {barracasAtivas.map((b) => (
+                {equipesAtivas.map((e) => (
                   <label
-                    key={b.id}
+                    key={e.id}
                     className="flex items-center gap-2 text-sm"
                   >
                     <input
                       type="checkbox"
                       className="h-4 w-4"
-                      checked={(dados.barracasCRD ?? []).includes(b.id)}
-                      onChange={() => alternarBarraca(b.id)}
+                      checked={(dados.equipesCRD ?? []).includes(e.id)}
+                      onChange={() => alternarEquipe(e.id)}
                     />
-                    <span>{b.nome}</span>
+                    <span>{e.nome}</span>
                     <span className="text-ardesia text-xs">
-                      ({b.setor === "Alimentacao" ? "Alimentação" : b.setor})
+                      ({e.setor === "Alimentacao" ? "Alimentação" : e.setor})
                     </span>
                   </label>
                 ))}
               </div>
             )}
-            {erros.barracasCRD && (
-              <p className="input-erro-msg">{erros.barracasCRD}</p>
+            {erros.equipesCRD && (
+              <p className="input-erro-msg">{erros.equipesCRD}</p>
             )}
           </div>
         )}

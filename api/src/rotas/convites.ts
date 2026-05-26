@@ -17,7 +17,7 @@ function conviteDeRow(r: Record<string, unknown>) {
     email: r.email,
     perfil: r.perfil,
     pessoaId: (r.pessoa_id as string | null) ?? undefined,
-    barracasCRD: (r.barracas_crd as string[] | null) ?? undefined,
+    equipesCRD: (r.equipes_crd as string[] | null) ?? undefined,
     status: r.status,
     criadoPorUid: r.criado_por_uid,
     criadoPorNome: r.criado_por_nome,
@@ -45,14 +45,14 @@ app.post("/", comAuth, async (c) => {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
-  const { email, perfil, pessoaId, barracasCRD, token, expiraEm } = body;
+  const { email, perfil, pessoaId, equipesCRD, token, expiraEm } = body;
   try {
     const [row] = await sql`
-      INSERT INTO convites (id, email, perfil, pessoa_id, barracas_crd, status, criado_por_uid, criado_por_nome, expira_em)
+      INSERT INTO convites (id, email, perfil, pessoa_id, equipes_crd, status, criado_por_uid, criado_por_nome, expira_em)
       VALUES (
         ${String(token)}, ${String(email ?? "").toLowerCase()}, ${String(perfil ?? "EQP")},
         ${(pessoaId as string | null) ?? null},
-        ${(barracasCRD as string[] | null) ?? null},
+        ${(equipesCRD as string[] | null) ?? null},
         'pendente', ${sessao.uid}, ${sessao.nome}, ${String(expiraEm ?? "")}
       ) RETURNING *
     `;
@@ -75,9 +75,9 @@ app.put("/:id", comAuth, async (c) => {
   const body = await c.req.json() as Record<string, unknown>;
   const [row] = await sql`
     UPDATE convites SET
-      perfil       = ${String(body.perfil ?? "EQP")},
-      pessoa_id    = ${(body.pessoaId as string | null) ?? null},
-      barracas_crd = ${(body.barracasCRD as string[] | null) ?? null}
+      perfil      = ${String(body.perfil ?? "EQP")},
+      pessoa_id   = ${(body.pessoaId as string | null) ?? null},
+      equipes_crd = ${(body.equipesCRD as string[] | null) ?? null}
     WHERE id = ${id} RETURNING *
   `;
   if (!row) return c.json({ erro: "Convite não encontrado." }, 404);

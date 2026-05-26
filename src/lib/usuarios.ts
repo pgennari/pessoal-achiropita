@@ -16,7 +16,7 @@ export interface DadosUsuarioForm {
   nome: string;
   perfil: Perfil;
   pessoaId?: string;
-  barracasCRD?: string[];
+  equipesCRD?: string[];
 }
 
 const PERFIS_VALIDOS: Perfil[] = ["ADM", "ORG", "CRD", "EQP", "OPC", "REC"];
@@ -28,7 +28,7 @@ export function usuarioDeSnap(uid: string, data: Record<string, unknown>): Usuar
     nome: (data.nome as string) ?? "",
     perfil: (data.perfil as Perfil) ?? "EQP",
     pessoaId: (data.pessoaId as string) || undefined,
-    barracasCRD: Array.isArray(data.barracasCRD) ? (data.barracasCRD as string[]) : undefined,
+    equipesCRD: Array.isArray(data.equipesCRD) ? (data.equipesCRD as string[]) : undefined,
     tokenConvite: (data.tokenConvite as string) || undefined,
     criadoEm: (data.criadoEm as string) || "",
     atualizadoEm: (data.atualizadoEm as string) || "",
@@ -41,8 +41,8 @@ function validar(d: DadosUsuarioForm): Record<string, string> {
     erros.email = "E-mail inválido.";
   if (!d.nome.trim()) erros.nome = "Nome é obrigatório.";
   if (!PERFIS_VALIDOS.includes(d.perfil)) erros.perfil = "Perfil inválido.";
-  if (d.perfil === "CRD" && (!d.barracasCRD || d.barracasCRD.length === 0))
-    erros.barracasCRD = "Coordenador precisa de pelo menos uma barraca.";
+  if (d.perfil === "CRD" && (!d.equipesCRD || d.equipesCRD.length === 0))
+    erros.equipesCRD = "Coordenador precisa de pelo menos uma equipe.";
   return erros;
 }
 
@@ -58,7 +58,7 @@ export async function atualizarUsuario(
     nome: dados.nome.trim(),
     perfil: dados.perfil,
     pessoaId: dados.pessoaId?.trim() || null,
-    barracasCRD: dados.perfil === "CRD" && dados.barracasCRD ? dados.barracasCRD : null,
+    equipesCRD: dados.perfil === "CRD" && dados.equipesCRD ? dados.equipesCRD : null,
   });
   await queryClient.invalidateQueries({ queryKey: ["usuarios"] });
 }

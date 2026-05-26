@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  useBarracas,
+  useEquipes,
   useEdicao,
   useParticipacoes,
 } from "../lib/hooks";
@@ -13,14 +13,14 @@ import {
   encerrarEdicao,
 } from "../lib/edicoes";
 import {
-  DadosBarracaForm,
-  criarBarraca,
-  removerBarraca,
-} from "../lib/barracas";
+  DadosEquipeForm,
+  criarEquipe,
+  removerEquipe,
+} from "../lib/equipes";
 import { EdicaoForm } from "../components/EdicaoForm";
-import { BarracaForm } from "../components/BarracaForm";
+import { EquipeForm } from "../components/EquipeForm";
 import {
-  Barraca,
+  Equipe,
   Participacao,
   SETORES,
   Setor,
@@ -33,9 +33,9 @@ interface ResumoVagas {
   pct: number;
 }
 
-function resumoBarraca(b: Barraca, parts: Participacao[]): ResumoVagas {
-  const previstas = b.vagasCoordenador + b.vagasEquipista + b.vagasApoio;
-  const alocadas = parts.filter((p) => p.barracaId === b.id).length;
+function resumoEquipe(e: Equipe, parts: Participacao[]): ResumoVagas {
+  const previstas = e.vagasCoordenador + e.vagasEquipista + e.vagasApoio;
+  const alocadas = parts.filter((p) => p.equipeId === e.id).length;
   const pct = previstas > 0 ? Math.round((alocadas / previstas) * 100) : 0;
   return { previstas, alocadas, pct };
 }
@@ -51,11 +51,11 @@ export function EdicaoDetalhe() {
   const navigate = useNavigate();
   const { sessao } = useSessao();
   const { item: edicao, carregando, erro } = useEdicao(id);
-  const { itens: barracas, carregando: carregandoBarracas } = useBarracas(id);
+  const { itens: equipes, carregando: carregandoEquipes } = useEquipes(id);
   const { itens: participacoes, carregando: carregandoParticipacoes } = useParticipacoes(id);
 
   const [editandoEdicao, setEditandoEdicao] = useState(false);
-  const [criandoBarraca, setCriandoBarraca] = useState(false);
+  const [criandoEquipe, setCriandoEquipe] = useState(false);
   const [filtroSetor, setFiltroSetor] = useState<Setor | "todos">("todos");
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
 
@@ -63,25 +63,25 @@ export function EdicaoDetalhe() {
     !!sessao && (sessao.perfil === "ADM" || sessao.perfil === "ORG");
 
   const totais = useMemo(() => {
-    const previstas = barracas.reduce(
-      (acc, b) => acc + b.vagasCoordenador + b.vagasEquipista + b.vagasApoio,
+    const previstas = equipes.reduce(
+      (acc, e) => acc + e.vagasCoordenador + e.vagasEquipista + e.vagasApoio,
       0
     );
     const alocadas = participacoes.length;
     const pct = previstas > 0 ? Math.round((alocadas / previstas) * 100) : 0;
     return { previstas, alocadas, pct };
-  }, [barracas, participacoes]);
+  }, [equipes, participacoes]);
 
   const lista = useMemo(
     () =>
-      barracas.filter(
-        (b) => filtroSetor === "todos" || b.setor === filtroSetor
+      equipes.filter(
+        (e) => filtroSetor === "todos" || e.setor === filtroSetor
       ),
-    [barracas, filtroSetor]
+    [equipes, filtroSetor]
   );
 
   if (!sessao) return null;
-  if (carregando || carregandoBarracas || carregandoParticipacoes)
+  if (carregando || carregandoEquipes || carregandoParticipacoes)
     return <p className="text-ardesia">Carregando...</p>;
 
   if (erro || !edicao) {
@@ -125,25 +125,25 @@ export function EdicaoDetalhe() {
     }
   }
 
-  async function handleCriarBarraca(dados: DadosBarracaForm) {
+  async function handleCriarEquipe(dados: DadosEquipeForm) {
     if (!sessao || !edicao) return;
-    await criarBarraca(sessao, edicao.id, dados, barracas);
-    setCriandoBarraca(false);
+    await criarEquipe(sessao, edicao.id, dados, equipes);
+    setCriandoEquipe(false);
   }
 
-  async function handleRemoverBarraca(b: Barraca) {
+  async function handleRemoverEquipe(e: Equipe) {
     if (!sessao) return;
-    const partsAqui = participacoes.filter((p) => p.barracaId === b.id).length;
+    const partsAqui = participacoes.filter((p) => p.equipeId === e.id).length;
     const aviso =
       partsAqui > 0
-        ? `Esta barraca tem ${partsAqui} pessoa(s) alocada(s). Remover desfaz todas as alocações. Confirmar?`
-        : `Remover a barraca "${b.nome}"?`;
+        ? `Esta equipe tem ${partsAqui} pessoa(s) alocada(s). Remover desfaz todas as alocações. Confirmar?`
+        : `Remover a equipe "${e.nome}"?`;
     if (!confirm(aviso)) return;
     setAcaoErro(null);
     try {
-      await removerBarraca(sessao, b);
-    } catch (e) {
-      setAcaoErro(e instanceof Error ? e.message : "Falha ao remover.");
+      await removerEquipe(sessao, e);
+    } catch (err) {
+      setAcaoErro(err instanceof Error ? err.message : "Falha ao remover.");
     }
   }
 
@@ -233,8 +233,8 @@ export function EdicaoDetalhe() {
 
       <section className="kpi-grid">
         <div className="kpi">
-          <div className="kpi-label">Barracas</div>
-          <div className="kpi-valor">{barracas.length}</div>
+          <div className="kpi-label">Equipes</div>
+          <div className="kpi-valor">{equipes.length}</div>
         </div>
         <div className="kpi">
           <div className="kpi-label">Vagas previstas</div>
@@ -266,11 +266,11 @@ export function EdicaoDetalhe() {
       <section>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h3>Barracas</h3>
+            <h3>Equipes</h3>
             <p className="text-ardesia text-sm">
-              {carregandoBarracas
+              {carregandoEquipes
                 ? "Carregando..."
-                : `${lista.length} de ${barracas.length}`}
+                : `${lista.length} de ${equipes.length}`}
             </p>
           </div>
           <div className="flex gap-1 flex-wrap">
@@ -293,26 +293,26 @@ export function EdicaoDetalhe() {
                 {s.rotulo}
               </button>
             ))}
-            {podeAdministrar && !criandoBarraca && (
+            {podeAdministrar && !criandoEquipe && (
               <button
                 type="button"
                 className="btn btn-primario btn-pequeno"
-                onClick={() => setCriandoBarraca(true)}
+                onClick={() => setCriandoEquipe(true)}
               >
-                Nova barraca
+                Nova equipe
               </button>
             )}
           </div>
         </div>
 
-        {criandoBarraca && (
+        {criandoEquipe && (
           <div className="card mt-4">
             <div className="card-corpo">
-              <h4 className="mb-3">Nova barraca</h4>
-              <BarracaForm
-                onSubmit={handleCriarBarraca}
-                onCancelar={() => setCriandoBarraca(false)}
-                textoBotao="Cadastrar barraca"
+              <h4 className="mb-3">Nova equipe</h4>
+              <EquipeForm
+                onSubmit={handleCriarEquipe}
+                onCancelar={() => setCriandoEquipe(false)}
+                textoBotao="Cadastrar equipe"
               />
             </div>
           </div>
@@ -322,7 +322,7 @@ export function EdicaoDetalhe() {
           <div className="tabela-rolavel"><table className="tabela-larga">
             <thead className="bg-pietra-clara/60 text-left">
               <tr>
-                <th className="px-4 py-3 font-semibold">Barraca</th>
+                <th className="px-4 py-3 font-semibold">Equipe</th>
                 <th className="px-4 py-3 font-semibold w-32">Setor</th>
                 <th className="px-4 py-3 font-semibold w-24 text-right">Coord.</th>
                 <th className="px-4 py-3 font-semibold w-24 text-right">Equip.</th>
@@ -332,39 +332,39 @@ export function EdicaoDetalhe() {
               </tr>
             </thead>
             <tbody>
-              {lista.length === 0 && !carregandoBarracas && (
+              {lista.length === 0 && !carregandoEquipes && (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-ardesia">
-                    Nenhuma barraca neste filtro.
+                    Nenhuma equipe neste filtro.
                   </td>
                 </tr>
               )}
-              {lista.map((b) => {
-                const r = resumoBarraca(b, participacoes);
+              {lista.map((e) => {
+                const r = resumoEquipe(e, participacoes);
                 return (
                   <tr
-                    key={b.id}
+                    key={e.id}
                     className="border-t border-pietra-clara hover:bg-pietra-clara/40"
                   >
                     <td className="px-4 py-3">
                       <Link
-                        to={`/edicoes/${edicao.id}/barracas/${b.id}`}
+                        to={`/edicoes/${edicao.id}/equipes/${e.id}`}
                         className="font-semibold text-carbone hover:text-verde"
                       >
-                        {b.nome}
+                        {e.nome}
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-ardesia">
-                      {SETORES.find((s) => s.valor === b.setor)?.rotulo}
+                      {SETORES.find((s) => s.valor === e.setor)?.rotulo}
                     </td>
                     <td className="px-4 py-3 text-right font-mono">
-                      {b.vagasCoordenador}
+                      {e.vagasCoordenador}
                     </td>
                     <td className="px-4 py-3 text-right font-mono">
-                      {b.vagasEquipista}
+                      {e.vagasEquipista}
                     </td>
                     <td className="px-4 py-3 text-right font-mono">
-                      {b.vagasApoio}
+                      {e.vagasApoio}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span className={corPorPercentual(r.pct)}>
@@ -376,7 +376,7 @@ export function EdicaoDetalhe() {
                         <button
                           type="button"
                           className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                          onClick={() => handleRemoverBarraca(b)}
+                          onClick={() => handleRemoverEquipe(e)}
                         >
                           Remover
                         </button>

@@ -53,12 +53,12 @@ app.post(
 
     await sql.begin(async (t) => {
       await t`
-        INSERT INTO usuarios (uid, email, nome, perfil, pessoa_id, barracas_crd, token_convite)
+        INSERT INTO usuarios (uid, email, nome, perfil, pessoa_id, equipes_crd, token_convite)
         VALUES (
           ${uid}, ${body.email.toLowerCase()}, ${body.nome.trim()},
           ${String(convite.perfil)},
           ${(convite.pessoa_id as string | null) ?? null},
-          ${(convite.barracas_crd as string[] | null) ?? null},
+          ${(convite.equipes_crd as string[] | null) ?? null},
           ${token}
         )
         ON CONFLICT (uid) DO NOTHING

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   useEdicoes,
   usePessoas,
-  useTodasBarracas,
+  useTodasEquipes,
   useTodasParticipacoes,
 } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
@@ -18,7 +18,7 @@ interface LinhaResultado {
   pessoa: Pessoa;
   edicoes: Set<string>;
   funcoes: Set<Funcao>;
-  barracas: Set<string>; // por nome
+  equipes: Set<string>; // por nome
 }
 
 function dispararCsv(nome: string, conteudo: string) {
@@ -44,30 +44,30 @@ function escaparCsv(valor: string | number): string {
 export function Historico() {
   const { sessao } = useSessao();
   const { itens: pessoas } = usePessoas();
-  const { itens: barracas } = useTodasBarracas();
+  const { itens: equipes } = useTodasEquipes();
   const { itens: edicoes } = useEdicoes();
   const { itens: participacoes, carregando } = useTodasParticipacoes();
 
-  const [nomeBarraca, setNomeBarraca] = useState<string>("todas");
+  const [nomeEquipe, setNomeEquipe] = useState<string>("todas");
   const [funcao, setFuncao] = useState<Funcao | "todas">("todas");
   const [edicoesMin, setEdicoesMin] = useState<number | undefined>(1);
   const [idadeMin, setIdadeMin] = useState<string>("");
   const [idadeMax, setIdadeMax] = useState<string>("");
 
-  // Lista distinta de nomes de barraca (across edições) para o select.
-  const nomesBarracas = useMemo(() => {
+  // Lista distinta de nomes de equipe (across edições) para o select.
+  const nomesEquipes = useMemo(() => {
     const set = new Set<string>();
-    for (const b of barracas) set.add(b.nome.trim());
+    for (const e of equipes) set.add(e.nome.trim());
     return Array.from(set).sort((a, b) =>
       normalizar(a).localeCompare(normalizar(b))
     );
-  }, [barracas]);
+  }, [equipes]);
 
-  const indiceBarracas = useMemo(() => {
+  const indiceEquipes = useMemo(() => {
     const m = new Map<string, { nome: string }>();
-    for (const b of barracas) m.set(b.id, { nome: b.nome.trim() });
+    for (const e of equipes) m.set(e.id, { nome: e.nome.trim() });
     return m;
-  }, [barracas]);
+  }, [equipes]);
 
   const indicePessoas = useMemo(() => {
     const m = new Map<string, Pessoa>();
@@ -86,9 +86,9 @@ export function Historico() {
     const por = new Map<string, LinhaResultado>();
     for (const p of participacoes) {
       if (funcao !== "todas" && p.funcao !== funcao) continue;
-      if (nomeBarraca !== "todas") {
-        const nome = indiceBarracas.get(p.barracaId)?.nome;
-        if (nome !== nomeBarraca) continue;
+      if (nomeEquipe !== "todas") {
+        const nome = indiceEquipes.get(p.equipeId)?.nome;
+        if (nome !== nomeEquipe) continue;
       }
       const pessoa = indicePessoas.get(p.pessoaId);
       if (!pessoa) continue;
@@ -103,14 +103,14 @@ export function Historico() {
           pessoa,
           edicoes: new Set(),
           funcoes: new Set(),
-          barracas: new Set(),
+          equipes: new Set(),
         };
         por.set(pessoa.id, linha);
       }
       linha.edicoes.add(p.edicaoId);
       linha.funcoes.add(p.funcao);
-      const nome = indiceBarracas.get(p.barracaId)?.nome;
-      if (nome) linha.barracas.add(nome);
+      const nome = indiceEquipes.get(p.equipeId)?.nome;
+      if (nome) linha.equipes.add(nome);
     }
 
     const minEdicoes = edicoesMin ?? 1;
@@ -124,11 +124,11 @@ export function Historico() {
   }, [
     participacoes,
     funcao,
-    nomeBarraca,
+    nomeEquipe,
     edicoesMin,
     idadeMin,
     idadeMax,
-    indiceBarracas,
+    indiceEquipes,
     indicePessoas,
   ]);
 
@@ -159,7 +159,7 @@ export function Historico() {
       "email",
       "edicoes",
       "funcoes",
-      "barracas",
+      "equipes",
     ];
     const linhas = resultados.map((r) => {
       const idade = calcularIdade(r.pessoa.nascimento);
@@ -171,7 +171,7 @@ export function Historico() {
         r.pessoa.email ?? "",
         r.edicoes.size,
         Array.from(r.funcoes).join("|"),
-        Array.from(r.barracas).join("|"),
+        Array.from(r.equipes).join("|"),
       ]
         .map(escaparCsv)
         .join(",");
@@ -189,7 +189,7 @@ export function Historico() {
         <div className="eyebrow">Análise</div>
         <h2 className="mt-1">Histórico de participação</h2>
         <p className="text-ardesia text-sm">
-          Quem já passou por uma barraca ou função, em quantas edições e em que
+          Quem já passou por uma equipe ou função, em quantas edições e em que
           faixa etária.
         </p>
       </header>
@@ -197,17 +197,17 @@ export function Historico() {
       <div className="card">
         <div className="card-corpo grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="input-grupo m-0">
-            <label className="input-label" htmlFor="barraca">
-              Barraca
+            <label className="input-label" htmlFor="equipe">
+              Equipe
             </label>
             <select
-              id="barraca"
+              id="equipe"
               className="input"
-              value={nomeBarraca}
-              onChange={(e) => setNomeBarraca(e.target.value)}
+              value={nomeEquipe}
+              onChange={(e) => setNomeEquipe(e.target.value)}
             >
-              <option value="todas">Todas as barracas</option>
-              {nomesBarracas.map((n) => (
+              <option value="todas">Todas as equipes</option>
+              {nomesEquipes.map((n) => (
                 <option key={n} value={n}>
                   {n}
                 </option>
@@ -307,7 +307,7 @@ export function Historico() {
               <th className="px-4 py-3 font-semibold w-24 text-right">Edições</th>
               <th className="px-4 py-3 font-semibold">Funções</th>
               <th className="px-4 py-3 font-semibold hidden md:table-cell">
-                Barracas
+                Equipes
               </th>
             </tr>
           </thead>
@@ -347,7 +347,7 @@ export function Historico() {
                     {Array.from(r.funcoes).join(", ")}
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell text-ardesia">
-                    {Array.from(r.barracas).join(", ")}
+                    {Array.from(r.equipes).join(", ")}
                   </td>
                 </tr>
               );

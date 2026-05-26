@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  useBarracas,
+  useEquipes,
   useEdicaoAtiva,
   useParticipacoes,
   usePessoas,
@@ -17,7 +17,7 @@ interface Props {
 const LIMITE = 20;
 
 interface ContextoEdicao {
-  barracaNome?: string;
+  equipeNome?: string;
   funcao?: Funcao;
 }
 
@@ -41,7 +41,7 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
   const { itens } = usePessoas();
   const { edicao } = useEdicaoAtiva();
   const { itens: participacoes } = useParticipacoes(edicao?.id);
-  const { itens: barracas } = useBarracas(edicao?.id);
+  const { itens: equipes } = useEquipes(edicao?.id);
 
   useEffect(() => {
     if (aberto) {
@@ -62,16 +62,16 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
   }, [aberto, onFechar]);
 
   const indiceContexto = useMemo(() => {
-    const barrPorId = new Map(barracas.map((b) => [b.id, b.nome]));
+    const equipesPorId = new Map(equipes.map((e) => [e.id, e.nome]));
     const m = new Map<string, ContextoEdicao>();
     for (const p of participacoes) {
       m.set(p.pessoaId, {
-        barracaNome: barrPorId.get(p.barracaId),
+        equipeNome: equipesPorId.get(p.equipeId),
         funcao: p.funcao,
       });
     }
     return m;
-  }, [participacoes, barracas]);
+  }, [participacoes, equipes]);
 
   const resultados = useMemo(() => {
     if (!termo.trim()) return itens.slice(0, LIMITE);
@@ -178,8 +178,8 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
                     </div>
                     <div className="text-xs text-ardesia font-mono truncate">
                       #{p.cracha}
-                      {ctx?.barracaNome
-                        ? ` · ${ctx.barracaNome} · ${ctx.funcao}`
+                      {ctx?.equipeNome
+                        ? ` · ${ctx.equipeNome} · ${ctx.funcao}`
                         : edicao
                         ? " · sem alocação"
                         : ""}

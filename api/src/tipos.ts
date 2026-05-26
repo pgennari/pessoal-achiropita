@@ -6,7 +6,7 @@ export interface Sessao {
   nome: string;
   perfil: string;
   pessoaId?: string;
-  barracasCRD?: string[];
+  equipesCRD?: string[];
 }
 
 export interface SessaoPublica {

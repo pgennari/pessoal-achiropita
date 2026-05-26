@@ -1,10 +1,10 @@
 import { api } from "./api";
 import { queryClient } from "./queryClient";
-import { Barraca, Setor } from "./tipos";
+import { Equipe, Setor } from "./tipos";
 import { Sessao } from "./sessao";
 import { normalizar } from "./utilsDominio";
 
-export interface DadosBarracaForm {
+export interface DadosEquipeForm {
   nome: string;
   setor: Setor;
   vagasCoordenador: number | undefined;
@@ -12,7 +12,7 @@ export interface DadosBarracaForm {
   vagasApoio: number | undefined;
 }
 
-export class ErroBarraca extends Error {
+export class ErroEquipe extends Error {
   campos: Record<string, string>;
   constructor(campos: Record<string, string>, msg = "Dados inválidos.") {
     super(msg);
@@ -20,7 +20,7 @@ export class ErroBarraca extends Error {
   }
 }
 
-export function barracaDeSnap(id: string, data: Record<string, unknown>): Barraca {
+export function equipeDeSnap(id: string, data: Record<string, unknown>): Equipe {
   return {
     id,
     edicaoId: (data.edicaoId as string) ?? "",
@@ -35,17 +35,17 @@ export function barracaDeSnap(id: string, data: Record<string, unknown>): Barrac
 }
 
 function validar(
-  d: DadosBarracaForm,
-  existentes: Barraca[],
+  d: DadosEquipeForm,
+  existentes: Equipe[],
   excetoId?: string
 ): Record<string, string> {
   const erros: Record<string, string> = {};
   if (!d.nome.trim()) erros.nome = "Nome é obrigatório.";
   else {
     const dup = existentes.find(
-      (b) => b.id !== excetoId && normalizar(b.nome) === normalizar(d.nome)
+      (e) => e.id !== excetoId && normalizar(e.nome) === normalizar(d.nome)
     );
-    if (dup) erros.nome = "Já existe uma barraca com este nome nesta edição.";
+    if (dup) erros.nome = "Já existe uma equipe com este nome nesta edição.";
   }
   for (const chave of ["vagasCoordenador", "vagasEquipista", "vagasApoio"] as const) {
     const v = d[chave];
@@ -55,58 +55,58 @@ function validar(
   return erros;
 }
 
-function invalidarBarracas(edicaoId?: string) {
-  queryClient.invalidateQueries({ queryKey: ["barracas"] });
-  if (edicaoId) queryClient.invalidateQueries({ queryKey: ["barracas", edicaoId] });
+function invalidarEquipes(edicaoId?: string) {
+  queryClient.invalidateQueries({ queryKey: ["equipes"] });
+  if (edicaoId) queryClient.invalidateQueries({ queryKey: ["equipes", edicaoId] });
 }
 
-export async function criarBarraca(
+export async function criarEquipe(
   _sessao: Sessao,
   edicaoId: string,
-  dados: DadosBarracaForm,
-  existentes: Barraca[]
+  dados: DadosEquipeForm,
+  existentes: Equipe[]
 ): Promise<string> {
   const erros = validar(dados, existentes);
-  if (Object.keys(erros).length) throw new ErroBarraca(erros);
+  if (Object.keys(erros).length) throw new ErroEquipe(erros);
 
-  const barraca = await api.post<Barraca>("/api/barracas", {
+  const equipe = await api.post<Equipe>("/api/equipes", {
     ...dados,
     nome: dados.nome.trim(),
     edicaoId,
   });
-  invalidarBarracas(edicaoId);
-  return barraca.id as string;
+  invalidarEquipes(edicaoId);
+  return equipe.id as string;
 }
 
-export async function atualizarBarraca(
+export async function atualizarEquipe(
   _sessao: Sessao,
-  barraca: Barraca,
-  dados: DadosBarracaForm,
-  existentes: Barraca[]
+  equipe: Equipe,
+  dados: DadosEquipeForm,
+  existentes: Equipe[]
 ): Promise<void> {
-  const erros = validar(dados, existentes, barraca.id);
-  if (Object.keys(erros).length) throw new ErroBarraca(erros);
+  const erros = validar(dados, existentes, equipe.id);
+  if (Object.keys(erros).length) throw new ErroEquipe(erros);
 
-  await api.put(`/api/barracas/${barraca.id}`, { ...dados, nome: dados.nome.trim() });
-  invalidarBarracas(barraca.edicaoId);
+  await api.put(`/api/equipes/${equipe.id}`, { ...dados, nome: dados.nome.trim() });
+  invalidarEquipes(equipe.edicaoId);
 }
 
-export async function copiarBarracasDeEdicao(
+export async function copiarEquipesDeEdicao(
   _sessao: Sessao,
   edicaoOrigemId: string,
   edicaoDestinoId: string
 ): Promise<number> {
-  const { copiadas } = await api.post<{ copiadas: number }>("/api/barracas/copiar", {
+  const { copiadas } = await api.post<{ copiadas: number }>("/api/equipes/copiar", {
     edicaoOrigemId,
     edicaoDestinoId,
   });
-  invalidarBarracas(edicaoDestinoId);
+  invalidarEquipes(edicaoDestinoId);
   return copiadas;
 }
 
-export async function removerBarraca(_sessao: Sessao, barraca: Barraca): Promise<void> {
-  await api.delete(`/api/barracas/${barraca.id}`);
-  invalidarBarracas(barraca.edicaoId);
+export async function removerEquipe(_sessao: Sessao, equipe: Equipe): Promise<void> {
+  await api.delete(`/api/equipes/${equipe.id}`);
+  invalidarEquipes(equipe.edicaoId);
   // Participações são removidas em cascade pelo banco.
   queryClient.invalidateQueries({ queryKey: ["participacoes"] });
 }

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import sql from "../db.js";
 import { comAuth, podeAdministrar } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
+import { uploadFoto, deletarFoto } from "../r2.js";
 import type { Variaveis } from "../tipos.js";
 
 const app = new Hono<Variaveis>();
@@ -38,6 +39,7 @@ function pessoaDeRow(r: Record<string, unknown>) {
     observacoes: r.observacoes ?? undefined,
     ativo: r.ativo,
     motivoInativacao: r.motivo_inativacao ?? undefined,
+    fotoUrl: (r.foto_url as string | null) ?? undefined,
     filhos: r.filhos ?? [],
     carros: r.carros ?? [],
     criadoEm,
@@ -170,6 +172,80 @@ app.put("/:id/ativacao", comAuth, async (c) => {
   await registrarEvento(
     sessao,
     ativo ? "pessoa.reativou" : "pessoa.inativou",
+    `pessoas/${id}`,
+    `${row.nome} (#${row.cracha})`
+  );
+  return c.json({ ok: true });
+});
+
+// POST /api/pessoas/:id/foto — ADM, ORG ou OPC podem enviar foto (US-02-03)
+app.post("/:id/foto", comAuth, async (c) => {
+  const id = c.req.param("id") ?? "";
+  const sessao = c.get("sessao");
+
+  const perfisPermitidos = ["ADM", "ORG", "OPC"];
+  if (!perfisPermitidos.includes(sessao.perfil)) {
+    return c.json({ erro: "Acesso negado. Requer ADM, ORG ou OPC." }, 403);
+  }
+
+  const body = await c.req.parseBody();
+  const foto = body["foto"];
+
+  if (!foto || typeof foto === "string") {
+    return c.json({ erro: "Campo 'foto' com arquivo JPEG é obrigatório." }, 400);
+  }
+  if (foto.type !== "image/jpeg") {
+    return c.json({ erro: "Apenas arquivos JPEG são aceitos. Redimensione antes do envio." }, 400);
+  }
+  const LIMITE = 2 * 1024 * 1024;
+  if (foto.size > LIMITE) {
+    return c.json({ erro: "Arquivo maior que 2 MB após processamento." }, 400);
+  }
+
+  const buffer = Buffer.from(await foto.arrayBuffer());
+  const fotoUrl = await uploadFoto(id, buffer);
+
+  const [row] = await sql`
+    UPDATE pessoas SET foto_url = ${fotoUrl}, atualizado_em = NOW()
+    WHERE id = ${id} RETURNING id, nome, cracha
+  `;
+  if (!row) return c.json({ erro: "Pessoa não encontrada." }, 404);
+
+  await registrarEvento(
+    sessao,
+    "pessoa.foto.atualizou",
+    `pessoas/${id}`,
+    `${row.nome} (#${row.cracha})`
+  );
+  return c.json({ fotoUrl });
+});
+
+// DELETE /api/pessoas/:id/foto — ADM ou ORG removem foto
+app.delete("/:id/foto", comAuth, async (c) => {
+  const id = c.req.param("id") ?? "";
+  const sessao = c.get("sessao");
+
+  if (!podeAdministrar(sessao.perfil)) {
+    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  }
+
+  const [row] = await sql`
+    UPDATE pessoas SET foto_url = NULL, atualizado_em = NOW()
+    WHERE id = ${id} AND foto_url IS NOT NULL
+    RETURNING id, nome, cracha
+  `;
+  if (!row) return c.json({ erro: "Pessoa sem foto ou não encontrada." }, 404);
+
+  // Remove do bucket; ignora erro caso o objeto já não exista
+  try {
+    await deletarFoto(id);
+  } catch {
+    // Banco já foi atualizado — o arquivo pode ter sido removido manualmente
+  }
+
+  await registrarEvento(
+    sessao,
+    "pessoa.foto.removeu",
     `pessoas/${id}`,
     `${row.nome} (#${row.cracha})`
   );

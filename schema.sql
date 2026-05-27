@@ -54,8 +54,9 @@ CREATE TABLE pessoas (
   criado_em             TIMESTAMPTZ NOT NULL DEFAULT now(),
   atualizado_em         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- Nota: fotoUrl REMOVIDA do MVP.
--- Migração: ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS motivo_inativacao TEXT;
+-- Coluna adicionada na iteração US-07-01 (armazenamento no Cloudflare R2).
+-- Executar no banco existente: ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS foto_url TEXT;
+ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS foto_url TEXT;
 
 CREATE INDEX idx_pessoas_cracha ON pessoas(cracha);
 CREATE INDEX idx_pessoas_ativo  ON pessoas(ativo);

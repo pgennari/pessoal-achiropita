@@ -152,6 +152,15 @@ export function useHistoricoParticipacoesDePessoa(
   return { itens: data ?? [], carregando: isLoading && !!pessoaId, erro: erroMsg(error) };
 }
 
+export function useTodosHistoricosParticipacao(): EstadoLista<ParticipacaoHistorica> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["historico-participacoes"],
+    queryFn: () =>
+      api.get<ParticipacaoHistorica[]>("/api/historico-participacoes"),
+  });
+  return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
+}
+
 // Indexa pessoas por id — útil em telas que cruzam participações com pessoas.
 export function useIndicePessoas(pessoas: Pessoa[]) {
   return useMemo(() => {

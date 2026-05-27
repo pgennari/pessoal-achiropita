@@ -165,6 +165,16 @@ export function Historico() {
     indicePessoas,
   ]);
 
+  // Cap do input "edições mínimas": maior número entre edições conhecidas e
+  // a maior contagem de edições por pessoa nos resultados atuais.
+  const totalEdicoes = useMemo(() => {
+    let max = edicoes.length;
+    for (const r of resultados) {
+      if (r.edicoes.size > max) max = r.edicoes.size;
+    }
+    return max;
+  }, [edicoes, resultados]);
+
   if (!sessao) return null;
   const podeVer = sessao.perfil === "ADM" || sessao.perfil === "ORG";
   if (!podeVer) {
@@ -213,16 +223,6 @@ export function Historico() {
     const stamp = new Date().toISOString().slice(0, 10);
     dispararCsv(`historico-${stamp}.csv`, csv);
   }
-
-  // Cap do input "edições mínimas": maior número entre edições conhecidas e
-  // a maior contagem de edições por pessoa nos resultados atuais.
-  const totalEdicoes = useMemo(() => {
-    let max = edicoes.length;
-    for (const r of resultados) {
-      if (r.edicoes.size > max) max = r.edicoes.size;
-    }
-    return max;
-  }, [edicoes, resultados]);
 
   return (
     <div className="space-y-6">

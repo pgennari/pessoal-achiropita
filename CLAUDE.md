@@ -41,7 +41,9 @@ A migração Firestore → PostgreSQL está **concluída**. O código na branch
   deploya no Firebase Hosting.
 
 **Removidos**: Firestore, Firebase Storage, Cloud Functions.
-**Fotos**: removidas do MVP — campo `fotoUrl` desativado; `TODO(US-07-01)`.
+**Fotos**: armazenadas no **Cloudflare R2** (US-07-01 implementado). Upload
+client-side (Canvas 600×600 JPEG 85%) → `POST /api/pessoas/:id/foto`.
+Acesso via URL pública do bucket (`R2_PUBLIC_URL`).
 
 ### Arquitetura
 
@@ -100,7 +102,10 @@ schema.sql       — DDL PostgreSQL completo (rodar no Neon antes do 1º deploy)
    `FIREBASE_SERVICE_ACCOUNT`, `GCP_PROJECT_ID`, `GCP_SA_KEY`
 4. Configurar secrets no Cloud Run (via Secret Manager):
    `achiropita-db-url` (connection string Neon),
-   `achiropita-api-secret` (string aleatória p/ JWT público)
+   `achiropita-api-secret` (string aleatória p/ JWT público),
+   `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
+   `R2_BUCKET_NAME` (ex.: `achiropita-fotos`),
+   `R2_PUBLIC_URL` (ex.: `https://pub-<hash>.r2.dev`)
 
 ## Convenções de código
 

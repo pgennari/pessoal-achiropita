@@ -1,8 +1,9 @@
 import { api } from "./api";
+import { auth } from "./firebase";
 import { queryClient } from "./queryClient";
 import { Sessao } from "./sessao";
 import { Carro, Filho, Pessoa } from "./tipos";
-import { uid, validarCPF, soDigitos, ehDuplicataPorCpf, ehDuplicataPorNomeNascimento } from "./utilsDominio";
+import { uid, validarCPF, soDigitos, ehDuplicataPorCpf, ehDuplicataPorNomeNascimento, redimensionarParaJpeg } from "./utilsDominio";
 
 export class ErroValidacao extends Error {
   campos: Record<string, string>;
@@ -198,17 +199,42 @@ export async function buscarPorCracha(cracha: number): Promise<Pessoa | null> {
   return todas.find((p) => p.cracha === cracha) ?? null;
 }
 
-// TODO(US-07-01): upload de foto removido do MVP.
+// Redimensiona para 600×600 JPEG (client-side) e envia para o backend,
+// que persiste no Cloudflare R2 (US-02-03 / US-07-01).
 export async function enviarFoto(
   _sessao: Sessao,
-  _pessoa: Pessoa,
-  _arquivo: Blob
+  pessoa: Pessoa,
+  arquivo: Blob
 ): Promise<string> {
-  throw new Error("Upload de foto não disponível nesta versão. TODO(US-07-01)");
+  const blob = await redimensionarParaJpeg(arquivo);
+
+  const user = auth().currentUser;
+  if (!user) throw new Error("Sem sessão ativa.");
+  const token = await user.getIdToken();
+
+  const formData = new FormData();
+  formData.append("foto", blob, "foto.jpg");
+
+  const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+  const res = await fetch(`${BASE}/api/pessoas/${pessoa.id}/foto`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({})) as { erro?: string };
+    throw new Error(payload.erro ?? `Erro ${res.status}`);
+  }
+
+  const { fotoUrl } = await res.json() as { fotoUrl: string };
+  await queryClient.invalidateQueries({ queryKey: ["pessoas"] });
+  return fotoUrl;
 }
 
-export async function removerFoto(_sessao: Sessao, _pessoa: Pessoa): Promise<void> {
-  throw new Error("Remoção de foto não disponível nesta versão. TODO(US-07-01)");
+export async function removerFoto(_sessao: Sessao, pessoa: Pessoa): Promise<void> {
+  await api.delete(`/api/pessoas/${pessoa.id}/foto`);
+  await queryClient.invalidateQueries({ queryKey: ["pessoas"] });
 }
 
 export async function proximoCracha(): Promise<number> {

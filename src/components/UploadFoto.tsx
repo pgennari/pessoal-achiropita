@@ -1,4 +1,4 @@
-import { ChangeEvent, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { Pessoa } from "../lib/tipos";
 import { enviarFoto, removerFoto } from "../lib/pessoas";
 import { Sessao } from "../lib/sessao";
@@ -13,6 +13,16 @@ export function UploadFoto({ sessao, pessoa, podeEditar }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [ampliada, setAmpliada] = useState(false);
+
+  useEffect(() => {
+    if (!ampliada) return;
+    function onKey(ev: KeyboardEvent) {
+      if (ev.key === "Escape") setAmpliada(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [ampliada]);
 
   async function handleArquivo(ev: ChangeEvent<HTMLInputElement>) {
     const arquivo = ev.target.files?.[0];
@@ -50,25 +60,28 @@ export function UploadFoto({ sessao, pessoa, podeEditar }: Props) {
 
   return (
     <div className="flex items-start gap-4">
-      <div
-        aria-hidden
-        className="h-28 w-28 rounded-full bg-pietra-clara overflow-hidden flex items-center justify-center text-bianco font-display text-3xl"
-        style={
-          pessoa.fotoUrl
-            ? undefined
-            : { background: "linear-gradient(135deg, #2E9D52, #16753A)" }
-        }
-      >
-        {pessoa.fotoUrl ? (
+      {pessoa.fotoUrl ? (
+        <button
+          type="button"
+          className="h-28 w-28 rounded-full bg-pietra-clara overflow-hidden flex items-center justify-center p-0 border-0 cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-verde"
+          onClick={() => setAmpliada(true)}
+          aria-label={`Ampliar foto de ${pessoa.nome}`}
+        >
           <img
             src={pessoa.fotoUrl}
             alt={`Foto de ${pessoa.nome}`}
             className="h-full w-full object-cover"
           />
-        ) : (
-          inicial
-        )}
-      </div>
+        </button>
+      ) : (
+        <div
+          aria-hidden
+          className="h-28 w-28 rounded-full bg-pietra-clara overflow-hidden flex items-center justify-center text-bianco font-display text-3xl"
+          style={{ background: "linear-gradient(135deg, #2E9D52, #16753A)" }}
+        >
+          {inicial}
+        </div>
+      )}
 
       {podeEditar && (
         <div className="space-y-2">
@@ -107,6 +120,31 @@ export function UploadFoto({ sessao, pessoa, podeEditar }: Props) {
             Imagem é cortada em quadrado e reduzida a 600 px antes do envio.
           </p>
           {erro && <p className="input-erro-msg">{erro}</p>}
+        </div>
+      )}
+
+      {ampliada && pessoa.fotoUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-carbone/80"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Foto de ${pessoa.nome} em tamanho real`}
+          onClick={() => setAmpliada(false)}
+        >
+          <img
+            src={pessoa.fotoUrl}
+            alt={`Foto de ${pessoa.nome}`}
+            className="max-h-[90vh] max-w-[90vw] object-contain shadow-media"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            type="button"
+            className="absolute top-4 right-4 btn btn-secundario btn-pequeno"
+            onClick={() => setAmpliada(false)}
+            aria-label="Fechar"
+          >
+            Fechar
+          </button>
         </div>
       )}
     </div>

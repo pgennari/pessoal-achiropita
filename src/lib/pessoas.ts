@@ -22,9 +22,11 @@ export interface DadosPessoaForm {
   endereco?: string;
   bairro?: string;
   estadoCivil?: Pessoa["estadoCivil"];
+  observacoes?: string;
   filhos: Filho[];
   carros: Carro[];
   ativo: boolean;
+  motivoInativacao?: string;
 }
 
 // Mapper necessário para retrocompatibilidade com código que usa pessoaDeSnap.
@@ -115,7 +117,9 @@ function payloadDeForm(dados: DadosPessoaForm) {
     endereco: dados.endereco?.trim() || null,
     bairro: dados.bairro?.trim() || null,
     estadoCivil: dados.estadoCivil || null,
+    observacoes: dados.observacoes?.trim() || null,
     ativo: dados.ativo,
+    motivoInativacao: dados.motivoInativacao?.trim() || null,
     filhos: dados.filhos.map((f) => ({
       id: f.id,
       nome: f.nome.trim(),

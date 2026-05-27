@@ -22,9 +22,11 @@ function dadosIniciais(p?: Pessoa | null): DadosPessoaForm {
     endereco: p?.endereco ?? "",
     bairro: p?.bairro ?? "",
     estadoCivil: p?.estadoCivil,
+    observacoes: p?.observacoes,
     filhos: p?.filhos ?? [],
     carros: p?.carros ?? [],
     ativo: p?.ativo ?? true,
+    motivoInativacao: p?.motivoInativacao,
   };
 }
 
@@ -431,6 +433,21 @@ export function PessoaForm({
       </section>
 
       <section>
+        <div className="input-grupo">
+          <label className="input-label" htmlFor="observacoes">
+            Observações <span className="opcional">(opcional)</span>
+          </label>
+          <textarea
+            id="observacoes"
+            className="input"
+            rows={3}
+            value={dados.observacoes ?? ""}
+            onChange={(e) => set("observacoes", e.target.value || undefined)}
+          />
+        </div>
+      </section>
+
+      <section>
         <label className="flex items-center gap-3 text-sm font-semibold">
           <input
             type="checkbox"
@@ -443,6 +460,31 @@ export function PessoaForm({
             (desmarque para retirar do quadro corrente sem apagar o cadastro)
           </span>
         </label>
+
+        {!dados.ativo && (
+          <div className="input-grupo mt-4">
+            <label className="input-label" htmlFor="motivoInativacao">
+              Motivo da inativação <span className="opcional">(opcional)</span>
+            </label>
+            <input
+              id="motivoInativacao"
+              className="input"
+              list="motivos-inativacao-lista"
+              value={dados.motivoInativacao ?? ""}
+              onChange={(e) => set("motivoInativacao", e.target.value || undefined)}
+              placeholder="Selecione ou escreva o motivo"
+              autoComplete="off"
+            />
+            <datalist id="motivos-inativacao-lista">
+              <option value="Saída voluntária" />
+              <option value="Mudança de cidade" />
+              <option value="Indisponibilidade" />
+              <option value="Afastamento temporário" />
+              <option value="Falecimento" />
+            </datalist>
+            <p className="input-ajuda">Escolha uma sugestão ou escreva livremente.</p>
+          </div>
+        )}
       </section>
 
       <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-pietra-clara">

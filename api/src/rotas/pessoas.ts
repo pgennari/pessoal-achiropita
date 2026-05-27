@@ -37,6 +37,7 @@ function pessoaDeRow(r: Record<string, unknown>) {
     parenteFesta: r.parente_festa ?? undefined,
     observacoes: r.observacoes ?? undefined,
     ativo: r.ativo,
+    motivoInativacao: r.motivo_inativacao ?? undefined,
     filhos: r.filhos ?? [],
     carros: r.carros ?? [],
     criadoEm,
@@ -82,7 +83,7 @@ app.post("/", comAuth, async (c) => {
         telefone_residencial, telefone_comercial, email, cpf, rg,
         endereco, bairro, cep, estado_civil, nome_conjuge,
         tem_estacionamento, frequenta_recreacao, parente_festa, observacoes,
-        ativo, filhos, carros
+        ativo, motivo_inativacao, filhos, carros
       ) VALUES (
         ${Number(cracha)}, ${String(nome)}, ${String(nascimento)}, ${String(telefone)},
         ${(body.telefoneResidencial as string | null) ?? null},
@@ -100,6 +101,7 @@ app.post("/", comAuth, async (c) => {
         ${(body.parenteFesta as string | null) ?? null},
         ${(body.observacoes as string | null) ?? null},
         ${body.ativo !== false},
+        ${(body.motivoInativacao as string | null) ?? null},
         ${sql.json((body.filhos ?? []) as never)},
         ${sql.json((body.carros ?? []) as never)}
       ) RETURNING *
@@ -141,6 +143,7 @@ app.put("/:id", comAuth, async (c) => {
       parente_festa        = ${(body.parenteFesta as string | null) ?? null},
       observacoes          = ${(body.observacoes as string | null) ?? null},
       ativo                = ${body.ativo !== false},
+      motivo_inativacao    = ${(body.motivoInativacao as string | null) ?? null},
       filhos               = ${sql.json((body.filhos ?? []) as never)},
       carros               = ${sql.json((body.carros ?? []) as never)},
       atualizado_em        = NOW()

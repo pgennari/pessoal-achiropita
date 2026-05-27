@@ -84,6 +84,7 @@ export interface Pessoa {
   observacoes?: string;
   fotoUrl?: string;
   ativo: boolean;
+  motivoInativacao?: string;
   filhos: Filho[];
   carros: Carro[];
   criadoEm: string; // ISO timestamp

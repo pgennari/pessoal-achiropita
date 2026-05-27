@@ -48,12 +48,14 @@ CREATE TABLE pessoas (
   parente_festa         TEXT,
   observacoes           TEXT,
   ativo                 BOOLEAN NOT NULL DEFAULT TRUE,
+  motivo_inativacao     TEXT,
   filhos                JSONB NOT NULL DEFAULT '[]',
   carros                JSONB NOT NULL DEFAULT '[]',
   criado_em             TIMESTAMPTZ NOT NULL DEFAULT now(),
   atualizado_em         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 -- Nota: fotoUrl REMOVIDA do MVP.
+-- Migração: ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS motivo_inativacao TEXT;
 
 CREATE INDEX idx_pessoas_cracha ON pessoas(cracha);
 CREATE INDEX idx_pessoas_ativo  ON pessoas(ativo);

@@ -5,6 +5,7 @@ import {
   usePessoas,
   useTodasEquipes,
   useTodasParticipacoes,
+  useTodosHistoricosParticipacao,
 } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import {
@@ -16,7 +17,7 @@ import { calcularIdade, normalizar } from "../lib/utilsDominio";
 
 interface LinhaResultado {
   pessoa: Pessoa;
-  edicoes: Set<string>;
+  edicoes: Set<number>; // por número da edição (unifica atual + histórico)
   funcoes: Set<Funcao>;
   equipes: Set<string>; // por nome
 }
@@ -46,7 +47,11 @@ export function Historico() {
   const { itens: pessoas } = usePessoas();
   const { itens: equipes } = useTodasEquipes();
   const { itens: edicoes } = useEdicoes();
-  const { itens: participacoes, carregando } = useTodasParticipacoes();
+  const { itens: participacoes, carregando: carregandoParts } =
+    useTodasParticipacoes();
+  const { itens: historicos, carregando: carregandoHist } =
+    useTodosHistoricosParticipacao();
+  const carregando = carregandoParts || carregandoHist;
 
   const [nomeEquipe, setNomeEquipe] = useState<string>("todas");
   const [funcao, setFuncao] = useState<Funcao | "todas">("todas");
@@ -54,26 +59,36 @@ export function Historico() {
   const [idadeMin, setIdadeMin] = useState<string>("");
   const [idadeMax, setIdadeMax] = useState<string>("");
 
-  // Lista distinta de nomes de equipe (across edições) para o select.
-  const nomesEquipes = useMemo(() => {
-    const set = new Set<string>();
-    for (const e of equipes) set.add(e.nome.trim());
-    return Array.from(set).sort((a, b) =>
-      normalizar(a).localeCompare(normalizar(b))
-    );
-  }, [equipes]);
-
   const indiceEquipes = useMemo(() => {
     const m = new Map<string, { nome: string }>();
     for (const e of equipes) m.set(e.id, { nome: e.nome.trim() });
     return m;
   }, [equipes]);
 
+  const indiceEdicoes = useMemo(() => {
+    const m = new Map<string, { numero: number }>();
+    for (const e of edicoes) m.set(e.id, { numero: e.numero });
+    return m;
+  }, [edicoes]);
+
   const indicePessoas = useMemo(() => {
     const m = new Map<string, Pessoa>();
     for (const p of pessoas) m.set(p.id, p);
     return m;
   }, [pessoas]);
+
+  // Lista distinta de nomes de equipe (das edições atuais + histórico).
+  const nomesEquipes = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of equipes) set.add(e.nome.trim());
+    for (const h of historicos) {
+      const nome = h.equipeNome.trim();
+      if (nome) set.add(nome);
+    }
+    return Array.from(set).sort((a, b) =>
+      normalizar(a).localeCompare(normalizar(b))
+    );
+  }, [equipes, historicos]);
 
   const resultados = useMemo<LinhaResultado[]>(() => {
     const min = Number.isFinite(parseInt(idadeMin, 10))
@@ -84,19 +99,11 @@ export function Historico() {
       : null;
 
     const por = new Map<string, LinhaResultado>();
-    for (const p of participacoes) {
-      if (funcao !== "todas" && p.funcao !== funcao) continue;
-      if (nomeEquipe !== "todas") {
-        const nome = indiceEquipes.get(p.equipeId)?.nome;
-        if (nome !== nomeEquipe) continue;
-      }
-      const pessoa = indicePessoas.get(p.pessoaId);
-      if (!pessoa) continue;
 
+    function obterLinha(pessoa: Pessoa): LinhaResultado | null {
       const idade = calcularIdade(pessoa.nascimento);
-      if (min !== null && (idade === null || idade < min)) continue;
-      if (max !== null && (idade === null || idade > max)) continue;
-
+      if (min !== null && (idade === null || idade < min)) return null;
+      if (max !== null && (idade === null || idade > max)) return null;
       let linha = por.get(pessoa.id);
       if (!linha) {
         linha = {
@@ -107,10 +114,34 @@ export function Historico() {
         };
         por.set(pessoa.id, linha);
       }
-      linha.edicoes.add(p.edicaoId);
+      return linha;
+    }
+
+    for (const p of participacoes) {
+      if (funcao !== "todas" && p.funcao !== funcao) continue;
+      const nomeEq = indiceEquipes.get(p.equipeId)?.nome;
+      if (nomeEquipe !== "todas" && nomeEq !== nomeEquipe) continue;
+      const pessoa = indicePessoas.get(p.pessoaId);
+      if (!pessoa) continue;
+      const linha = obterLinha(pessoa);
+      if (!linha) continue;
+      const numero = indiceEdicoes.get(p.edicaoId)?.numero;
+      if (numero !== undefined) linha.edicoes.add(numero);
       linha.funcoes.add(p.funcao);
-      const nome = indiceEquipes.get(p.equipeId)?.nome;
-      if (nome) linha.equipes.add(nome);
+      if (nomeEq) linha.equipes.add(nomeEq);
+    }
+
+    for (const h of historicos) {
+      if (funcao !== "todas" && h.funcao !== funcao) continue;
+      const nomeEq = h.equipeNome.trim();
+      if (nomeEquipe !== "todas" && nomeEq !== nomeEquipe) continue;
+      const pessoa = indicePessoas.get(h.pessoaId);
+      if (!pessoa) continue;
+      const linha = obterLinha(pessoa);
+      if (!linha) continue;
+      linha.edicoes.add(h.edicaoNumero);
+      if (h.funcao) linha.funcoes.add(h.funcao);
+      if (nomeEq) linha.equipes.add(nomeEq);
     }
 
     const minEdicoes = edicoesMin ?? 1;
@@ -123,12 +154,14 @@ export function Historico() {
       });
   }, [
     participacoes,
+    historicos,
     funcao,
     nomeEquipe,
     edicoesMin,
     idadeMin,
     idadeMax,
     indiceEquipes,
+    indiceEdicoes,
     indicePessoas,
   ]);
 
@@ -181,7 +214,15 @@ export function Historico() {
     dispararCsv(`historico-${stamp}.csv`, csv);
   }
 
-  const totalEdicoes = edicoes.length;
+  // Cap do input "edições mínimas": maior número entre edições conhecidas e
+  // a maior contagem de edições por pessoa nos resultados atuais.
+  const totalEdicoes = useMemo(() => {
+    let max = edicoes.length;
+    for (const r of resultados) {
+      if (r.edicoes.size > max) max = r.edicoes.size;
+    }
+    return max;
+  }, [edicoes, resultados]);
 
   return (
     <div className="space-y-6">

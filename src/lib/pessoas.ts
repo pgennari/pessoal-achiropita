@@ -201,12 +201,14 @@ export async function buscarPorCracha(cracha: number): Promise<Pessoa | null> {
 
 // Redimensiona para 600×600 JPEG (client-side) e envia para o backend,
 // que persiste no Cloudflare R2 (US-02-03 / US-07-01).
+// Passar jaProcessado=true quando o blob já é um JPEG 600×600 (ex.: vindo do CropFoto).
 export async function enviarFoto(
   _sessao: Sessao,
   pessoa: Pessoa,
-  arquivo: Blob
+  arquivo: Blob,
+  { jaProcessado = false }: { jaProcessado?: boolean } = {}
 ): Promise<string> {
-  const blob = await redimensionarParaJpeg(arquivo);
+  const blob = jaProcessado ? arquivo : await redimensionarParaJpeg(arquivo);
 
   const user = auth().currentUser;
   if (!user) throw new Error("Sem sessão ativa.");

@@ -2,6 +2,7 @@ import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { Pessoa } from "../lib/tipos";
 import { enviarFoto, removerFoto } from "../lib/pessoas";
 import { Sessao } from "../lib/sessao";
+import { CropFoto } from "./CropFoto";
 
 interface Props {
   sessao: Sessao;
@@ -14,6 +15,7 @@ export function UploadFoto({ sessao, pessoa, podeEditar }: Props) {
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [ampliada, setAmpliada] = useState(false);
+  const [arquivoPendente, setArquivoPendente] = useState<File | null>(null);
 
   useEffect(() => {
     if (!ampliada) return;
@@ -24,7 +26,7 @@ export function UploadFoto({ sessao, pessoa, podeEditar }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [ampliada]);
 
-  async function handleArquivo(ev: ChangeEvent<HTMLInputElement>) {
+  function handleArquivo(ev: ChangeEvent<HTMLInputElement>) {
     const arquivo = ev.target.files?.[0];
     ev.target.value = "";
     if (!arquivo) return;
@@ -33,9 +35,14 @@ export function UploadFoto({ sessao, pessoa, podeEditar }: Props) {
       return;
     }
     setErro(null);
+    setArquivoPendente(arquivo);
+  }
+
+  async function handleCropConfirmado(blob: Blob) {
+    setArquivoPendente(null);
     setEnviando(true);
     try {
-      await enviarFoto(sessao, pessoa, arquivo);
+      await enviarFoto(sessao, pessoa, blob, { jaProcessado: true });
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Falha ao enviar foto.");
     } finally {
@@ -117,10 +124,18 @@ export function UploadFoto({ sessao, pessoa, podeEditar }: Props) {
             )}
           </div>
           <p className="input-ajuda">
-            Imagem é cortada em quadrado e reduzida a 600 px antes do envio.
+            Você poderá ajustar o enquadramento antes do envio.
           </p>
           {erro && <p className="input-erro-msg">{erro}</p>}
         </div>
+      )}
+
+      {arquivoPendente && (
+        <CropFoto
+          arquivo={arquivoPendente}
+          onConfirmar={handleCropConfirmado}
+          onCancelar={() => setArquivoPendente(null)}
+        />
       )}
 
       {ampliada && pessoa.fotoUrl && (

@@ -35,7 +35,8 @@ export async function uploadFoto(pessoaId: string, buffer: Buffer): Promise<stri
     })
   );
 
-  return `${publicUrl.replace(/\/$/, "")}/${chave}`;
+  // Query string com timestamp garante que browsers/CDN não sirvam versão antiga ao trocar foto.
+  return `${publicUrl.replace(/\/$/, "")}/${chave}?v=${Date.now()}`;
 }
 
 // Remove a foto do bucket. Não lança erro se o objeto já não existe.

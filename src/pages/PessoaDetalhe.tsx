@@ -27,7 +27,10 @@ export function PessoaDetalhe() {
   if (!sessao) return null;
   const ehProprio = !!sessao.pessoaId && sessao.pessoaId === id;
   const podeEditar =
-    sessao.perfil === "ADM" || sessao.perfil === "ORG" || ehProprio;
+    sessao.perfil === "ADM" ||
+    sessao.perfil === "ORG" ||
+    sessao.perfil === "OPC" ||
+    ehProprio;
   const podeInativar = sessao.perfil === "ADM" || sessao.perfil === "ORG";
   const podeExcluir = sessao.perfil === "ADM";
   const bloquearSensivel = sessao.perfil !== "ADM";

@@ -70,3 +70,9 @@ export const comAuthFirebase = createMiddleware<VariaveisFirebase>(
 export function podeAdministrar(perfil: string): boolean {
   return perfil === "ADM" || perfil === "ORG";
 }
+
+// OPC opera a formação presencial: edita dados e troca foto das pessoas,
+// além de ADM e ORG.
+export function podeEditarPessoa(perfil: string): boolean {
+  return podeAdministrar(perfil) || perfil === "OPC";
+}

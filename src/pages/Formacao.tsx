@@ -595,7 +595,7 @@ export function PaginaFormacao() {
         </div>
 
         {/* Lista A — Sem formação */}
-        {podeAdministrar && <div>
+        {podeConfirmarDados && <div>
           <div className="flex items-center gap-3 mb-3">
             <h4 className="m-0">Sem formação</h4>
             <span className="badge badge-cinza">{semFormacao.length}</span>

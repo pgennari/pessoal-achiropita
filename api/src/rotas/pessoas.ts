@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import sql from "../db.js";
-import { comAuth, podeAdministrar } from "../auth.js";
+import { comAuth, podeAdministrar, podeEditarPessoa } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import { uploadFoto, deletarFoto } from "../r2.js";
 import type { Variaveis } from "../tipos.js";
@@ -121,8 +121,8 @@ app.post("/", comAuth, async (c) => {
 app.put("/:id", comAuth, async (c) => {
   const id = c.req.param("id");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!podeEditarPessoa(sessao.perfil)) {
+    return c.json({ erro: "Acesso negado. Requer ADM, ORG ou OPC." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
   const [row] = await sql`
@@ -183,8 +183,7 @@ app.post("/:id/foto", comAuth, async (c) => {
   const id = c.req.param("id") ?? "";
   const sessao = c.get("sessao");
 
-  const perfisPermitidos = ["ADM", "ORG", "OPC"];
-  if (!perfisPermitidos.includes(sessao.perfil)) {
+  if (!podeEditarPessoa(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM, ORG ou OPC." }, 403);
   }
 

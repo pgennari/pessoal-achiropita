@@ -53,7 +53,7 @@ export function Painel() {
             ? `Painel da ${edicao.numero}ª edição`
             : "Painel da edição"}
         </h1>
-        <p className="text-ardesia mt-2 max-w-prose">Bem-vindo</p>
+        <p className="text-ardesia mt-2 max-w-prose">Bem-vindo, {sessao.nome.split(" ")[0]}</p>
       </div>
 
       <div className="kpi-grid">

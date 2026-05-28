@@ -46,15 +46,14 @@ export function Painel() {
     <>
       <div className="mb-8">
         <div className="eyebrow">Início</div>
-        <h1 className="mt-2">Painel da edição corrente</h1>
-        <p className="text-ardesia mt-2 max-w-prose">
-          Bem-vindo, {sessao.nome.split(" ")[0]}.{" "}
+        <h1 className="mt-2">
           {carregandoEdicao
-            ? ""
+            ? "Painel"
             : edicao
-            ? `${edicao.numero}ª edição (${edicao.ano}) está ativa.`
-            : "Nenhuma edição ativa — abra ou crie uma em Edições."}
-        </p>
+            ? `Painel da ${edicao.numero}ª edição`
+            : "Painel da edição"}
+        </h1>
+        <p className="text-ardesia mt-2 max-w-prose">Bem-vindo</p>
       </div>
 
       <div className="kpi-grid">

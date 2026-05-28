@@ -59,6 +59,11 @@ jobs:
             --set-env-vars "^|^FIREBASE_PROJECT_ID=${PROJETO}|ALLOWED_ORIGIN=${ORIGENS}" \
             --set-secrets "DATABASE_URL=achiropita-db-url:latest" \
             --set-secrets "API_SECRET=achiropita-api-secret:latest" \
+            --set-secrets "R2_ACCOUNT_ID=R2_ACCOUNT_ID:latest" \
+            --set-secrets "R2_ACCESS_KEY_ID=R2_ACCESS_KEY_ID:latest" \
+            --set-secrets "R2_SECRET_ACCESS_KEY=R2_SECRET_ACCESS_KEY:latest" \
+            --set-secrets "R2_BUCKET_NAME=R2_BUCKET_NAME:latest" \
+            --set-secrets "R2_PUBLIC_URL=R2_PUBLIC_URL:latest" \
             --project ${{ secrets.GCP_PROJECT_ID }} \
             --quiet
 

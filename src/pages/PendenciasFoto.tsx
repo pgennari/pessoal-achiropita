@@ -69,7 +69,10 @@ const indiceEquipes = useMemo(() => {
   ]);
 
   if (!sessao) return null;
-  const podeVer = sessao.perfil === "ADM" || sessao.perfil === "ORG";
+  const podeVer =
+    sessao.perfil === "ADM" ||
+    sessao.perfil === "ORG" ||
+    sessao.perfil === "CRD";
   if (!podeVer) {
     return (
       <div className="card">
@@ -118,15 +121,17 @@ const indiceEquipes = useMemo(() => {
 
       <div className="card">
         <div className="card-corpo flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-sm font-semibold">
-            <input
-              type="checkbox"
-              className="h-4 w-4"
-              checked={incluirNaoAlocados}
-              onChange={(e) => setIncluirNaoAlocados(e.target.checked)}
-            />
-            Todas as pessoas ativas (sem filtrar pela edição)
-          </label>
+          {(sessao.perfil === "ADM" || sessao.perfil === "ORG") && (
+            <label className="flex items-center gap-2 text-sm font-semibold">
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={incluirNaoAlocados}
+                onChange={(e) => setIncluirNaoAlocados(e.target.checked)}
+              />
+              Todas as pessoas ativas (sem filtrar pela edição)
+            </label>
+          )}
           {!incluirNaoAlocados && edicao && (
             <>
               <div className="flex gap-1">

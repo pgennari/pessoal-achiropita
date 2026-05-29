@@ -21,7 +21,7 @@ const secoes: Secao[] = [
   },
   {
     label: "Pessoal",
-    perfis: ["ADM", "ORG", "OPC"],
+    perfis: ["ADM", "ORG", "OPC", "CRD"],
     itens: [
       {
         to: "/pessoas",
@@ -30,16 +30,16 @@ const secoes: Secao[] = [
           {
             to: "/entregas/crachas",
             label: "Entrega de Crachá",
-            perfis: ["ADM", "ORG", "OPC"],
+            perfis: ["ADM", "ORG", "OPC", "CRD"],
           },
           {
             to: "/pendencias/fotos",
             label: "Pendências de Fotos",
-            perfis: ["ADM", "ORG"],
+            perfis: ["ADM", "ORG", "CRD"],
           },
         ],
       },
-      { to: "/formacao", label: "Formação", perfis: ["ADM", "ORG", "OPC"] },
+      { to: "/formacao", label: "Formação", perfis: ["ADM", "ORG", "OPC", "CRD"] },
     ],
   },
   {

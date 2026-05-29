@@ -49,6 +49,18 @@ function pessoaDeRow(r: Record<string, unknown>) {
 
 // GET /api/pessoas
 app.get("/", comAuth, async (c) => {
+  const sessao = c.get("sessao");
+  if (sessao.perfil === "CRD" && sessao.equipesCRD?.length) {
+    const equipes = sessao.equipesCRD;
+    const rows = await sql<Record<string, unknown>[]>`
+      SELECT DISTINCT p.* FROM pessoas p
+      JOIN participacoes part ON part.pessoa_id = p.id
+      JOIN edicoes e ON e.id = part.edicao_id AND e.status = 'ativa'
+      WHERE part.equipe_id = ANY(${equipes})
+      ORDER BY p.cracha
+    `;
+    return c.json(rows.map(pessoaDeRow));
+  }
   const rows = await sql`SELECT * FROM pessoas ORDER BY cracha`;
   return c.json(rows.map(pessoaDeRow));
 });

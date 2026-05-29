@@ -109,11 +109,11 @@ export function EntregaCrachas() {
   ]);
 
   const totais = useMemo(() => {
-    const previstas = participacoes.length;
-    const entregues = entregas.length;
+    const previstas = participacoes.filter((p) => indiceEquipes.has(p.equipeId)).length;
+    const entregues = entregas.filter((e) => indicePessoas.has(e.pessoaId)).length;
     const pct = previstas > 0 ? Math.round((entregues / previstas) * 100) : 0;
     return { previstas, entregues, pct };
-  }, [participacoes, entregas]);
+  }, [participacoes, entregas, indiceEquipes, indicePessoas]);
 
   if (!sessao) return null;
   const podeOperar =
@@ -121,8 +121,9 @@ export function EntregaCrachas() {
     sessao.perfil === "ORG" ||
     sessao.perfil === "OPC";
   const podeDesbloquear = sessao.perfil === "ADM";
+  const podeAcessar = podeOperar || sessao.perfil === "CRD";
 
-  if (!podeOperar) {
+  if (!podeAcessar) {
     return (
       <div className="card">
         <div className="card-corpo">
@@ -342,7 +343,7 @@ export function EntregaCrachas() {
                         )}
                       </td>
                       <td className="px-4 py-2 text-right">
-                        {!l.entrega && (
+                        {podeOperar && !l.entrega && (
                           <button
                             type="button"
                             className="btn btn-primario btn-pequeno"

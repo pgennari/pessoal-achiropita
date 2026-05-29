@@ -70,6 +70,11 @@ export function Pessoas() {
               ? "Carregando..."
               : `${lista.length} de ${itens.length}`}
           </p>
+          {sessao?.perfil === "CRD" && (
+            <p className="text-ardesia text-sm mt-1">
+              Exibindo apenas pessoas alocadas nas suas equipes.
+            </p>
+          )}
         </div>
         <div className="flex gap-2 flex-wrap">
           {isAdm && (

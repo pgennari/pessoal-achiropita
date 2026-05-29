@@ -24,7 +24,17 @@ function equipeDeRow(r: Record<string, unknown>) {
 
 // GET /api/equipes?edicaoId=:id
 app.get("/", comAuth, async (c) => {
+  const sessao = c.get("sessao");
   const edicaoId = c.req.query("edicaoId");
+  if (sessao.perfil === "CRD" && sessao.equipesCRD?.length) {
+    const equipes = sessao.equipesCRD;
+    if (edicaoId) {
+      const rows = await sql`SELECT * FROM equipes WHERE edicao_id = ${edicaoId} AND id = ANY(${equipes}) ORDER BY nome`;
+      return c.json(rows.map(equipeDeRow));
+    }
+    const rows = await sql`SELECT * FROM equipes WHERE id = ANY(${equipes}) ORDER BY nome`;
+    return c.json(rows.map(equipeDeRow));
+  }
   if (edicaoId) {
     const rows = await sql`SELECT * FROM equipes WHERE edicao_id = ${edicaoId} ORDER BY nome`;
     return c.json(rows.map(equipeDeRow));

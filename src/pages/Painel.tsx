@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
 import {
@@ -18,6 +19,34 @@ export function Painel() {
   const { itens: entregas } = useEntregasCracha(edicao?.id);
   const { itens: formacoes } = useFormacoes(edicao?.id);
 
+  // Para CRD, pessoas e equipes já chegam filtrados pela API.
+  // participacoes, entregas e formacoes cobrem toda a edição — filtrar aqui.
+  const pessoaIds = useMemo(() => new Set(pessoas.map((p) => p.id)), [pessoas]);
+
+  const participacoesFiltradas = useMemo(
+    () =>
+      sessao?.perfil === "CRD"
+        ? participacoes.filter((p) => sessao.equipesCRD?.includes(p.equipeId))
+        : participacoes,
+    [sessao, participacoes]
+  );
+
+  const entregasFiltradas = useMemo(
+    () =>
+      sessao?.perfil === "CRD"
+        ? entregas.filter((e) => pessoaIds.has(e.pessoaId))
+        : entregas,
+    [sessao, entregas, pessoaIds]
+  );
+
+  const formacoesFiltradas = useMemo(
+    () =>
+      sessao?.perfil === "CRD"
+        ? formacoes.filter((f) => pessoaIds.has(f.pessoaId))
+        : formacoes,
+    [sessao, formacoes, pessoaIds]
+  );
+
   if (!sessao) return null;
 
   const ativas = pessoas.filter((p) => p.ativo).length;
@@ -26,16 +55,16 @@ export function Painel() {
     (acc, e) => acc + e.vagasCoordenador + e.vagasEquipista + e.vagasApoio,
     0
   );
-  const alocadas = participacoes.length;
+  const alocadas = participacoesFiltradas.length;
   const pct = previstas > 0 ? Math.round((alocadas / previstas) * 100) : 0;
-  const entregues = entregas.length;
+  const entregues = entregasFiltradas.length;
   const pctEntregues =
     alocadas > 0 ? Math.round((entregues / alocadas) * 100) : 0;
   const semFoto = pessoas.filter((p) => p.ativo && !p.fotoUrl).length;
-  const totalFormacoes = formacoes.length;
+  const totalFormacoes = formacoesFiltradas.length;
   const pctFormacao =
     alocadas > 0 ? Math.round((totalFormacoes / alocadas) * 100) : 0;
-  const dadosValidados = formacoes.filter((f) => f.dadosValidados).length;
+  const dadosValidados = formacoesFiltradas.filter((f) => f.dadosValidados).length;
   const pctValidados =
     alocadas > 0 ? Math.round((dadosValidados / alocadas) * 100) : 0;
 

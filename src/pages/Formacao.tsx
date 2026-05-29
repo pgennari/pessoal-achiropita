@@ -139,6 +139,8 @@ export function PaginaFormacao() {
       sessao.perfil === "ORG" ||
       sessao.perfil === "OPC");
 
+  const podeAcessar = podeConfirmarDados || sessao?.perfil === "CRD";
+
   // Índices derivados ---
 
   const indiceParticipacaoPorPessoa = useMemo(() => {
@@ -267,7 +269,7 @@ export function PaginaFormacao() {
       : 0;
 
   if (!sessao) return null;
-  if (!podeConfirmarDados) {
+  if (!podeAcessar) {
     return (
       <div className="card">
         <div className="card-corpo">

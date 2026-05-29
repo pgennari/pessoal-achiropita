@@ -597,7 +597,7 @@ export function PaginaFormacao() {
         </div>
 
         {/* Lista A — Sem formação */}
-        {podeConfirmarDados && <div>
+        <div>
           <div className="flex items-center gap-3 mb-3">
             <h4 className="m-0">Sem formação</h4>
             <span className="badge badge-cinza">{semFormacao.length}</span>
@@ -620,11 +620,11 @@ export function PaginaFormacao() {
                   key={grupo.equipeId}
                   grupo={grupo}
                   colunaStatus={false}
-                  onRowClick={(p) => {
+                  onRowClick={podeConfirmarDados ? (p) => {
                     setMarcandoPara({ pessoa: p });
                     setJustificativa("");
-                  }}
-                  renderAcoes={(p) => (
+                  } : undefined}
+                  renderAcoes={podeConfirmarDados ? (p) => (
                     <button
                       type="button"
                       className="btn btn-primario btn-pequeno"
@@ -635,12 +635,12 @@ export function PaginaFormacao() {
                     >
                       Marcar manual
                     </button>
-                  )}
+                  ) : () => null}
                 />
               ))}
             </div>
           )}
-        </div>}
+        </div>
 
         {/* Lista B — Aguardando validação de dados */}
         <div>
@@ -805,7 +805,7 @@ export function PaginaFormacao() {
                             <span className="badge badge-verde">validado</span>
                           </td>
                           <td className="px-4 py-3 text-right">
-                            {f && (
+                            {podeAdministrar && f && (
                               <button
                                 type="button"
                                 className="btn btn-texto btn-pequeno text-vermelho-escuro"

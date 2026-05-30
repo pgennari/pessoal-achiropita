@@ -16,57 +16,6 @@ env:
   GCP_REGION: us-central1
 
 jobs:
-  # ── Job 1: Build e publicar imagem da API no Artifact Registry ──────────
-  deploy-api:
-    name: Build & deploy API (Cloud Run)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - id: auth
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - uses: google-github-actions/setup-gcloud@v2
-
-      - name: Configurar Docker para Artifact Registry
-        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
-
-      - name: Build e push da imagem
-        run: |
-          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/achiropita/api:${{ github.sha }}"
-          docker build -t "$IMAGE" ./api
-          docker push "$IMAGE"
-
-      - name: Deploy no Cloud Run
-        run: |
-          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/achiropita/api:${{ github.sha }}"
-          PROJETO="${{ secrets.VITE_FIREBASE_PROJECT_ID }}"
-          ORIGENS="https://${PROJETO}.web.app,https://${PROJETO}.firebaseapp.com"
-          if [ -n "${{ secrets.VITE_HOSTING_URL }}" ]; then
-            ORIGENS="${ORIGENS},${{ secrets.VITE_HOSTING_URL }}"
-          fi
-          gcloud run deploy achiropita-api \
-            --image "$IMAGE" \
-            --region ${{ env.GCP_REGION }} \
-            --platform managed \
-            --allow-unauthenticated \
-            --set-env-vars "^|^FIREBASE_PROJECT_ID=${PROJETO}|ALLOWED_ORIGIN=${ORIGENS}" \
-            --set-secrets "DATABASE_URL=achiropita-db-url:latest" \
-            --set-secrets "API_SECRET=achiropita-api-secret:latest" \
-            --set-secrets "R2_ACCOUNT_ID=R2_ACCOUNT_ID:latest" \
-            --set-secrets "R2_ACCESS_KEY_ID=R2_ACCESS_KEY_ID:latest" \
-            --set-secrets "R2_SECRET_ACCESS_KEY=R2_SECRET_ACCESS_KEY:latest" \
-            --set-secrets "R2_BUCKET_NAME=R2_BUCKET_NAME:latest" \
-            --set-secrets "R2_PUBLIC_URL=R2_PUBLIC_URL:latest" \
-            --project ${{ secrets.GCP_PROJECT_ID }} \
-            --quiet
-
   # ── Job 2: Build do frontend e deploy no Firebase Hosting ───────────────
   deploy-hosting:
     name: Build & deploy Hosting

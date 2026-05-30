@@ -1,4 +1,4 @@
--- DDL completo do banco PostgreSQL para o app Achiropita 100
+-- DDL completo do banco PostgreSQL para o app Achiropita Pessoal
 -- Execute no Neon (Console → SQL Editor) ou via psql antes do primeiro deploy.
 
 -- Extensão para gen_random_uuid()

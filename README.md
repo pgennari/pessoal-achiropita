@@ -1,4 +1,4 @@
-# Achiropita 100
+# Achiropita - Pessoal
 
 
 App de gestão da equipe da Festa de Nossa Senhora Achiropita do Bixiga.

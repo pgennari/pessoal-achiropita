@@ -21,7 +21,8 @@ type Etapa =
   | "form"
   | "salvando"
   | "sucesso"
-  | "erro";
+  | "erro"
+  | "jaConfirmado";
 
 interface EstadoForm extends DadosValidacao {}
 

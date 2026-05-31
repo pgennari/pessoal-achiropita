@@ -71,6 +71,12 @@ export async function identificarPessoa(
     if (msg.includes("404") || msg.includes("401") || msg.includes("não confere")) {
       throw new ErroValidacaoPublica(MSG_IDENT);
     }
+    // Repassa mensagens de erro vindas do servidor (ex.: 409 já confirmado)
+    // como ErroValidacaoPublica para exibição inline no formulário.
+    // Erros genéricos como "Erro 500" são relançados sem tratamento.
+    if (e instanceof Error && msg && !/^Erro \d+$/.test(msg)) {
+      throw new ErroValidacaoPublica(msg);
+    }
     throw e;
   }
 

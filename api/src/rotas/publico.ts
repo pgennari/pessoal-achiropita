@@ -147,6 +147,18 @@ app.post("/identificar", async (c) => {
     return c.json({ erro: MSG }, 400);
   }
 
+  // Verifica se a pessoa já confirmou dados nesta edição
+  const [formacao] = await sql`
+    SELECT dados_validados FROM formacoes
+    WHERE edicao_id = ${String(link.edicao_id)} AND pessoa_id = ${String(row.id)}
+  `;
+  if (formacao?.dados_validados) {
+    return c.json(
+      { erro: "Seus dados já foram confirmados. Não é necessário fazer isso novamente." },
+      409
+    );
+  }
+
   const sessaoJwt = await criarSessaoJwt({
     pessoaId: String(row.id),
     turmaId: String(link.turma_id),

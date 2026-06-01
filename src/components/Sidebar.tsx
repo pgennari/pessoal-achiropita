@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { Sessao } from "../lib/sessao";
 import { Perfil } from "../lib/tipos";
+import { useEdicaoAtiva } from "../lib/hooks";
 
 interface ItemNav {
   to: string;
@@ -77,6 +78,8 @@ interface Props {
 }
 
 export function Sidebar({ sessao, aberta, onFechar }: Props) {
+  const { edicao: edicaoAtiva } = useEdicaoAtiva();
+
   const classeLink = (isActive: boolean) =>
     [
       "flex items-center px-3 py-2.5 rounded-sm text-sm font-semibold transition",
@@ -136,6 +139,31 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
         </div>
 
         <nav className="flex-1 p-3 overflow-y-auto space-y-4">
+          {/* Atalho para edição ativa */}
+          {edicaoAtiva && (
+            <div>
+              <div className="px-3 pt-1 pb-1 text-[10px] font-sans uppercase tracking-wider text-verde/60">
+                Edição Ativa
+              </div>
+              <div className="space-y-0.5">
+                <NavLink
+                  to={`/edicoes/${edicaoAtiva.id}`}
+                  end={false}
+                  onClick={onFechar}
+                  className={({ isActive }) => [
+                    "flex items-center px-3 py-2.5 rounded-sm text-sm font-semibold transition",
+                    isActive
+                      ? "bg-verde/10 text-verde-escuro border-l-2 border-verde"
+                      : "text-carbone hover:bg-verde/5 border-l-2 border-transparent",
+                  ].join(" ")}
+                >
+                  <span className="inline-block w-2 h-2 rounded-full bg-verde mr-2" />
+                  {edicaoAtiva.numero}ª edição · {edicaoAtiva.ano}
+                </NavLink>
+              </div>
+            </div>
+          )}
+
           {secoes.map((secao, si) => {
             if (secao.perfis && !secao.perfis.includes(sessao.perfil))
               return null;

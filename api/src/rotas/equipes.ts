@@ -26,19 +26,23 @@ function equipeDeRow(r: Record<string, unknown>) {
 app.get("/", comAuth, async (c) => {
   const sessao = c.get("sessao");
   const edicaoId = c.req.query("edicaoId");
-  if (sessao.perfil === "CRD" && sessao.equipesCRD?.length) {
-    const equipes = sessao.equipesCRD;
-    if (edicaoId) {
-      const rows = await sql`SELECT * FROM equipes WHERE edicao_id = ${edicaoId} AND id = ANY(${equipes}) ORDER BY nome`;
-      return c.json(rows.map(equipeDeRow));
-    }
-    const rows = await sql`SELECT * FROM equipes WHERE id = ANY(${equipes}) ORDER BY nome`;
-    return c.json(rows.map(equipeDeRow));
-  }
+  
+  // Se edicaoId eh fornecido, todos os perfis podem listar as equipes dessa edicao.
+  // Isso permite que coordenadores (CRD) vejam equipes de edicoes inativas.
+  // A seguranca eh mantida no PUT/DELETE que verificam se o CRD coordena a equipe.
   if (edicaoId) {
     const rows = await sql`SELECT * FROM equipes WHERE edicao_id = ${edicaoId} ORDER BY nome`;
     return c.json(rows.map(equipeDeRow));
   }
+  
+  // Sem edicaoId, aplicar restricao por perfil:
+  // CRD ve apenas suas equipes atribuidas
+  if (sessao.perfil === "CRD" && sessao.equipesCRD?.length) {
+    const rows = await sql`SELECT * FROM equipes WHERE id = ANY(${sessao.equipesCRD}) ORDER BY nome`;
+    return c.json(rows.map(equipeDeRow));
+  }
+  
+  // ADM e ORG veem todas as equipes
   const rows = await sql`SELECT * FROM equipes ORDER BY nome`;
   return c.json(rows.map(equipeDeRow));
 });

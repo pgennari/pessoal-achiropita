@@ -2,6 +2,8 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { swaggerUI } from "@hono/swagger-ui";
+import { openapiSpec } from "./openapi.js";
 import pessoas from "./rotas/pessoas.js";
 import edicoes from "./rotas/edicoes.js";
 import equipes from "./rotas/equipes.js";
@@ -18,6 +20,10 @@ import admin from "./rotas/admin.js";
 import historicoParticipacoes from "./rotas/historicoParticipacoes.js";
 
 const app = new Hono();
+
+// Swagger UI
+app.get("/docs", swaggerUI({ url: "/docs/openapi.json" }));
+app.get("/docs/openapi.json", (c) => c.json(openapiSpec));
 
 // CORS: aceita uma lista de origens em ALLOWED_ORIGIN (separadas por vírgula).
 // Firebase Hosting expõe o site em <projeto>.web.app e <projeto>.firebaseapp.com,

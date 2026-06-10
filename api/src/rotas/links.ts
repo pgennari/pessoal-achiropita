@@ -1,10 +1,10 @@
-import { Hono } from "hono";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { comAuth, podeAdministrar } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
-const app = new Hono<Variaveis>();
+const app = new OpenAPIHono<Variaveis>();
 
 const MINUTOS_APOS_INICIO = 15;
 
@@ -31,28 +31,55 @@ function calcularExpiracao(data: string, horarioInicio: string): Date {
   return new Date(inicio.getTime() + MINUTOS_APOS_INICIO * 60 * 1000);
 }
 
-// GET /api/links?edicaoId=:id ou ?turmaId=:id
-app.get("/", comAuth, async (c) => {
-  const edicaoId = c.req.query("edicaoId");
-  const turmaId = c.req.query("turmaId");
+const getLinksRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["Links"],
+  summary: "Lista links (filtro por edicaoId ou turmaId)",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { query: z.object({ edicaoId: z.string().optional(), turmaId: z.string().optional() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de links" }
+  }
+});
+
+app.openapi(getLinksRoute, async (c) => {
+  const query = c.req.valid("query");
+  const edicaoId = query.edicaoId;
+  const turmaId = query.turmaId;
   if (edicaoId) {
     const rows = await sql`
       SELECT * FROM links_validacao WHERE edicao_id = ${edicaoId} ORDER BY criado_em DESC
     `;
-    return c.json(rows.map(linkDeRow));
+    return c.json(rows.map(linkDeRow) as any, 200);
   }
   if (turmaId) {
     const rows = await sql`
       SELECT * FROM links_validacao WHERE turma_id = ${turmaId} ORDER BY criado_em DESC
     `;
-    return c.json(rows.map(linkDeRow));
+    return c.json(rows.map(linkDeRow) as any, 200);
   }
   const rows = await sql`SELECT * FROM links_validacao ORDER BY criado_em DESC`;
-  return c.json(rows.map(linkDeRow));
+  return c.json(rows.map(linkDeRow) as any, 200);
 });
 
-// POST /api/links — gerar link para turma
-app.post("/", comAuth, async (c) => {
+const postLinkRoute = createRoute({
+  method: "post",
+  path: "/",
+  tags: ["Links"],
+  summary: "Gerar link para turma",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { body: { content: { "application/json": { schema: z.any() } } } },
+  responses: {
+    201: { content: { "application/json": { schema: z.any() } }, description: "Criado" },
+    400: { content: { "application/json": { schema: z.any() } }, description: "Inválido" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
+  }
+});
+
+app.openapi(postLinkRoute, async (c) => {
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -89,12 +116,26 @@ app.post("/", comAuth, async (c) => {
     sessao, "link.gerou", `linksValidacao/${body.token}`,
     `turma ${body.turmaData} ${body.turmaHorarioInicio} · expira ${prazo.toLocaleString("pt-BR")}`
   );
-  return c.json(linkDeRow(row), 201);
+  return c.json(linkDeRow(row) as any, 201);
 });
 
-// PUT /api/links/:token/revogar
-app.put("/:token/revogar", comAuth, async (c) => {
-  const token = c.req.param("token");
+const putLinkRevogarRoute = createRoute({
+  method: "put",
+  path: "/{token}/revogar",
+  tags: ["Links"],
+  summary: "Revoga link",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ token: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Revogado" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrado" }
+  }
+});
+
+app.openapi(putLinkRevogarRoute, async (c) => {
+  const { token } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -104,12 +145,28 @@ app.put("/:token/revogar", comAuth, async (c) => {
   `;
   if (!row) return c.json({ erro: "Link não encontrado." }, 404);
   await registrarEvento(sessao, "link.revogou", `linksValidacao/${token}`, `turma ${row.turma_id}`);
-  return c.json({ ok: true });
+  return c.json({ ok: true }, 200);
 });
 
-// PUT /api/links/turma/:turmaId/ajustar-prazo
-app.put("/turma/:turmaId/ajustar-prazo", comAuth, async (c) => {
-  const turmaId = c.req.param("turmaId");
+const putLinkAjustarRoute = createRoute({
+  method: "put",
+  path: "/turma/{turmaId}/ajustar-prazo",
+  tags: ["Links"],
+  summary: "Ajusta prazo para turma",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ turmaId: z.string().uuid() }),
+    body: { content: { "application/json": { schema: z.any() } } }
+  },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Sucesso" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
+  }
+});
+
+app.openapi(putLinkAjustarRoute, async (c) => {
+  const { turmaId } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -127,7 +184,7 @@ app.put("/turma/:turmaId/ajustar-prazo", comAuth, async (c) => {
       `${result.length} link(s) reagendado(s) para ${novoPrazo.toLocaleString("pt-BR")}`
     );
   }
-  return c.json({ atualizados: result.length });
+  return c.json({ atualizados: result.length }, 200);
 });
 
 export default app;

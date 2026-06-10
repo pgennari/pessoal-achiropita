@@ -7,6 +7,8 @@ import {
   sair,
   useSessao,
 } from "../lib/sessao";
+import { getRedirectResult } from "firebase/auth";
+import { auth } from "../lib/firebase";
 import {
   consultarBloqueio,
   formatarTempoBloqueio,
@@ -41,6 +43,13 @@ export function Login() {
   useEffect(() => {
     if (!carregando && sessao) navigate(destino, { replace: true });
   }, [carregando, sessao, destino, navigate]);
+
+  // ... earlier in the component
+  useEffect(() => {
+    getRedirectResult(auth()).catch((e: any) => {
+      setErro("Erro no redirect: " + e.message);
+    });
+  }, []);
 
   // Reavalia bloqueio a cada segundo quando ha contagem regressiva
   // ativa; tambem reavalia ao trocar o e-mail digitado.

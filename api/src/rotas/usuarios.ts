@@ -1,10 +1,10 @@
-import { Hono } from "hono";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { comAuth, podeAdministrar } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
-const app = new Hono<Variaveis>();
+const app = new OpenAPIHono<Variaveis>();
 
 function usuarioDeRow(r: Record<string, unknown>) {
   const criadoEm = r.criado_em instanceof Date ? r.criado_em.toISOString() : String(r.criado_em ?? "");
@@ -22,27 +22,68 @@ function usuarioDeRow(r: Record<string, unknown>) {
   };
 }
 
-// GET /api/usuarios
-app.get("/", comAuth, async (c) => {
+const getUsuariosRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["Usuários"],
+  summary: "Lista usuários",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de usuários" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
+  }
+});
+
+app.openapi(getUsuariosRoute, async (c) => {
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const rows = await sql`SELECT * FROM usuarios ORDER BY nome`;
-  return c.json(rows.map(usuarioDeRow));
+  return c.json(rows.map(usuarioDeRow) as any, 200);
 });
 
-// GET /api/usuarios/me — perfil do usuário autenticado
-app.get("/me", comAuth, async (c) => {
+const getUsuarioMeRoute = createRoute({
+  method: "get",
+  path: "/me",
+  tags: ["Usuários"],
+  summary: "Perfil do usuário autenticado",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Usuário" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrado" }
+  }
+});
+
+app.openapi(getUsuarioMeRoute, async (c) => {
   const sessao = c.get("sessao");
   const [row] = await sql`SELECT * FROM usuarios WHERE uid = ${sessao.uid}`;
   if (!row) return c.json({ erro: "Usuário não encontrado." }, 404);
-  return c.json(usuarioDeRow(row));
+  return c.json(usuarioDeRow(row) as any, 200);
 });
 
-// PUT /api/usuarios/:uid
-app.put("/:uid", comAuth, async (c) => {
-  const uid = c.req.param("uid");
+const putUsuarioRoute = createRoute({
+  method: "put",
+  path: "/{uid}",
+  tags: ["Usuários"],
+  summary: "Atualiza usuário",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ uid: z.string() }),
+    body: { content: { "application/json": { schema: z.any() } } }
+  },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Atualizado" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrado" }
+  }
+});
+
+app.openapi(putUsuarioRoute, async (c) => {
+  const { uid } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -60,12 +101,27 @@ app.put("/:uid", comAuth, async (c) => {
   `;
   if (!row) return c.json({ erro: "Usuário não encontrado." }, 404);
   await registrarEvento(sessao, "usuario.atualizou", `usuarios/${uid}`, `${body.nome} (${body.perfil})`);
-  return c.json(usuarioDeRow(row));
+  return c.json(usuarioDeRow(row) as any, 200);
 });
 
-// DELETE /api/usuarios/:uid
-app.delete("/:uid", comAuth, async (c) => {
-  const uid = c.req.param("uid");
+const deleteUsuarioRoute = createRoute({
+  method: "delete",
+  path: "/{uid}",
+  tags: ["Usuários"],
+  summary: "Remove usuário",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ uid: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Sucesso" },
+    400: { content: { "application/json": { schema: z.any() } }, description: "Operação inválida" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrado" }
+  }
+});
+
+app.openapi(deleteUsuarioRoute, async (c) => {
+  const { uid } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -76,7 +132,7 @@ app.delete("/:uid", comAuth, async (c) => {
   const [row] = await sql`DELETE FROM usuarios WHERE uid = ${uid} RETURNING nome, email`;
   if (!row) return c.json({ erro: "Usuário não encontrado." }, 404);
   await registrarEvento(sessao, "usuario.removeu", `usuarios/${uid}`, `${row.nome} (${row.email})`);
-  return c.json({ ok: true });
+  return c.json({ ok: true }, 200);
 });
 
 export default app;

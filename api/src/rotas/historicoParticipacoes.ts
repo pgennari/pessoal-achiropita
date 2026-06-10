@@ -1,9 +1,9 @@
-import { Hono } from "hono";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { comAuth, podeAdministrar } from "../auth.js";
 import type { Variaveis } from "../tipos.js";
 
-const app = new Hono<Variaveis>();
+const app = new OpenAPIHono<Variaveis>();
 
 function historicoDeRow(r: Record<string, unknown>) {
   const criadoEm =
@@ -21,17 +21,32 @@ function historicoDeRow(r: Record<string, unknown>) {
   };
 }
 
-// GET /api/historico-participacoes?pessoaId=:id
-// Sem pessoaId retorna tudo (ADM/ORG) — usado na tela de Histórico.
-app.get("/", comAuth, async (c) => {
-  const pessoaId = c.req.query("pessoaId");
+const getHistoricoRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["Histórico"],
+  summary: "Lista histórico de participações",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({ pessoaId: z.string().optional() })
+  },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de histórico" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
+  }
+});
+
+app.openapi(getHistoricoRoute, async (c) => {
+  const query = c.req.valid("query");
+  const pessoaId = query.pessoaId;
   if (pessoaId) {
     const rows = await sql`
       SELECT * FROM participacoes_historicas
       WHERE pessoa_id = ${pessoaId}
       ORDER BY edicao_numero DESC
     `;
-    return c.json(rows.map(historicoDeRow));
+    return c.json(rows.map(historicoDeRow) as any, 200);
   }
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
@@ -41,7 +56,7 @@ app.get("/", comAuth, async (c) => {
     SELECT * FROM participacoes_historicas
     ORDER BY edicao_numero DESC
   `;
-  return c.json(rows.map(historicoDeRow));
+  return c.json(rows.map(historicoDeRow) as any, 200);
 });
 
 export default app;

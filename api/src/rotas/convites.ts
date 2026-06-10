@@ -1,10 +1,10 @@
-import { Hono } from "hono";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { comAuth, podeAdministrar } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
-const app = new Hono<Variaveis>();
+const app = new OpenAPIHono<Variaveis>();
 
 function conviteDeRow(r: Record<string, unknown>) {
   const criadoEm = r.criado_em instanceof Date ? r.criado_em.toISOString() : String(r.criado_em ?? "");
@@ -29,17 +29,45 @@ function conviteDeRow(r: Record<string, unknown>) {
 }
 
 // GET /api/convites
-app.get("/", comAuth, async (c) => {
+const getConvitesRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["Convites"],
+  summary: "Lista convites",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de convites" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
+  }
+});
+
+app.openapi(getConvitesRoute, async (c) => {
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const rows = await sql`SELECT * FROM convites ORDER BY criado_em DESC`;
-  return c.json(rows.map(conviteDeRow));
+  return c.json(rows.map(conviteDeRow) as any, 200);
 });
 
 // POST /api/convites
-app.post("/", comAuth, async (c) => {
+const postConviteRoute = createRoute({
+  method: "post",
+  path: "/",
+  tags: ["Convites"],
+  summary: "Cria convite",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { body: { content: { "application/json": { schema: z.any() } } } },
+  responses: {
+    201: { content: { "application/json": { schema: z.any() } }, description: "Criado" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    409: { content: { "application/json": { schema: z.any() } }, description: "Conflito" }
+  }
+});
+
+app.openapi(postConviteRoute, async (c) => {
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -57,7 +85,7 @@ app.post("/", comAuth, async (c) => {
       ) RETURNING *
     `;
     await registrarEvento(sessao, "convite.gerou", `convites/${token}`, `${email} (${perfil})`);
-    return c.json(conviteDeRow(row), 201);
+    return c.json(conviteDeRow(row) as any, 201);
   } catch (err: unknown) {
     const e = err as { code?: string };
     if (e.code === "23505") return c.json({ erro: "Token de convite duplicado. Tente novamente." }, 409);
@@ -66,8 +94,26 @@ app.post("/", comAuth, async (c) => {
 });
 
 // PUT /api/convites/:id
-app.put("/:id", comAuth, async (c) => {
-  const id = c.req.param("id");
+const putConviteRoute = createRoute({
+  method: "put",
+  path: "/{id}",
+  tags: ["Convites"],
+  summary: "Atualiza convite",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { "application/json": { schema: z.any() } } }
+  },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Atualizado" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrado" }
+  }
+});
+
+app.openapi(putConviteRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -82,12 +128,27 @@ app.put("/:id", comAuth, async (c) => {
   `;
   if (!row) return c.json({ erro: "Convite não encontrado." }, 404);
   await registrarEvento(sessao, "convite.atualizou", `convites/${id}`, String(body.perfil ?? ""));
-  return c.json(conviteDeRow(row));
+  return c.json(conviteDeRow(row) as any, 200);
 });
 
 // PUT /api/convites/:id/revogar
-app.put("/:id/revogar", comAuth, async (c) => {
-  const id = c.req.param("id");
+const putConviteRevogarRoute = createRoute({
+  method: "put",
+  path: "/{id}/revogar",
+  tags: ["Convites"],
+  summary: "Revoga convite",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Revogado" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrado" }
+  }
+});
+
+app.openapi(putConviteRevogarRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -95,12 +156,27 @@ app.put("/:id/revogar", comAuth, async (c) => {
   const [row] = await sql`UPDATE convites SET status = 'revogado' WHERE id = ${id} RETURNING email`;
   if (!row) return c.json({ erro: "Convite não encontrado." }, 404);
   await registrarEvento(sessao, "convite.revogou", `convites/${id}`, String(row.email));
-  return c.json({ ok: true });
+  return c.json({ ok: true }, 200);
 });
 
 // DELETE /api/convites/:id
-app.delete("/:id", comAuth, async (c) => {
-  const id = c.req.param("id");
+const deleteConviteRoute = createRoute({
+  method: "delete",
+  path: "/{id}",
+  tags: ["Convites"],
+  summary: "Deleta convite",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Deletado" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrado" }
+  }
+});
+
+app.openapi(deleteConviteRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -108,7 +184,7 @@ app.delete("/:id", comAuth, async (c) => {
   const [row] = await sql`DELETE FROM convites WHERE id = ${id} RETURNING email`;
   if (!row) return c.json({ erro: "Convite não encontrado." }, 404);
   await registrarEvento(sessao, "convite.removeu", `convites/${id}`, String(row.email));
-  return c.json({ ok: true });
+  return c.json({ ok: true }, 200);
 });
 
 export default app;

@@ -49,6 +49,10 @@ interface GrupoEquipe {
   pessoas: Pessoa[];
 }
 
+const SECAO_SEM_FORMACAO = "sem-formacao";
+const SECAO_AGUARDANDO_VALIDACAO = "aguardando-validacao";
+const SECAO_CONFIRMADOS = "confirmados";
+
 function agruparPorEquipe(
   pessoas: Pessoa[],
   indiceParticipacao: Map<string, Participacao>,
@@ -77,6 +81,13 @@ function agruparPorEquipe(
 
 function rotuloSetor(s: Setor): string {
   return s === "Alimentacao" ? "Alimentação" : s;
+}
+
+function rolarParaSecao(id: string) {
+  document.getElementById(id)?.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
 }
 
 // --- componente principal ---
@@ -267,6 +278,30 @@ export function PaginaFormacao() {
     alocados.length > 0
       ? Math.round((totalPresencas / alocados.length) * 100)
       : 0;
+
+  const atalhosPendencias = [
+    {
+      id: SECAO_SEM_FORMACAO,
+      titulo: "SEM FORMAÇÃO",
+      descricao: "Pessoas alocadas que ainda não registraram presença.",
+      quantidade: semFormacao.length,
+      classeBadge: "badge-cinza",
+    },
+    {
+      id: SECAO_AGUARDANDO_VALIDACAO,
+      titulo: "Aguardando validação de dados",
+      descricao: "Presenças manuais que ainda dependem de confirmação.",
+      quantidade: pendentesValidacao.length,
+      classeBadge: "badge-ouro",
+    },
+    {
+      id: SECAO_CONFIRMADOS,
+      titulo: "Confirmados",
+      descricao: "Pessoas com presença e dados já validados.",
+      quantidade: confirmados.length,
+      classeBadge: "badge-verde",
+    },
+  ];
 
   if (!sessao) return null;
   if (!podeAcessar) {
@@ -515,8 +550,8 @@ export function PaginaFormacao() {
                         {equipe
                           ? ` · ${equipe.nome}`
                           : t.setorVinculo
-                          ? ` · setor ${rotuloSetor(t.setorVinculo)}`
-                          : ""}
+                            ? ` · setor ${rotuloSetor(t.setorVinculo)}`
+                            : ""}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -555,6 +590,31 @@ export function PaginaFormacao() {
             Use os filtros para localizar e acompanhar as pendências por setor
             ou função.
           </p>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {atalhosPendencias.map((atalho) => (
+              <button
+                key={atalho.id}
+                type="button"
+                onClick={() => rolarParaSecao(atalho.id)}
+                className="card text-left transition hover:-translate-y-0.5 hover:shadow-media"
+              >
+                <div className="card-corpo flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="eyebrow mb-2">Atalho</div>
+                    <div className="font-display text-xl text-carbone leading-tight">
+                      {atalho.titulo}
+                    </div>
+                    <p className="mt-2 text-sm text-ardesia">
+                      {atalho.descricao}
+                    </p>
+                  </div>
+                  <span className={`badge ${atalho.classeBadge} shrink-0`}>
+                    {atalho.quantidade}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="card">
@@ -597,7 +657,7 @@ export function PaginaFormacao() {
         </div>
 
         {/* Lista A — Sem formação */}
-        <div>
+        <div id={SECAO_SEM_FORMACAO} className="scroll-mt-6">
           <div className="flex items-center gap-3 mb-3">
             <h4 className="m-0">Sem formação</h4>
             <span className="badge badge-cinza">{semFormacao.length}</span>
@@ -643,7 +703,7 @@ export function PaginaFormacao() {
         </div>
 
         {/* Lista B — Aguardando validação de dados */}
-        <div>
+        <div id={SECAO_AGUARDANDO_VALIDACAO} className="scroll-mt-6">
           <div className="flex flex-wrap items-center gap-3 mb-3">
             <h4 className="m-0">Aguardando validação de dados</h4>
             <span className="badge badge-ouro">
@@ -749,7 +809,7 @@ export function PaginaFormacao() {
         </div>
 
         {/* Confirmados */}
-        <div>
+        <div id={SECAO_CONFIRMADOS} className="scroll-mt-6">
           <div className="flex items-center gap-3 mb-3">
             <h4 className="m-0">Confirmados</h4>
             <span className="badge badge-verde">{confirmados.length}</span>

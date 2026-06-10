@@ -1,10 +1,10 @@
-import { Hono } from "hono";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { comAuth } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
-const app = new Hono<Variaveis>();
+const app = new OpenAPIHono<Variaveis>();
 
 function participacaoDeRow(r: Record<string, unknown>) {
   const criadoEm = r.criado_em instanceof Date ? r.criado_em.toISOString() : String(r.criado_em ?? "");
@@ -20,24 +20,50 @@ function participacaoDeRow(r: Record<string, unknown>) {
   };
 }
 
-// GET /api/participacoes?edicaoId=:id ou ?pessoaId=:id
-app.get("/", comAuth, async (c) => {
-  const edicaoId = c.req.query("edicaoId");
-  const pessoaId = c.req.query("pessoaId");
+const getParticipacoesRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["Participações"],
+  summary: "Lista participações",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { query: z.object({ edicaoId: z.string().optional(), pessoaId: z.string().optional() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de participações" }
+  }
+});
+
+app.openapi(getParticipacoesRoute, async (c) => {
+  const query = c.req.valid("query");
+  const edicaoId = query.edicaoId;
+  const pessoaId = query.pessoaId;
   if (edicaoId) {
     const rows = await sql`SELECT * FROM participacoes WHERE edicao_id = ${edicaoId}`;
-    return c.json(rows.map(participacaoDeRow));
+    return c.json(rows.map(participacaoDeRow) as any, 200);
   }
   if (pessoaId) {
     const rows = await sql`SELECT * FROM participacoes WHERE pessoa_id = ${pessoaId}`;
-    return c.json(rows.map(participacaoDeRow));
+    return c.json(rows.map(participacaoDeRow) as any, 200);
   }
   const rows = await sql`SELECT * FROM participacoes`;
-  return c.json(rows.map(participacaoDeRow));
+  return c.json(rows.map(participacaoDeRow) as any, 200);
 });
 
-// POST /api/participacoes — alocar pessoa em equipe
-app.post("/", comAuth, async (c) => {
+const postParticipacaoRoute = createRoute({
+  method: "post",
+  path: "/",
+  tags: ["Participações"],
+  summary: "Alocar pessoa em equipe",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { body: { content: { "application/json": { schema: z.any() } } } },
+  responses: {
+    201: { content: { "application/json": { schema: z.any() } }, description: "Criada" },
+    409: { content: { "application/json": { schema: z.any() } }, description: "Conflito" }
+  }
+});
+
+app.openapi(postParticipacaoRoute, async (c) => {
   const sessao = c.get("sessao");
   const body = await c.req.json() as {
     edicaoId: string;
@@ -58,10 +84,9 @@ app.post("/", comAuth, async (c) => {
       sessao, "participacao.alocou", `participacoes/${row.id}`,
       `${body.pessoaNome} → ${body.equipeNome} (${body.funcao})`
     );
-    return c.json(participacaoDeRow(row), 201);
+    return c.json(participacaoDeRow(row) as any, 201);
   } catch (err: unknown) {
     const e = err as { code?: string };
-    // UNIQUE(edicao_id, pessoa_id) violation
     if (e.code === "23505") {
       return c.json({ erro: "Esta pessoa já está alocada em outra equipe nesta edição." }, 409);
     }
@@ -69,9 +94,25 @@ app.post("/", comAuth, async (c) => {
   }
 });
 
-// PUT /api/participacoes/:id — mover equipe ou trocar função
-app.put("/:id", comAuth, async (c) => {
-  const id = c.req.param("id");
+const putParticipacaoRoute = createRoute({
+  method: "put",
+  path: "/{id}",
+  tags: ["Participações"],
+  summary: "Mover equipe ou trocar função",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { "application/json": { schema: z.any() } } }
+  },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Atualizada" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
+  }
+});
+
+app.openapi(putParticipacaoRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
   const body = await c.req.json() as {
     equipeId: string;
@@ -93,12 +134,25 @@ app.put("/:id", comAuth, async (c) => {
     ? `${body.pessoaNome}: ${body.equipeOrigemNome ?? "?"} → ${body.equipeDestinoNome ?? "?"} (${body.funcao})`
     : `funcao: ${body.funcao}`;
   await registrarEvento(sessao, "participacao.moveu", `participacoes/${id}`, detalhe);
-  return c.json(participacaoDeRow(row));
+  return c.json(participacaoDeRow(row) as any, 200);
 });
 
-// DELETE /api/participacoes/:id — desalocar
-app.delete("/:id", comAuth, async (c) => {
-  const id = c.req.param("id");
+const deleteParticipacaoRoute = createRoute({
+  method: "delete",
+  path: "/{id}",
+  tags: ["Participações"],
+  summary: "Desalocar pessoa",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Sucesso" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
+  }
+});
+
+app.openapi(deleteParticipacaoRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
   const body = await c.req.json().catch(() => ({})) as {
     pessoaNome?: string;
@@ -110,7 +164,7 @@ app.delete("/:id", comAuth, async (c) => {
     sessao, "participacao.desalocou", `participacoes/${id}`,
     body.pessoaNome ? `${body.pessoaNome} de ${body.equipeNome ?? ""}` : id
   );
-  return c.json({ ok: true });
+  return c.json({ ok: true }, 200);
 });
 
 export default app;

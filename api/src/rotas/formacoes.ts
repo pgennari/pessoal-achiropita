@@ -1,10 +1,10 @@
-import { Hono } from "hono";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { comAuth, podeAdministrar } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
-const app = new Hono<Variaveis>();
+const app = new OpenAPIHono<Variaveis>();
 
 function formacaoDeRow(r: Record<string, unknown>) {
   const presencaEm = r.presenca_em instanceof Date ? r.presenca_em.toISOString() : String(r.presenca_em ?? "");
@@ -30,19 +30,44 @@ function idFormacao(edicaoId: string, pessoaId: string): string {
   return `${edicaoId}__${pessoaId}`;
 }
 
-// GET /api/formacoes?edicaoId=:id
-app.get("/", comAuth, async (c) => {
-  const edicaoId = c.req.query("edicaoId");
-  if (edicaoId) {
-    const rows = await sql`SELECT * FROM formacoes WHERE edicao_id = ${edicaoId}`;
-    return c.json(rows.map(formacaoDeRow));
+const getFormacoesRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["Formações"],
+  summary: "Lista formações",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { query: z.object({ edicaoId: z.string().optional() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de formações" }
   }
-  const rows = await sql`SELECT * FROM formacoes`;
-  return c.json(rows.map(formacaoDeRow));
 });
 
-// POST /api/formacoes — marcar presença manual
-app.post("/", comAuth, async (c) => {
+app.openapi(getFormacoesRoute, async (c) => {
+  const { edicaoId } = c.req.valid("query");
+  if (edicaoId) {
+    const rows = await sql`SELECT * FROM formacoes WHERE edicao_id = ${edicaoId}`;
+    return c.json(rows.map(formacaoDeRow) as any, 200);
+  }
+  const rows = await sql`SELECT * FROM formacoes`;
+  return c.json(rows.map(formacaoDeRow) as any, 200);
+});
+
+const postFormacaoRoute = createRoute({
+  method: "post",
+  path: "/",
+  tags: ["Formações"],
+  summary: "Marcar presença manual",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { body: { content: { "application/json": { schema: z.any() } } } },
+  responses: {
+    201: { content: { "application/json": { schema: z.any() } }, description: "Criada" },
+    409: { content: { "application/json": { schema: z.any() } }, description: "Conflito" }
+  }
+});
+
+app.openapi(postFormacaoRoute, async (c) => {
   const sessao = c.get("sessao");
   const body = await c.req.json() as {
     edicaoId: string;
@@ -69,7 +94,7 @@ app.post("/", comAuth, async (c) => {
       sessao, "formacao.manual", `formacoes/${id}`,
       `${body.pessoaNome} (#${body.cracha}) — ${body.justificativa.trim()}`
     );
-    return c.json(formacaoDeRow(row), 201);
+    return c.json(formacaoDeRow(row) as any, 201);
   } catch (err: unknown) {
     const e = err as { code?: string };
     if (e.code === "23505") return c.json({ erro: "Esta pessoa já tem formação registrada." }, 409);
@@ -77,9 +102,25 @@ app.post("/", comAuth, async (c) => {
   }
 });
 
-// PUT /api/formacoes/:id/confirmar — confirma os dados validados
-app.put("/:id/confirmar", comAuth, async (c) => {
-  const id = c.req.param("id");
+const putFormacaoConfirmarRoute = createRoute({
+  method: "put",
+  path: "/{id}/confirmar",
+  tags: ["Formações"],
+  summary: "Confirma dados validados",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { "application/json": { schema: z.any() } } }
+  },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Atualizada" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
+  }
+});
+
+app.openapi(putFormacaoConfirmarRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
   const body = await c.req.json() as { pessoaNome: string; cracha: number };
   const [row] = await sql`
@@ -91,12 +132,26 @@ app.put("/:id/confirmar", comAuth, async (c) => {
     sessao, "formacao.confirmouDados", `formacoes/${id}`,
     `${body.pessoaNome} (#${body.cracha})`
   );
-  return c.json(formacaoDeRow(row));
+  return c.json(formacaoDeRow(row) as any, 200);
 });
 
-// DELETE /api/formacoes/:id — remover formação (ADM/ORG only)
-app.delete("/:id", comAuth, async (c) => {
-  const id = c.req.param("id");
+const deleteFormacaoRoute = createRoute({
+  method: "delete",
+  path: "/{id}",
+  tags: ["Formações"],
+  summary: "Remove formação",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Sucesso" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
+  }
+});
+
+app.openapi(deleteFormacaoRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -108,7 +163,7 @@ app.delete("/:id", comAuth, async (c) => {
     sessao, "formacao.removeu", `formacoes/${id}`,
     body.pessoaNome ? `${body.pessoaNome} (#${body.cracha})` : id
   );
-  return c.json({ ok: true });
+  return c.json({ ok: true }, 200);
 });
 
 export default app;

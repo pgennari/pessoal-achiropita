@@ -1,10 +1,10 @@
-import { Hono } from "hono";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { comAuth, podeAdministrar } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
-const app = new Hono<Variaveis>();
+const app = new OpenAPIHono<Variaveis>();
 
 function turmaDeRow(r: Record<string, unknown>) {
   const data = r.data instanceof Date ? r.data.toISOString().slice(0, 10) : String(r.data ?? "");
@@ -25,30 +25,69 @@ function turmaDeRow(r: Record<string, unknown>) {
   };
 }
 
-// GET /api/turmas?edicaoId=:id
-app.get("/", comAuth, async (c) => {
-  const edicaoId = c.req.query("edicaoId");
+const getTurmasRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["Turmas"],
+  summary: "Lista turmas",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { query: z.object({ edicaoId: z.string().optional() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de turmas" }
+  }
+});
+
+app.openapi(getTurmasRoute, async (c) => {
+  const query = c.req.valid("query");
+  const edicaoId = query.edicaoId;
   if (edicaoId) {
     const rows = await sql`
       SELECT * FROM turmas_formacao WHERE edicao_id = ${edicaoId}
       ORDER BY data, horario_inicio
     `;
-    return c.json(rows.map(turmaDeRow));
+    return c.json(rows.map(turmaDeRow) as any, 200);
   }
   const rows = await sql`SELECT * FROM turmas_formacao ORDER BY data, horario_inicio`;
-  return c.json(rows.map(turmaDeRow));
+  return c.json(rows.map(turmaDeRow) as any, 200);
 });
 
-// GET /api/turmas/:id
-app.get("/:id", comAuth, async (c) => {
-  const id = c.req.param("id");
+const getTurmaRoute = createRoute({
+  method: "get",
+  path: "/{id}",
+  tags: ["Turmas"],
+  summary: "Busca turma por id",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Turma" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
+  }
+});
+
+app.openapi(getTurmaRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const [row] = await sql`SELECT * FROM turmas_formacao WHERE id = ${id}`;
   if (!row) return c.json({ erro: "Turma não encontrada." }, 404);
-  return c.json(turmaDeRow(row));
+  return c.json(turmaDeRow(row) as any, 200);
 });
 
-// POST /api/turmas
-app.post("/", comAuth, async (c) => {
+const postTurmaRoute = createRoute({
+  method: "post",
+  path: "/",
+  tags: ["Turmas"],
+  summary: "Cria turma",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { body: { content: { "application/json": { schema: z.any() } } } },
+  responses: {
+    201: { content: { "application/json": { schema: z.any() } }, description: "Criada" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
+  }
+});
+
+app.openapi(postTurmaRoute, async (c) => {
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -68,12 +107,29 @@ app.post("/", comAuth, async (c) => {
   await registrarEvento(
     sessao, "turma.criou", `turmasFormacao/${row.id}`, `${data} ${horarioInicio}`
   );
-  return c.json(turmaDeRow(row), 201);
+  return c.json(turmaDeRow(row) as any, 201);
 });
 
-// PUT /api/turmas/:id
-app.put("/:id", comAuth, async (c) => {
-  const id = c.req.param("id");
+const putTurmaRoute = createRoute({
+  method: "put",
+  path: "/{id}",
+  tags: ["Turmas"],
+  summary: "Atualiza turma",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { "application/json": { schema: z.any() } } }
+  },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Atualizada" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
+  }
+});
+
+app.openapi(putTurmaRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -96,12 +152,26 @@ app.put("/:id", comAuth, async (c) => {
   await registrarEvento(
     sessao, "turma.atualizou", `turmasFormacao/${id}`, `${data} ${horarioInicio}`
   );
-  return c.json(turmaDeRow(row));
+  return c.json(turmaDeRow(row) as any, 200);
 });
 
-// DELETE /api/turmas/:id — cascade revoga links e remove turma
-app.delete("/:id", comAuth, async (c) => {
-  const id = c.req.param("id");
+const deleteTurmaRoute = createRoute({
+  method: "delete",
+  path: "/{id}",
+  tags: ["Turmas"],
+  summary: "Deleta turma",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Sucesso" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
+  }
+});
+
+app.openapi(deleteTurmaRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -115,7 +185,7 @@ app.delete("/:id", comAuth, async (c) => {
   await registrarEvento(
     sessao, "turma.removeu", `turmasFormacao/${id}`, `${row.data} ${row.horario_inicio}`
   );
-  return c.json({ ok: true });
+  return c.json({ ok: true }, 200);
 });
 
 export default app;

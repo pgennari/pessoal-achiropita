@@ -1,19 +1,27 @@
-import { Hono } from "hono";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { comAuth } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
-const app = new Hono<Variaveis>();
+const app = new OpenAPIHono<Variaveis>();
 
-// POST /api/admin/zerar — zera todas as tabelas de dados (apenas ADM)
-// Mantém apenas a tabela de usuários e a auditoria (para não perder o log).
-app.post("/zerar", comAuth, async (c) => {
-  const sessao = c.get("sessao");
-  if (sessao.perfil !== "ADM") {
-    return c.json({ erro: "Acesso negado. Requer perfil ADM." }, 403);
+const postZerarRoute = createRoute({
+  method: "post",
+  path: "/zerar",
+  tags: ["Admin"],
+  summary: "Zera todas as tabelas de dados",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Sucesso" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
   }
+});
 
+app.openapi(postZerarRoute, async (c) => {
+  const sessao = c.get("sessao");
+  if (sessao.perfil !== "ADM") return c.json({ erro: "Acesso negado. Requer perfil ADM." }, 403);
   await sql.begin(async (t) => {
     await t`TRUNCATE TABLE entregas_cracha CASCADE`;
     await t`TRUNCATE TABLE formacoes CASCADE`;
@@ -27,9 +35,8 @@ app.post("/zerar", comAuth, async (c) => {
     await t`TRUNCATE TABLE convites CASCADE`;
     await t`TRUNCATE TABLE participacoes_historicas CASCADE`;
   });
-
   await registrarEvento(sessao, "admin.zerou", "sistema", "Zeragem completa de dados");
-  return c.json({ ok: true });
+  return c.json({ ok: true }, 200);
 });
 
 export default app;

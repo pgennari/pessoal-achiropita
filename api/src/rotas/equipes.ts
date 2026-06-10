@@ -1,10 +1,10 @@
-import { Hono } from "hono";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { comAuth, podeAdministrar } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
-const app = new Hono<Variaveis>();
+const app = new OpenAPIHono<Variaveis>();
 
 function equipeDeRow(r: Record<string, unknown>) {
   const criadoEm = r.criado_em instanceof Date ? r.criado_em.toISOString() : String(r.criado_em ?? "");
@@ -22,41 +22,71 @@ function equipeDeRow(r: Record<string, unknown>) {
   };
 }
 
-// GET /api/equipes?edicaoId=:id
-app.get("/", comAuth, async (c) => {
+const getEquipesRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["Equipes"],
+  summary: "Lista equipes",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { query: z.object({ edicaoId: z.string().optional() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de equipes" }
+  }
+});
+app.openapi(getEquipesRoute, async (c) => {
   const sessao = c.get("sessao");
-  const edicaoId = c.req.query("edicaoId");
-  
-  // Se edicaoId eh fornecido, todos os perfis podem listar as equipes dessa edicao.
-  // Isso permite que coordenadores (CRD) vejam equipes de edicoes inativas.
-  // A seguranca eh mantida no PUT/DELETE que verificam se o CRD coordena a equipe.
+  const query = c.req.valid("query");
+  const edicaoId = query.edicaoId;
+
   if (edicaoId) {
     const rows = await sql`SELECT * FROM equipes WHERE edicao_id = ${edicaoId} ORDER BY nome`;
-    return c.json(rows.map(equipeDeRow));
+    return c.json(rows.map(equipeDeRow) as any, 200);
   }
-  
-  // Sem edicaoId, aplicar restricao por perfil:
-  // CRD ve apenas suas equipes atribuidas
+
   if (sessao.perfil === "CRD" && sessao.equipesCRD?.length) {
     const rows = await sql`SELECT * FROM equipes WHERE id = ANY(${sessao.equipesCRD}) ORDER BY nome`;
-    return c.json(rows.map(equipeDeRow));
+    return c.json(rows.map(equipeDeRow) as any, 200);
   }
-  
-  // ADM e ORG veem todas as equipes
+
   const rows = await sql`SELECT * FROM equipes ORDER BY nome`;
-  return c.json(rows.map(equipeDeRow));
+  return c.json(rows.map(equipeDeRow) as any, 200);
 });
 
-// GET /api/equipes/:id
-app.get("/:id", comAuth, async (c) => {
-  const id = c.req.param("id");
+const getEquipeIdRoute = createRoute({
+  method: "get",
+  path: "/{id}",
+  tags: ["Equipes"],
+  summary: "Busca equipe por ID",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Equipe" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
+  }
+});
+app.openapi(getEquipeIdRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const [row] = await sql`SELECT * FROM equipes WHERE id = ${id}`;
   if (!row) return c.json({ erro: "Equipe não encontrada." }, 404);
-  return c.json(equipeDeRow(row));
+  return c.json(equipeDeRow(row) as any, 200);
 });
 
-// POST /api/equipes
-app.post("/", comAuth, async (c) => {
+const postEquipeRoute = createRoute({
+  method: "post",
+  path: "/",
+  tags: ["Equipes"],
+  summary: "Criar equipe",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { body: { content: { "application/json": { schema: z.any() } } } },
+  responses: {
+    201: { content: { "application/json": { schema: z.any() } }, description: "Criada" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
+  }
+});
+app.openapi(postEquipeRoute, async (c) => {
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -71,12 +101,25 @@ app.post("/", comAuth, async (c) => {
     ) RETURNING *
   `;
   await registrarEvento(sessao, "equipe.criou", `equipes/${row.id}`, String(nome ?? ""));
-  return c.json(equipeDeRow(row), 201);
+  return c.json(equipeDeRow(row) as any, 201);
 });
 
-// PUT /api/equipes/:id
-app.put("/:id", comAuth, async (c) => {
-  const id = c.req.param("id");
+const putEquipeRoute = createRoute({
+  method: "put",
+  path: "/{id}",
+  tags: ["Equipes"],
+  summary: "Atualizar equipe",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string().uuid() }), body: { content: { "application/json": { schema: z.any() } } } },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Atualizada" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
+  }
+});
+app.openapi(putEquipeRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -95,12 +138,25 @@ app.put("/:id", comAuth, async (c) => {
   `;
   if (!row) return c.json({ erro: "Equipe não encontrada." }, 404);
   await registrarEvento(sessao, "equipe.atualizou", `equipes/${id}`, String(nome ?? ""));
-  return c.json(equipeDeRow(row));
+  return c.json(equipeDeRow(row) as any, 200);
 });
 
-// DELETE /api/equipes/:id — cascade remove participações via FK
-app.delete("/:id", comAuth, async (c) => {
-  const id = c.req.param("id");
+const deleteEquipeRoute = createRoute({
+  method: "delete",
+  path: "/{id}",
+  tags: ["Equipes"],
+  summary: "Deletar equipe",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Sucesso" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
+  }
+});
+app.openapi(deleteEquipeRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -108,11 +164,23 @@ app.delete("/:id", comAuth, async (c) => {
   const [row] = await sql`DELETE FROM equipes WHERE id = ${id} RETURNING nome`;
   if (!row) return c.json({ erro: "Equipe não encontrada." }, 404);
   await registrarEvento(sessao, "equipe.removeu", `equipes/${id}`, String(row.nome));
-  return c.json({ ok: true });
+  return c.json({ ok: true }, 200);
 });
 
-// POST /api/equipes/copiar
-app.post("/copiar", comAuth, async (c) => {
+const postEquipeCopiarRoute = createRoute({
+  method: "post",
+  path: "/copiar",
+  tags: ["Equipes"],
+  summary: "Copiar equipes de outra edição",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { body: { content: { "application/json": { schema: z.any() } } } },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Sucesso" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
+  }
+});
+app.openapi(postEquipeCopiarRoute, async (c) => {
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -136,7 +204,7 @@ app.post("/copiar", comAuth, async (c) => {
       `${copiadas} equipe(s) copiada(s) de ${edicaoOrigemId}`
     );
   }
-  return c.json({ copiadas });
+  return c.json({ copiadas }, 200);
 });
 
 export default app;

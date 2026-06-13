@@ -33,4 +33,3 @@ if (Test-Path deploy-api.tar.gz) {
 
 Write-Host "--- Deploy concluído com sucesso!" -ForegroundColor Green
 Write-Host "Acesse: http://192.168.10.2:8081/health" -ForegroundColor Yellow
-Write-Host "Dica: Se houver erro de TLS/SSL no banco, adicione 'DATABASE_SSL=false' no arquivo ~/api-achiropita.env da máquina remota." -ForegroundColor Gray

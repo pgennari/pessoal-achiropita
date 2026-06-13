@@ -18,6 +18,67 @@ interface LocationState {
   from?: { pathname: string };
 }
 
+type StatusBackend = "verificando" | "ativo" | "inativo";
+
+const API_URL = ((import.meta.env.VITE_API_URL as string | undefined) ?? "")
+  .trim()
+  .replace(/\/$/, "");
+
+function SinalizadorBackend() {
+  const [statusBackend, setStatusBackend] =
+    useState<StatusBackend>("verificando");
+
+  useEffect(() => {
+    if (!API_URL) {
+      setStatusBackend("inativo");
+      return;
+    }
+
+    const controle = new AbortController();
+    let montado = true;
+    const timeout = window.setTimeout(() => controle.abort(), 5000);
+
+    async function verificarBackend() {
+      try {
+        const resposta = await fetch(`${API_URL}/health`, {
+          cache: "no-store",
+          signal: controle.signal,
+        });
+        if (montado) setStatusBackend(resposta.ok ? "ativo" : "inativo");
+      } catch {
+        if (montado) setStatusBackend("inativo");
+      } finally {
+        window.clearTimeout(timeout);
+      }
+    }
+
+    verificarBackend();
+
+    return () => {
+      montado = false;
+      window.clearTimeout(timeout);
+      controle.abort();
+    };
+  }, []);
+
+  const classe =
+    statusBackend === "ativo"
+      ? "badge-verde"
+      : statusBackend === "inativo"
+        ? "badge-vermelho"
+        : "badge-ouro";
+  const texto =
+    statusBackend === "verificando"
+      ? "Backend verificando"
+      : `Backend ${statusBackend}`;
+
+  return (
+    <footer className="py-5 text-center" aria-live="polite">
+      <span className={`badge ${classe}`}>{texto}</span>
+    </footer>
+  );
+}
+
 export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -150,32 +211,35 @@ export function Login() {
 
   if (semAcesso) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-10">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="eyebrow">Festa 100ª · Bixiga</div>
-            <h1 className="mt-3 font-display">
-              <span className="text-verde">Achiropita</span>{" "}
-              <em className="text-vermelho not-italic font-light">100</em>
-            </h1>
-          </div>
-          <div className="card">
-            <div className="card-corpo space-y-4 text-center">
-              <h3 className="mb-1">Sua conta ainda não tem acesso</h3>
-              <p className="text-ardesia">
-                O cadastro de usuários é feito por convite. Procure a
-                Administração ou Organização para receber o link de acesso.
-              </p>
-              <button
-                type="button"
-                className="btn btn-secundario w-full"
-                onClick={() => sair()}
-              >
-                Sair
-              </button>
+      <div className="min-h-screen flex flex-col px-4">
+        <div className="flex flex-1 items-center justify-center py-10">
+          <div className="w-full max-w-md">
+            <div className="text-center mb-8">
+              <div className="eyebrow">Festa 100ª · Bixiga</div>
+              <h1 className="mt-3 font-display">
+                <span className="text-verde">Achiropita</span>{" "}
+                <em className="text-vermelho not-italic font-light">100</em>
+              </h1>
+            </div>
+            <div className="card">
+              <div className="card-corpo space-y-4 text-center">
+                <h3 className="mb-1">Sua conta ainda não tem acesso</h3>
+                <p className="text-ardesia">
+                  O cadastro de usuários é feito por convite. Procure a
+                  Administração ou Organização para receber o link de acesso.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-secundario w-full"
+                  onClick={() => sair()}
+                >
+                  Sair
+                </button>
+              </div>
             </div>
           </div>
         </div>
+        <SinalizadorBackend />
       </div>
     );
   }
@@ -184,128 +248,131 @@ export function Login() {
   const desabilitarSubmit = enviando || bloqueado;
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="eyebrow">Festa de Nossa Senhora</div>
-          <h1 className="mt-3 font-display flex items-center justify-center gap-3">
-            <span className="text-verde">Achiropita</span>
-            <img
-              src="/logo-achiropita.png"
-              alt="Logo Achiropita"
-              className="h-[1.4em] w-auto"
-            />
-          </h1>
-          <p className="mt-3 text-ardesia">Sistema de gestão da equipe.</p>
-        </div>
+    <div className="min-h-screen flex flex-col px-4">
+      <div className="flex flex-1 items-center justify-center py-10">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="eyebrow">Festa de Nossa Senhora</div>
+            <h1 className="mt-3 font-display flex items-center justify-center gap-3">
+              <span className="text-verde">Achiropita</span>
+              <img
+                src="/logo-achiropita.png"
+                alt="Logo Achiropita"
+                className="h-[1.4em] w-auto"
+              />
+            </h1>
+            <p className="mt-3 text-ardesia">Sistema de gestão da equipe.</p>
+          </div>
 
-        <form onSubmit={handleSubmit} className="card">
-          <div className="card-corpo space-y-4">
-            <div className="input-grupo">
-              <label className="input-label" htmlFor="email">
-                E-mail
+          <form onSubmit={handleSubmit} className="card">
+            <div className="card-corpo space-y-4">
+              <div className="input-grupo">
+                <label className="input-label" htmlFor="email">
+                  E-mail
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  className="input"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoFocus
+                  placeholder="seu@email.com"
+                  autoComplete="email"
+                />
+              </div>
+
+              <div className="input-grupo">
+                <label className="input-label" htmlFor="senha">
+                  Senha
+                </label>
+                <input
+                  id="senha"
+                  type="password"
+                  className="input"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  id="manter-conectado"
+                  type="checkbox"
+                  className="checkbox"
+                  checked={manterConectado}
+                  onChange={(e) => setManterConectado(e.target.checked)}
+                />
+                <span className="text-sm text-ardesia">Manter conectado</span>
               </label>
-              <input
-                id="email"
-                type="email"
-                className="input"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoFocus
-                placeholder="seu@email.com"
-                autoComplete="email"
-              />
-            </div>
 
-            <div className="input-grupo">
-              <label className="input-label" htmlFor="senha">
-                Senha
-              </label>
-              <input
-                id="senha"
-                type="password"
-                className="input"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                required
-                autoComplete="current-password"
-              />
-            </div>
+              {bloqueado && (
+                <div
+                  role="alert"
+                  className="text-sm text-vermelho-escuro bg-vermelho/5 border border-vermelho/20 rounded-sm px-3 py-2"
+                >
+                  Muitas tentativas. Tente novamente em{" "}
+                  {formatarTempoBloqueio(segundosBloqueio)}.
+                </div>
+              )}
+              {!bloqueado && erro && (
+                <div
+                  role="alert"
+                  className="text-sm text-vermelho-escuro bg-vermelho/5 border border-vermelho/20 rounded-sm px-3 py-2"
+                >
+                  {erro}
+                </div>
+              )}
+              {info && (
+                <div
+                  role="status"
+                  className="text-sm text-verde-escuro bg-verde/5 border border-verde/20 rounded-sm px-3 py-2"
+                >
+                  {info}
+                </div>
+              )}
 
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                id="manter-conectado"
-                type="checkbox"
-                className="checkbox"
-                checked={manterConectado}
-                onChange={(e) => setManterConectado(e.target.checked)}
-              />
-              <span className="text-sm text-ardesia">Manter conectado</span>
-            </label>
-
-            {bloqueado && (
-              <div
-                role="alert"
-                className="text-sm text-vermelho-escuro bg-vermelho/5 border border-vermelho/20 rounded-sm px-3 py-2"
+              <button
+                type="submit"
+                disabled={desabilitarSubmit}
+                className="btn btn-primario w-full"
               >
-                Muitas tentativas. Tente novamente em{" "}
-                {formatarTempoBloqueio(segundosBloqueio)}.
+                {enviando ? "Entrando…" : "Entrar"}
+              </button>
+
+              <div className="relative my-2 flex items-center">
+                <div className="flex-grow border-t border-pietra" />
+                <span className="mx-3 text-xs text-ardesia uppercase tracking-widest font-mono">
+                  ou
+                </span>
+                <div className="flex-grow border-t border-pietra" />
               </div>
-            )}
-            {!bloqueado && erro && (
-              <div
-                role="alert"
-                className="text-sm text-vermelho-escuro bg-vermelho/5 border border-vermelho/20 rounded-sm px-3 py-2"
-              >
-                {erro}
-              </div>
-            )}
-            {info && (
-              <div
-                role="status"
-                className="text-sm text-verde-escuro bg-verde/5 border border-verde/20 rounded-sm px-3 py-2"
-              >
-                {info}
-              </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={desabilitarSubmit}
-              className="btn btn-primario w-full"
-            >
-              {enviando ? "Entrando…" : "Entrar"}
-            </button>
-
-            <div className="relative my-2 flex items-center">
-              <div className="flex-grow border-t border-pietra" />
-              <span className="mx-3 text-xs text-ardesia uppercase tracking-widest font-mono">
-                ou
-              </span>
-              <div className="flex-grow border-t border-pietra" />
-            </div>
-
-            <button
-              type="button"
-              onClick={handleGoogle}
-              className="btn btn-secundario w-full"
-            >
-              Entrar com Google
-            </button>
-
-            <div className="text-center pt-2">
               <button
                 type="button"
-                onClick={handleEsqueci}
-                className="btn btn-texto btn-pequeno"
+                onClick={handleGoogle}
+                className="btn btn-secundario w-full"
               >
-                Esqueci minha senha
+                Entrar com Google
               </button>
+
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={handleEsqueci}
+                  className="btn btn-texto btn-pequeno"
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
+      <SinalizadorBackend />
     </div>
   );
 }

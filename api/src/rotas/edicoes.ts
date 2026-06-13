@@ -1,10 +1,10 @@
-import { Hono } from "hono";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { comAuth, podeAdministrar } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
-const app = new Hono<Variaveis>();
+const app = new OpenAPIHono<Variaveis>();
 
 function edicaoDeRow(r: Record<string, unknown>) {
   const inicio = r.inicio instanceof Date ? r.inicio.toISOString().slice(0, 10) : String(r.inicio ?? "");
@@ -23,28 +23,73 @@ function edicaoDeRow(r: Record<string, unknown>) {
   };
 }
 
-// GET /api/edicoes
-app.get("/", comAuth, async (c) => {
+const getEdicoesRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["Edições"],
+  summary: "Lista edições",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista" }
+  }
+});
+app.openapi(getEdicoesRoute, async (c) => {
   const rows = await sql`SELECT * FROM edicoes ORDER BY ano DESC`;
-  return c.json(rows.map(edicaoDeRow));
+  return c.json(rows.map(edicaoDeRow) as any, 200);
 });
 
-// GET /api/edicoes/ativa
-app.get("/ativa", comAuth, async (c) => {
+const getEdicaoAtivaRoute = createRoute({
+  method: "get",
+  path: "/ativa",
+  tags: ["Edições"],
+  summary: "Busca edição ativa",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Edição" }
+  }
+});
+app.openapi(getEdicaoAtivaRoute, async (c) => {
   const [row] = await sql`SELECT * FROM edicoes WHERE status = 'ativa' LIMIT 1`;
-  return c.json(row ? edicaoDeRow(row) : null);
+  return c.json((row ? edicaoDeRow(row) : null) as any, 200);
 });
 
-// GET /api/edicoes/:id
-app.get("/:id", comAuth, async (c) => {
-  const id = c.req.param("id");
+const getEdicaoIdRoute = createRoute({
+  method: "get",
+  path: "/{id}",
+  tags: ["Edições"],
+  summary: "Busca edição por ID",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Edição" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
+  }
+});
+app.openapi(getEdicaoIdRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const [row] = await sql`SELECT * FROM edicoes WHERE id = ${id}`;
   if (!row) return c.json({ erro: "Edição não encontrada." }, 404);
-  return c.json(edicaoDeRow(row));
+  return c.json(edicaoDeRow(row) as any, 200);
 });
 
-// POST /api/edicoes
-app.post("/", comAuth, async (c) => {
+const postEdicaoRoute = createRoute({
+  method: "post",
+  path: "/",
+  tags: ["Edições"],
+  summary: "Cria edição",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { body: { content: { "application/json": { schema: z.any() } } } },
+  responses: {
+    201: { content: { "application/json": { schema: z.any() } }, description: "Criada" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    409: { content: { "application/json": { schema: z.any() } }, description: "Conflito" }
+  }
+});
+app.openapi(postEdicaoRoute, async (c) => {
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -55,7 +100,6 @@ app.post("/", comAuth, async (c) => {
   let row: Record<string, unknown>;
   try {
     if (status === "ativa") {
-      // Transação: encerra a ativa atual e cria a nova como ativa.
       const rows = await sql.begin(async (t) => {
         await t`UPDATE edicoes SET status = 'encerrada', atualizado_em = NOW() WHERE status = 'ativa'`;
         return t`
@@ -74,18 +118,31 @@ app.post("/", comAuth, async (c) => {
     }
   } catch (err: unknown) {
     const e = err as { code?: string };
-    // Violação do UNIQUE INDEX idx_edicoes_so_uma_ativa
     if (e.code === "23505") return c.json({ erro: "Já existe uma edição ativa." }, 409);
     throw err;
   }
 
   await registrarEvento(sessao, "edicao.criou", `edicoes/${row.id}`, `${numero}ª (${ano})`);
-  return c.json(edicaoDeRow(row), 201);
+  return c.json(edicaoDeRow(row) as any, 201);
 });
 
-// PUT /api/edicoes/:id
-app.put("/:id", comAuth, async (c) => {
-  const id = c.req.param("id");
+const putEdicaoRoute = createRoute({
+  method: "put",
+  path: "/{id}",
+  tags: ["Edições"],
+  summary: "Atualiza edição",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string().uuid() }), body: { content: { "application/json": { schema: z.any() } } } },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Atualizada" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" },
+    409: { content: { "application/json": { schema: z.any() } }, description: "Conflito" }
+  }
+});
+app.openapi(putEdicaoRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -124,12 +181,25 @@ app.put("/:id", comAuth, async (c) => {
 
   if (!row) return c.json({ erro: "Edição não encontrada." }, 404);
   await registrarEvento(sessao, "edicao.atualizou", `edicoes/${id}`, `${numero}ª`);
-  return c.json(edicaoDeRow(row));
+  return c.json(edicaoDeRow(row) as any, 200);
 });
 
-// POST /api/edicoes/:id/ativar
-app.post("/:id/ativar", comAuth, async (c) => {
-  const id = c.req.param("id");
+const postEdicaoAtivarRoute = createRoute({
+  method: "post",
+  path: "/{id}/ativar",
+  tags: ["Edições"],
+  summary: "Ativa edição",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Sucesso" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
+  }
+});
+app.openapi(postEdicaoAtivarRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -140,12 +210,25 @@ app.post("/:id/ativar", comAuth, async (c) => {
   });
   if (!row) return c.json({ erro: "Edição não encontrada." }, 404);
   await registrarEvento(sessao, "edicao.ativou", `edicoes/${id}`, `${row.numero}ª (${row.ano})`);
-  return c.json({ ok: true });
+  return c.json({ ok: true }, 200);
 });
 
-// POST /api/edicoes/:id/encerrar
-app.post("/:id/encerrar", comAuth, async (c) => {
-  const id = c.req.param("id");
+const postEdicaoEncerrarRoute = createRoute({
+  method: "post",
+  path: "/{id}/encerrar",
+  tags: ["Edições"],
+  summary: "Encerra edição",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Sucesso" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
+  }
+});
+app.openapi(postEdicaoEncerrarRoute, async (c) => {
+  const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
@@ -156,7 +239,7 @@ app.post("/:id/encerrar", comAuth, async (c) => {
   `;
   if (!row) return c.json({ erro: "Edição não encontrada." }, 404);
   await registrarEvento(sessao, "edicao.encerrou", `edicoes/${id}`, `${row.numero}ª (${row.ano})`);
-  return c.json({ ok: true });
+  return c.json({ ok: true }, 200);
 });
 
 export default app;

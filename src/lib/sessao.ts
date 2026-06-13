@@ -9,7 +9,7 @@ import {
   sendPasswordResetEmail,
   setPersistence,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
   signOut,
 } from "firebase/auth";
 import { auth } from "./firebase";
@@ -17,7 +17,7 @@ import { Perfil, Usuario } from "./tipos";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
 
-export interface Sessao extends Usuario {}
+export interface Sessao extends Usuario { }
 
 export interface EstadoSessao {
   sessao: Sessao | null;
@@ -102,7 +102,7 @@ export async function entrar(
 
 export async function entrarComGoogle(): Promise<void> {
   const provider = new GoogleAuthProvider();
-  await signInWithPopup(auth(), provider);
+  await signInWithRedirect(auth(), provider);
 }
 
 function actionCodeSettingsRedefinir(): ActionCodeSettings | undefined {

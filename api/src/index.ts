@@ -1,9 +1,9 @@
+import "dotenv/config";
 import { serve } from "@hono/node-server";
-import { Hono } from "hono";
+import { OpenAPIHono } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { swaggerUI } from "@hono/swagger-ui";
-import { openapiSpec } from "./openapi.js";
 import pessoas from "./rotas/pessoas.js";
 import edicoes from "./rotas/edicoes.js";
 import equipes from "./rotas/equipes.js";
@@ -19,11 +19,18 @@ import publico from "./rotas/publico.js";
 import admin from "./rotas/admin.js";
 import historicoParticipacoes from "./rotas/historicoParticipacoes.js";
 
-const app = new Hono();
+const app = new OpenAPIHono();
 
 // Swagger UI
 app.get("/docs", swaggerUI({ url: "/docs/openapi.json" }));
-app.get("/docs/openapi.json", (c) => c.json(openapiSpec));
+app.doc("/docs/openapi.json", {
+  openapi: "3.0.0",
+  info: {
+    title: "API Achiropita",
+    version: "0.1.0",
+    description: "API para gestão de pessoal e formações da Festa da Achiropita",
+  },
+});
 
 // CORS: aceita uma lista de origens em ALLOWED_ORIGIN (separadas por vírgula).
 // Firebase Hosting expõe o site em <projeto>.web.app e <projeto>.firebaseapp.com,
@@ -32,7 +39,7 @@ const origensPermitidas = (process.env.ALLOWED_ORIGIN ?? "*")
   .split(",")
   .map((o) => o.trim().replace(/\/$/, ""))
   .filter((o) => o.length > 0);
-
+console.log(origensPermitidas);
 app.use(
   cors({
     origin: (origem) => {

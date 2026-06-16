@@ -55,7 +55,6 @@ app.use(
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
-console.log("Origens permitidas:", origensPermitidas);
 
 if (process.env.NODE_ENV !== "production") {
   app.use("*", logger());

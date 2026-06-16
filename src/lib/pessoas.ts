@@ -220,7 +220,10 @@ export async function enviarFoto(
   const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
   const res = await fetch(`${BASE}/api/pessoas/${pessoa.id}/foto`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "ngrok-skip-browser-warning": "true",
+    },
     body: formData,
   });
 

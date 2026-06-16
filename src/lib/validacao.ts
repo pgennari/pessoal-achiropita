@@ -14,7 +14,7 @@ import { apiPublica } from "./api";
 import { Filho, LinkValidacao, Pessoa, StatusLink } from "./tipos";
 import { soDigitos } from "./utilsDominio";
 
-export class ErroValidacaoPublica extends Error {}
+export class ErroValidacaoPublica extends Error { }
 
 export interface InfoLinkPublico {
   status: StatusLink | "expirado";
@@ -130,6 +130,7 @@ export async function salvarValidacao(args: {
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${sessaoJwt}`,
+      "ngrok-skip-browser-warning": "true",
     },
     body: JSON.stringify(corpo),
   });

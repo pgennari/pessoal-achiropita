@@ -44,7 +44,7 @@ export function useSessao(): EstadoSessao {
       try {
         const token = await user.getIdToken();
         const res = await fetch(`${BASE}/api/usuarios/me`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}`, "ngrok-skip-browser-warning": "true" },
         });
 
         if (res.status === 403 || res.status === 404) {

@@ -45,6 +45,7 @@ function SinalizadorBackend() {
         const resposta = await fetch(`${API_URL}/health`, {
           cache: "no-store",
           signal: controle.signal,
+          headers: { "ngrok-skip-browser-warning": "true" },
         });
         if (montado) setStatusBackend(resposta.ok ? "ativo" : "inativo");
       } catch {

@@ -39,26 +39,15 @@ const origensPermitidas = (process.env.ALLOWED_ORIGIN ?? "*")
   .split(",")
   .map((o) => o.trim().replace(/\/$/, ""))
   .filter((o) => o.length > 0);
-console.log(origensPermitidas);
+
 app.use(
+  "*",
   cors({
-    origin: (origem) => {
-      if (origensPermitidas.includes("*")) return origem ?? "*";
-      if (!origem) return null;
-      if (origensPermitidas.includes(origem)) return origem;
-
-      // Se permitir localhost, aceita qualquer porta em localhost (comum em dev/Vite)
-      const isLocalhost = origem.startsWith("http://localhost:") || origem === "http://localhost";
-      if (isLocalhost && (origensPermitidas.includes("localhost") || origensPermitidas.includes("http://localhost"))) {
-        return origem;
-      }
-
-      return null;
-    },
-    maxAge: 86400,
+    origin: origensPermitidas.includes("*") ? "*" : origensPermitidas,
+    allowHeaders: ["Authorization", "Content-Type"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
-console.log("Origens permitidas:", origensPermitidas);
 
 if (process.env.NODE_ENV !== "production") {
   app.use("*", logger());

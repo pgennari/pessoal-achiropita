@@ -31,11 +31,6 @@ function SinalizadorBackend() {
     useState<StatusBackend>("verificando");
 
   useEffect(() => {
-    if (!API_URL) {
-      setStatusBackend("inativo");
-      return;
-    }
-
     const controle = new AbortController();
     let montado = true;
     const timeout = window.setTimeout(() => controle.abort(), 5000);

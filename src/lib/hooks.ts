@@ -8,6 +8,7 @@ import {
   Edicao,
   EntregaCracha,
   Equipe,
+  Estacionamento,
   EventoAuditoria,
   Formacao,
   LinkValidacao,
@@ -241,6 +242,25 @@ export function useConvites(): EstadoLista<Convite> {
     queryFn: () => api.get<Convite[]>("/api/convites"),
   });
   return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
+}
+
+// ─── Estacionamentos ──────────────────────────────────────────────────────────
+
+export function useEstacionamentos(): EstadoLista<Estacionamento> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["estacionamentos"],
+    queryFn: () => api.get<Estacionamento[]>("/api/estacionamentos"),
+  });
+  return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
+}
+
+export function useEstacionamento(id: string | undefined): EstadoItem<Estacionamento> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["estacionamentos", id],
+    queryFn: () => api.get<Estacionamento>(`/api/estacionamentos/${id}`),
+    enabled: !!id,
+  });
+  return { item: data ?? null, carregando: isLoading && !!id, erro: erroMsg(error) };
 }
 
 // ─── Auditoria ────────────────────────────────────────────────────────────────

@@ -7,6 +7,9 @@ import { Pessoas } from "./pages/Pessoas";
 import { PessoaNova } from "./pages/PessoaNova";
 import { PessoaDetalhe } from "./pages/PessoaDetalhe";
 import { Auditoria } from "./pages/Auditoria";
+import { Estacionamentos } from "./pages/Estacionamentos";
+import { EstacionamentoNovo } from "./pages/EstacionamentoNovo";
+import { EstacionamentoDetalhe } from "./pages/EstacionamentoDetalhe";
 import { Edicoes } from "./pages/Edicoes";
 import { EdicaoDetalhe } from "./pages/EdicaoDetalhe";
 import { EquipeDetalhe } from "./pages/EquipeDetalhe";
@@ -53,6 +56,9 @@ export function App() {
         <Route path="pendencias/fotos" element={<PendenciasFoto />} />
         <Route path="formacao" element={<PaginaFormacao />} />
         <Route path="usuarios" element={<Usuarios />} />
+        <Route path="estacionamentos" element={<Estacionamentos />} />
+        <Route path="estacionamentos/novo" element={<EstacionamentoNovo />} />
+        <Route path="estacionamentos/:id" element={<EstacionamentoDetalhe />} />
         <Route path="auditoria" element={<Auditoria />} />
         <Route path="zeramento" element={<ZeramentoDados />} />
       </Route>

@@ -47,6 +47,7 @@ const secoes: Secao[] = [
     label: "Festa",
     perfis: ["ADM", "ORG"],
     itens: [
+      { to: "/estacionamentos", label: "Estacionamentos" },
       {
         to: "/edicoes",
         label: "Edição",

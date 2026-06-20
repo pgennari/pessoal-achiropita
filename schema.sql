@@ -61,6 +61,17 @@ ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS foto_url TEXT;
 CREATE INDEX idx_pessoas_cracha ON pessoas(cracha);
 CREATE INDEX idx_pessoas_ativo  ON pessoas(ativo);
 
+-- estacionamentos
+CREATE TABLE estacionamentos (
+  id                TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  endereco          TEXT NOT NULL,
+  qtde_vagas        INTEGER NOT NULL,
+  dentro_perimetro  BOOLEAN NOT NULL DEFAULT FALSE,
+  horarios          TEXT NOT NULL,
+  criado_em         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- edicoes
 CREATE TABLE edicoes (
   id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

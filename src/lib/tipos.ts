@@ -222,6 +222,16 @@ export interface SessaoValidacao {
   ano?: string;
 }
 
+export interface Estacionamento {
+  id: string;
+  endereco: string;
+  qtdeVagas: number;
+  dentroPerimetro: boolean;
+  horarios: string;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
 export type TipoPresenca = "manual" | "validacao";
 
 export interface Formacao {

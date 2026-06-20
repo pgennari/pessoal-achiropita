@@ -9,7 +9,7 @@ import {
   sendPasswordResetEmail,
   setPersistence,
   signInWithEmailAndPassword,
-  signInWithRedirect,
+  signInWithPopup,
   signOut,
 } from "firebase/auth";
 import { auth } from "./firebase";
@@ -104,7 +104,7 @@ export async function entrar(
 
 export async function entrarComGoogle(): Promise<void> {
   const provider = new GoogleAuthProvider();
-  await signInWithRedirect(auth(), provider);
+  await signInWithPopup(auth(), provider);
 }
 
 function actionCodeSettingsRedefinir(): ActionCodeSettings | undefined {

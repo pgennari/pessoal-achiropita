@@ -129,8 +129,7 @@ export async function salvarValidacao(args: {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${sessaoJwt}`,
-      "ngrok-skip-browser-warning": "true",
+      Authorization: `Bearer ${sessaoJwt}`
     },
     body: JSON.stringify(corpo),
   });

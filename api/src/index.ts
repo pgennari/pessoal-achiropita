@@ -32,25 +32,10 @@ app.doc("/docs/openapi.json", {
   },
 });
 
-const origensPadrao = [
-  "https://achiropita-pessoal.web.app",
-  "https://achiropita-pessoal.firebaseapp.com",
-  "http://localhost:5173",
-  "http://localhost",
-];
-
-// CORS: aceita uma lista de origens em ALLOWED_ORIGIN (separadas por vírgula).
-// O /health também é chamado pelo frontend, então o middleware precisa cobrir
-// todas as rotas, não só /api/*.
-const origensPermitidas = (process.env.ALLOWED_ORIGIN ?? origensPadrao.join(","))
-  .split(",")
-  .map((o) => o.trim().replace(/\/$/, ""))
-  .filter((o) => o.length > 0);
-
 app.use(
   "*",
   cors({
-    origin: origensPermitidas.includes("*") ? "*" : origensPermitidas,
+    origin: "*",
     allowHeaders: ["Authorization", "Content-Type"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })

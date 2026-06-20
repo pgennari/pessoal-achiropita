@@ -221,8 +221,7 @@ export async function enviarFoto(
   const res = await fetch(`${BASE}/api/pessoas/${pessoa.id}/foto`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
-      "ngrok-skip-browser-warning": "true",
+      Authorization: `Bearer ${token}`
     },
     body: formData,
   });

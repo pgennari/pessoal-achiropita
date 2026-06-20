@@ -17,7 +17,7 @@ async function requisicao<T>(
   corpo?: unknown,
   sessaoJwt?: string
 ): Promise<T> {
-  const headers: Record<string, string> = { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" };
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
 
   if (sessaoJwt) {
     headers["Authorization"] = `Bearer ${sessaoJwt}`;
@@ -58,7 +58,7 @@ export async function apiPublica<T>(
 ): Promise<T> {
   const res = await fetch(`${BASE}${caminho}`, {
     method,
-    headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+    headers: { "Content-Type": "application/json" },
     body: corpo !== undefined ? JSON.stringify(corpo) : undefined,
   });
   if (!res.ok) {

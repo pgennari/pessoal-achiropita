@@ -174,7 +174,6 @@ export async function aceitarConvite(args: {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${idToken}`,
-        "ngrok-skip-browser-warning": "true",
       },
       body: JSON.stringify({ email: args.email, nome: args.nome }),
     }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
 import {
@@ -137,6 +137,19 @@ export function PaginaFormacao() {
   const [busca, setBusca] = useState("");
   const [filtroSetor, setFiltroSetor] = useState<Setor | "">("");
   const [filtroFuncao, setFiltroFuncao] = useState<Funcao | "">("");
+  const [mostrarTopo, setMostrarTopo] = useState(false);
+
+  useEffect(() => {
+    function aoRolar() {
+      setMostrarTopo(window.scrollY > 400);
+    }
+    window.addEventListener("scroll", aoRolar, { passive: true });
+    return () => window.removeEventListener("scroll", aoRolar);
+  }, []);
+
+  function voltarAoTopo() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   const turmaEditando =
     turmas.find((t) => t.id === editandoTurmaId) ?? null;
@@ -590,28 +603,16 @@ export function PaginaFormacao() {
             Use os filtros para localizar e acompanhar as pendências por setor
             ou função.
           </p>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="mt-4 flex flex-wrap gap-2">
             {atalhosPendencias.map((atalho) => (
               <button
                 key={atalho.id}
                 type="button"
                 onClick={() => rolarParaSecao(atalho.id)}
-                className="card text-left transition hover:-translate-y-0.5 hover:shadow-media"
+                className={`badge ${atalho.classeBadge} cursor-pointer hover:opacity-75 transition-opacity`}
               >
-                <div className="card-corpo flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="eyebrow mb-2">Atalho</div>
-                    <div className="font-display text-xl text-carbone leading-tight">
-                      {atalho.titulo}
-                    </div>
-                    <p className="mt-2 text-sm text-ardesia">
-                      {atalho.descricao}
-                    </p>
-                  </div>
-                  <span className={`badge ${atalho.classeBadge} shrink-0`}>
-                    {atalho.quantidade}
-                  </span>
-                </div>
+                {atalho.titulo}
+                <span className="font-bold ml-1">{atalho.quantidade}</span>
               </button>
             ))}
           </div>
@@ -1169,6 +1170,17 @@ export function PaginaFormacao() {
             </div>
           </div>
         </div>
+      )}
+
+      {mostrarTopo && (
+        <button
+          type="button"
+          onClick={voltarAoTopo}
+          className="fixed bottom-6 right-6 z-40 btn btn-primario btn-pequeno rounded-full shadow-media"
+          aria-label="Voltar ao topo"
+        >
+          ↑ Topo
+        </button>
       )}
     </div>
   );

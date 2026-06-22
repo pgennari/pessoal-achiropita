@@ -62,7 +62,7 @@ const getEdicaoIdRoute = createRoute({
   summary: "Busca edição por ID",
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
-  request: { params: z.object({ id: z.string().uuid() }) },
+  request: { params: z.object({ id: z.string() }) },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Edição" },
     404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
@@ -70,9 +70,7 @@ const getEdicaoIdRoute = createRoute({
 });
 app.openapi(getEdicaoIdRoute, async (c) => {
   const { id } = c.req.valid("param");
-  const query = `SELECT * FROM edicoes WHERE id = ${id}`;
-  console.log(query);
-  const [row] = await sql`${query}`;
+  const [row] = await sql`SELECT * FROM edicoes WHERE id = ${id}`;
   if (!row) return c.json({ erro: "Edição não encontrada." }, 404);
   return c.json(edicaoDeRow(row) as any, 200);
 });

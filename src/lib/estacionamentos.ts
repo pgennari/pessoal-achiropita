@@ -4,6 +4,7 @@ import { Sessao } from "./sessao";
 import { Estacionamento } from "./tipos";
 
 export interface DadosEstacionamentoForm {
+  nome: string;
   endereco: string;
   qtdeVagas: number;
   dentroPerimetro: boolean;
@@ -20,6 +21,7 @@ export class ErroValidacao extends Error {
 
 function validar(dados: DadosEstacionamentoForm): Record<string, string> {
   const erros: Record<string, string> = {};
+  if (!dados.nome.trim()) erros.nome = "Nome e obrigatorio.";
   if (!dados.endereco.trim()) erros.endereco = "Endereco e obrigatorio.";
   if (!dados.qtdeVagas || dados.qtdeVagas < 1)
     erros.qtdeVagas = "Quantidade de vagas deve ser ao menos 1.";
@@ -35,6 +37,7 @@ export async function criarEstacionamento(
   if (Object.keys(erros).length > 0) throw new ErroValidacao(erros);
 
   const estacionamento = await api.post<Estacionamento>("/api/estacionamentos", {
+    nome: dados.nome.trim(),
     endereco: dados.endereco.trim(),
     qtdeVagas: dados.qtdeVagas,
     dentroPerimetro: dados.dentroPerimetro,
@@ -54,6 +57,7 @@ export async function atualizarEstacionamento(
   if (Object.keys(erros).length > 0) throw new ErroValidacao(erros);
 
   await api.put(`/api/estacionamentos/${id}`, {
+    nome: dados.nome.trim(),
     endereco: dados.endereco.trim(),
     qtdeVagas: dados.qtdeVagas,
     dentroPerimetro: dados.dentroPerimetro,

@@ -36,6 +36,7 @@ export function Estacionamentos() {
           <table className="tabela-larga">
             <thead className="bg-pietra-clara/60 text-left">
               <tr>
+                <th className="px-4 py-3 font-semibold">Nome</th>
                 <th className="px-4 py-3 font-semibold">Endereco</th>
                 <th className="px-4 py-3 font-semibold">Vagas</th>
                 <th className="px-4 py-3 font-semibold hidden sm:table-cell">
@@ -49,7 +50,7 @@ export function Estacionamentos() {
             <tbody>
               {itens.length === 0 && !carregando && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-ardesia">
+                  <td colSpan={5} className="px-4 py-8 text-center text-ardesia">
                     Nenhum estacionamento cadastrado.
                   </td>
                 </tr>
@@ -64,9 +65,10 @@ export function Estacionamentos() {
                       to={`/estacionamentos/${e.id}`}
                       className="font-semibold text-carbone hover:text-verde"
                     >
-                      {e.endereco}
+                      {e.nome}
                     </Link>
                   </td>
+                  <td className="px-4 py-3 text-ardesia">{e.endereco}</td>
                   <td className="px-4 py-3 font-mono text-ardesia">
                     {e.qtdeVagas}
                   </td>

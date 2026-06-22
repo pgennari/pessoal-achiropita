@@ -20,6 +20,7 @@ export function EstacionamentoDetalhe() {
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
 
   const [dados, setDados] = useState<DadosEstacionamentoForm>({
+    nome: "",
     endereco: "",
     qtdeVagas: 1,
     dentroPerimetro: false,
@@ -52,6 +53,7 @@ export function EstacionamentoDetalhe() {
   function iniciarEdicao() {
     if (!estacionamento) return;
     setDados({
+      nome: estacionamento.nome,
       endereco: estacionamento.endereco,
       qtdeVagas: estacionamento.qtdeVagas,
       dentroPerimetro: estacionamento.dentroPerimetro,
@@ -102,37 +104,55 @@ export function EstacionamentoDetalhe() {
       <div className="space-y-6 max-w-3xl">
         <header>
           <div className="eyebrow">Editando</div>
-          <h2 className="mt-1">{estacionamento.endereco}</h2>
+          <h2 className="mt-1">{estacionamento.nome}</h2>
         </header>
 
         <div className="card">
           <div className="card-corpo">
-            <form onSubmit={handleSalvar} className="space-y-5">
-              {erros._form && (
-                <div className="card border-vermelho/40">
-                  <div className="card-corpo py-4 text-vermelho-escuro">
-                    {erros._form}
+              <form onSubmit={handleSalvar} className="space-y-5">
+                {erros._form && (
+                  <div className="card border-vermelho/40">
+                    <div className="card-corpo py-4 text-vermelho-escuro">
+                      {erros._form}
+                    </div>
                   </div>
-                </div>
-              )}
-
-              <div className="input-grupo">
-                <label className="input-label" htmlFor="endereco">
-                  Endereco
-                </label>
-                <input
-                  id="endereco"
-                  className={`input ${erros.endereco ? "erro" : ""}`}
-                  value={dados.endereco}
-                  onChange={(e) =>
-                    setDados((d) => ({ ...d, endereco: e.target.value }))
-                  }
-                  required
-                />
-                {erros.endereco && (
-                  <p className="input-erro-msg">{erros.endereco}</p>
                 )}
-              </div>
+
+                <div className="input-grupo">
+                  <label className="input-label" htmlFor="nome">
+                    Nome
+                  </label>
+                  <input
+                    id="nome"
+                    className={`input ${erros.nome ? "erro" : ""}`}
+                    value={dados.nome}
+                    onChange={(e) =>
+                      setDados((d) => ({ ...d, nome: e.target.value }))
+                    }
+                    required
+                  />
+                  {erros.nome && (
+                    <p className="input-erro-msg">{erros.nome}</p>
+                  )}
+                </div>
+
+                <div className="input-grupo">
+                  <label className="input-label" htmlFor="endereco">
+                    Endereco
+                  </label>
+                  <input
+                    id="endereco"
+                    className={`input ${erros.endereco ? "erro" : ""}`}
+                    value={dados.endereco}
+                    onChange={(e) =>
+                      setDados((d) => ({ ...d, endereco: e.target.value }))
+                    }
+                    required
+                  />
+                  {erros.endereco && (
+                    <p className="input-erro-msg">{erros.endereco}</p>
+                  )}
+                </div>
 
               <div className="input-grupo">
                 <label className="input-label" htmlFor="qtdeVagas">
@@ -225,7 +245,7 @@ export function EstacionamentoDetalhe() {
           <Link to="/estacionamentos" className="eyebrow">
             ← Estacionamentos
           </Link>
-          <h2 className="mt-1">{estacionamento.endereco}</h2>
+          <h2 className="mt-1">{estacionamento.nome}</h2>
         </div>
         {podeEditar && (
           <div className="flex flex-wrap gap-2">
@@ -260,7 +280,7 @@ export function EstacionamentoDetalhe() {
         <div className="card border-vermelho/40">
           <div className="card-corpo space-y-3">
             <p className="font-semibold text-vermelho-escuro">
-              Excluir estacionamento em {estacionamento.endereco}?
+              Excluir estacionamento {estacionamento.nome}?
             </p>
             <p className="text-sm text-ardesia">
               Esta acao e irreversivel.
@@ -289,6 +309,7 @@ export function EstacionamentoDetalhe() {
 
       <section className="card">
         <div className="card-corpo grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Linha rotulo="Nome" valor={estacionamento.nome} />
           <Linha rotulo="Endereco" valor={estacionamento.endereco} />
           <Linha
             rotulo="Vagas"

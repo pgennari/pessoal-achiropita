@@ -224,6 +224,7 @@ export interface SessaoValidacao {
 
 export interface Estacionamento {
   id: string;
+  nome: string;
   endereco: string;
   qtdeVagas: number;
   dentroPerimetro: boolean;

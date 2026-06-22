@@ -11,6 +11,7 @@ export function EstacionamentoNovo() {
   const navigate = useNavigate();
   const { sessao } = useSessao();
   const [dados, setDados] = useState<DadosEstacionamentoForm>({
+    nome: "",
     endereco: "",
     qtdeVagas: 1,
     dentroPerimetro: false,
@@ -76,6 +77,24 @@ export function EstacionamentoNovo() {
                 </div>
               </div>
             )}
+
+            <div className="input-grupo">
+              <label className="input-label" htmlFor="nome">
+                Nome
+              </label>
+              <input
+                id="nome"
+                className={`input ${erros.nome ? "erro" : ""}`}
+                value={dados.nome}
+                onChange={(e) =>
+                  setDados((d) => ({ ...d, nome: e.target.value }))
+                }
+                required
+              />
+              {erros.nome && (
+                <p className="input-erro-msg">{erros.nome}</p>
+              )}
+            </div>
 
             <div className="input-grupo">
               <label className="input-label" htmlFor="endereco">

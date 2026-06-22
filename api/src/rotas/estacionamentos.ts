@@ -8,6 +8,7 @@ const app = new OpenAPIHono<Variaveis>();
 
 const EstacionamentoSchema = z.object({
   id: z.string().uuid(),
+  nome: z.string(),
   endereco: z.string(),
   qtdeVagas: z.number().int(),
   dentroPerimetro: z.boolean(),
@@ -25,6 +26,7 @@ function estacionamentoDeRow(r: Record<string, unknown>) {
     : String(r.atualizado_em ?? "");
   return {
     id: r.id,
+    nome: r.nome,
     endereco: r.endereco,
     qtdeVagas: r.qtde_vagas,
     dentroPerimetro: r.dentro_perimetro,
@@ -87,6 +89,7 @@ const postRoute = createRoute({
   request: {
     body: {
       content: { "application/json": { schema: z.object({
+        nome: z.string(),
         endereco: z.string(),
         qtdeVagas: z.number().int(),
         dentroPerimetro: z.boolean(),
@@ -107,12 +110,12 @@ app.openapi(postRoute, async (c) => {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = c.req.valid("json");
-  if (!body.endereco.trim() || !body.qtdeVagas || !body.horarios.trim()) {
-    return c.json({ erro: "endereco, qtdeVagas e horarios sao obrigatorios." }, 400);
+  if (!body.nome.trim() || !body.endereco.trim() || !body.qtdeVagas || !body.horarios.trim()) {
+    return c.json({ erro: "nome, endereco, qtdeVagas e horarios sao obrigatorios." }, 400);
   }
   const [row] = await sql`
-    INSERT INTO estacionamentos (endereco, qtde_vagas, dentro_perimetro, horarios)
-    VALUES (${body.endereco.trim()}, ${body.qtdeVagas}, ${body.dentroPerimetro}, ${body.horarios.trim()})
+    INSERT INTO estacionamentos (nome, endereco, qtde_vagas, dentro_perimetro, horarios)
+    VALUES (${body.nome.trim()}, ${body.endereco.trim()}, ${body.qtdeVagas}, ${body.dentroPerimetro}, ${body.horarios.trim()})
     RETURNING *
   `;
   await registrarEvento(sessao, "estacionamento.criou", `estacionamentos/${row.id}`, body.endereco);
@@ -130,6 +133,7 @@ const putRoute = createRoute({
     params: z.object({ id: z.string().uuid() }),
     body: {
       content: { "application/json": { schema: z.object({
+        nome: z.string(),
         endereco: z.string(),
         qtdeVagas: z.number().int(),
         dentroPerimetro: z.boolean(),
@@ -153,6 +157,7 @@ app.openapi(putRoute, async (c) => {
   const body = c.req.valid("json");
   const [row] = await sql`
     UPDATE estacionamentos SET
+      nome = ${body.nome.trim()},
       endereco = ${body.endereco.trim()},
       qtde_vagas = ${body.qtdeVagas},
       dentro_perimetro = ${body.dentroPerimetro},

@@ -60,7 +60,7 @@ const getEquipeIdRoute = createRoute({
   summary: "Busca equipe por ID",
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
-  request: { params: z.object({ id: z.string().uuid() }) },
+  request: { params: z.object({ id: z.string() }) },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Equipe" },
     404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
@@ -111,7 +111,7 @@ const putEquipeRoute = createRoute({
   summary: "Atualizar equipe",
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
-  request: { params: z.object({ id: z.string().uuid() }), body: { content: { "application/json": { schema: z.any() } } } },
+  request: { params: z.object({ id: z.string() }), body: { content: { "application/json": { schema: z.any() } } } },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Atualizada" },
     403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },

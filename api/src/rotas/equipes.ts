@@ -148,7 +148,7 @@ const deleteEquipeRoute = createRoute({
   summary: "Deletar equipe",
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
-  request: { params: z.object({ id: z.string().uuid() }) },
+  request: { params: z.object({ id: z.string() }) },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Sucesso" },
     403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },

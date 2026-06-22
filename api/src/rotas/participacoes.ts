@@ -102,7 +102,7 @@ const putParticipacaoRoute = createRoute({
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
   request: {
-    params: z.object({ id: z.string().uuid() }),
+    params: z.object({ id: z.string() }),
     body: { content: { "application/json": { schema: z.any() } } }
   },
   responses: {
@@ -144,7 +144,7 @@ const deleteParticipacaoRoute = createRoute({
   summary: "Desalocar pessoa",
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
-  request: { params: z.object({ id: z.string().uuid() }) },
+  request: { params: z.object({ id: z.string() }) },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Sucesso" },
     404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }

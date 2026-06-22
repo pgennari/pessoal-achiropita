@@ -8,7 +8,7 @@ import type { Variaveis } from "../tipos.js";
 const app = new OpenAPIHono<Variaveis>();
 
 const PessoaSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string(),
   cracha: z.number().int(),
   nome: z.string(),
   nascimento: z.string(),
@@ -135,7 +135,7 @@ const getPessoaIdRoute = createRoute({
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
   request: {
-    params: z.object({ id: z.string().uuid() })
+    params: z.object({ id: z.string() })
   },
   responses: {
     200: { content: { "application/json": { schema: PessoaSchema } }, description: "Pessoa encontrada" },
@@ -227,7 +227,7 @@ const putPessoaRoute = createRoute({
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
   request: {
-    params: z.object({ id: z.string().uuid() }),
+    params: z.object({ id: z.string() }),
     body: { content: { "application/json": { schema: z.any() } } }
   },
   responses: {
@@ -283,7 +283,7 @@ const putPessoaAtivacaoRoute = createRoute({
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
   request: {
-    params: z.object({ id: z.string().uuid() }),
+    params: z.object({ id: z.string() }),
     body: { content: { "application/json": { schema: z.object({ ativo: z.boolean() }) } } }
   },
   responses: {
@@ -318,7 +318,7 @@ const postPessoaFotoRoute = createRoute({
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
   request: {
-    params: z.object({ id: z.string().uuid() })
+    params: z.object({ id: z.string() })
     // multipart/form-data schema is complex for OpenAPI spec right now, simplify
   },
   responses: {
@@ -356,7 +356,7 @@ const deletePessoaFotoRoute = createRoute({
   summary: "Deletar foto",
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
-  request: { params: z.object({ id: z.string().uuid() }) },
+  request: { params: z.object({ id: z.string() }) },
   responses: {
     200: { content: { "application/json": { schema: z.object({ ok: z.boolean() }) } }, description: "Sucesso" },
     403: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Acesso negado" },
@@ -382,7 +382,7 @@ const deletePessoaRoute = createRoute({
   summary: "Deletar pessoa",
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
-  request: { params: z.object({ id: z.string().uuid() }) },
+  request: { params: z.object({ id: z.string() }) },
   responses: {
     200: { content: { "application/json": { schema: z.object({ ok: z.boolean() }) } }, description: "Sucesso" },
     403: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Acesso negado" },

@@ -133,7 +133,7 @@ const putEdicaoRoute = createRoute({
   summary: "Atualiza edição",
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
-  request: { params: z.object({ id: z.string().uuid() }), body: { content: { "application/json": { schema: z.any() } } } },
+  request: { params: z.object({ id: z.string() }), body: { content: { "application/json": { schema: z.any() } } } },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Atualizada" },
     403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
@@ -191,7 +191,7 @@ const postEdicaoAtivarRoute = createRoute({
   summary: "Ativa edição",
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
-  request: { params: z.object({ id: z.string().uuid() }) },
+  request: { params: z.object({ id: z.string() }) },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Sucesso" },
     403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
@@ -220,7 +220,7 @@ const postEdicaoEncerrarRoute = createRoute({
   summary: "Encerra edição",
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
-  request: { params: z.object({ id: z.string().uuid() }) },
+  request: { params: z.object({ id: z.string() }) },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Sucesso" },
     403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },

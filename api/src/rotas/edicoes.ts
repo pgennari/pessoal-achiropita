@@ -70,7 +70,9 @@ const getEdicaoIdRoute = createRoute({
 });
 app.openapi(getEdicaoIdRoute, async (c) => {
   const { id } = c.req.valid("param");
-  const [row] = await sql`SELECT * FROM edicoes WHERE id = ${id}`;
+  const query = `SELECT * FROM edicoes WHERE id = ${id}`;
+  console.log(query);
+  const [row] = await sql`${query}`;
   if (!row) return c.json({ erro: "Edição não encontrada." }, 404);
   return c.json(edicaoDeRow(row) as any, 200);
 });

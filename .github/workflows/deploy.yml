@@ -52,7 +52,7 @@ jobs:
 
       - name: Deploy Hosting
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/_temp/sa.json
         run: |
           firebase deploy \
             --only hosting \

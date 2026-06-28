@@ -63,14 +63,15 @@ CREATE INDEX idx_pessoas_ativo  ON pessoas(ativo);
 
 -- estacionamentos
 CREATE TABLE estacionamentos (
-  id                TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  nome              TEXT NOT NULL,
-  endereco          TEXT NOT NULL,
-  qtde_vagas        INTEGER NOT NULL,
-  dentro_perimetro  BOOLEAN NOT NULL DEFAULT FALSE,
-  horarios          TEXT NOT NULL,
-  criado_em         TIMESTAMPTZ NOT NULL DEFAULT now(),
-  atualizado_em     TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  nome                TEXT NOT NULL,
+  endereco            TEXT NOT NULL,
+  vagas_contratadas   INTEGER NOT NULL DEFAULT 0,
+  vagas_distribuidas  INTEGER NOT NULL DEFAULT 0,
+  dentro_perimetro    BOOLEAN NOT NULL DEFAULT FALSE,
+  horarios            TEXT NOT NULL,
+  criado_em           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- edicoes

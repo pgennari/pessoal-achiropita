@@ -226,7 +226,8 @@ export interface Estacionamento {
   id: string;
   nome: string;
   endereco: string;
-  qtdeVagas: number;
+  vagasContratadas: number;
+  vagasDistribuidas: number;
   dentroPerimetro: boolean;
   horarios: string;
   criadoEm: string;

@@ -38,7 +38,9 @@ export function Estacionamentos() {
               <tr>
                 <th className="px-4 py-3 font-semibold">Nome</th>
                 <th className="px-4 py-3 font-semibold">Endereco</th>
-                <th className="px-4 py-3 font-semibold">Vagas</th>
+                <th className="px-4 py-3 font-semibold text-right">Vagas Contratadas</th>
+                <th className="px-4 py-3 font-semibold text-right">Vagas Distribuidas</th>
+                <th className="px-4 py-3 font-semibold text-right">Diferença</th>
                 <th className="px-4 py-3 font-semibold hidden sm:table-cell">
                   Perimetro
                 </th>
@@ -50,7 +52,7 @@ export function Estacionamentos() {
             <tbody>
               {itens.length === 0 && !carregando && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-ardesia">
+                  <td colSpan={7} className="px-4 py-8 text-center text-ardesia">
                     Nenhum estacionamento cadastrado.
                   </td>
                 </tr>
@@ -69,8 +71,14 @@ export function Estacionamentos() {
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-ardesia">{e.endereco}</td>
-                  <td className="px-4 py-3 font-mono text-ardesia">
-                    {e.qtdeVagas}
+                  <td className="px-4 py-3 font-mono text-ardesia text-right">
+                    {e.vagasContratadas}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-ardesia text-right">
+                    {e.vagasDistribuidas}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-ardesia text-right">
+                    {e.vagasContratadas - e.vagasDistribuidas}
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
                     {e.dentroPerimetro ? (

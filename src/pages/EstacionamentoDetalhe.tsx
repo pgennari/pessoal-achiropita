@@ -22,11 +22,15 @@ export function EstacionamentoDetalhe() {
   const [dados, setDados] = useState<DadosEstacionamentoForm>({
     nome: "",
     endereco: "",
-    qtdeVagas: 1,
+    vagasContratadas: "",
+    vagasDistribuidas: "0",
     dentroPerimetro: false,
     horarios: "",
   });
   const [erros, setErros] = useState<Record<string, string>>({});
+
+  const diferencaEditando = (parseInt(dados.vagasDistribuidas, 10) || 0) - (parseInt(dados.vagasContratadas, 10) || 0);
+  const diferencaVisualizando = (estacionamento?.vagasDistribuidas ?? 0) - (estacionamento?.vagasContratadas ?? 0);
 
   if (!sessao) return null;
   const podeEditar = sessao.perfil === "ADM" || sessao.perfil === "ORG";
@@ -55,7 +59,8 @@ export function EstacionamentoDetalhe() {
     setDados({
       nome: estacionamento.nome,
       endereco: estacionamento.endereco,
-      qtdeVagas: estacionamento.qtdeVagas,
+      vagasContratadas: String(estacionamento.vagasContratadas ?? 0),
+      vagasDistribuidas: String(estacionamento.vagasDistribuidas ?? 0),
       dentroPerimetro: estacionamento.dentroPerimetro,
       horarios: estacionamento.horarios,
     });
@@ -109,73 +114,96 @@ export function EstacionamentoDetalhe() {
 
         <div className="card">
           <div className="card-corpo">
-              <form onSubmit={handleSalvar} className="space-y-5">
-                {erros._form && (
-                  <div className="card border-vermelho/40">
-                    <div className="card-corpo py-4 text-vermelho-escuro">
-                      {erros._form}
-                    </div>
+            <form onSubmit={handleSalvar} className="space-y-5">
+              {erros._form && (
+                <div className="card border-vermelho/40">
+                  <div className="card-corpo py-4 text-vermelho-escuro">
+                    {erros._form}
                   </div>
-                )}
-
-                <div className="input-grupo">
-                  <label className="input-label" htmlFor="nome">
-                    Nome
-                  </label>
-                  <input
-                    id="nome"
-                    className={`input ${erros.nome ? "erro" : ""}`}
-                    value={dados.nome}
-                    onChange={(e) =>
-                      setDados((d) => ({ ...d, nome: e.target.value }))
-                    }
-                    required
-                  />
-                  {erros.nome && (
-                    <p className="input-erro-msg">{erros.nome}</p>
-                  )}
                 </div>
-
-                <div className="input-grupo">
-                  <label className="input-label" htmlFor="endereco">
-                    Endereco
-                  </label>
-                  <input
-                    id="endereco"
-                    className={`input ${erros.endereco ? "erro" : ""}`}
-                    value={dados.endereco}
-                    onChange={(e) =>
-                      setDados((d) => ({ ...d, endereco: e.target.value }))
-                    }
-                    required
-                  />
-                  {erros.endereco && (
-                    <p className="input-erro-msg">{erros.endereco}</p>
-                  )}
-                </div>
+              )}
 
               <div className="input-grupo">
-                <label className="input-label" htmlFor="qtdeVagas">
-                  Quantidade de vagas
+                <label className="input-label" htmlFor="nome">
+                  Nome
                 </label>
                 <input
-                  id="qtdeVagas"
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  className={`input ${erros.qtdeVagas ? "erro" : ""}`}
-                  value={dados.qtdeVagas}
+                  id="nome"
+                  className={`input ${erros.nome ? "erro" : ""}`}
+                  value={dados.nome}
                   onChange={(e) =>
-                    setDados((d) => ({
-                      ...d,
-                      qtdeVagas: parseInt(e.target.value, 10) || 1,
-                    }))
+                    setDados((d) => ({ ...d, nome: e.target.value }))
                   }
                   required
                 />
-                {erros.qtdeVagas && (
-                  <p className="input-erro-msg">{erros.qtdeVagas}</p>
+                {erros.nome && (
+                  <p className="input-erro-msg">{erros.nome}</p>
                 )}
+              </div>
+
+              <div className="input-grupo">
+                <label className="input-label" htmlFor="endereco">
+                  Endereco
+                </label>
+                <input
+                  id="endereco"
+                  className={`input ${erros.endereco ? "erro" : ""}`}
+                  value={dados.endereco}
+                  onChange={(e) =>
+                    setDados((d) => ({ ...d, endereco: e.target.value }))
+                  }
+                  required
+                />
+                {erros.endereco && (
+                  <p className="input-erro-msg">{erros.endereco}</p>
+                )}
+              </div>
+
+              <div className="input-grupo">
+                <label className="input-label" htmlFor="vagasContratadas">
+                  Vagas Contratadas
+                </label>
+                <input
+                  id="vagasContratadas"
+                  type="text"
+                  className={`input ${erros.vagasContratadas ? "erro" : ""}`}
+                  value={dados.vagasContratadas}
+                  onChange={(e) =>
+                    setDados((d) => ({ ...d, vagasContratadas: e.target.value }))
+                  }
+                  required
+                />
+                {erros.vagasContratadas && (
+                  <p className="input-erro-msg">{erros.vagasContratadas}</p>
+                )}
+              </div>
+
+              <div className="input-grupo">
+                <label className="input-label" htmlFor="vagasDistribuidas">
+                  Vagas Distribuidas
+                </label>
+                <input
+                  id="vagasDistribuidas"
+                  type="text"
+                  className={`input ${erros.vagasDistribuidas ? "erro" : ""}`}
+                  value={dados.vagasDistribuidas}
+                  onChange={(e) =>
+                    setDados((d) => ({ ...d, vagasDistribuidas: e.target.value }))
+                  }
+                  required
+                />
+                {erros.vagasDistribuidas && (
+                  <p className="input-erro-msg">{erros.vagasDistribuidas}</p>
+                )}
+              </div>
+
+              <div className="input-grupo">
+                <label className="input-label">
+                  Diferença
+                </label>
+                <div className="input bg-pietra-clara/40 font-mono flex items-center px-3 select-none">
+                  {diferencaEditando}
+                </div>
               </div>
 
               <div className="input-grupo">
@@ -312,8 +340,16 @@ export function EstacionamentoDetalhe() {
           <Linha rotulo="Nome" valor={estacionamento.nome} />
           <Linha rotulo="Endereco" valor={estacionamento.endereco} />
           <Linha
-            rotulo="Vagas"
-            valor={String(estacionamento.qtdeVagas)}
+            rotulo="Vagas Contratadas"
+            valor={String(estacionamento.vagasContratadas)}
+          />
+          <Linha
+            rotulo="Vagas Distribuidas"
+            valor={String(estacionamento.vagasDistribuidas)}
+          />
+          <Linha
+            rotulo="Diferença"
+            valor={String(diferencaVisualizando)}
           />
           <Linha
             rotulo="Dentro do perimetro"

@@ -10,7 +10,8 @@ const EstacionamentoSchema = z.object({
   id: z.string().uuid(),
   nome: z.string(),
   endereco: z.string(),
-  qtdeVagas: z.number().int(),
+  vagasContratadas: z.number().int(),
+  vagasDistribuidas: z.number().int(),
   dentroPerimetro: z.boolean(),
   horarios: z.string(),
   criadoEm: z.string(),
@@ -28,7 +29,8 @@ function estacionamentoDeRow(r: Record<string, unknown>) {
     id: r.id,
     nome: r.nome,
     endereco: r.endereco,
-    qtdeVagas: r.qtde_vagas,
+    vagasContratadas: Number(r.vagas_contratadas ?? 0),
+    vagasDistribuidas: Number(r.vagas_distribuidas ?? 0),
     dentroPerimetro: r.dentro_perimetro,
     horarios: r.horarios,
     criadoEm,
@@ -88,13 +90,18 @@ const postRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     body: {
-      content: { "application/json": { schema: z.object({
-        nome: z.string(),
-        endereco: z.string(),
-        qtdeVagas: z.number().int(),
-        dentroPerimetro: z.boolean(),
-        horarios: z.string(),
-      }) } },
+      content: {
+        "application/json": {
+          schema: z.object({
+            nome: z.string(),
+            endereco: z.string(),
+            vagasContratadas: z.number().int(),
+            vagasDistribuidas: z.number().int(),
+            dentroPerimetro: z.boolean(),
+            horarios: z.string(),
+          })
+        }
+      },
     },
   },
   responses: {
@@ -110,12 +117,12 @@ app.openapi(postRoute, async (c) => {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = c.req.valid("json");
-  if (!body.nome.trim() || !body.endereco.trim() || !body.qtdeVagas || !body.horarios.trim()) {
-    return c.json({ erro: "nome, endereco, qtdeVagas e horarios sao obrigatorios." }, 400);
+  if (!body.nome.trim() || !body.endereco.trim() || body.vagasContratadas === undefined || body.vagasDistribuidas === undefined || !body.horarios.trim()) {
+    return c.json({ erro: "nome, endereco, vagasContratadas, vagasDistribuidas e horarios sao obrigatorios." }, 400);
   }
   const [row] = await sql`
-    INSERT INTO estacionamentos (nome, endereco, qtde_vagas, dentro_perimetro, horarios)
-    VALUES (${body.nome.trim()}, ${body.endereco.trim()}, ${body.qtdeVagas}, ${body.dentroPerimetro}, ${body.horarios.trim()})
+    INSERT INTO estacionamentos (nome, endereco, vagas_contratadas, vagas_distribuidas, dentro_perimetro, horarios)
+    VALUES (${body.nome.trim()}, ${body.endereco.trim()}, ${body.vagasContratadas}, ${body.vagasDistribuidas}, ${body.dentroPerimetro}, ${body.horarios.trim()})
     RETURNING *
   `;
   await registrarEvento(sessao, "estacionamento.criou", `estacionamentos/${row.id}`, body.endereco);
@@ -132,13 +139,18 @@ const putRoute = createRoute({
   request: {
     params: z.object({ id: z.string().uuid() }),
     body: {
-      content: { "application/json": { schema: z.object({
-        nome: z.string(),
-        endereco: z.string(),
-        qtdeVagas: z.number().int(),
-        dentroPerimetro: z.boolean(),
-        horarios: z.string(),
-      }) } },
+      content: {
+        "application/json": {
+          schema: z.object({
+            nome: z.string(),
+            endereco: z.string(),
+            vagasContratadas: z.number().int(),
+            vagasDistribuidas: z.number().int(),
+            dentroPerimetro: z.boolean(),
+            horarios: z.string(),
+          })
+        }
+      },
     },
   },
   responses: {
@@ -159,7 +171,8 @@ app.openapi(putRoute, async (c) => {
     UPDATE estacionamentos SET
       nome = ${body.nome.trim()},
       endereco = ${body.endereco.trim()},
-      qtde_vagas = ${body.qtdeVagas},
+      vagas_contratadas = ${body.vagasContratadas},
+      vagas_distribuidas = ${body.vagasDistribuidas},
       dentro_perimetro = ${body.dentroPerimetro},
       horarios = ${body.horarios.trim()},
       atualizado_em = NOW()

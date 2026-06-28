@@ -6,7 +6,8 @@ import { Estacionamento } from "./tipos";
 export interface DadosEstacionamentoForm {
   nome: string;
   endereco: string;
-  qtdeVagas: number;
+  vagasContratadas: string;
+  vagasDistribuidas: string;
   dentroPerimetro: boolean;
   horarios: string;
 }
@@ -23,8 +24,21 @@ function validar(dados: DadosEstacionamentoForm): Record<string, string> {
   const erros: Record<string, string> = {};
   if (!dados.nome.trim()) erros.nome = "Nome e obrigatorio.";
   if (!dados.endereco.trim()) erros.endereco = "Endereco e obrigatorio.";
-  if (!dados.qtdeVagas || dados.qtdeVagas < 1)
-    erros.qtdeVagas = "Quantidade de vagas deve ser ao menos 1.";
+
+  const vContratadasStr = String(dados.vagasContratadas ?? "").trim();
+  if (!vContratadasStr) {
+    erros.vagasContratadas = "Quantidade de vagas contratadas e obrigatoria.";
+  } else if (!/^\d+$/.test(vContratadasStr)) {
+    erros.vagasContratadas = "Apenas numeros sao permitidos.";
+  }
+
+  const vDistribuidasStr = String(dados.vagasDistribuidas ?? "").trim();
+  if (!vDistribuidasStr) {
+    erros.vagasDistribuidas = "Quantidade de vagas distribuidas e obrigatoria.";
+  } else if (!/^\d+$/.test(vDistribuidasStr)) {
+    erros.vagasDistribuidas = "Apenas numeros sao permitidos.";
+  }
+
   if (!dados.horarios.trim()) erros.horarios = "Horarios sao obrigatorios.";
   return erros;
 }
@@ -39,7 +53,8 @@ export async function criarEstacionamento(
   const estacionamento = await api.post<Estacionamento>("/api/estacionamentos", {
     nome: dados.nome.trim(),
     endereco: dados.endereco.trim(),
-    qtdeVagas: dados.qtdeVagas,
+    vagasContratadas: parseInt(dados.vagasContratadas, 10),
+    vagasDistribuidas: parseInt(dados.vagasDistribuidas, 10),
     dentroPerimetro: dados.dentroPerimetro,
     horarios: dados.horarios.trim(),
   });
@@ -59,7 +74,8 @@ export async function atualizarEstacionamento(
   await api.put(`/api/estacionamentos/${id}`, {
     nome: dados.nome.trim(),
     endereco: dados.endereco.trim(),
-    qtdeVagas: dados.qtdeVagas,
+    vagasContratadas: parseInt(dados.vagasContratadas, 10),
+    vagasDistribuidas: parseInt(dados.vagasDistribuidas, 10),
     dentroPerimetro: dados.dentroPerimetro,
     horarios: dados.horarios.trim(),
   });

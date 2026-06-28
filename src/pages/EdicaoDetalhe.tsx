@@ -342,10 +342,11 @@ export function EdicaoDetalhe() {
               {lista.map((e) => {
                 const r = resumoEquipe(e, participacoes);
                 return (
-                  <tr
-                    key={e.id}
-                    className="border-t border-pietra-clara hover:bg-pietra-clara/40"
-                  >
+                    <tr
+                      key={e.id}
+                      className="border-t border-pietra-clara hover:bg-pietra-clara/40 cursor-pointer"
+                      onClick={() => navigate(`/edicoes/${edicao.id}/equipes/${e.id}`)}
+                    >
                     <td className="px-4 py-3">
                       <Link
                         to={`/edicoes/${edicao.id}/equipes/${e.id}`}
@@ -376,7 +377,7 @@ export function EdicaoDetalhe() {
                         <button
                           type="button"
                           className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                          onClick={() => handleRemoverEquipe(e)}
+                          onClick={(ev) => { ev.stopPropagation(); handleRemoverEquipe(e); }}
                         >
                           Remover
                         </button>

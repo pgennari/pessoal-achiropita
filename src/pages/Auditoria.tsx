@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuditoriaRecente } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import { formatarData } from "../lib/utilsDominio";
@@ -15,6 +15,7 @@ const ACOES: Record<string, string> = {
 
 export function Auditoria() {
   const { sessao } = useSessao();
+  const navigate = useNavigate();
   const { itens, carregando, erro } = useAuditoriaRecente(200);
 
   if (!sessao) return null;
@@ -79,7 +80,8 @@ export function Auditoria() {
               return (
                 <tr
                   key={ev.id}
-                  className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                  className={`border-t border-pietra-clara hover:bg-pietra-clara/40${alvoId && ev.acao !== "pessoa.excluiu" ? " cursor-pointer" : ""}`}
+                  onClick={alvoId && ev.acao !== "pessoa.excluiu" ? () => navigate(`/pessoas/${alvoId}`) : undefined}
                 >
                   <td className="px-4 py-3 text-ardesia font-mono">
                     {formatarData(ev.criadoEm)}

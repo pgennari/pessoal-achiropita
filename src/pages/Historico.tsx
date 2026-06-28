@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   useEdicoes,
   usePessoas,
@@ -43,6 +43,7 @@ function escaparCsv(valor: string | number): string {
 }
 
 export function Historico() {
+  const navigate = useNavigate();
   const { sessao } = useSessao();
   const { itens: pessoas } = usePessoas();
   const { itens: equipes } = useTodasEquipes();
@@ -365,7 +366,8 @@ export function Historico() {
               return (
                 <tr
                   key={r.pessoa.id}
-                  className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                  className="border-t border-pietra-clara hover:bg-pietra-clara/40 cursor-pointer"
+                  onClick={() => navigate(`/pessoas/${r.pessoa.id}`)}
                 >
                   <td className="px-4 py-3 font-mono text-ardesia">
                     #{r.pessoa.cracha}

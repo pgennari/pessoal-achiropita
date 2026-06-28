@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { usePessoas } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import { normalizar, soDigitos } from "../lib/utilsDominio";
@@ -28,6 +28,7 @@ function combina(p: Pessoa, termo: string): boolean {
 }
 
 export function Pessoas() {
+  const navigate = useNavigate();
   const { sessao } = useSessao();
   const { itens, carregando, erro } = usePessoas();
   const [termo, setTermo] = useState("");
@@ -47,7 +48,7 @@ export function Pessoas() {
     } catch (e) {
       setMensagemSync(
         "Falha na sincronização: " +
-          (e instanceof Error ? e.message : "erro desconhecido")
+        (e instanceof Error ? e.message : "erro desconhecido")
       );
     } finally {
       setSincronizando(false);
@@ -117,15 +118,14 @@ export function Pessoas() {
                 key={f}
                 type="button"
                 onClick={() => setFiltro(f)}
-                className={`btn btn-pequeno ${
-                  filtro === f ? "btn-primario" : "btn-secundario"
-                }`}
+                className={`btn btn-pequeno ${filtro === f ? "btn-primario" : "btn-secundario"
+                  }`}
               >
                 {f === "ativos"
                   ? "Ativos"
                   : f === "inativos"
-                  ? "Inativos"
-                  : "Todos"}
+                    ? "Inativos"
+                    : "Todos"}
               </button>
             ))}
           </div>
@@ -164,7 +164,8 @@ export function Pessoas() {
             {lista.map((p) => (
               <tr
                 key={p.id}
-                className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                className="border-t border-pietra-clara hover:bg-pietra-clara/40 cursor-pointer"
+                onClick={() => navigate(`/pessoas/${p.id}`)}
               >
                 <td className="px-4 py-3 font-mono text-ardesia">#{p.cracha}</td>
                 <td className="px-4 py-3">

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
 import {
   useEquipes,
@@ -17,6 +17,7 @@ interface Linha {
 
 export function PendenciasFoto() {
   const { sessao } = useSessao();
+  const navigate = useNavigate();
   const { edicao, carregando: carregandoEdicao } = useEdicaoAtiva();
   const { itens: pessoas } = usePessoas();
   const { itens: equipes } = useEquipes(edicao?.id);
@@ -203,9 +204,10 @@ const indiceEquipes = useMemo(() => {
             )}
             {linhas.map((l) => (
               <tr
-                key={`${l.pessoa.id}-${l.equipe?.id ?? ""}`}
-                className="border-t border-pietra-clara hover:bg-pietra-clara/40"
-              >
+                  key={`${l.pessoa.id}-${l.equipe?.id ?? ""}`}
+                  className="border-t border-pietra-clara hover:bg-pietra-clara/40 cursor-pointer"
+                  onClick={() => navigate(`/pessoas/${l.pessoa.id}`)}
+                >
                 <td className="px-4 py-3 font-mono text-ardesia">
                   #{l.pessoa.cracha}
                 </td>

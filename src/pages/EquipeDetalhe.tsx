@@ -312,7 +312,8 @@ export function EquipeDetalhe() {
             {linhasDaEquipe.map((l) => (
               <tr
                 key={l.participacao.id}
-                className="border-t border-pietra-clara"
+                className="border-t border-pietra-clara cursor-pointer"
+                onClick={() => l.pessoa ? navigate(`/pessoas/${l.pessoa.id}`) : undefined}
               >
                 <td className="px-4 py-3 font-mono text-ardesia">
                   {l.pessoa ? `#${l.pessoa.cracha}` : "—"}
@@ -356,7 +357,8 @@ export function EquipeDetalhe() {
                       <button
                         type="button"
                         className="btn btn-secundario btn-pequeno"
-                        onClick={() => {
+                        onClick={(ev) => {
+                          ev.stopPropagation();
                           setMovendoLinha(l);
                           setEquipeDestinoId("");
                           setFuncaoDestino(l.participacao.funcao);
@@ -367,7 +369,7 @@ export function EquipeDetalhe() {
                       <button
                         type="button"
                         className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                        onClick={() => handleDesalocar(l)}
+                        onClick={(ev) => { ev.stopPropagation(); handleDesalocar(l); }}
                       >
                         Desalocar
                       </button>

@@ -318,11 +318,10 @@ export function Usuarios() {
       <div className="border-b border-pietra-clara flex gap-0">
         <button
           type="button"
-          className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
-            aba === "usuarios"
+          className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition ${aba === "usuarios"
               ? "border-verde text-verde-escuro"
               : "border-transparent text-ardesia hover:text-carbone"
-          }`}
+            }`}
           onClick={() => setAba("usuarios")}
         >
           Usuários
@@ -332,11 +331,10 @@ export function Usuarios() {
         </button>
         <button
           type="button"
-          className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition ${
-            aba === "convites"
+          className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition ${aba === "convites"
               ? "border-verde text-verde-escuro"
               : "border-transparent text-ardesia hover:text-carbone"
-          }`}
+            }`}
           onClick={() => setAba("convites")}
         >
           Convites
@@ -410,7 +408,11 @@ export function Usuarios() {
                   {listaUsuarios.map((u) => (
                     <tr
                       key={u.uid}
-                      className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                      className="border-t border-pietra-clara hover:bg-pietra-clara/40 cursor-pointer"
+                      onClick={() => {
+                        setEditandoConviteId(null);
+                        setEditandoUid(u.uid);
+                      }}
                     >
                       <td className="px-4 py-3">
                         <div className="font-semibold">{u.nome}</div>
@@ -436,7 +438,8 @@ export function Usuarios() {
                           <button
                             type="button"
                             className="btn btn-secundario btn-pequeno"
-                            onClick={() => {
+                            onClick={(ev) => {
+                              ev.stopPropagation();
                               setEditandoConviteId(null);
                               setEditandoUid(u.uid);
                             }}
@@ -447,7 +450,10 @@ export function Usuarios() {
                             <button
                               type="button"
                               className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                              onClick={() => handleRemoverUsuario(u)}
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                handleRemoverUsuario(u);
+                              }}
                               disabled={u.uid === sessao.uid}
                               title={
                                 u.uid === sessao.uid
@@ -583,7 +589,13 @@ export function Usuarios() {
                   {listaConvites.map((c) => (
                     <tr
                       key={c.id}
-                      className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                      className={`border-t border-pietra-clara hover:bg-pietra-clara/40${c.status === "pendente" ? " cursor-pointer" : ""}`}
+                      onClick={() => {
+                        if (c.status === "pendente") {
+                          setEditandoUid(null);
+                          setEditandoConviteId(c.id);
+                        }
+                      }}
                     >
                       <td className="px-4 py-3 font-mono text-xs">{c.email}</td>
                       <td className="px-4 py-3">
@@ -608,7 +620,10 @@ export function Usuarios() {
                             <button
                               type="button"
                               className="btn btn-secundario btn-pequeno"
-                              onClick={() => copiar(c.id)}
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                copiar(c.id);
+                              }}
                             >
                               {copiouToken === c.id ? "Copiado!" : "Copiar link"}
                             </button>
@@ -617,7 +632,8 @@ export function Usuarios() {
                             <button
                               type="button"
                               className="btn btn-secundario btn-pequeno"
-                              onClick={() => {
+                              onClick={(ev) => {
+                                ev.stopPropagation();
                                 setEditandoUid(null);
                                 setEditandoConviteId(c.id);
                               }}
@@ -629,7 +645,10 @@ export function Usuarios() {
                             <button
                               type="button"
                               className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                              onClick={() => handleRevogarConvite(c)}
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                handleRevogarConvite(c);
+                              }}
                             >
                               Revogar
                             </button>
@@ -638,7 +657,10 @@ export function Usuarios() {
                             <button
                               type="button"
                               className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                              onClick={() => handleRemoverConvite(c)}
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                handleRemoverConvite(c);
+                              }}
                             >
                               Apagar
                             </button>

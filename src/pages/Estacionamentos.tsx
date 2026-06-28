@@ -1,8 +1,9 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEstacionamentos } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 
 export function Estacionamentos() {
+  const navigate = useNavigate();
   const { sessao } = useSessao();
   const { itens, carregando, erro } = useEstacionamentos();
 
@@ -60,7 +61,8 @@ export function Estacionamentos() {
               {itens.map((e) => (
                 <tr
                   key={e.id}
-                  className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                  className="border-t border-pietra-clara hover:bg-pietra-clara/40 cursor-pointer"
+                  onClick={() => navigate(`/estacionamentos/${e.id}`)}
                 >
                   <td className="px-4 py-3">
                     <Link

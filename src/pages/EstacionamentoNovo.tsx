@@ -21,7 +21,7 @@ export function EstacionamentoNovo() {
   const [enviando, setEnviando] = useState(false);
   const [erros, setErros] = useState<Record<string, string>>({});
 
-  const diferenca = (parseInt(dados.vagasDistribuidas, 10) || 0) - (parseInt(dados.vagasContratadas, 10) || 0);
+  const diferenca = (parseInt(dados.vagasContratadas, 10) || 0) - (parseInt(dados.vagasDistribuidas, 10) || 0);
 
   if (!sessao) return null;
   const podeCriar = sessao.perfil === "ADM" || sessao.perfil === "ORG";

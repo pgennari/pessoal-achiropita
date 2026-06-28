@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
 import {
   useEquipes,
@@ -30,6 +30,7 @@ interface GrupoEquipe {
 
 export function EntregaCrachas() {
   const { sessao } = useSessao();
+  const navigate = useNavigate();
   const { edicao, carregando: carregandoEdicao } = useEdicaoAtiva();
   const { itens: pessoas } = usePessoas();
   const { itens: equipes } = useEquipes(edicao?.id);
@@ -289,7 +290,8 @@ export function EntregaCrachas() {
                   return (
                     <tr
                       key={l.participacao.id}
-                      className="border-t border-pietra-clara"
+                      className="border-t border-pietra-clara cursor-pointer"
+                      onClick={() => navigate(`/pessoas/${l.pessoa.id}`)}
                     >
                       <td className="px-4 py-2">
                         <div
@@ -347,7 +349,7 @@ export function EntregaCrachas() {
                           <button
                             type="button"
                             className="btn btn-primario btn-pequeno"
-                            onClick={() => handleEntregar(l)}
+                            onClick={(ev) => { ev.stopPropagation(); handleEntregar(l); }}
                             disabled={ocupado}
                           >
                             {ocupado ? "..." : "Entregar"}
@@ -357,7 +359,7 @@ export function EntregaCrachas() {
                           <button
                             type="button"
                             className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                            onClick={() => handleDesbloquear(l)}
+                            onClick={(ev) => { ev.stopPropagation(); handleDesbloquear(l); }}
                             disabled={ocupado}
                           >
                             Desbloquear

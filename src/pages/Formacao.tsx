@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
 import {
   useEquipes,
@@ -95,6 +95,7 @@ function rolarParaSecao(id: string) {
 export function PaginaFormacao() {
   const { sessao } = useSessao();
   const { edicao, carregando: carregandoEdicao } = useEdicaoAtiva();
+  const navigate = useNavigate();
   const { itens: turmas, carregando: carregandoTurmas } = useTurmasFormacao(
     edicao?.id
   );
@@ -741,6 +742,7 @@ export function PaginaFormacao() {
                   key={grupo.equipeId}
                   grupo={grupo}
                   colunaStatus
+                  onRowClick={(p) => navigate(`/pessoas/${p.id}`)}
                   renderStatus={(p) => {
                     const f = indiceFormacoes.get(p.id);
                     if (!f) return null;
@@ -748,9 +750,10 @@ export function PaginaFormacao() {
                       <button
                         type="button"
                         className="badge badge-ouro hover:underline cursor-pointer"
-                        onClick={() =>
-                          setVendoJustificativa({ formacao: f, pessoa: p })
-                        }
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          setVendoJustificativa({ formacao: f, pessoa: p });
+                        }}
                         title="Ver justificativa"
                       >
                         manual
@@ -766,7 +769,7 @@ export function PaginaFormacao() {
                             type="button"
                             className="btn btn-primario btn-pequeno"
                             disabled={confirmandoId === f.id}
-                            onClick={() => handleConfirmarDados(f, p)}
+                            onClick={(ev) => { ev.stopPropagation(); handleConfirmarDados(f, p); }}
                           >
                             {confirmandoId === f.id
                               ? "Confirmando..."
@@ -777,7 +780,8 @@ export function PaginaFormacao() {
                           <button
                             type="button"
                             className="btn btn-secundario btn-pequeno"
-                            onClick={() => {
+                            onClick={(ev) => {
+                              ev.stopPropagation();
                               if (f) {
                                 setErroLink(null);
                                 setCopiouLink(null);
@@ -795,7 +799,7 @@ export function PaginaFormacao() {
                           <button
                             type="button"
                             className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                            onClick={() => handleRemoverFormacao(f)}
+                            onClick={(ev) => { ev.stopPropagation(); handleRemoverFormacao(f); }}
                           >
                             Remover
                           </button>
@@ -846,7 +850,8 @@ export function PaginaFormacao() {
                       return (
                         <tr
                           key={p.id}
-                          className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                          className="border-t border-pietra-clara hover:bg-pietra-clara/40 cursor-pointer"
+                          onClick={() => navigate(`/pessoas/${p.id}`)}
                         >
                           <td className="px-4 py-3 font-mono text-ardesia">
                             #{p.cracha}
@@ -870,7 +875,7 @@ export function PaginaFormacao() {
                               <button
                                 type="button"
                                 className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                                onClick={() => handleRemoverFormacao(f)}
+                                onClick={(ev) => { ev.stopPropagation(); handleRemoverFormacao(f); }}
                               >
                                 Remover
                               </button>
@@ -885,6 +890,7 @@ export function PaginaFormacao() {
             </div>
           )}
         </div>
+
       </section>
 
       {/* Modal — Presença manual */}

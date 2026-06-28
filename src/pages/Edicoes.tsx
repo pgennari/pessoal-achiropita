@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEdicoes } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import { EdicaoForm } from "../components/EdicaoForm";
@@ -19,6 +19,7 @@ const ROTULOS_STATUS: Record<Edicao["status"], string> = {
 };
 
 export function Edicoes() {
+  const navigate = useNavigate();
   const { sessao } = useSessao();
   const { itens, carregando, erro } = useEdicoes();
   const [criandoNova, setCriandoNova] = useState(false);
@@ -165,7 +166,8 @@ export function Edicoes() {
             {itens.map((e) => (
               <tr
                 key={e.id}
-                className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                className="border-t border-pietra-clara hover:bg-pietra-clara/40 cursor-pointer"
+                onClick={() => navigate(`/edicoes/${e.id}`)}
               >
                 <td className="px-4 py-3 font-mono text-ardesia">{e.numero}ª</td>
                 <td className="px-4 py-3 font-mono text-ardesia">{e.ano}</td>
@@ -193,7 +195,10 @@ export function Edicoes() {
                       <button
                         type="button"
                         className="btn btn-secundario btn-pequeno"
-                        onClick={() => handleAtivar(e)}
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          handleAtivar(e);
+                        }}
                       >
                         Ativar
                       </button>

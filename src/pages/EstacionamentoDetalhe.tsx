@@ -29,8 +29,8 @@ export function EstacionamentoDetalhe() {
   });
   const [erros, setErros] = useState<Record<string, string>>({});
 
-  const diferencaEditando = (parseInt(dados.vagasDistribuidas, 10) || 0) - (parseInt(dados.vagasContratadas, 10) || 0);
-  const diferencaVisualizando = (estacionamento?.vagasDistribuidas ?? 0) - (estacionamento?.vagasContratadas ?? 0);
+  const diferencaEditando = (parseInt(dados.vagasContratadas, 10) || 0) - (parseInt(dados.vagasDistribuidas, 10) || 0);
+  const diferencaVisualizando = (estacionamento?.vagasContratadas ?? 0) - (estacionamento?.vagasDistribuidas ?? 0);
 
   if (!sessao) return null;
   const podeEditar = sessao.perfil === "ADM" || sessao.perfil === "ORG";

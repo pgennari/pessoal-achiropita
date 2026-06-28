@@ -59,14 +59,13 @@ jobs:
             exit 1
           }
 
-      - name: Instala firebase-tools
-        run: npm install -g firebase-tools@${{ env.FIREBASE_TOOLS_VERSION }}
-      
-      - name: Deploy Hosting
+      - name: Instala firebase-tools e Deploy Hosting
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/_temp/sa.json
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
+          npm install -g firebase-tools@${{ env.FIREBASE_TOOLS_VERSION }}
           firebase deploy \
             --only hosting \
             --project ${{ secrets.VITE_FIREBASE_PROJECT_ID }} \
+            --token "$FIREBASE_TOKEN" \
             --non-interactive

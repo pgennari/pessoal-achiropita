@@ -45,14 +45,26 @@ jobs:
         run: npm run build
 
       - name: Autenticar no Firebase
-        run: printf '%s' '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > /home/runner/work/_temp/sa.json
+        run: |
+          mkdir -p /home/runner/work/_temp
+          printf '%s' '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > /home/runner/work/_temp/sa.json
+          # Valida se o arquivo foi criado e tem conteúdo
+          if [ ! -s /home/runner/work/_temp/sa.json ]; then
+            echo "Erro: Arquivo sa.json vazio ou não foi criado!"
+            exit 1
+          fi
+          # Verifica se é JSON válido
+          python3 -m json.tool /home/runner/work/_temp/sa.json > /dev/null || {
+            echo "Erro: sa.json não é um JSON válido!"
+            exit 1
+          }
 
       - name: Instala firebase-tools
         run: npm install -g firebase-tools@${{ env.FIREBASE_TOOLS_VERSION }}
-
+      
       - name: Deploy Hosting
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/_temp/sa.json
         run: |
           firebase deploy \
             --only hosting \

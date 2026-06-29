@@ -1,5 +1,6 @@
 import { useState, FormEvent } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useEstacionamento } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import {
@@ -18,6 +19,13 @@ export function EstacionamentoDetalhe() {
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [acaoOcupado, setAcaoOcupado] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("edit") === "true" && estacionamento && !editando) {
+      iniciarEdicao();
+    }
+  }, [searchParams, estacionamento, editando]);
 
   const [dados, setDados] = useState<DadosEstacionamentoForm>({
     nome: "",
@@ -253,7 +261,7 @@ export function EstacionamentoDetalhe() {
                 <button
                   type="button"
                   className="btn btn-secundario"
-                  onClick={() => setEditando(false)}
+                  onClick={() => navigate("/estacionamentos")}
                   disabled={acaoOcupado}
                 >
                   Cancelar
@@ -262,6 +270,58 @@ export function EstacionamentoDetalhe() {
             </form>
           </div>
         </div>
+
+        {acaoErro && (
+          <div className="card border-vermelho/40">
+            <div className="card-corpo text-vermelho-escuro">{acaoErro}</div>
+          </div>
+        )}
+
+        {podeExcluir && !confirmandoExclusao && (
+          <div className="card border-vermelho/40">
+            <div className="card-corpo">
+              <button
+                type="button"
+                className="btn btn-perigo"
+                onClick={() => setConfirmandoExclusao(true)}
+                disabled={acaoOcupado}
+              >
+                Excluir estacionamento
+              </button>
+            </div>
+          </div>
+        )}
+
+        {confirmandoExclusao && (
+          <div className="card border-vermelho/40">
+            <div className="card-corpo space-y-3">
+              <p className="font-semibold text-vermelho-escuro">
+                Excluir estacionamento {estacionamento.nome}?
+              </p>
+              <p className="text-sm text-ardesia">
+                Esta acao e irreversivel.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="btn btn-perigo"
+                  onClick={handleExcluir}
+                  disabled={acaoOcupado}
+                >
+                  {acaoOcupado ? "Excluindo..." : "Confirmar exclusao"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secundario"
+                  onClick={() => setConfirmandoExclusao(false)}
+                  disabled={acaoOcupado}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -284,56 +344,9 @@ export function EstacionamentoDetalhe() {
             >
               Editar
             </button>
-            {podeExcluir && !confirmandoExclusao && (
-              <button
-                type="button"
-                className="btn btn-perigo"
-                onClick={() => setConfirmandoExclusao(true)}
-                disabled={acaoOcupado}
-              >
-                Excluir
-              </button>
-            )}
           </div>
         )}
       </header>
-
-      {acaoErro && (
-        <div className="card border-vermelho/40">
-          <div className="card-corpo text-vermelho-escuro">{acaoErro}</div>
-        </div>
-      )}
-
-      {confirmandoExclusao && (
-        <div className="card border-vermelho/40">
-          <div className="card-corpo space-y-3">
-            <p className="font-semibold text-vermelho-escuro">
-              Excluir estacionamento {estacionamento.nome}?
-            </p>
-            <p className="text-sm text-ardesia">
-              Esta acao e irreversivel.
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className="btn btn-perigo"
-                onClick={handleExcluir}
-                disabled={acaoOcupado}
-              >
-                {acaoOcupado ? "Excluindo..." : "Confirmar exclusao"}
-              </button>
-              <button
-                type="button"
-                className="btn btn-secundario"
-                onClick={() => setConfirmandoExclusao(false)}
-                disabled={acaoOcupado}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <section className="card">
         <div className="card-corpo grid grid-cols-1 sm:grid-cols-2 gap-4">

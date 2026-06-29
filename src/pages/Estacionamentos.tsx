@@ -2,6 +2,44 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEstacionamentos } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 
+function BarraOcupacao({
+  contratadas,
+  distribuidas,
+}: {
+  contratadas: number;
+  distribuidas: number;
+}) {
+  const pct = contratadas > 0 ? (distribuidas / contratadas) * 100 : 0;
+  const pctExibida = Math.min(pct, 100);
+
+  const getCor = () => {
+    if (pct > 100)
+      return { bar: "bg-vermelho", track: "bg-vermelho/15", texto: "text-vermelho-escuro" };
+    if (pct >= 80)
+      return { bar: "bg-ouro", track: "bg-ouro/15", texto: "text-ouro-texto" };
+    return { bar: "bg-verde", track: "bg-verde/15", texto: "text-verde-escuro" };
+  };
+
+  const cor = getCor();
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-sm text-ardesia">Ocupacao</span>
+        <span className={`font-mono text-sm font-semibold ${cor.texto}`}>
+          {pct.toFixed(0)}%
+        </span>
+      </div>
+      <div className={`h-2.5 rounded-full ${cor.track} overflow-hidden`}>
+        <div
+          className={`h-full rounded-full ${cor.bar} transition-all`}
+          style={{ width: `${pctExibida}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function Estacionamentos() {
   const navigate = useNavigate();
   const { sessao } = useSessao();
@@ -32,71 +70,78 @@ export function Estacionamentos() {
         </div>
       )}
 
-      <div className="card overflow-hidden">
-        <div className="tabela-rolavel">
-          <table className="tabela-larga">
-            <thead className="bg-pietra-clara/60 text-left">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Nome</th>
-                <th className="px-4 py-3 font-semibold">Endereco</th>
-                <th className="px-4 py-3 font-semibold text-right">Vagas Contratadas</th>
-                <th className="px-4 py-3 font-semibold text-right">Vagas Distribuidas</th>
-                <th className="px-4 py-3 font-semibold text-right">Diferença</th>
-                <th className="px-4 py-3 font-semibold hidden sm:table-cell">
-                  Perimetro
-                </th>
-                <th className="px-4 py-3 font-semibold hidden md:table-cell">
-                  Horarios
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {itens.length === 0 && !carregando && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-ardesia">
-                    Nenhum estacionamento cadastrado.
-                  </td>
-                </tr>
-              )}
-              {itens.map((e) => (
-                <tr
-                  key={e.id}
-                  className="border-t border-pietra-clara hover:bg-pietra-clara/40 cursor-pointer"
-                  onClick={() => navigate(`/estacionamentos/${e.id}`)}
-                >
-                  <td className="px-4 py-3">
+      {!carregando && itens.length === 0 && !erro && (
+        <div className="card">
+          <div className="card-corpo text-center text-ardesia">
+            Nenhum estacionamento cadastrado.
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+        {itens.map((e) => {
+          const diff = e.vagasContratadas - e.vagasDistribuidas;
+          return (
+            <div
+              key={e.id}
+              className="card cursor-pointer hover:shadow-media hover:-translate-y-0.5 transition-all"
+              onClick={() => navigate(`/estacionamentos/${e.id}?edit=true`)}
+            >
+              <div className="card-corpo space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
                     <Link
-                      to={`/estacionamentos/${e.id}`}
-                      className="font-semibold text-carbone hover:text-verde"
+                      to={`/estacionamentos/${e.id}?edit=true`}
+                      className="font-semibold text-carbone hover:text-verde no-underline hover:underline"
+                      onClick={(ev) => ev.stopPropagation()}
                     >
                       {e.nome}
                     </Link>
-                  </td>
-                  <td className="px-4 py-3 text-ardesia">{e.endereco}</td>
-                  <td className="px-4 py-3 font-mono text-ardesia text-right">
-                    {e.vagasContratadas}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-ardesia text-right">
-                    {e.vagasDistribuidas}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-ardesia text-right">
-                    {e.vagasContratadas - e.vagasDistribuidas}
-                  </td>
-                  <td className="px-4 py-3 hidden sm:table-cell">
-                    {e.dentroPerimetro ? (
-                      <span className="badge badge-verde">sim</span>
-                    ) : (
-                      <span className="badge badge-cinza">nao</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 hidden md:table-cell text-ardesia">
-                    {e.horarios}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    <p className="text-ardesia text-sm mt-0.5 truncate">
+                      {e.endereco}
+                    </p>
+                  </div>
+                  {e.dentroPerimetro ? (
+                    <span className="badge badge-verde shrink-0">sim</span>
+                  ) : (
+                    <span className="badge badge-cinza shrink-0">nao</span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                  <div>
+                    <span className="text-ardesia">Contratadas: </span>
+                    <span className="font-mono font-semibold">
+                      {e.vagasContratadas}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-ardesia">Distribuidas: </span>
+                    <span className="font-mono font-semibold">
+                      {e.vagasDistribuidas}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-ardesia">Saldo: </span>
+                    <span
+                      className={`font-mono font-semibold ${diff < 0 ? "text-vermelho-escuro" : "text-verde-escuro"
+                        }`}
+                    >
+                      {diff}
+                    </span>
+                  </div>
+                </div>
+
+                <BarraOcupacao
+                  contratadas={e.vagasContratadas}
+                  distribuidas={e.vagasDistribuidas}
+                />
+
+                <p className="text-ardesia text-sm">{e.horarios}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

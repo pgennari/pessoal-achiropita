@@ -44,19 +44,12 @@ jobs:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: npm run build
 
-      - name: Autenticar e Deploy Hosting
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/work/_temp/sa.json
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Instala firebase-tools e Deploy Hosting
         run: |
-          printf '%s' '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$GOOGLE_APPLICATION_CREDENTIALS"
-          if [ ! -s "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
-            echo "Erro: Arquivo sa.json vazio ou não foi criado!"
-            exit 1
-          fi
-          python3 -m json.tool "$GOOGLE_APPLICATION_CREDENTIALS" > /dev/null || {
-            echo "Erro: sa.json não é um JSON válido!"
-            exit 1
-          }
           npm install -g firebase-tools@${{ env.FIREBASE_TOOLS_VERSION }}
           firebase deploy \
             --only hosting \

@@ -27,6 +27,27 @@ import {
 } from "../lib/tipos";
 import { formatarData } from "../lib/utilsDominio";
 
+const COR_CARD_SETOR: Record<Setor, { borda: string; badge: string; btnAtivo: string; btnInativo: string }> = {
+  Interna: {
+    borda: "border-l-[4px] border-l-verde",
+    badge: "badge-verde",
+    btnAtivo: "bg-verde text-white hover:bg-verde-escuro hover:-translate-y-px hover:shadow-media",
+    btnInativo: "bg-verde/8 text-verde-escuro border-[1.5px] border-verde/30 hover:bg-verde/15",
+  },
+  Externa: {
+    borda: "border-l-[4px] border-l-azul",
+    badge: "badge-azul",
+    btnAtivo: "bg-azul text-white hover:bg-azul-texto hover:-translate-y-px hover:shadow-media",
+    btnInativo: "bg-azul/8 text-azul-texto border-[1.5px] border-azul/30 hover:bg-azul/15",
+  },
+  Alimentacao: {
+    borda: "border-l-[4px] border-l-ouro",
+    badge: "badge-ouro",
+    btnAtivo: "bg-ouro text-white hover:bg-ouro-texto hover:-translate-y-px hover:shadow-media",
+    btnInativo: "bg-ouro/8 text-ouro-texto border-[1.5px] border-ouro/30 hover:bg-ouro/15",
+  },
+};
+
 interface ResumoVagas {
   previstas: number;
   alocadas: number;
@@ -40,10 +61,39 @@ function resumoEquipe(e: Equipe, parts: Participacao[]): ResumoVagas {
   return { previstas, alocadas, pct };
 }
 
-function corPorPercentual(pct: number) {
-  if (pct >= 90) return "badge badge-verde";
-  if (pct >= 60) return "badge badge-ouro";
-  return "badge badge-vermelho";
+function BarraPreenchimento({
+  previstas,
+  alocadas,
+  pct,
+}: ResumoVagas) {
+  const pctExibida = Math.min(pct, 100);
+
+  const getCor = () => {
+    if (pct >= 100)
+      return { bar: "bg-verde", track: "bg-verde/15", texto: "text-verde-escuro" };
+    if (pct >= 60)
+      return { bar: "bg-ouro", track: "bg-ouro/15", texto: "text-ouro-texto" };
+    return { bar: "bg-vermelho", track: "bg-vermelho/15", texto: "text-vermelho-escuro" };
+  };
+
+  const cor = getCor();
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-sm text-ardesia">Preenchimento</span>
+        <span className={`font-mono text-sm font-semibold ${cor.texto}`}>
+          {alocadas}/{previstas} &middot; {pct}%
+        </span>
+      </div>
+      <div className={`h-2.5 rounded-full ${cor.track} overflow-hidden`}>
+        <div
+          className={`h-full rounded-full ${cor.bar} transition-all`}
+          style={{ width: `${pctExibida}%` }}
+        />
+      </div>
+    </div>
+  );
 }
 
 export function EdicaoDetalhe() {
@@ -264,43 +314,62 @@ export function EdicaoDetalhe() {
       </section>
 
       <section>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h3>Equipes</h3>
-            <p className="text-ardesia text-sm">
-              {carregandoEquipes
-                ? "Carregando..."
-                : `${lista.length} de ${equipes.length}`}
-            </p>
-          </div>
-          <div className="flex gap-1 flex-wrap">
-            <button
-              className={`btn btn-pequeno ${
-                filtroSetor === "todos" ? "btn-primario" : "btn-secundario"
-              }`}
-              onClick={() => setFiltroSetor("todos")}
-            >
-              Todos
-            </button>
-            {SETORES.map((s) => (
-              <button
-                key={s.valor}
-                className={`btn btn-pequeno ${
-                  filtroSetor === s.valor ? "btn-primario" : "btn-secundario"
-                }`}
-                onClick={() => setFiltroSetor(s.valor)}
-              >
-                {s.rotulo}
-              </button>
-            ))}
+        <div>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h3>Equipes</h3>
+              <p className="text-ardesia text-sm">
+                {carregandoEquipes
+                  ? "Carregando..."
+                  : `${lista.length} de ${equipes.length}`}
+              </p>
+            </div>
             {podeAdministrar && !criandoEquipe && (
               <button
                 type="button"
-                className="btn btn-primario btn-pequeno"
+                className="btn btn-primario btn-pequeno lg:hidden"
                 onClick={() => setCriandoEquipe(true)}
               >
                 Nova equipe
               </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 mt-3">
+            <div className="flex gap-1 flex-wrap">
+              <button
+                className={`btn btn-pequeno ${
+                  filtroSetor === "todos" ? "btn-primario" : "btn-secundario"
+                }`}
+                onClick={() => setFiltroSetor("todos")}
+              >
+                Todos
+              </button>
+              {SETORES.map((s) => (
+                <button
+                  key={s.valor}
+                  className={`btn btn-pequeno ${
+                    filtroSetor === s.valor
+                      ? COR_CARD_SETOR[s.valor].btnAtivo
+                      : COR_CARD_SETOR[s.valor].btnInativo
+                  }`}
+                  onClick={() => setFiltroSetor(s.valor)}
+                >
+                  {s.rotulo}
+                </button>
+              ))}
+            </div>
+            {podeAdministrar && !criandoEquipe && (
+              <>
+                <div className="w-px self-stretch bg-pietra hidden lg:block" />
+                <button
+                  type="button"
+                  className="btn btn-primario btn-pequeno hidden lg:inline-flex"
+                  onClick={() => setCriandoEquipe(true)}
+                >
+                  Nova equipe
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -318,76 +387,74 @@ export function EdicaoDetalhe() {
           </div>
         )}
 
-        <div className="card overflow-hidden mt-4">
-          <div className="tabela-rolavel"><table className="tabela-larga">
-            <thead className="bg-pietra-clara/60 text-left">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Equipe</th>
-                <th className="px-4 py-3 font-semibold w-32">Setor</th>
-                <th className="px-4 py-3 font-semibold w-24 text-right">Coord.</th>
-                <th className="px-4 py-3 font-semibold w-24 text-right">Equip.</th>
-                <th className="px-4 py-3 font-semibold w-24 text-right">Apoio</th>
-                <th className="px-4 py-3 font-semibold w-44 text-right">Preenchimento</th>
-                <th className="px-4 py-3 font-semibold w-32 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lista.length === 0 && !carregandoEquipes && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-ardesia">
-                    Nenhuma equipe neste filtro.
-                  </td>
-                </tr>
-              )}
-              {lista.map((e) => {
-                const r = resumoEquipe(e, participacoes);
-                return (
-                    <tr
-                      key={e.id}
-                      className="border-t border-pietra-clara hover:bg-pietra-clara/40 cursor-pointer"
-                      onClick={() => navigate(`/edicoes/${edicao.id}/equipes/${e.id}`)}
-                    >
-                    <td className="px-4 py-3">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 mt-4">
+          {lista.length === 0 && !carregandoEquipes && (
+            <div className="card col-span-full">
+              <div className="card-corpo text-center text-ardesia">
+                Nenhuma equipe neste filtro.
+              </div>
+            </div>
+          )}
+          {lista.map((e) => {
+            const r = resumoEquipe(e, participacoes);
+            return (
+              <div
+                key={e.id}
+                className={`card cursor-pointer hover:shadow-media hover:-translate-y-0.5 transition-all ${COR_CARD_SETOR[e.setor].borda}`}
+                onClick={() => navigate(`/edicoes/${edicao.id}/equipes/${e.id}`)}
+              >
+                <div className="card-corpo space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
                       <Link
                         to={`/edicoes/${edicao.id}/equipes/${e.id}`}
-                        className="font-semibold text-carbone hover:text-verde"
+                        className="font-semibold text-carbone hover:text-verde no-underline hover:underline"
+                        onClick={(ev) => ev.stopPropagation()}
                       >
                         {e.nome}
                       </Link>
-                    </td>
-                    <td className="px-4 py-3 text-ardesia">
+                    </div>
+                    <span className={`badge ${COR_CARD_SETOR[e.setor].badge} shrink-0`}>
                       {SETORES.find((s) => s.valor === e.setor)?.rotulo}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono">
-                      {e.vagasCoordenador}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono">
-                      {e.vagasEquipista}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono">
-                      {e.vagasApoio}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className={corPorPercentual(r.pct)}>
-                        {r.alocadas}/{r.previstas} · {r.pct}%
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {podeAdministrar && (
-                        <button
-                          type="button"
-                          className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                          onClick={(ev) => { ev.stopPropagation(); handleRemoverEquipe(e); }}
-                        >
-                          Remover
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table></div>
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                    <div>
+                      <span className="text-ardesia">Coord.: </span>
+                      <span className="font-mono font-semibold">{e.vagasCoordenador}</span>
+                    </div>
+                    <div>
+                      <span className="text-ardesia">Equip.: </span>
+                      <span className="font-mono font-semibold">{e.vagasEquipista}</span>
+                    </div>
+                    <div>
+                      <span className="text-ardesia">Apoio: </span>
+                      <span className="font-mono font-semibold">{e.vagasApoio}</span>
+                    </div>
+                  </div>
+
+                  <BarraPreenchimento
+                    previstas={r.previstas}
+                    alocadas={r.alocadas}
+                    pct={r.pct}
+                  />
+
+                  {podeAdministrar && (
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                        onClick={(ev) => { ev.stopPropagation(); handleRemoverEquipe(e); }}
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 

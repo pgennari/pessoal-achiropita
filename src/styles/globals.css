@@ -214,6 +214,29 @@
   .kpi-delta.negativo {
     @apply text-vermelho-escuro;
   }
+  @media (max-width: 480px) {
+    .kpi-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+    }
+    .kpi {
+      @apply p-3;
+    }
+    .kpi-label {
+      @apply mb-1;
+      font-size: 0.7rem;
+    }
+    .kpi-valor {
+      font-size: 1.5rem;
+      margin-bottom: 0;
+    }
+    .kpi-valor .unidade {
+      font-size: 0.85rem;
+    }
+    .kpi-delta {
+      font-size: 0.65rem;
+    }
+  }
 
   /* Checkbox */
   .checkbox {

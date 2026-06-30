@@ -55,13 +55,13 @@ const secoes: Secao[] = [
           { to: "/historico", label: "Histórico", perfis: ["ADM", "ORG"] },
         ],
       },
+      { to: "/setores", label: "Setores", perfis: ["ADM", "ORG"] },
     ],
   },
   {
     label: "Administração",
     perfis: ["ADM"],
         itens: [
-          { to: "/setores", label: "Setores", perfis: ["ADM", "ORG"] },
           { to: "/usuarios", label: "Usuários", perfis: ["ADM"] },
           { to: "/auditoria", label: "Auditoria", perfis: ["ADM", "ORG"] },
           { to: "/zeramento", label: "Zeramento", perfis: ["ADM"] },

@@ -221,6 +221,23 @@ CREATE TABLE auditoria (
 );
 CREATE INDEX idx_auditoria_criado ON auditoria(criado_em DESC);
 
+-- setores: metadados (cor, nome de exibicao) para cada setor_equipe
+CREATE TABLE setores (
+  id            TEXT PRIMARY KEY, -- mesma string do enum setor_equipe
+  nome          TEXT NOT NULL,
+  cor           TEXT NOT NULL DEFAULT '#1f7b4d',
+  editavel      BOOLEAN NOT NULL DEFAULT FALSE,
+  criado_em     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Seed dos setores iniciais (executar na primeira migracao)
+INSERT INTO setores (id, nome, cor, editavel) VALUES
+  ('Interna',     'Interna',     '#1f7b4d', FALSE),
+  ('Externa',     'Externa',     '#c95a2b', FALSE),
+  ('Alimentacao', 'Alimentacao', '#b8860b', FALSE)
+ON CONFLICT (id) DO NOTHING;
+
 -- participacoes_historicas: reservada para EP-13 (importação legada)
 -- TODO(US-13-01): implementar importação
 CREATE TABLE participacoes_historicas (

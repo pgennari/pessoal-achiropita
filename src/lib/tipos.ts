@@ -128,6 +128,15 @@ export const SETORES: { valor: Setor; rotulo: string }[] = [
   { valor: "Alimentacao", rotulo: "Alimentação" },
 ];
 
+export interface SetorInfo {
+  id: string;
+  nome: string;
+  cor: string;
+  editavel: boolean;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
 export interface Equipe {
   id: string;
   edicaoId: string;

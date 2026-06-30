@@ -18,6 +18,7 @@ import auditoria from "./rotas/auditoria.js";
 import estacionamentos from "./rotas/estacionamentos.js";
 import publico from "./rotas/publico.js";
 import admin from "./rotas/admin.js";
+import setores from "./rotas/setores.js";
 import historicoParticipacoes from "./rotas/historicoParticipacoes.js";
 
 const app = new OpenAPIHono();
@@ -63,6 +64,7 @@ app.route("/api/estacionamentos", estacionamentos);
 app.route("/api/publico", publico);
 app.route("/api/admin", admin);
 app.route("/api/historico-participacoes", historicoParticipacoes);
+app.route("/api/setores", setores);
 
 app.onError((err, c) => {
   console.error("[API Error]", err);

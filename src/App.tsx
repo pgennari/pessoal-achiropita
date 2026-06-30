@@ -24,6 +24,7 @@ import { PaginaConvite } from "./pages/PaginaConvite";
 import { RedefinirSenha } from "./pages/RedefinirSenha";
 import { UploadFotoPublico } from "./pages/UploadFotoPublico";
 import { ZeramentoDados } from "./pages/ZeramentoDados";
+import { Setores } from "./pages/Setores";
 
 export function App() {
   return (
@@ -60,6 +61,7 @@ export function App() {
         <Route path="estacionamentos/novo" element={<EstacionamentoNovo />} />
         <Route path="estacionamentos/:id" element={<EstacionamentoDetalhe />} />
         <Route path="auditoria" element={<Auditoria />} />
+        <Route path="setores" element={<Setores />} />
         <Route path="zeramento" element={<ZeramentoDados />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

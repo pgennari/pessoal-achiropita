@@ -15,6 +15,7 @@ import {
   Participacao,
   ParticipacaoHistorica,
   Pessoa,
+  SetorInfo,
   TurmaFormacao,
   Usuario,
 } from "./tipos";
@@ -261,6 +262,16 @@ export function useEstacionamento(id: string | undefined): EstadoItem<Estacionam
     enabled: !!id,
   });
   return { item: data ?? null, carregando: isLoading && !!id, erro: erroMsg(error) };
+}
+
+// ─── Setores ──────────────────────────────────────────────────────────────────
+
+export function useSetores(): EstadoLista<SetorInfo> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["setores"],
+    queryFn: () => api.get<SetorInfo[]>("/api/setores"),
+  });
+  return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
 }
 
 // ─── Auditoria ────────────────────────────────────────────────────────────────

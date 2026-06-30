@@ -26,3 +26,4 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ACHIROPITA_PESSOAL }}
           channelId: live
           projectId: achiropita-pessoal
+          firebaseToolsVersion: 15.22.1

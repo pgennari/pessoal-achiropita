@@ -108,4 +108,75 @@ app.openapi(putRoute, async (c) => {
   return c.json(setorDeRow(row) as any, 200);
 });
 
+const postRoute = createRoute({
+  method: "post",
+  path: "/",
+  tags: ["Setores"],
+  summary: "Cadastra novo setor",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            id: z.string().optional(),
+            nome: z.string(),
+            cor: z.string(),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    201: { content: { "application/json": { schema: SetorSchema } }, description: "Criado com sucesso" },
+    400: { content: { "application/json": { schema: msgErro } }, description: "Dados invalidos" },
+    403: { content: { "application/json": { schema: msgErro } }, description: "Acesso negado" },
+    409: { content: { "application/json": { schema: msgErro } }, description: "Conflito: ID ja existe" },
+  },
+});
+
+function gerarId(nome: string): string {
+  return nome
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9\s]/g, "")
+    .split(/\s+/)
+    .map((p, i) => i === 0 ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase() : p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+    .join("");
+}
+
+app.openapi(postRoute, async (c) => {
+  const sessao = c.get("sessao");
+  if (!podeAdministrar(sessao.perfil)) {
+    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  }
+  const body = c.req.valid("json");
+  if (!body.nome.trim()) {
+    return c.json({ erro: "Nome obrigatorio." }, 400);
+  }
+  if (!body.cor.trim()) {
+    return c.json({ erro: "Cor obrigatoria." }, 400);
+  }
+
+  const id = body.id?.trim() || gerarId(body.nome);
+  if (!id) {
+    return c.json({ erro: "Nao foi possivel gerar ID a partir do nome." }, 400);
+  }
+
+  const [existente] = await sql`SELECT id FROM setores WHERE id = ${id}`;
+  if (existente) {
+    return c.json({ erro: `Ja existe um setor com o ID "${id}".` }, 409);
+  }
+
+  const [row] = await sql`
+    INSERT INTO setores (id, nome, cor, editavel)
+    VALUES (${id}, ${body.nome.trim()}, ${body.cor.trim()}, TRUE)
+    RETURNING *
+  `;
+
+  await registrarEvento(sessao, "setor.criou", `setores/${id}`, body.nome);
+  return c.json(setorDeRow(row) as any, 201);
+});
+
 export default app;

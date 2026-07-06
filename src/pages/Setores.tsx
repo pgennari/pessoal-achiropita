@@ -10,6 +10,20 @@ const CORES_SUGESTAO = [
   "#db2777", "#0891b2", "#65a30d", "#ca8a04", "#be123c",
 ];
 
+function gerarId(nome: string): string {
+  return nome
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9\s]/g, "")
+    .split(/\s+/)
+    .map((p, i) =>
+      i === 0
+        ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()
+        : p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()
+    )
+    .join("");
+}
+
 export function Setores() {
   const { sessao } = useSessao();
   const { itens: setores, carregando, erro } = useSetores();
@@ -20,6 +34,14 @@ export function Setores() {
   const [corEdit, setCorEdit] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
+
+  const [criandoNovo, setCriandoNovo] = useState(false);
+  const [novoNome, setNovoNome] = useState("");
+  const [novoId, setNovoId] = useState("");
+  const [novaCor, setNovaCor] = useState("#2563eb");
+  const [idManual, setIdManual] = useState(false);
+  const [criando, setCriando] = useState(false);
+  const [erroCriar, setErroCriar] = useState<string | null>(null);
 
   const podeEditar = sessao?.perfil === "ADM" || sessao?.perfil === "ORG";
 
@@ -53,6 +75,45 @@ export function Setores() {
     setErroSalvar(null);
   }
 
+  function handleNovoNome(v: string) {
+    setNovoNome(v);
+    if (!idManual) {
+      setNovoId(gerarId(v));
+    }
+  }
+
+  async function handleCriar() {
+    if (!sessao) return;
+    setCriando(true);
+    setErroCriar(null);
+    try {
+      await api.post<SetorInfo>("/api/setores", {
+        id: novoId.trim() || undefined,
+        nome: novoNome.trim(),
+        cor: novaCor.trim(),
+      });
+      await queryClient.invalidateQueries({ queryKey: ["setores"] });
+      setCriandoNovo(false);
+      setNovoNome("");
+      setNovoId("");
+      setNovaCor("#2563eb");
+      setIdManual(false);
+    } catch (e) {
+      setErroCriar(e instanceof Error ? e.message : "Falha ao criar.");
+    } finally {
+      setCriando(false);
+    }
+  }
+
+  function cancelarCriacao() {
+    setCriandoNovo(false);
+    setNovoNome("");
+    setNovoId("");
+    setNovaCor("#2563eb");
+    setIdManual(false);
+    setErroCriar(null);
+  }
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -63,6 +124,15 @@ export function Setores() {
             {carregando ? "Carregando..." : `${setores.length} setores`}
           </p>
         </div>
+        {podeEditar && !criandoNovo && (
+          <button
+            type="button"
+            className="btn btn-primario"
+            onClick={() => setCriandoNovo(true)}
+          >
+            Novo setor
+          </button>
+        )}
       </header>
 
       {erro && (
@@ -77,7 +147,118 @@ export function Setores() {
         </div>
       )}
 
-      {!carregando && setores.length === 0 && !erro && (
+      {erroCriar && (
+        <div className="card border-vermelho/40">
+          <div className="card-corpo text-vermelho-escuro">{erroCriar}</div>
+        </div>
+      )}
+
+      {criandoNovo && (
+        <div className="card">
+          <div className="card-corpo space-y-5">
+            <h3 className="mb-0">Novo setor</h3>
+
+            <div className="input-grupo m-0">
+              <label className="input-label" htmlFor="novoNome">
+                Nome do setor
+              </label>
+              <input
+                id="novoNome"
+                className="input"
+                value={novoNome}
+                onChange={(e) => handleNovoNome(e.target.value)}
+                placeholder="Ex: Atendimento"
+              />
+            </div>
+
+            <div className="input-grupo m-0">
+              <label className="input-label" htmlFor="novoId">
+                ID interno
+                <button
+                  type="button"
+                  className="ml-2 text-xs text-ardesia underline hover:text-carbone"
+                  onClick={() => {
+                    setIdManual(!idManual);
+                    if (!idManual) setNovoId(gerarId(novoNome));
+                  }}
+                >
+                  {idManual ? "gerar automaticamente" : "editar manualmente"}
+                </button>
+              </label>
+              <input
+                id="novoId"
+                className="input font-mono"
+                value={novoId}
+                onChange={(e) => setNovoId(e.target.value)}
+                placeholder="Ex: Atendimento"
+                readOnly={!idManual}
+              />
+              <p className="input-ajuda">
+                Identificador usado no banco de dados. Deve ser unico.
+              </p>
+            </div>
+
+            <div className="input-grupo m-0">
+              <label className="input-label" htmlFor="novaCor">
+                Cor
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  id="novaCor"
+                  className="input font-mono flex-1"
+                  value={novaCor}
+                  onChange={(e) => setNovaCor(e.target.value)}
+                  placeholder="#rrggbb"
+                />
+                <div
+                  className="w-10 h-10 rounded border border-pietra shrink-0"
+                  style={{ backgroundColor: novaCor }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs text-ardesia mb-2">Sugestoes</p>
+              <div className="flex flex-wrap gap-1.5">
+                {CORES_SUGESTAO.map((cor) => (
+                  <button
+                    key={cor}
+                    type="button"
+                    className={`w-7 h-7 rounded-full border-2 transition ${
+                      novaCor === cor
+                        ? "border-carbone scale-110"
+                        : "border-transparent hover:border-pietra"
+                    }`}
+                    style={{ backgroundColor: cor }}
+                    onClick={() => setNovaCor(cor)}
+                    title={cor}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                className="btn btn-primario btn-pequeno"
+                disabled={criando || !novoNome.trim() || !novoId.trim()}
+                onClick={handleCriar}
+              >
+                {criando ? "Criando..." : "Cadastrar setor"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secundario btn-pequeno"
+                onClick={cancelarCriacao}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!carregando && setores.length === 0 && !erro && !criandoNovo && (
         <div className="card">
           <div className="card-corpo text-center text-ardesia">
             Nenhum setor cadastrado.
@@ -90,10 +271,7 @@ export function Setores() {
           const editandoAtivo = editandoId === s.id;
 
           return (
-            <div
-              key={s.id}
-              className="card"
-            >
+            <div key={s.id} className="card">
               <div className="card-corpo space-y-5">
                 <div className="flex items-start gap-4">
                   <div

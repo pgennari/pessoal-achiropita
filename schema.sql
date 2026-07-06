@@ -8,7 +8,6 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TYPE perfil_usuario        AS ENUM ('ADM','ORG','CRD','EQP','OPC','REC');
 CREATE TYPE status_convite        AS ENUM ('pendente','usado','revogado');
 CREATE TYPE status_edicao         AS ENUM ('planejamento','ativa','encerrada');
-CREATE TYPE setor_equipe          AS ENUM ('Interna','Externa','Alimentacao');
 CREATE TYPE funcao_participacao   AS ENUM ('Coordenador','Equipista','Apoio');
 CREATE TYPE tipo_presenca         AS ENUM ('manual','validacao');
 CREATE TYPE status_link           AS ENUM ('ativo','revogado','usado');
@@ -93,7 +92,7 @@ CREATE TABLE equipes (
   id                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   edicao_id           TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
   nome                TEXT NOT NULL,
-  setor               setor_equipe NOT NULL,
+  setor               TEXT NOT NULL,
   vagas_coordenador   INTEGER NOT NULL DEFAULT 0,
   vagas_equipista     INTEGER NOT NULL DEFAULT 0,
   vagas_apoio         INTEGER NOT NULL DEFAULT 0,
@@ -144,7 +143,7 @@ CREATE TABLE turmas_formacao (
   horario_fim         TEXT,
   local               TEXT NOT NULL,
   capacidade_maxima   INTEGER NOT NULL,
-  setor_vinculo       setor_equipe,
+  setor_vinculo       TEXT,
   equipe_id_vinculo   TEXT,
   criado_em           TIMESTAMPTZ NOT NULL DEFAULT now(),
   atualizado_em       TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -221,9 +220,9 @@ CREATE TABLE auditoria (
 );
 CREATE INDEX idx_auditoria_criado ON auditoria(criado_em DESC);
 
--- setores: metadados (cor, nome de exibicao) para cada setor_equipe
+-- setores: metadados (cor, nome de exibicao) para cada setor
 CREATE TABLE setores (
-  id            TEXT PRIMARY KEY, -- mesma string do enum setor_equipe
+  id            TEXT PRIMARY KEY, -- identificador usado em equipes.setor
   nome          TEXT NOT NULL,
   cor           TEXT NOT NULL DEFAULT '#1f7b4d',
   editavel      BOOLEAN NOT NULL DEFAULT FALSE,

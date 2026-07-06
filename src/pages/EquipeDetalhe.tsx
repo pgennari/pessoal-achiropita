@@ -7,6 +7,7 @@ import {
   useIndicePessoas,
   useParticipacoes,
   usePessoas,
+  useSetores,
 } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import {
@@ -26,7 +27,6 @@ import {
   Funcao,
   Participacao,
   Pessoa,
-  SETORES,
 } from "../lib/tipos";
 
 interface Linha {
@@ -43,7 +43,9 @@ export function EquipeDetalhe() {
   const { itens: equipes } = useEquipes(edicaoId);
   const { itens: participacoes, carregando: carregandoParticipacoes } = useParticipacoes(edicaoId);
   const { itens: pessoas } = usePessoas();
+  const { itens: setores } = useSetores();
   const indice = useIndicePessoas(pessoas);
+  const nomeSetor = equipe ? (setores.find((s) => s.id === equipe.setor)?.nome ?? equipe.setor) : "";
 
   const [editando, setEditando] = useState(false);
   const [alocando, setAlocando] = useState(false);
@@ -215,7 +217,7 @@ export function EquipeDetalhe() {
           </Link>
           <h2 className="mt-1">{equipe.nome}</h2>
           <div className="text-ardesia text-sm">
-            {SETORES.find((s) => s.valor === equipe.setor)?.rotulo}
+            {nomeSetor}
           </div>
         </div>
         {podeAdministrar && (

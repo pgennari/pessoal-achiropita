@@ -120,7 +120,7 @@ export interface Edicao {
   atualizadoEm: string;
 }
 
-export type Setor = "Interna" | "Externa" | "Alimentacao";
+export type Setor = string;
 
 export const SETORES: { valor: Setor; rotulo: string }[] = [
   { valor: "Interna", rotulo: "Interna" },

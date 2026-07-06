@@ -4,6 +4,7 @@ import {
   useEquipes,
   useEdicao,
   useParticipacoes,
+  useSetores,
 } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import {
@@ -14,6 +15,7 @@ import {
 } from "../lib/edicoes";
 import {
   DadosEquipeForm,
+  atualizarEquipe,
   criarEquipe,
   removerEquipe,
 } from "../lib/equipes";
@@ -22,31 +24,9 @@ import { EquipeForm } from "../components/EquipeForm";
 import {
   Equipe,
   Participacao,
-  SETORES,
-  Setor,
+  SetorInfo,
 } from "../lib/tipos";
 import { formatarData } from "../lib/utilsDominio";
-
-const COR_CARD_SETOR: Record<Setor, { borda: string; badge: string; btnAtivo: string; btnInativo: string }> = {
-  Interna: {
-    borda: "border-l-[4px] border-l-verde",
-    badge: "badge-verde",
-    btnAtivo: "bg-verde text-white hover:bg-verde-escuro hover:-translate-y-px hover:shadow-media",
-    btnInativo: "bg-verde/8 text-verde-escuro border-[1.5px] border-verde/30 hover:bg-verde/15",
-  },
-  Externa: {
-    borda: "border-l-[4px] border-l-azul",
-    badge: "badge-azul",
-    btnAtivo: "bg-azul text-white hover:bg-azul-texto hover:-translate-y-px hover:shadow-media",
-    btnInativo: "bg-azul/8 text-azul-texto border-[1.5px] border-azul/30 hover:bg-azul/15",
-  },
-  Alimentacao: {
-    borda: "border-l-[4px] border-l-ouro",
-    badge: "badge-ouro",
-    btnAtivo: "bg-ouro text-white hover:bg-ouro-texto hover:-translate-y-px hover:shadow-media",
-    btnInativo: "bg-ouro/8 text-ouro-texto border-[1.5px] border-ouro/30 hover:bg-ouro/15",
-  },
-};
 
 interface ResumoVagas {
   previstas: number;
@@ -103,11 +83,23 @@ export function EdicaoDetalhe() {
   const { item: edicao, carregando, erro } = useEdicao(id);
   const { itens: equipes, carregando: carregandoEquipes } = useEquipes(id);
   const { itens: participacoes, carregando: carregandoParticipacoes } = useParticipacoes(id);
+  const { itens: setores, carregando: carregandoSetores } = useSetores();
 
   const [editandoEdicao, setEditandoEdicao] = useState(false);
   const [criandoEquipe, setCriandoEquipe] = useState(false);
-  const [filtroSetor, setFiltroSetor] = useState<Setor | "todos">("todos");
+  const [filtroSetor, setFiltroSetor] = useState<string | "todos">("todos");
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
+  const [alterandoSetorId, setAlterandoSetorId] = useState<string | null>(null);
+
+  const mapaSetor = useMemo(() => {
+    const m = new Map<string, SetorInfo>();
+    for (const s of setores) m.set(s.id, s);
+    return m;
+  }, [setores]);
+
+  function getSetor(id: string): SetorInfo | undefined {
+    return mapaSetor.get(id);
+  }
 
   const podeAdministrar =
     !!sessao && (sessao.perfil === "ADM" || sessao.perfil === "ORG");
@@ -131,7 +123,7 @@ export function EdicaoDetalhe() {
   );
 
   if (!sessao) return null;
-  if (carregando || carregandoEquipes || carregandoParticipacoes)
+  if (carregando || carregandoEquipes || carregandoParticipacoes || carregandoSetores)
     return <p className="text-ardesia">Carregando...</p>;
 
   if (erro || !edicao) {
@@ -194,6 +186,23 @@ export function EdicaoDetalhe() {
       await removerEquipe(sessao, e);
     } catch (err) {
       setAcaoErro(err instanceof Error ? err.message : "Falha ao remover.");
+    }
+  }
+
+  async function handleAlterarSetor(equipe: Equipe, novoSector: string) {
+    if (!sessao) return;
+    setAcaoErro(null);
+    try {
+      await atualizarEquipe(sessao, equipe, {
+        nome: equipe.nome,
+        setor: novoSector,
+        vagasCoordenador: equipe.vagasCoordenador,
+        vagasEquipista: equipe.vagasEquipista,
+        vagasApoio: equipe.vagasApoio,
+      }, equipes);
+      setAlterandoSetorId(null);
+    } catch (err) {
+      setAcaoErro(err instanceof Error ? err.message : "Falha ao alterar setor.");
     }
   }
 
@@ -345,19 +354,23 @@ export function EdicaoDetalhe() {
               >
                 Todos
               </button>
-              {SETORES.map((s) => (
-                <button
-                  key={s.valor}
-                  className={`btn btn-pequeno ${
-                    filtroSetor === s.valor
-                      ? COR_CARD_SETOR[s.valor].btnAtivo
-                      : COR_CARD_SETOR[s.valor].btnInativo
-                  }`}
-                  onClick={() => setFiltroSetor(s.valor)}
-                >
-                  {s.rotulo}
-                </button>
-              ))}
+              {setores.map((s) => {
+                const ativo = filtroSetor === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    className="btn btn-pequeno"
+                    style={{
+                      backgroundColor: ativo ? s.cor : `${s.cor}14`,
+                      color: ativo ? "#fff" : s.cor,
+                      border: ativo ? "none" : `1.5px solid ${s.cor}4d`,
+                    }}
+                    onClick={() => setFiltroSetor(s.id)}
+                  >
+                    {s.nome}
+                  </button>
+                );
+              })}
             </div>
             {podeAdministrar && !criandoEquipe && (
               <>
@@ -397,10 +410,13 @@ export function EdicaoDetalhe() {
           )}
           {lista.map((e) => {
             const r = resumoEquipe(e, participacoes);
+            const setorInfo = getSetor(e.setor);
+            const cor = setorInfo?.cor ?? "#888";
             return (
               <div
                 key={e.id}
-                className={`card cursor-pointer hover:shadow-media hover:-translate-y-0.5 transition-all ${COR_CARD_SETOR[e.setor].borda}`}
+                className="card cursor-pointer hover:shadow-media hover:-translate-y-0.5 transition-all"
+                style={{ borderLeft: `4px solid ${cor}` }}
                 onClick={() => navigate(`/edicoes/${edicao.id}/equipes/${e.id}`)}
               >
                 <div className="card-corpo space-y-4">
@@ -414,9 +430,38 @@ export function EdicaoDetalhe() {
                         {e.nome}
                       </Link>
                     </div>
-                    <span className={`badge ${COR_CARD_SETOR[e.setor].badge} shrink-0`}>
-                      {SETORES.find((s) => s.valor === e.setor)?.rotulo}
-                    </span>
+                    {alterandoSetorId === e.id && podeAdministrar ? (
+                      <select
+                        className="input !min-h-0 !py-1 !px-2 text-sm w-40"
+                        value={e.setor}
+                        onClick={(ev) => ev.stopPropagation()}
+                        onChange={async (ev) => {
+                          const novo = ev.target.value;
+                          if (novo !== e.setor) {
+                            await handleAlterarSetor(e, novo);
+                          } else {
+                            setAlterandoSetorId(null);
+                          }
+                        }}
+                        onBlur={() => setAlterandoSetorId(null)}
+                      >
+                        {setores.map((s) => (
+                          <option key={s.id} value={s.id}>{s.nome}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span
+                        className="badge shrink-0"
+                        style={{
+                          backgroundColor: `${cor}1f`,
+                          color: cor,
+                        }}
+                        onClick={podeAdministrar ? (ev) => { ev.stopPropagation(); setAlterandoSetorId(e.id); } : undefined}
+                        title={podeAdministrar ? "Clique para alterar setor" : undefined}
+                      >
+                        {setorInfo?.nome ?? e.setor}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">

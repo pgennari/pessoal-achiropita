@@ -1,4 +1,5 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
+import { useSetores } from "../lib/hooks";
 import { Equipe, SETORES, Setor } from "../lib/tipos";
 import { DadosEquipeForm } from "../lib/equipes";
 
@@ -25,6 +26,11 @@ export function EquipeForm({
   onCancelar,
   textoBotao = "Salvar",
 }: Props) {
+  const { itens: setoresApi } = useSetores();
+  const opcoesSetor = useMemo(() => {
+    if (setoresApi.length > 0) return setoresApi.map((s) => ({ valor: s.id, rotulo: s.nome }));
+    return SETORES;
+  }, [setoresApi]);
   const [dados, setDados] = useState<DadosEquipeForm>(() => inicialDados(inicial));
   const [enviando, setEnviando] = useState(false);
   const [erros, setErros] = useState<Record<string, string>>({});
@@ -90,7 +96,7 @@ export function EquipeForm({
             value={dados.setor}
             onChange={(e) => set("setor", e.target.value as Setor)}
           >
-            {SETORES.map((s) => (
+            {opcoesSetor.map((s) => (
               <option key={s.valor} value={s.valor}>
                 {s.rotulo}
               </option>

@@ -3,7 +3,7 @@ import { queryClient } from "./queryClient";
 import { Formacao, TipoPresenca } from "./tipos";
 import { Sessao } from "./sessao";
 
-export class ErroFormacao extends Error {}
+export class ErroFormacao extends Error { }
 
 export function idFormacao(edicaoId: string, pessoaId: string): string {
   return `${edicaoId}__${pessoaId}`;
@@ -57,19 +57,19 @@ export async function marcarPresencaManual(
 export async function confirmarDadosManual(
   _sessao: Sessao,
   formacao: Formacao,
-  _pessoaNome: string,
-  _cracha: number
+  pessoaNome: string,
+  cracha: number
 ): Promise<void> {
-  await api.put(`/api/formacoes/${formacao.id}/confirmar`);
+  await api.put(`/api/formacoes/${formacao.id}/confirmar`, { pessoaNome, cracha });
   invalidarFormacoes();
 }
 
 export async function removerFormacao(
   _sessao: Sessao,
   formacao: Formacao,
-  _pessoaNome: string,
-  _cracha: number
+  pessoaNome: string,
+  cracha: number
 ): Promise<void> {
-  await api.delete(`/api/formacoes/${formacao.id}`);
+  await api.delete(`/api/formacoes/${formacao.id}`, { pessoaNome, cracha });
   invalidarFormacoes();
 }

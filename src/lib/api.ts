@@ -46,8 +46,8 @@ export const api = {
     requisicao<T>("POST", caminho, corpo, sessaoJwt),
   put: <T>(caminho: string, corpo?: unknown, sessaoJwt?: string) =>
     requisicao<T>("PUT", caminho, corpo, sessaoJwt),
-  delete: <T>(caminho: string, sessaoJwt?: string) =>
-    requisicao<T>("DELETE", caminho, undefined, sessaoJwt),
+  delete: <T>(caminho: string, corpo?: unknown, sessaoJwt?: string) =>
+    requisicao<T>("DELETE", caminho, corpo, sessaoJwt),
 };
 
 // Para rotas PÚBLICAS que não exigem Firebase Auth (ex.: convite, link de validação).

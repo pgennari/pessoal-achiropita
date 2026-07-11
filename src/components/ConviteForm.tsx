@@ -13,7 +13,6 @@ interface Props {
 }
 
 const PERFIS: { valor: Perfil; rotulo: string; descricao: string }[] = [
-  { valor: "ADM", rotulo: "ADM", descricao: "Acesso total" },
   { valor: "ORG", rotulo: "ORG", descricao: "Organização geral" },
   {
     valor: "CRD",
@@ -113,9 +112,8 @@ export function ConviteForm({
           <input
             id="email"
             type="email"
-            className={`input ${erros.email ? "erro" : ""} ${
-              editando ? "opacity-60" : ""
-            }`}
+            className={`input ${erros.email ? "erro" : ""} ${editando ? "opacity-60" : ""
+              }`}
             value={dados.email}
             onChange={(e) => set("email", e.target.value)}
             disabled={editando}

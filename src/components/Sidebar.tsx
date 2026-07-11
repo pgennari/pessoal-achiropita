@@ -60,12 +60,12 @@ const secoes: Secao[] = [
   },
   {
     label: "Administração",
-    perfis: ["ADM"],
-        itens: [
-          { to: "/usuarios", label: "Usuários", perfis: ["ADM"] },
-          { to: "/auditoria", label: "Auditoria", perfis: ["ADM", "ORG"] },
-          { to: "/zeramento", label: "Zeramento", perfis: ["ADM"] },
-        ],
+    perfis: ["ADM", "ORG"],
+    itens: [
+      { to: "/usuarios", label: "Usuários", perfis: ["ADM", "ORG"] },
+      { to: "/auditoria", label: "Auditoria", perfis: ["ADM", "ORG"] },
+      { to: "/zeramento", label: "Zeramento", perfis: ["ADM"] },
+    ],
   },
 ];
 

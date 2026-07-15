@@ -40,7 +40,15 @@ const secoes: Secao[] = [
           },
         ],
       },
-      { to: "/formacao", label: "Formação", perfis: ["ADM", "ORG", "OPC", "CRD"] },
+      {
+        to: "/formacao",
+        label: "Formação",
+        perfis: ["ADM", "ORG", "OPC", "CRD"],
+        filhos: [
+          { to: "/formacao", label: "Turmas", perfis: ["ADM", "ORG", "OPC", "CRD"] },
+          { to: "/formacao/pendencias", label: "Pendências", perfis: ["ADM", "ORG", "OPC", "CRD"] },
+        ],
+      },
       { to: "/estacionamentos", label: "Estacionamentos" },
     ],
   },

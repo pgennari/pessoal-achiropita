@@ -1,6 +1,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { Carro, ESTADOS_CIVIS, Filho, Pessoa } from "../lib/tipos";
 import { DadosPessoaForm, novoCarro, novoFilho } from "../lib/pessoas";
+import { mascararCPF, mascararTelefone } from "../lib/utilsDominio";
 
 interface Props {
   inicial?: Pessoa | null;
@@ -15,9 +16,9 @@ function dadosIniciais(p?: Pessoa | null): DadosPessoaForm {
   return {
     nome: p?.nome ?? "",
     nascimento: p?.nascimento ?? "",
-    telefone: p?.telefone ?? "",
+    telefone: mascararTelefone(p?.telefone ?? ""),
     email: p?.email ?? "",
-    cpf: p?.cpf ?? "",
+    cpf: mascararCPF(p?.cpf ?? ""),
     rg: p?.rg ?? "",
     endereco: p?.endereco ?? "",
     bairro: p?.bairro ?? "",
@@ -186,7 +187,7 @@ export function PessoaForm({
                 bloquearSensivel ? "opacity-60" : ""
               }`}
               value={dados.cpf}
-              onChange={(e) => set("cpf", e.target.value)}
+              onChange={(e) => set("cpf", mascararCPF(e.target.value))}
               inputMode="numeric"
               autoComplete="off"
               disabled={bloquearSensivel}
@@ -226,7 +227,7 @@ export function PessoaForm({
               id="telefone"
               className={`input ${erros.telefone ? "erro" : ""}`}
               value={dados.telefone}
-              onChange={(e) => set("telefone", e.target.value)}
+              onChange={(e) => set("telefone", mascararTelefone(e.target.value))}
               inputMode="tel"
               autoComplete="tel"
               required
@@ -367,64 +368,71 @@ export function PessoaForm({
         {dados.carros.length === 0 ? (
           <p className="text-ardesia text-sm">Nenhum veículo cadastrado.</p>
         ) : (
-          <div className="space-y-3">
-            {dados.carros.map((c) => (
+          <div className="space-y-4">
+            {dados.carros.map((c, idx) => (
               <div key={c.id} className="card border-pietra-clara">
-                <div className="card-corpo py-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_160px_160px_auto] gap-3 items-end">
-                  <div className="input-grupo m-0">
-                    <label className="input-label">Fabricante</label>
-                    <input
-                      className="input"
-                      value={c.fabricante}
-                      onChange={(e) =>
-                        atualizarCarro(c.id, { fabricante: e.target.value })
-                      }
-                      autoComplete="off"
-                    />
+                <div className="card-corpo py-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm font-semibold text-ardesia">
+                      Veículo {idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                      onClick={() => removerCarro(c.id)}
+                    >
+                      Remover
+                    </button>
                   </div>
-                  <div className="input-grupo m-0">
-                    <label className="input-label">Modelo</label>
-                    <input
-                      className="input"
-                      value={c.modelo}
-                      onChange={(e) =>
-                        atualizarCarro(c.id, { modelo: e.target.value })
-                      }
-                      autoComplete="off"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="input-grupo m-0">
+                      <label className="input-label">Fabricante</label>
+                      <input
+                        className="input"
+                        value={c.fabricante}
+                        onChange={(e) =>
+                          atualizarCarro(c.id, { fabricante: e.target.value })
+                        }
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className="input-grupo m-0">
+                      <label className="input-label">Modelo</label>
+                      <input
+                        className="input"
+                        value={c.modelo}
+                        onChange={(e) =>
+                          atualizarCarro(c.id, { modelo: e.target.value })
+                        }
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className="input-grupo m-0">
+                      <label className="input-label">Placa</label>
+                      <input
+                        className="input"
+                        value={c.placa}
+                        onChange={(e) =>
+                          atualizarCarro(c.id, {
+                            placa: e.target.value.toUpperCase(),
+                          })
+                        }
+                        autoComplete="off"
+                        style={{ textTransform: "uppercase" }}
+                      />
+                    </div>
+                    <div className="input-grupo m-0">
+                      <label className="input-label">Cor</label>
+                      <input
+                        className="input"
+                        value={c.cor}
+                        onChange={(e) =>
+                          atualizarCarro(c.id, { cor: e.target.value })
+                        }
+                        autoComplete="off"
+                      />
+                    </div>
                   </div>
-                  <div className="input-grupo m-0">
-                    <label className="input-label">Placa</label>
-                    <input
-                      className="input"
-                      value={c.placa}
-                      onChange={(e) =>
-                        atualizarCarro(c.id, {
-                          placa: e.target.value.toUpperCase(),
-                        })
-                      }
-                      autoComplete="off"
-                      style={{ textTransform: "uppercase" }}
-                    />
-                  </div>
-                  <div className="input-grupo m-0">
-                    <label className="input-label">Cor</label>
-                    <input
-                      className="input"
-                      value={c.cor}
-                      onChange={(e) =>
-                        atualizarCarro(c.id, { cor: e.target.value })
-                      }
-                      autoComplete="off"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                    onClick={() => removerCarro(c.id)}
-                  >
-                    Remover
-                  </button>
                 </div>
               </div>
             ))}

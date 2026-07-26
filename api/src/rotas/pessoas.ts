@@ -24,6 +24,8 @@ const PessoaSchema = z.object({
   estadoCivil: z.string().optional().nullable(),
   nomeConjuge: z.string().optional().nullable(),
   temEstacionamento: z.boolean(),
+  estacionamentoId: z.string().optional().nullable(),
+  estacionamentoNome: z.string().optional().nullable(),
   frequentaRecreacao: z.boolean(),
   parenteFesta: z.string().optional().nullable(),
   observacoes: z.string().optional().nullable(),
@@ -63,6 +65,8 @@ function pessoaDeRow(r: Record<string, unknown>) {
     estadoCivil: r.estado_civil ?? undefined,
     nomeConjuge: r.nome_conjuge ?? undefined,
     temEstacionamento: r.tem_estacionamento ?? false,
+    estacionamentoId: r.estacionamento_id ?? undefined,
+    estacionamentoNome: r.estacionamento_nome ?? undefined,
     frequentaRecreacao: r.frequenta_recreacao ?? false,
     parenteFesta: r.parente_festa ?? undefined,
     observacoes: r.observacoes ?? undefined,
@@ -144,7 +148,12 @@ const getPessoaIdRoute = createRoute({
 });
 app.openapi(getPessoaIdRoute, async (c) => {
   const { id } = c.req.valid("param");
-  const [row] = await sql`SELECT * FROM pessoas WHERE id = ${id}`;
+  const [row] = await sql`
+    SELECT p.*, e.nome AS estacionamento_nome
+    FROM pessoas p
+    LEFT JOIN estacionamentos e ON e.id = p.estacionamento_id
+    WHERE p.id = ${id}
+  `;
   if (!row) return c.json({ erro: "Pessoa não encontrada." }, 404);
   return c.json(pessoaDeRow(row) as any, 200);
 });

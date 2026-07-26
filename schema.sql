@@ -57,8 +57,15 @@ CREATE TABLE pessoas (
 -- Executar no banco existente: ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS foto_url TEXT;
 ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS foto_url TEXT;
 
+-- Coluna adicionada na iteracao 005-estacionamento-pessoa (vinculo N:1 com estacionamentos).
+-- Executar no banco existente:
+-- ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS estacionamento_id TEXT REFERENCES estacionamentos(id) ON DELETE SET NULL;
+-- CREATE INDEX IF NOT EXISTS idx_pessoas_estacionamento ON pessoas(estacionamento_id);
+ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS estacionamento_id TEXT REFERENCES estacionamentos(id) ON DELETE SET NULL;
+
 CREATE INDEX idx_pessoas_cracha ON pessoas(cracha);
 CREATE INDEX idx_pessoas_ativo  ON pessoas(ativo);
+CREATE INDEX IF NOT EXISTS idx_pessoas_estacionamento ON pessoas(estacionamento_id);
 
 -- estacionamentos
 CREATE TABLE estacionamentos (
@@ -248,3 +255,56 @@ CREATE TABLE participacoes_historicas (
   funcao        TEXT,
   criado_em     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Coluna adicionada na iteracao 006-estacionamento-checkin (link publico).
+-- Executar no banco existente:
+-- ALTER TABLE estacionamentos ADD COLUMN IF NOT EXISTS token_checkin TEXT;
+-- UPDATE estacionamentos SET token_checkin = REPLACE(gen_random_uuid()::text, '-', '') WHERE token_checkin IS NULL;
+-- ALTER TABLE estacionamentos ADD CONSTRAINT uq_estacionamentos_token_checkin UNIQUE (token_checkin);
+-- ALTER TABLE estacionamentos ALTER COLUMN token_checkin SET NOT NULL;
+ALTER TABLE estacionamentos ADD COLUMN IF NOT EXISTS token_checkin TEXT;
+
+-- Gerar tokens para estacionamentos existentes
+UPDATE estacionamentos
+SET token_checkin = REPLACE(gen_random_uuid()::text, '-', '')
+WHERE token_checkin IS NULL;
+
+-- Constraint UNIQUE no token_checkin (ignorar se ja existir)
+DO $$
+BEGIN
+  ALTER TABLE estacionamentos
+  ADD CONSTRAINT uq_estacionamentos_token_checkin UNIQUE (token_checkin);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Tornar token_checkin NOT NULL apos gerar para todos
+ALTER TABLE estacionamentos
+ALTER COLUMN token_checkin SET NOT NULL;
+
+-- checkins: registro de entrada no estacionamento
+CREATE TABLE IF NOT EXISTS checkins (
+  id                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  timestamp           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  pessoa_id           TEXT REFERENCES pessoas(id) ON DELETE SET NULL,
+  pessoa_nome         TEXT NOT NULL,
+  carro_id            TEXT NOT NULL,
+  placa               TEXT NOT NULL,
+  modelo              TEXT NOT NULL,
+  cor                 TEXT NOT NULL,
+  estacionamento_id   TEXT REFERENCES estacionamentos(id) ON DELETE SET NULL,
+  estacionamento_nome TEXT NOT NULL
+);
+
+-- Unicidade por carro no estacionamento
+CREATE UNIQUE INDEX IF NOT EXISTS uq_checkins_estacionamento_carro
+ON checkins(estacionamento_id, carro_id);
+
+-- Indices para consultas
+CREATE INDEX IF NOT EXISTS idx_checkins_estacionamento
+ON checkins(estacionamento_id);
+
+CREATE INDEX IF NOT EXISTS idx_checkins_timestamp
+ON checkins(timestamp DESC);
+
+CREATE INDEX IF NOT EXISTS idx_checkins_pessoa
+ON checkins(pessoa_id);

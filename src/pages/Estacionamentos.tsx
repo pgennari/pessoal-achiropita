@@ -85,13 +85,13 @@ export function Estacionamentos() {
             <div
               key={e.id}
               className="card cursor-pointer hover:shadow-media hover:-translate-y-0.5 transition-all"
-              onClick={() => navigate(`/estacionamentos/${e.id}?edit=true`)}
+              onClick={() => navigate(`/estacionamentos/${e.id}`)}
             >
               <div className="card-corpo space-y-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <Link
-                      to={`/estacionamentos/${e.id}?edit=true`}
+                      to={`/estacionamentos/${e.id}`}
                       className="font-semibold text-carbone hover:text-verde no-underline hover:underline"
                       onClick={(ev) => ev.stopPropagation()}
                     >
@@ -101,11 +101,16 @@ export function Estacionamentos() {
                       {e.endereco}
                     </p>
                   </div>
-                  {e.dentroPerimetro ? (
-                    <span className="badge badge-verde shrink-0">sim</span>
-                  ) : (
-                    <span className="badge badge-cinza shrink-0">nao</span>
-                  )}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {e.tokenCheckin && (
+                      <span className="badge badge-verde">link</span>
+                    )}
+                    {e.dentroPerimetro ? (
+                      <span className="badge badge-verde">sim</span>
+                    ) : (
+                      <span className="badge badge-cinza">nao</span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">

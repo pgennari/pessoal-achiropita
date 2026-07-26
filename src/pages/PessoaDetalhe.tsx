@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { PessoaForm } from "../components/PessoaForm";
 import { UploadFoto } from "../components/UploadFoto";
 import { HistoricoPessoa } from "../components/HistoricoPessoa";
+import { EstacionamentoPessoa } from "../components/EstacionamentoPessoa";
 import { usePessoa, usePessoas } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import {
@@ -299,6 +300,12 @@ export function PessoaDetalhe() {
               ))}
             </ul>
           )}
+        </div>
+      </section>
+
+      <section className="card">
+        <div className="card-corpo">
+          <EstacionamentoPessoa pessoa={pessoa} />
         </div>
       </section>
 

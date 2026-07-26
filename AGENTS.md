@@ -78,3 +78,8 @@ Todas as colecoes Firestore e nomes de identificadores estao em `src/lib/tipos.t
 - Firestore rules em `firestore.rules` (344 linhas, sem recursao — compilador rejeita).
 - Storage rules em `storage.rules`. Fotos: `pessoas/{pessoaId}/foto.jpg`, ate 4 MB, ADM/ORG escrevem.
 - Primeiro usuario ADM: criar manualmente em Authentication + Firestore doc `usuarios/{uid}`.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->

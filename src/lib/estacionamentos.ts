@@ -90,3 +90,23 @@ export async function excluirEstacionamento(
   await api.delete(`/api/estacionamentos/${id}`);
   await queryClient.invalidateQueries({ queryKey: ["estacionamentos"] });
 }
+
+export async function associarPessoaEstacionamento(
+  _sessao: Sessao,
+  estacionamentoId: string,
+  pessoaId: string
+): Promise<void> {
+  await api.post(`/api/estacionamentos/${estacionamentoId}/pessoas`, { pessoaId });
+  await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId, "pessoas"] });
+  await queryClient.invalidateQueries({ queryKey: ["pessoas", pessoaId] });
+}
+
+export async function desassociarPessoaEstacionamento(
+  _sessao: Sessao,
+  estacionamentoId: string,
+  pessoaId: string
+): Promise<void> {
+  await api.delete(`/api/estacionamentos/${estacionamentoId}/pessoas/${pessoaId}`);
+  await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId, "pessoas"] });
+  await queryClient.invalidateQueries({ queryKey: ["pessoas", pessoaId] });
+}

@@ -79,6 +79,8 @@ export interface Pessoa {
   estadoCivil?: EstadoCivil;
   nomeConjuge?: string;
   temEstacionamento?: boolean;
+  estacionamentoId?: string;
+  estacionamentoNome?: string;
   frequentaRecreacao?: boolean;
   parenteFesta?: string;
   observacoes?: string;
@@ -239,8 +241,28 @@ export interface Estacionamento {
   vagasDistribuidas: number;
   dentroPerimetro: boolean;
   horarios: string;
+  tokenCheckin: string;
   criadoEm: string;
   atualizadoEm: string;
+}
+
+export interface Checkin {
+  id: string;
+  timestamp: string;
+  pessoaId: string | null;
+  pessoaNome: string;
+  carroId: string;
+  placa: string;
+  modelo: string;
+  cor: string;
+  estacionamentoId: string | null;
+  estacionamentoNome: string;
+}
+
+export interface PessoaEstacionamento {
+  id: string;
+  nome: string;
+  cracha: number;
 }
 
 export type TipoPresenca = "manual" | "validacao";

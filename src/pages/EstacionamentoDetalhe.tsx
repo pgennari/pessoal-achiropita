@@ -1,7 +1,7 @@
 import { useState, FormEvent } from "react";
 import { useEffect } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { useEstacionamento } from "../lib/hooks";
+import { useEstacionamento, useCheckinsEstacionamento } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import {
   atualizarEstacionamento,
@@ -9,16 +9,21 @@ import {
   DadosEstacionamentoForm,
   ErroValidacao,
 } from "../lib/estacionamentos";
+import { ListaPessoasEstacionamento } from "../components/ListaPessoasEstacionamento";
+import { ListaCheckins } from "../components/ListaCheckins";
 
 export function EstacionamentoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { sessao } = useSessao();
   const { item: estacionamento, carregando, erro } = useEstacionamento(id);
+  const { itens: checkins, carregando: carregandoCheckins } = useCheckinsEstacionamento(id);
   const [editando, setEditando] = useState(false);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [acaoOcupado, setAcaoOcupado] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState(false);
+  const [abaAtiva, setAbaAtiva] = useState<"pessoas" | "checkins">("pessoas");
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -95,6 +100,15 @@ export function EstacionamentoDetalhe() {
     } finally {
       setAcaoOcupado(false);
     }
+  }
+
+  function handleCopiarLink() {
+    if (!estacionamento?.tokenCheckin) return;
+    const url = `${window.location.origin}/checkin/${estacionamento.tokenCheckin}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    });
   }
 
   async function handleExcluir() {
@@ -371,6 +385,76 @@ export function EstacionamentoDetalhe() {
           <Linha rotulo="Horarios" valor={estacionamento.horarios} />
         </div>
       </section>
+
+      <section className="card">
+        <div className="card-corpo space-y-3">
+          <h4>Link Publico</h4>
+          <p className="text-sm text-ardesia">
+            Compartilhe este link para que operadores registrem check-ins sem necessidade de login.
+          </p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 bg-pietra-clara/40 rounded-sm px-3 py-2 text-sm font-mono text-carbone break-all">
+              {`${window.location.origin}/checkin/${estacionamento.tokenCheckin}`}
+            </code>
+            <a
+              href={`/checkin/${estacionamento.tokenCheckin}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-secundario btn-pequeno shrink-0"
+            >
+              Abrir
+            </a>
+            <button
+              type="button"
+              className="btn btn-secundario btn-pequeno shrink-0"
+              onClick={handleCopiarLink}
+            >
+              {copiado ? "Copiado!" : "Copiar"}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div className="flex border-b border-pietra-clara">
+        <button
+          type="button"
+          className={`px-4 py-2 text-sm font-semibold transition border-b-2 ${
+            abaAtiva === "pessoas"
+              ? "border-verde text-verde-escuro"
+              : "border-transparent text-ardesia hover:text-carbone"
+          }`}
+          onClick={() => setAbaAtiva("pessoas")}
+        >
+          Pessoas Associadas
+        </button>
+        <button
+          type="button"
+          className={`px-4 py-2 text-sm font-semibold transition border-b-2 ${
+            abaAtiva === "checkins"
+              ? "border-verde text-verde-escuro"
+              : "border-transparent text-ardesia hover:text-carbone"
+          }`}
+          onClick={() => setAbaAtiva("checkins")}
+        >
+          Check-in
+        </button>
+      </div>
+
+      {abaAtiva === "pessoas" && (
+        <section className="card">
+          <div className="card-corpo">
+            <ListaPessoasEstacionamento estacionamento={estacionamento} />
+          </div>
+        </section>
+      )}
+
+      {abaAtiva === "checkins" && (
+        <section className="card">
+          <div className="card-corpo">
+            <ListaCheckins checkins={checkins} carregando={carregandoCheckins} />
+          </div>
+        </section>
+      )}
 
       <div>
         <button

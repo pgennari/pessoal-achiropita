@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "./api";
 import {
+  Checkin,
   Convite,
   Edicao,
   EntregaCracha,
@@ -15,10 +16,14 @@ import {
   Participacao,
   ParticipacaoHistorica,
   Pessoa,
+  PessoaEstacionamento,
   SetorInfo,
   TurmaFormacao,
   Usuario,
 } from "./tipos";
+import {
+  buscarEstacionamentoPublico,
+} from "./checkin";
 
 export interface EstadoLista<T> {
   itens: T[];
@@ -264,6 +269,15 @@ export function useEstacionamento(id: string | undefined): EstadoItem<Estacionam
   return { item: data ?? null, carregando: isLoading && !!id, erro: erroMsg(error) };
 }
 
+export function usePessoasEstacionamento(estacionamentoId: string | undefined): EstadoLista<PessoaEstacionamento> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["estacionamentos", estacionamentoId, "pessoas"],
+    queryFn: () => api.get<PessoaEstacionamento[]>(`/api/estacionamentos/${estacionamentoId}/pessoas`),
+    enabled: !!estacionamentoId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!estacionamentoId, erro: erroMsg(error) };
+}
+
 // ─── Setores ──────────────────────────────────────────────────────────────────
 
 export function useSetores(): EstadoLista<SetorInfo> {
@@ -282,6 +296,27 @@ export function useAuditoriaRecente(qtd = 100): EstadoLista<EventoAuditoria> {
     queryFn: () => api.get<EventoAuditoria[]>(`/api/auditoria?qtd=${qtd}`),
   });
   return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
+}
+
+// ─── Check-in ─────────────────────────────────────────────────────────────────
+
+export function useCheckinPublico(token: string | undefined) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["checkin", "publico", token],
+    queryFn: () => buscarEstacionamentoPublico(token!),
+    enabled: !!token,
+    retry: false,
+  });
+  return { estacionamento: data ?? null, carregando: isLoading && !!token, erro: erroMsg(error) };
+}
+
+export function useCheckinsEstacionamento(estacionamentoId: string | undefined) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["checkins", estacionamentoId],
+    queryFn: () => api.get<Checkin[]>(`/api/estacionamentos/${estacionamentoId}/checkins`),
+    enabled: !!estacionamentoId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!estacionamentoId, erro: erroMsg(error) };
 }
 
 // ─── Utilitário ───────────────────────────────────────────────────────────────

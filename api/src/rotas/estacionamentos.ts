@@ -395,7 +395,7 @@ app.openapi(getVeiculosEstacionamentoRoute, async (c) => {
   const rows = await sql`
     SELECT v.id, v.fabricante, v.modelo, v.placa, v.cor,
       COALESCE(
-        (SELECT jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome))
+        (SELECT jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'cracha', p.cracha))
          FROM pessoa_veiculo pv
          JOIN pessoas p ON p.id = pv.pessoa_id
          WHERE pv.veiculo_id = v.id),
@@ -413,7 +413,7 @@ const postVeiculoEstacionamentoRoute = createRoute({
   method: "post",
   path: "/{id}/veiculos",
   tags: ["Estacionamentos", "Veiculos"],
-  summary: "Associa veiculo ao estacionamento",
+  summary: "Associa ou transfere veiculo ao estacionamento",
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
   request: {
@@ -425,7 +425,6 @@ const postVeiculoEstacionamentoRoute = createRoute({
     400: { content: { "application/json": { schema: msgErro } }, description: "Dados invalidos" },
     403: { content: { "application/json": { schema: msgErro } }, description: "Acesso negado" },
     404: { content: { "application/json": { schema: msgErro } }, description: "Nao encontrado" },
-    409: { content: { "application/json": { schema: msgErro } }, description: "Veiculo ja associado" },
   },
 });
 
@@ -438,10 +437,27 @@ app.openapi(postVeiculoEstacionamentoRoute, async (c) => {
   if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
   const [veiculo] = await sql`SELECT id, estacionamento_id FROM veiculos WHERE id = ${veiculoId}`;
   if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
-  if (veiculo.estacionamento_id && veiculo.estacionamento_id !== id) {
-    return c.json({ erro: "Veiculo ja esta associado a outro estacionamento." }, 409);
+
+  const antigoEstacionamentoId = veiculo.estacionamento_id as string | null;
+
+  if (antigoEstacionamentoId && antigoEstacionamentoId !== id) {
+    await sql`
+      UPDATE estacionamentos
+      SET vagas_distribuidas = vagas_distribuidas - 1, atualizado_em = NOW()
+      WHERE id = ${antigoEstacionamentoId}
+    `;
   }
+
   await sql`UPDATE veiculos SET estacionamento_id = ${id}, atualizado_em = NOW() WHERE id = ${veiculoId}`;
+
+  if (!antigoEstacionamentoId || antigoEstacionamentoId !== id) {
+    await sql`
+      UPDATE estacionamentos
+      SET vagas_distribuidas = vagas_distribuidas + 1, atualizado_em = NOW()
+      WHERE id = ${id}
+    `;
+  }
+
   await registrarEvento(sessao, "estacionamento.veiculo.associou", `estacionamentos/${id}`, `veiculo ${veiculoId}`);
   return c.json({ ok: true }, 200);
 });
@@ -470,6 +486,11 @@ app.openapi(deleteVeiculoEstacionamentoRoute, async (c) => {
   if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
   if (veiculo.estacionamento_id !== id) return c.json({ erro: "Veiculo nao esta associado a este estacionamento." }, 404);
   await sql`UPDATE veiculos SET estacionamento_id = NULL, atualizado_em = NOW() WHERE id = ${veiculoId}`;
+  await sql`
+    UPDATE estacionamentos
+    SET vagas_distribuidas = GREATEST(vagas_distribuidas - 1, 0), atualizado_em = NOW()
+    WHERE id = ${id}
+  `;
   await registrarEvento(sessao, "estacionamento.veiculo.desassociou", `estacionamentos/${id}`, `veiculo ${veiculoId}`);
   return c.json({ ok: true }, 200);
 });

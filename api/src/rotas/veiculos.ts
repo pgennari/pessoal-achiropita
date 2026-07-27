@@ -61,8 +61,20 @@ const getRoute = createRoute({
 });
 
 app.openapi(getRoute, async (c) => {
-  const rows = await sql`SELECT * FROM veiculos ORDER BY placa`;
-  return c.json(rows.map(veiculoDeRow) as any, 200);
+  const rows = await sql`
+    SELECT v.*,
+      COALESCE(
+        (SELECT jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'cracha', p.cracha))
+         FROM pessoa_veiculo pv
+         JOIN pessoas p ON p.id = pv.pessoa_id
+         WHERE pv.veiculo_id = v.id),
+        '[]'::jsonb
+      ) AS pessoas
+    FROM veiculos v
+    ORDER BY v.placa
+  `;
+  const resultado = rows.map((r) => ({ ...veiculoDeRow(r), pessoas: r.pessoas }));
+  return c.json(resultado as any, 200);
 });
 
 // GET /api/veiculos/:id

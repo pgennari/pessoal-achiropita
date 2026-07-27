@@ -411,22 +411,19 @@ export function EstacionamentoDetalhe() {
             >
               {copiado ? "Copiado!" : "Copiar"}
             </button>
+            <a
+              href={`/qr-checkin/${estacionamento.tokenCheckin}?imprimir=1`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-secundario btn-pequeno shrink-0"
+            >
+              QR Code
+            </a>
           </div>
         </div>
       </section>
 
       <div className="flex border-b border-pietra-clara">
-        <button
-          type="button"
-          className={`px-4 py-2 text-sm font-semibold transition border-b-2 ${
-            abaAtiva === "checkins"
-              ? "border-verde text-verde-escuro"
-              : "border-transparent text-ardesia hover:text-carbone"
-          }`}
-          onClick={() => setAbaAtiva("checkins")}
-        >
-          Check-in
-        </button>
         <button
           type="button"
           className={`px-4 py-2 text-sm font-semibold transition border-b-2 ${
@@ -437,6 +434,17 @@ export function EstacionamentoDetalhe() {
           onClick={() => setAbaAtiva("veiculos")}
         >
           Veículos
+        </button>
+        <button
+          type="button"
+          className={`px-4 py-2 text-sm font-semibold transition border-b-2 ${
+            abaAtiva === "checkins"
+              ? "border-verde text-verde-escuro"
+              : "border-transparent text-ardesia hover:text-carbone"
+          }`}
+          onClick={() => setAbaAtiva("checkins")}
+        >
+          Check-in
         </button>
       </div>
 

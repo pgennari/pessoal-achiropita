@@ -2,8 +2,8 @@ import { api } from "./api";
 import { queryClient } from "./queryClient";
 import type { Veiculo, PessoaComVeiculos, VeiculoComPessoas } from "./tipos";
 
-export async function listarVeiculos(): Promise<Veiculo[]> {
-  return api.get<Veiculo[]>("/api/veiculos");
+export async function listarVeiculos(): Promise<VeiculoComPessoas[]> {
+  return api.get<VeiculoComPessoas[]>("/api/veiculos");
 }
 
 export async function buscarVeiculo(id: string): Promise<Veiculo> {
@@ -66,11 +66,13 @@ export async function listarVeiculosEstacionamento(estacionamentoId: string): Pr
 export async function associarVeiculoEstacionamento(estacionamentoId: string, veiculoId: string): Promise<void> {
   await api.post(`/api/estacionamentos/${estacionamentoId}/veiculos`, { veiculoId });
   await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId, "veiculos"] });
+  await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId] });
   await queryClient.invalidateQueries({ queryKey: ["veiculos"] });
 }
 
 export async function desassociarVeiculoEstacionamento(estacionamentoId: string, veiculoId: string): Promise<void> {
   await api.delete(`/api/estacionamentos/${estacionamentoId}/veiculos/${veiculoId}`);
   await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId, "veiculos"] });
+  await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId] });
   await queryClient.invalidateQueries({ queryKey: ["veiculos"] });
 }

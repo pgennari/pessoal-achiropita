@@ -255,10 +255,10 @@ export function useConvites(): EstadoLista<Convite> {
 
 // ─── Veiculos ────────────────────────────────────────────────────────────────
 
-export function useVeiculos(): EstadoLista<Veiculo> {
+export function useVeiculos(): EstadoLista<VeiculoComPessoas> {
   const { data, isLoading, error } = useQuery({
     queryKey: ["veiculos"],
-    queryFn: () => api.get<Veiculo[]>("/api/veiculos"),
+    queryFn: () => api.get<VeiculoComPessoas[]>("/api/veiculos"),
   });
   return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
 }

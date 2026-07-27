@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
-import { useVeiculosEstacionamento, useVeiculos } from "../lib/hooks";
+import { useVeiculosEstacionamento, useVeiculos, useEstacionamentos } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import {
   associarVeiculoEstacionamento,
   desassociarVeiculoEstacionamento,
 } from "../lib/veiculos";
+import type { VeiculoComPessoas } from "../lib/tipos";
 
 interface Props {
   estacionamentoId: string;
@@ -23,10 +24,12 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
   const { sessao } = useSessao();
   const { itens: veiculosEstacionamento, carregando } = useVeiculosEstacionamento(estacionamentoId);
   const { itens: todosVeiculos } = useVeiculos();
+  const { itens: estacionamentos } = useEstacionamentos();
   const [busca, setBusca] = useState("");
   const [buscaAssociacao, setBuscaAssociacao] = useState("");
   const [acaoOcupado, setAcaoOcupado] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
+  const [veiculoTransferencia, setVeiculoTransferencia] = useState<VeiculoComPessoas | null>(null);
 
   const buscaDebounced = useDebounce(busca, 300);
   const buscaAssociacaoDebounced = useDebounce(buscaAssociacao, 300);
@@ -38,44 +41,63 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
     const termo = buscaDebounced.toLowerCase();
     return veiculosEstacionamento.filter(
       (v) =>
-        v.fabricante.toLowerCase().includes(termo) ||
-        v.modelo.toLowerCase().includes(termo) ||
-        v.cor.toLowerCase().includes(termo) ||
-        v.placa.toLowerCase().includes(termo) ||
-        v.pessoas.some(
+        (v.fabricante ?? "").toLowerCase().includes(termo) ||
+        (v.modelo ?? "").toLowerCase().includes(termo) ||
+        (v.cor ?? "").toLowerCase().includes(termo) ||
+        (v.placa ?? "").toLowerCase().includes(termo) ||
+        (v.pessoas ?? []).some(
           (p) =>
-            p.nome.toLowerCase().includes(termo) ||
-            String(p.cracha).includes(termo)
+            (p.nome ?? "").toLowerCase().includes(termo) ||
+            String(p.cracha ?? "").includes(termo)
         )
     );
   }, [veiculosEstacionamento, buscaDebounced]);
 
   const veiculosNaoAssociados = useMemo(() => {
-    const livres = todosVeiculos.filter((v) => !v.estacionamentoId);
-    if (!buscaAssociacaoDebounced.trim()) return livres;
+    const disponiveis = todosVeiculos.filter((v) => v.estacionamentoId !== estacionamentoId);
+    if (!buscaAssociacaoDebounced.trim()) return [];
     const termo = buscaAssociacaoDebounced.toLowerCase();
-    return livres.filter(
+    return disponiveis.filter(
       (v) =>
-        v.fabricante.toLowerCase().includes(termo) ||
-        v.modelo.toLowerCase().includes(termo) ||
-        v.cor.toLowerCase().includes(termo) ||
-        v.placa.toLowerCase().includes(termo)
+        (v.fabricante ?? "").toLowerCase().includes(termo) ||
+        (v.modelo ?? "").toLowerCase().includes(termo) ||
+        (v.cor ?? "").toLowerCase().includes(termo) ||
+        (v.placa ?? "").toLowerCase().includes(termo) ||
+        (v.pessoas ?? []).some(
+          (p) =>
+            (p.nome ?? "").toLowerCase().includes(termo) ||
+            String(p.cracha ?? "").includes(termo)
+        )
     );
   }, [todosVeiculos, buscaAssociacaoDebounced]);
 
   if (!sessao) return null;
 
   async function handleAssociar(veiculoId: string) {
+    const veiculo = veiculosNaoAssociados.find((v) => v.id === veiculoId);
+    if (veiculo?.estacionamentoId) {
+      setVeiculoTransferencia(veiculo);
+      return;
+    }
+    await confirmarAssociacao(veiculoId);
+  }
+
+  async function confirmarAssociacao(veiculoId: string) {
     setAcaoErro(null);
     setAcaoOcupado(true);
     try {
       await associarVeiculoEstacionamento(estacionamentoId, veiculoId);
       setBuscaAssociacao("");
+      setVeiculoTransferencia(null);
     } catch (e) {
       setAcaoErro(e instanceof Error ? e.message : "Falha ao associar.");
     } finally {
       setAcaoOcupado(false);
     }
+  }
+
+  function obterNomeEstacionamento(id: string) {
+    return estacionamentos.find((e) => e.id === id)?.nome ?? "desconhecido";
   }
 
   async function handleDesassociar(veiculoId: string) {
@@ -133,9 +155,9 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
                 <div className="text-xs text-ardesia font-mono">
                   {v.placa} · {v.cor}
                 </div>
-                {v.pessoas.length > 0 && (
+                {(v.pessoas ?? []).length > 0 && (
                   <div className="text-xs text-ardesia mt-1">
-                    Pessoas: {v.pessoas.map((p) => p.nome).join(", ")}
+                            Pessoas: {(v.pessoas ?? []).map((p) => `#${p.cracha}-${p.nome}`).join(", ")}
                   </div>
                 )}
               </div>
@@ -159,25 +181,26 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
           <h5 className="text-sm font-medium text-ardesia mb-2">
             Associar novo veículo
           </h5>
-          {todosVeiculos.filter((v) => !v.estacionamentoId).length === 0 ? (
+          {todosVeiculos.filter((v) => v.estacionamentoId !== estacionamentoId).length === 0 ? (
             <p className="text-sm text-ardesia">
-              Todos os veículos já estão associados a estacionamentos.
+              Todos os veículos já estão associados a este estacionamento.
             </p>
           ) : (
             <>
               <input
                 type="text"
                 className="input mb-2"
-                placeholder="Buscar veiculo para associar..."
+                placeholder="Buscar por placa, modelo, nome da pessoa..."
                 value={buscaAssociacao}
                 onChange={(e) => setBuscaAssociacao(e.target.value)}
                 aria-label="Buscar veículos para associar"
               />
-              {veiculosNaoAssociados.length === 0 ? (
+              {buscaAssociacao.trim() && veiculosNaoAssociados.length === 0 && (
                 <p className="text-sm text-ardesia">
                   Nenhum veiculo encontrado.
                 </p>
-              ) : (
+              )}
+              {buscaAssociacao.trim() && veiculosNaoAssociados.length > 0 && (
                 <ul className="divide-y divide-pietra-clara" role="list">
                   {veiculosNaoAssociados.map((v) => (
                     <li
@@ -192,6 +215,11 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
                         <div className="text-xs text-ardesia font-mono">
                           {v.placa} · {v.cor}
                         </div>
+                        {(v.pessoas ?? []).length > 0 && (
+                          <div className="text-xs text-ardesia">
+                    Pessoas: {(v.pessoas ?? []).map((p) => `#${p.cracha}-${p.nome}`).join(", ")}
+                          </div>
+                        )}
                       </div>
                       <button
                         type="button"
@@ -207,6 +235,60 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
               )}
             </>
           )}
+        </div>
+      )}
+
+      {veiculoTransferencia && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-carbone/40"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirmar transferencia"
+          onClick={() => setVeiculoTransferencia(null)}
+        >
+          <div
+            className="card w-full max-w-md shadow-media"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 py-3 border-b border-pietra-clara">
+              <h4 className="m-0">Transferir veículo</h4>
+            </div>
+            <div className="px-4 py-4 space-y-3">
+              <p className="text-sm text-carbone">
+                O veículo abaixo já está associado ao estacionamento{" "}
+                <strong>{obterNomeEstacionamento(veiculoTransferencia.estacionamentoId!)}</strong>.
+              </p>
+              <div className="bg-pietra-clara/40 rounded-lg p-3">
+                <div className="font-semibold text-carbone">
+                  {veiculoTransferencia.fabricante} {veiculoTransferencia.modelo}
+                </div>
+                <div className="text-xs text-ardesia font-mono">
+                  {veiculoTransferencia.placa} · {veiculoTransferencia.cor}
+                </div>
+              </div>
+              <p className="text-sm text-ardesia">
+                Deseja transferir a associação para <strong>{obterNomeEstacionamento(estacionamentoId)}</strong>?
+              </p>
+            </div>
+            <div className="px-4 py-3 border-t border-pietra-clara flex items-center justify-end gap-3">
+              <button
+                type="button"
+                className="btn btn-secundario"
+                onClick={() => setVeiculoTransferencia(null)}
+                disabled={acaoOcupado}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn btn-primario"
+                onClick={() => confirmarAssociacao(veiculoTransferencia.id)}
+                disabled={acaoOcupado}
+              >
+                {acaoOcupado ? "Transferindo..." : "Confirmar transferência"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

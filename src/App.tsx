@@ -25,6 +25,7 @@ import { PaginaConvite } from "./pages/PaginaConvite";
 import { RedefinirSenha } from "./pages/RedefinirSenha";
 import { UploadFotoPublico } from "./pages/UploadFotoPublico";
 import { CheckinPublico } from "./pages/CheckinPublico";
+import { QrEstacionamento } from "./pages/QrEstacionamento";
 import { ZeramentoDados } from "./pages/ZeramentoDados";
 import { Setores } from "./pages/Setores";
 import { Veiculos } from "./pages/Veiculos";
@@ -41,6 +42,7 @@ export function App() {
       <Route path="/v-qr/:token" element={<QrTurma />} />
       <Route path="/foto/:token" element={<UploadFotoPublico />} />
       <Route path="/checkin/:token" element={<CheckinPublico />} />
+      <Route path="/qr-checkin/:token" element={<QrEstacionamento />} />
       <Route
         element={
           <ProtegerRota>

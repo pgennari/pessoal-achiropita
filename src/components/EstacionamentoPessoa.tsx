@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useEstacionamentos } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
@@ -12,6 +12,10 @@ interface Props {
 export function EstacionamentoPessoa({ pessoa }: Props) {
   const { sessao } = useSessao();
   const { itens: estacionamentos } = useEstacionamentos();
+  const estacionamentosOrdenados = useMemo(
+    () => [...estacionamentos].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+    [estacionamentos]
+  );
   const [editando, setEditando] = useState(false);
   const [estacionamentoSelecionado, setEstacionamentoSelecionado] = useState(pessoa.estacionamentoId ?? "");
   const [acaoOcupado, setAcaoOcupado] = useState(false);
@@ -41,11 +45,40 @@ export function EstacionamentoPessoa({ pessoa }: Props) {
     }
   }
 
-  if (editando) {
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h4 className="font-semibold text-carbone">Estacionamento</h4>
+  return (
+    <div className="border border-pietra-clara rounded-lg p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-lg font-semibold text-carbone">Estacionamento</h3>
+        {podeEditar && !editando && (
+          <button
+            type="button"
+            onClick={() => setEditando(true)}
+            className="btn btn-secundario btn-pequeno"
+          >
+            {pessoa.estacionamentoId ? "Alterar" : "+ Associar"}
+          </button>
+        )}
+      </div>
+
+      {editando ? (
+        <div className="space-y-3">
+          {acaoErro && (
+            <div className="rounded-sm bg-vermelho/10 border border-vermelho/30 p-3 text-sm text-vermelho-escuro">
+              {acaoErro}
+            </div>
+          )}
+          <select
+            className="input"
+            value={estacionamentoSelecionado}
+            onChange={(e) => setEstacionamentoSelecionado(e.target.value)}
+          >
+            <option value="">Nenhum</option>
+            {estacionamentosOrdenados.map((est) => (
+              <option key={est.id} value={est.id}>
+                {est.nome}
+              </option>
+            ))}
+          </select>
           <div className="flex gap-2">
             <button
               type="button"
@@ -68,57 +101,19 @@ export function EstacionamentoPessoa({ pessoa }: Props) {
             </button>
           </div>
         </div>
-        {acaoErro && (
-          <div className="text-sm text-vermelho-escuro">{acaoErro}</div>
-        )}
-        <select
-          className="input"
-          value={estacionamentoSelecionado}
-          onChange={(e) => setEstacionamentoSelecionado(e.target.value)}
-        >
-          <option value="">Nenhum</option>
-          {estacionamentos.map((est) => (
-            <option key={est.id} value={est.id}>
-              {est.nome}
-            </option>
-          ))}
-        </select>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center justify-between">
-      <h4 className="font-semibold text-carbone">Estacionamento</h4>
-      {pessoa.estacionamentoId && pessoa.estacionamentoNome ? (
-        <div className="flex items-center gap-2">
-          <Link
-            to={`/estacionamentos/${pessoa.estacionamentoId}`}
-            className="text-azul-escuro hover:underline"
-          >
-            {pessoa.estacionamentoNome}
-          </Link>
-          {podeEditar && (
-            <button
-              type="button"
-              className="text-xs text-ardesia hover:text-carbone"
-              onClick={() => setEditando(true)}
-            >
-              Alterar
-            </button>
-          )}
-        </div>
       ) : (
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-ardesia">Nenhum</span>
-          {podeEditar && (
-            <button
-              type="button"
-              className="text-xs text-azul-escuro hover:underline"
-              onClick={() => setEditando(true)}
-            >
-              Associar
-            </button>
+        <div>
+          {pessoa.estacionamentoId && pessoa.estacionamentoNome ? (
+            <div className="flex items-center justify-between">
+              <Link
+                to={`/estacionamentos/${pessoa.estacionamentoId}`}
+                className="font-semibold text-carbone hover:text-verde-escuro"
+              >
+                {pessoa.estacionamentoNome}
+              </Link>
+            </div>
+          ) : (
+            <p className="text-sm text-ardesia">Nenhum estacionamento associado.</p>
           )}
         </div>
       )}

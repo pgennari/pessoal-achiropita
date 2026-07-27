@@ -50,6 +50,7 @@ const secoes: Secao[] = [
         ],
       },
       { to: "/estacionamentos", label: "Estacionamentos" },
+      { to: "/veiculos", label: "Veículos" },
     ],
   },
   {

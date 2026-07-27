@@ -373,4 +373,105 @@ app.openapi(getCheckinsRoute, async (c) => {
   return c.json(resultado as any, 200);
 });
 
+// GET /api/estacionamentos/:id/veiculos
+const getVeiculosEstacionamentoRoute = createRoute({
+  method: "get",
+  path: "/{id}/veiculos",
+  tags: ["Estacionamentos", "Veiculos"],
+  summary: "Lista veiculos associados ao estacionamento",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.array(z.any()) } }, description: "Lista de veiculos" },
+    404: { content: { "application/json": { schema: msgErro } }, description: "Estacionamento nao encontrado" },
+  },
+});
+
+app.openapi(getVeiculosEstacionamentoRoute, async (c) => {
+  const { id } = c.req.valid("param");
+  const [est] = await sql`SELECT id FROM estacionamentos WHERE id = ${id}`;
+  if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
+  const rows = await sql`
+    SELECT v.id, v.fabricante, v.modelo, v.placa, v.cor,
+      COALESCE(
+        (SELECT jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome))
+         FROM pessoa_veiculo pv
+         JOIN pessoas p ON p.id = pv.pessoa_id
+         WHERE pv.veiculo_id = v.id),
+        '[]'::jsonb
+      ) AS pessoas
+    FROM veiculos v
+    WHERE v.estacionamento_id = ${id}
+    ORDER BY v.placa
+  `;
+  return c.json(rows as any, 200);
+});
+
+// POST /api/estacionamentos/:id/veiculos
+const postVeiculoEstacionamentoRoute = createRoute({
+  method: "post",
+  path: "/{id}/veiculos",
+  tags: ["Estacionamentos", "Veiculos"],
+  summary: "Associa veiculo ao estacionamento",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { "application/json": { schema: z.object({ veiculoId: z.string() }) } } },
+  },
+  responses: {
+    200: { content: { "application/json": { schema: z.object({ ok: z.boolean() }) } }, description: "Sucesso" },
+    400: { content: { "application/json": { schema: msgErro } }, description: "Dados invalidos" },
+    403: { content: { "application/json": { schema: msgErro } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: msgErro } }, description: "Nao encontrado" },
+    409: { content: { "application/json": { schema: msgErro } }, description: "Veiculo ja associado" },
+  },
+});
+
+app.openapi(postVeiculoEstacionamentoRoute, async (c) => {
+  const { id } = c.req.valid("param");
+  const sessao = c.get("sessao");
+  if (!podeAdministrar(sessao.perfil)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  const { veiculoId } = c.req.valid("json");
+  const [est] = await sql`SELECT id FROM estacionamentos WHERE id = ${id}`;
+  if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
+  const [veiculo] = await sql`SELECT id, estacionamento_id FROM veiculos WHERE id = ${veiculoId}`;
+  if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
+  if (veiculo.estacionamento_id && veiculo.estacionamento_id !== id) {
+    return c.json({ erro: "Veiculo ja esta associado a outro estacionamento." }, 409);
+  }
+  await sql`UPDATE veiculos SET estacionamento_id = ${id}, atualizado_em = NOW() WHERE id = ${veiculoId}`;
+  await registrarEvento(sessao, "estacionamento.veiculo.associou", `estacionamentos/${id}`, `veiculo ${veiculoId}`);
+  return c.json({ ok: true }, 200);
+});
+
+// DELETE /api/estacionamentos/:id/veiculos/:veiculoId
+const deleteVeiculoEstacionamentoRoute = createRoute({
+  method: "delete",
+  path: "/{id}/veiculos/{veiculoId}",
+  tags: ["Estacionamentos", "Veiculos"],
+  summary: "Desassocia veiculo do estacionamento",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string().uuid(), veiculoId: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.object({ ok: z.boolean() }) } }, description: "Sucesso" },
+    403: { content: { "application/json": { schema: msgErro } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: msgErro } }, description: "Nao encontrado" },
+  },
+});
+
+app.openapi(deleteVeiculoEstacionamentoRoute, async (c) => {
+  const { id, veiculoId } = c.req.valid("param");
+  const sessao = c.get("sessao");
+  if (!podeAdministrar(sessao.perfil)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  const [veiculo] = await sql`SELECT id, estacionamento_id FROM veiculos WHERE id = ${veiculoId}`;
+  if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
+  if (veiculo.estacionamento_id !== id) return c.json({ erro: "Veiculo nao esta associado a este estacionamento." }, 404);
+  await sql`UPDATE veiculos SET estacionamento_id = NULL, atualizado_em = NOW() WHERE id = ${veiculoId}`;
+  await registrarEvento(sessao, "estacionamento.veiculo.desassociou", `estacionamentos/${id}`, `veiculo ${veiculoId}`);
+  return c.json({ ok: true }, 200);
+});
+
 export default app;

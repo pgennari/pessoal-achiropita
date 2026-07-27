@@ -62,6 +62,34 @@ export interface Carro {
   cor: string;
 }
 
+export interface Veiculo {
+  id: string;
+  fabricante: string;
+  modelo: string;
+  placa: string;
+  cor: string;
+  estacionamentoId?: string;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+export interface PessoaVeiculo {
+  pessoaId: string;
+  veiculoId: string;
+  criadoEm: string;
+}
+
+export interface VeiculoComPessoas extends Veiculo {
+  pessoas: { id: string; nome: string; cracha: number }[];
+}
+
+export interface PessoaComVeiculos {
+  id: string;
+  nome: string;
+  cracha: number;
+  veiculos: Veiculo[];
+}
+
 export interface Pessoa {
   id: string;
   cracha: number;

@@ -80,67 +80,50 @@ app.openapi(buscarPlacaRoute, async (c) => {
   if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
 
   const padraoPlaca = `%${placa.toUpperCase()}%`;
-  const pessoas = await sql`
-    SELECT 
-      p.id, 
-      p.nome, 
-      carro
-    FROM 
-      pessoas p,
-      jsonb_array_elements(p.carros::jsonb) AS carro
-    WHERE 
-      p.estacionamento_id = ${est.id}
-      AND p.ativo = true
-      AND UPPER(carro->>'placa') LIKE ${padraoPlaca}
+
+  // Buscar veiculos que pertencem ao estacionamento (via estacionamento_id)
+  const veiculos = await sql`
+    SELECT v.id, v.fabricante, v.modelo, v.placa, v.cor
+    FROM veiculos v
+    WHERE v.estacionamento_id = ${est.id}
+      AND UPPER(v.placa) LIKE ${padraoPlaca}
   `;
-  const checkins = await sql`
-    SELECT carro_id FROM checkins
-    WHERE estacionamento_id = ${est.id}
-  `;
-  const carrosComCheckin = new Set(checkins.map((ck) => ck.carro_id));
 
-  interface CarroRow {
-    id: string;
-    fabricante: string;
-    modelo: string;
-    placa: string;
-    cor: string;
-  }
-
-  const resultados: Array<{
-    pessoaId: string;
-    pessoaNome: string;
-    carroId: string;
-    placa: string;
-    modelo: string;
-    cor: string;
-    jaPossuiCheckin: boolean;
-  }> = [];
-
-  for (const p of pessoas) {
-    if (
-      p.carro.placa &&
-      p.carro.placa.toUpperCase().includes(placa.toUpperCase())
-    ) {
-      resultados.push({
-        pessoaId: p.id,
-        pessoaNome: p.nome,
-        carroId: p.carro.id,
-        placa: p.carro.placa,
-        modelo: p.carro.modelo,
-        cor: p.carro.cor,
-        jaPossuiCheckin: carrosComCheckin.has(p.carro.id),
-      });
-    }
-  }
-
-  if (resultados.length === 0) {
+  if (veiculos.length === 0) {
     return c.json(
       {
-        erro: "Nenhuma pessoa encontrada para esta placa neste estacionamento.",
+        erro: "Nenhum veiculo encontrado para esta placa neste estacionamento.",
       },
       404,
     );
+  }
+
+  // Buscar pessoas associadas a cada veiculo
+  const resultados = [];
+  for (const v of veiculos) {
+    const pessoas = await sql`
+      SELECT p.id, p.nome
+      FROM pessoa_veiculo pv
+      JOIN pessoas p ON p.id = pv.pessoa_id
+      WHERE pv.veiculo_id = ${v.id}
+        AND p.ativo = true
+    `;
+
+    // Verificar se ja tem check-in
+    const [existente] = await sql`
+      SELECT id FROM checkins
+      WHERE estacionamento_id = ${est.id} AND carro_id = ${v.id}
+    `;
+
+    resultados.push({
+      veiculoId: v.id,
+      placa: v.placa,
+      modelo: v.modelo,
+      cor: v.cor,
+      fabricante: v.fabricante,
+      pessoas: pessoas.map((p) => ({ id: p.id, nome: p.nome })),
+      jaPossuiCheckin: !!existente,
+    });
   }
 
   return c.json({ resultados }, 200);
@@ -159,8 +142,7 @@ const postCheckinRoute = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            pessoaId: z.string(),
-            carroId: z.string(),
+            veiculoId: z.string(),
           }),
         },
       },
@@ -175,7 +157,7 @@ const postCheckinRoute = createRoute({
       content: {
         "application/json": { schema: z.object({ erro: z.string() }) },
       },
-      description: "Estacionamento ou pessoa não encontrado",
+      description: "Estacionamento ou veiculo nao encontrado",
     },
     409: {
       content: {
@@ -188,47 +170,50 @@ const postCheckinRoute = createRoute({
 
 app.openapi(postCheckinRoute, async (c) => {
   const { token } = c.req.valid("param");
-  const { pessoaId, carroId } = c.req.valid("json");
+  const { veiculoId } = c.req.valid("json");
 
   const [est] = await sql`
     SELECT id, nome FROM estacionamentos WHERE token_checkin = ${token}
   `;
   if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
 
-  const [pessoa] = await sql`
-    SELECT id, nome, carros FROM pessoas WHERE id = ${pessoaId}
+  // Verificar se o veiculo existe e pertence ao estacionamento
+  const [veiculo] = await sql`
+    SELECT id, fabricante, modelo, placa, cor, estacionamento_id
+    FROM veiculos WHERE id = ${veiculoId}
   `;
-  if (!pessoa) return c.json({ erro: "Pessoa nao encontrada." }, 404);
+  if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
+  if (veiculo.estacionamento_id !== est.id) {
+    return c.json({ erro: "Veiculo nao pertence a este estacionamento." }, 404);
+  }
 
   // Verificar unicidade
   const [existente] = await sql`
     SELECT id FROM checkins
-    WHERE estacionamento_id = ${est.id} AND carro_id = ${carroId}
+    WHERE estacionamento_id = ${est.id} AND carro_id = ${veiculoId}
   `;
   if (existente) {
     return c.json(
       {
-        erro: "Este carro ja possui check-in registrado neste estacionamento.",
+        erro: "Este veiculo ja possui check-in registrado neste estacionamento.",
       },
       409,
     );
   }
 
-  // Extrair dados do carro
-  interface CarroRow {
-    id: string;
-    fabricante: string;
-    modelo: string;
-    placa: string;
-    cor: string;
-  }
-  const carros = (pessoa.carros ?? []) as unknown as CarroRow[];
-  const carro = carros.find((cr) => cr.id === carroId);
-  if (!carro) return c.json({ erro: "Carro nao encontrado na pessoa." }, 404);
+  // Buscar nome da primeira pessoa associada (para exibicao)
+  const [pessoa] = await sql`
+    SELECT p.nome
+    FROM pessoa_veiculo pv
+    JOIN pessoas p ON p.id = pv.pessoa_id
+    WHERE pv.veiculo_id = ${veiculoId}
+    LIMIT 1
+  `;
+  const pessoaNome = pessoa?.nome ?? "Desconhecido";
 
   const [checkin] = await sql`
     INSERT INTO checkins (pessoa_id, pessoa_nome, carro_id, placa, modelo, cor, estacionamento_id, estacionamento_nome)
-    VALUES (${pessoaId}, ${pessoa.nome}, ${carroId}, ${carro.placa}, ${carro.modelo}, ${carro.cor}, ${est.id}, ${est.nome})
+    VALUES (NULL, ${pessoaNome}, ${veiculoId}, ${veiculo.placa}, ${veiculo.modelo}, ${veiculo.cor}, ${est.id}, ${est.nome})
     RETURNING id, timestamp
   `;
 
@@ -242,10 +227,10 @@ app.openapi(postCheckinRoute, async (c) => {
           checkin.timestamp instanceof Date
             ? checkin.timestamp.toISOString()
             : String(checkin.timestamp),
-        pessoaNome: pessoa.nome,
-        placa: carro.placa,
-        modelo: carro.modelo,
-        cor: carro.cor,
+        pessoaNome,
+        placa: veiculo.placa,
+        modelo: veiculo.modelo,
+        cor: veiculo.cor,
         estacionamentoNome: est.nome,
       },
     },

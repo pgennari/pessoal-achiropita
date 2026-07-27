@@ -9,8 +9,8 @@ import {
   DadosEstacionamentoForm,
   ErroValidacao,
 } from "../lib/estacionamentos";
-import { ListaPessoasEstacionamento } from "../components/ListaPessoasEstacionamento";
 import { ListaCheckins } from "../components/ListaCheckins";
+import { ListaVeiculosEstacionamento } from "../components/ListaVeiculosEstacionamento";
 
 export function EstacionamentoDetalhe() {
   const { id } = useParams<{ id: string }>();
@@ -23,7 +23,7 @@ export function EstacionamentoDetalhe() {
   const [acaoOcupado, setAcaoOcupado] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
-  const [abaAtiva, setAbaAtiva] = useState<"pessoas" | "checkins">("pessoas");
+  const [abaAtiva, setAbaAtiva] = useState<"checkins" | "veiculos">("veiculos");
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -419,17 +419,6 @@ export function EstacionamentoDetalhe() {
         <button
           type="button"
           className={`px-4 py-2 text-sm font-semibold transition border-b-2 ${
-            abaAtiva === "pessoas"
-              ? "border-verde text-verde-escuro"
-              : "border-transparent text-ardesia hover:text-carbone"
-          }`}
-          onClick={() => setAbaAtiva("pessoas")}
-        >
-          Pessoas Associadas
-        </button>
-        <button
-          type="button"
-          className={`px-4 py-2 text-sm font-semibold transition border-b-2 ${
             abaAtiva === "checkins"
               ? "border-verde text-verde-escuro"
               : "border-transparent text-ardesia hover:text-carbone"
@@ -438,20 +427,31 @@ export function EstacionamentoDetalhe() {
         >
           Check-in
         </button>
+        <button
+          type="button"
+          className={`px-4 py-2 text-sm font-semibold transition border-b-2 ${
+            abaAtiva === "veiculos"
+              ? "border-verde text-verde-escuro"
+              : "border-transparent text-ardesia hover:text-carbone"
+          }`}
+          onClick={() => setAbaAtiva("veiculos")}
+        >
+          Veículos
+        </button>
       </div>
-
-      {abaAtiva === "pessoas" && (
-        <section className="card">
-          <div className="card-corpo">
-            <ListaPessoasEstacionamento estacionamento={estacionamento} />
-          </div>
-        </section>
-      )}
 
       {abaAtiva === "checkins" && (
         <section className="card">
           <div className="card-corpo">
             <ListaCheckins checkins={checkins} carregando={carregandoCheckins} />
+          </div>
+        </section>
+      )}
+
+      {abaAtiva === "veiculos" && (
+        <section className="card">
+          <div className="card-corpo">
+            <ListaVeiculosEstacionamento estacionamentoId={id!} />
           </div>
         </section>
       )}

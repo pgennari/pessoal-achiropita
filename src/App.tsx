@@ -27,6 +27,9 @@ import { UploadFotoPublico } from "./pages/UploadFotoPublico";
 import { CheckinPublico } from "./pages/CheckinPublico";
 import { ZeramentoDados } from "./pages/ZeramentoDados";
 import { Setores } from "./pages/Setores";
+import { Veiculos } from "./pages/Veiculos";
+import { VeiculoNovo } from "./pages/VeiculoNovo";
+import { VeiculoDetalhe } from "./pages/VeiculoDetalhe";
 
 export function App() {
   return (
@@ -64,6 +67,9 @@ export function App() {
         <Route path="estacionamentos" element={<Estacionamentos />} />
         <Route path="estacionamentos/novo" element={<EstacionamentoNovo />} />
         <Route path="estacionamentos/:id" element={<EstacionamentoDetalhe />} />
+        <Route path="veiculos" element={<Veiculos />} />
+        <Route path="veiculos/novo" element={<VeiculoNovo />} />
+        <Route path="veiculos/:id" element={<VeiculoDetalhe />} />
         <Route path="auditoria" element={<Auditoria />} />
         <Route path="setores" element={<Setores />} />
         <Route path="zeramento" element={<ZeramentoDados />} />

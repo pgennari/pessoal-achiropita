@@ -16,10 +16,13 @@ import {
   Participacao,
   ParticipacaoHistorica,
   Pessoa,
+  PessoaComVeiculos,
   PessoaEstacionamento,
   SetorInfo,
   TurmaFormacao,
   Usuario,
+  Veiculo,
+  VeiculoComPessoas,
 } from "./tipos";
 import {
   buscarEstacionamentoPublico,
@@ -248,6 +251,52 @@ export function useConvites(): EstadoLista<Convite> {
     queryFn: () => api.get<Convite[]>("/api/convites"),
   });
   return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
+}
+
+// ─── Veiculos ────────────────────────────────────────────────────────────────
+
+export function useVeiculos(): EstadoLista<Veiculo> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["veiculos"],
+    queryFn: () => api.get<Veiculo[]>("/api/veiculos"),
+  });
+  return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
+}
+
+export function useVeiculo(id: string | undefined): EstadoItem<Veiculo> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["veiculos", id],
+    queryFn: () => api.get<Veiculo>(`/api/veiculos/${id}`),
+    enabled: !!id,
+  });
+  return { item: data ?? null, carregando: isLoading && !!id, erro: erroMsg(error) };
+}
+
+export function useVeiculosPessoa(pessoaId: string | undefined): EstadoLista<Veiculo> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["pessoas", pessoaId, "veiculos"],
+    queryFn: () => api.get<Veiculo[]>(`/api/pessoas/${pessoaId}/veiculos`),
+    enabled: !!pessoaId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!pessoaId, erro: erroMsg(error) };
+}
+
+export function usePessoasVeiculo(veiculoId: string | undefined): EstadoLista<PessoaComVeiculos> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["veiculos", veiculoId, "pessoas"],
+    queryFn: () => api.get<PessoaComVeiculos[]>(`/api/veiculos/${veiculoId}/pessoas`),
+    enabled: !!veiculoId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!veiculoId, erro: erroMsg(error) };
+}
+
+export function useVeiculosEstacionamento(estacionamentoId: string | undefined): EstadoLista<VeiculoComPessoas> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["estacionamentos", estacionamentoId, "veiculos"],
+    queryFn: () => api.get<VeiculoComPessoas[]>(`/api/estacionamentos/${estacionamentoId}/veiculos`),
+    enabled: !!estacionamentoId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!estacionamentoId, erro: erroMsg(error) };
 }
 
 // ─── Estacionamentos ──────────────────────────────────────────────────────────

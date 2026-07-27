@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { useCheckinPublico } from "../lib/hooks";
 import { buscarPorPlaca, ResultadoBusca, DadosCheckin } from "../lib/checkin";
 import { ModalCheckin } from "../components/ModalCheckin";
+import { VeiculoCard } from "../components/VeiculoCard";
 
 export function CheckinPublico() {
   const { token } = useParams<{ token: string }>();
@@ -50,7 +51,7 @@ export function CheckinPublico() {
     setSucesso(checkin);
     setResultados((prev) =>
       prev.map((r) =>
-        r.carroId === checkin.id
+        r.veiculoId === checkin.id
           ? { ...r, jaPossuiCheckin: true }
           : r
       )
@@ -136,7 +137,7 @@ export function CheckinPublico() {
         {buscou && !erroBusca && resultados.length === 0 && (
           <div className="card">
             <div className="card-corpo text-center text-ardesia text-sm">
-              Nenhuma pessoa encontrada para esta placa neste estacionamento.
+              Nenhum veiculo encontrado para esta placa neste estacionamento.
             </div>
           </div>
         )}
@@ -144,32 +145,12 @@ export function CheckinPublico() {
         {resultados.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-ardesia">Resultados</h4>
-            {resultados.map((r, i) => (
-              <div key={`${r.pessoaId}-${r.carroId}-${i}`} className="card">
-                <div className="card-corpo flex flex-wrap items-center justify-between gap-3">
-                  <div className="space-y-0.5">
-                    <div className="font-semibold text-carbone">
-                      {r.pessoaNome}
-                    </div>
-                    <div className="text-sm text-ardesia">
-                      <span className="font-mono font-semibold">{r.placa}</span>
-                      {" - "}
-                      {r.modelo} ({r.cor})
-                    </div>
-                  </div>
-                  {r.jaPossuiCheckin ? (
-                    <span className="badge badge-cinza">Ja registrado</span>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn btn-primario btn-pequeno"
-                      onClick={() => handleAbrirModal(r)}
-                    >
-                      Check-in
-                    </button>
-                  )}
-                </div>
-              </div>
+            {resultados.map((r) => (
+              <VeiculoCard
+                key={r.veiculoId}
+                veiculo={r}
+                aoCheckin={() => handleAbrirModal(r)}
+              />
             ))}
           </div>
         )}
@@ -178,9 +159,7 @@ export function CheckinPublico() {
       {modalAberto && selecionado && token && (
         <ModalCheckin
           token={token}
-          pessoaId={selecionado.pessoaId}
-          pessoaNome={selecionado.pessoaNome}
-          carroId={selecionado.carroId}
+          veiculoId={selecionado.veiculoId}
           placa={selecionado.placa}
           modelo={selecionado.modelo}
           cor={selecionado.cor}

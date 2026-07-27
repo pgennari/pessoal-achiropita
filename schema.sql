@@ -281,6 +281,31 @@ END $$;
 ALTER TABLE estacionamentos
 ALTER COLUMN token_checkin SET NOT NULL;
 
+-- veiculos: entidade independente para veículos
+CREATE TABLE IF NOT EXISTS veiculos (
+  id                TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  fabricante        TEXT NOT NULL,
+  modelo            TEXT NOT NULL,
+  placa             TEXT NOT NULL UNIQUE,
+  cor               TEXT NOT NULL,
+  estacionamento_id TEXT REFERENCES estacionamentos(id) ON DELETE SET NULL,
+  criado_em         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_veiculos_placa ON veiculos(placa);
+CREATE INDEX IF NOT EXISTS idx_veiculos_estacionamento ON veiculos(estacionamento_id);
+
+-- pessoa_veiculo: tabela de junção many-to-many
+CREATE TABLE IF NOT EXISTS pessoa_veiculo (
+  pessoa_id   TEXT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+  veiculo_id  TEXT NOT NULL REFERENCES veiculos(id) ON DELETE CASCADE,
+  criado_em   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (pessoa_id, veiculo_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pessoa_veiculo_veiculo ON pessoa_veiculo(veiculo_id);
+
 -- checkins: registro de entrada no estacionamento
 CREATE TABLE IF NOT EXISTS checkins (
   id                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

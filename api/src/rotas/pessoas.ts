@@ -408,4 +408,97 @@ app.openapi(deletePessoaRoute, async (c) => {
   return c.json({ ok: true }, 200);
 });
 
+// GET /api/pessoas/:id/veiculos
+const getVeiculosPessoaRoute = createRoute({
+  method: "get",
+  path: "/{id}/veiculos",
+  tags: ["Pessoas", "Veiculos"],
+  summary: "Lista veiculos vinculados a pessoa",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.array(z.any()) } }, description: "Lista de veiculos" },
+    404: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Pessoa nao encontrada" },
+  },
+});
+
+app.openapi(getVeiculosPessoaRoute, async (c) => {
+  const { id } = c.req.valid("param");
+  const [pessoa] = await sql`SELECT id FROM pessoas WHERE id = ${id}`;
+  if (!pessoa) return c.json({ erro: "Pessoa nao encontrada." }, 404);
+  const rows = await sql`
+    SELECT v.* FROM veiculos v
+    JOIN pessoa_veiculo pv ON pv.veiculo_id = v.id
+    WHERE pv.pessoa_id = ${id}
+    ORDER BY v.placa
+  `;
+  return c.json(rows as any, 200);
+});
+
+// POST /api/pessoas/:id/veiculos
+const postVeiculoPessoaRoute = createRoute({
+  method: "post",
+  path: "/{id}/veiculos",
+  tags: ["Pessoas", "Veiculos"],
+  summary: "Vincula veiculo a pessoa",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { "application/json": { schema: z.object({ veiculoId: z.string() }) } } },
+  },
+  responses: {
+    200: { content: { "application/json": { schema: z.object({ ok: z.boolean() }) } }, description: "Sucesso" },
+    403: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Nao encontrado" },
+    409: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Veiculo ja vinculado" },
+  },
+});
+
+app.openapi(postVeiculoPessoaRoute, async (c) => {
+  const { id } = c.req.valid("param");
+  const sessao = c.get("sessao");
+  if (!podeAdministrar(sessao.perfil)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  const { veiculoId } = c.req.valid("json");
+  const [pessoa] = await sql`SELECT id, nome FROM pessoas WHERE id = ${id}`;
+  if (!pessoa) return c.json({ erro: "Pessoa nao encontrada." }, 404);
+  const [veiculo] = await sql`SELECT id FROM veiculos WHERE id = ${veiculoId}`;
+  if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
+
+  const [existente] = await sql`SELECT veiculo_id FROM pessoa_veiculo WHERE pessoa_id = ${id} AND veiculo_id = ${veiculoId}`;
+  if (existente) return c.json({ erro: "Veiculo ja vinculado a esta pessoa." }, 409);
+
+  await sql`INSERT INTO pessoa_veiculo (pessoa_id, veiculo_id) VALUES (${id}, ${veiculoId})`;
+  await registrarEvento(sessao, "pessoa.veiculo.vinculou", `pessoas/${id}`, `veiculo ${veiculoId}`);
+  return c.json({ ok: true }, 200);
+});
+
+// DELETE /api/pessoas/:id/veiculos/:veiculoId
+const deleteVeiculoPessoaRoute = createRoute({
+  method: "delete",
+  path: "/{id}/veiculos/{veiculoId}",
+  tags: ["Pessoas", "Veiculos"],
+  summary: "Desvincula veiculo da pessoa",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string(), veiculoId: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.object({ ok: z.boolean() }) } }, description: "Sucesso" },
+    403: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Nao encontrado" },
+  },
+});
+
+app.openapi(deleteVeiculoPessoaRoute, async (c) => {
+  const { id, veiculoId } = c.req.valid("param");
+  const sessao = c.get("sessao");
+  if (!podeAdministrar(sessao.perfil)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  const [existente] = await sql`SELECT veiculo_id FROM pessoa_veiculo WHERE pessoa_id = ${id} AND veiculo_id = ${veiculoId}`;
+  if (!existente) return c.json({ erro: "Vinculo nao encontrado." }, 404);
+  await sql`DELETE FROM pessoa_veiculo WHERE pessoa_id = ${id} AND veiculo_id = ${veiculoId}`;
+  await registrarEvento(sessao, "pessoa.veiculo.desvinculou", `pessoas/${id}`, `veiculo ${veiculoId}`);
+  return c.json({ ok: true }, 200);
+});
+
 export default app;

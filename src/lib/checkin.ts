@@ -7,12 +7,12 @@ export interface DadosEstacionamentoPublico {
 }
 
 export interface ResultadoBusca {
-  pessoaId: string;
-  pessoaNome: string;
-  carroId: string;
+  veiculoId: string;
   placa: string;
   modelo: string;
   cor: string;
+  fabricante: string;
+  pessoas: Array<{ id: string; nome: string }>;
   jaPossuiCheckin: boolean;
 }
 
@@ -51,11 +51,9 @@ export async function buscarPorPlaca(
 
 export async function registrarCheckin(
   token: string,
-  pessoaId: string,
-  carroId: string
+  veiculoId: string
 ): Promise<DadosCheckin> {
   return apiPublica<DadosCheckin>("POST", `/api/publico/checkin/${token}`, {
-    pessoaId,
-    carroId,
+    veiculoId,
   });
 }

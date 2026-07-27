@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { PessoaForm } from "../components/PessoaForm";
 import { UploadFoto } from "../components/UploadFoto";
 import { HistoricoPessoa } from "../components/HistoricoPessoa";
-import { EstacionamentoPessoa } from "../components/EstacionamentoPessoa";
-import { usePessoa, usePessoas } from "../lib/hooks";
+import { VinculoVeiculo } from "../components/VinculoVeiculo";
+import { usePessoa, usePessoas, useVeiculos, useVeiculosPessoa } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import {
   DadosPessoaForm,
@@ -12,14 +13,21 @@ import {
   definirAtivacao,
   excluirPessoa,
 } from "../lib/pessoas";
+import {
+  vincularVeiculoPessoa,
+  desvincularVeiculoPessoa,
+} from "../lib/veiculos";
 import { calcularIdade, formatarCPF, formatarData } from "../lib/utilsDominio";
 
 export function PessoaDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { sessao } = useSessao();
   const { item: pessoa, carregando, erro } = usePessoa(id);
   const { itens } = usePessoas();
+  const { itens: veiculos } = useVeiculos();
+  const { itens: veiculosPessoa } = useVeiculosPessoa(id);
   const [editando, setEditando] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [acaoOcupado, setAcaoOcupado] = useState(false);
@@ -278,34 +286,21 @@ export function PessoaDetalhe() {
 
       <section className="card">
         <div className="card-corpo">
-          <h4 className="mb-3">Veículos</h4>
-          {pessoa.carros.length === 0 ? (
-            <p className="text-ardesia text-sm">Nenhum veículo cadastrado.</p>
-          ) : (
-            <ul className="divide-y divide-pietra-clara">
-              {pessoa.carros.map((c) => (
-                <li
-                  key={c.id}
-                  className="py-3 flex items-center justify-between gap-3"
-                >
-                  <div>
-                    <div className="font-semibold text-carbone">
-                      {c.fabricante} {c.modelo}
-                    </div>
-                    <div className="text-xs text-ardesia font-mono">
-                      {c.placa} · {c.cor}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
-
-      <section className="card">
-        <div className="card-corpo">
-          <EstacionamentoPessoa pessoa={pessoa} />
+          <VinculoVeiculo
+            titulo="Veículos"
+            veiculosDisponiveis={veiculos.filter(
+              (v) => !veiculosPessoa.some((vp) => vp.id === v.id)
+            )}
+            veiculosVinculados={veiculosPessoa}
+            aoVincular={async (veiculoId) => {
+              await vincularVeiculoPessoa(id!, veiculoId);
+              await queryClient.invalidateQueries({ queryKey: ["pessoas", id, "veiculos"] });
+            }}
+            aoDesvincular={async (veiculoId) => {
+              await desvincularVeiculoPessoa(id!, veiculoId);
+              await queryClient.invalidateQueries({ queryKey: ["pessoas", id, "veiculos"] });
+            }}
+          />
         </div>
       </section>
 

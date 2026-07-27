@@ -3,9 +3,7 @@ import { DadosCheckin, registrarCheckin } from "../lib/checkin";
 
 interface Props {
   token: string;
-  pessoaId: string;
-  pessoaNome: string;
-  carroId: string;
+  veiculoId: string;
   placa: string;
   modelo: string;
   cor: string;
@@ -16,9 +14,7 @@ interface Props {
 
 export function ModalCheckin({
   token,
-  pessoaId,
-  pessoaNome,
-  carroId,
+  veiculoId,
   placa,
   modelo,
   cor,
@@ -33,7 +29,7 @@ export function ModalCheckin({
     setOcupado(true);
     setErro(null);
     try {
-      const resultado = await registrarCheckin(token, pessoaId, carroId);
+      const resultado = await registrarCheckin(token, veiculoId);
       onConfirmado(resultado.checkin);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Falha ao registrar check-in.";
@@ -54,10 +50,6 @@ export function ModalCheckin({
             <div className="flex justify-between">
               <span className="text-ardesia">Data/hora</span>
               <span className="font-mono">{agora}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-ardesia">Pessoa</span>
-              <span>{pessoaNome}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-ardesia">Placa</span>

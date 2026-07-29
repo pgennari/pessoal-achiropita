@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { useVeiculo, usePessoasVeiculo } from "../lib/hooks";
+import { useVeiculo, usePessoasVeiculo, useEstacionamentos, usePessoas } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import { VeiculoForm } from "../components/VeiculoForm";
-import { atualizarVeiculo, excluirVeiculo } from "../lib/veiculos";
+import { atualizarVeiculo, excluirVeiculo, associarVeiculoEstacionamento, desassociarVeiculoEstacionamento, vincularPessoaVeiculo, desvincularPessoaVeiculo } from "../lib/veiculos";
+import { VinculoPessoa } from "../components/VinculoPessoa";
 
 export function VeiculoDetalhe() {
   const { id } = useParams<{ id: string }>();
@@ -13,11 +14,42 @@ export function VeiculoDetalhe() {
   const { sessao } = useSessao();
   const { item: veiculo, carregando, erro } = useVeiculo(id);
   const { itens: pessoas } = usePessoasVeiculo(id);
+  const { itens: estacionamentos } = useEstacionamentos();
+  const { itens: todasPessoas } = usePessoas();
   const [editando, setEditando] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [editandoEstacionamento, setEditandoEstacionamento] = useState(false);
+  const [estacionamentoSelecionado, setEstacionamentoSelecionado] = useState("");
   const [erroOperacao, setErroOperacao] = useState<string | null>(null);
 
   const podeEditar = sessao?.perfil === "ADM" || sessao?.perfil === "ORG";
+
+  const estacionamentoAtual = useMemo(
+    () => estacionamentos.find((e) => e.id === veiculo?.estacionamentoId),
+    [estacionamentos, veiculo?.estacionamentoId]
+  );
+
+  const estacionamentosOrdenados = useMemo(
+    () => [...estacionamentos].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+    [estacionamentos]
+  );
+
+  const pessoasDisponiveis = useMemo(
+    () => todasPessoas.filter((p) => !pessoas.some((vp) => vp.id === p.id)),
+    [todasPessoas, pessoas]
+  );
+
+  const handleVincularPessoa = async (pessoaId: string) => {
+    if (!id) return;
+    await vincularPessoaVeiculo(id, pessoaId);
+    await queryClient.invalidateQueries({ queryKey: ["veiculos", id, "pessoas"] });
+  };
+
+  const handleDesvincularPessoa = async (pessoaId: string) => {
+    if (!id) return;
+    await desvincularPessoaVeiculo(id, pessoaId);
+    await queryClient.invalidateQueries({ queryKey: ["veiculos", id, "pessoas"] });
+  };
 
   const handleSalvar = async (dados: { fabricante: string; modelo: string; placa: string; cor: string }) => {
     if (!id) return;
@@ -43,6 +75,24 @@ export function VeiculoDetalhe() {
       navigate("/veiculos");
     } catch (e) {
       setErroOperacao((e as Error).message ?? "Erro ao excluir veiculo.");
+    }
+  };
+
+  const handleSalvarEstacionamento = async () => {
+    if (!id || !veiculo) return;
+    setErroOperacao(null);
+    try {
+      if (estacionamentoSelecionado && estacionamentoSelecionado !== veiculo.estacionamentoId) {
+        if (veiculo.estacionamentoId) {
+          await desassociarVeiculoEstacionamento(veiculo.estacionamentoId, id);
+        }
+        await associarVeiculoEstacionamento(estacionamentoSelecionado, id);
+      } else if (!estacionamentoSelecionado && veiculo.estacionamentoId) {
+        await desassociarVeiculoEstacionamento(veiculo.estacionamentoId, id);
+      }
+      setEditandoEstacionamento(false);
+    } catch (e) {
+      setErroOperacao((e as Error).message ?? "Erro ao salvar estacionamento.");
     }
   };
 
@@ -122,18 +172,6 @@ export function VeiculoDetalhe() {
                 <dd className="mt-1">{veiculo.cor}</dd>
               </div>
               <div>
-                <dt className="text-sm text-ardesia">Estacionamento</dt>
-                <dd className="mt-1">
-                  {veiculo.estacionamentoId ? (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-verde/10 text-verde-escuro">
-                      Vinculado
-                    </span>
-                  ) : (
-                    <span className="text-ardesia">Nenhum</span>
-                  )}
-                </dd>
-              </div>
-              <div>
                 <dt className="text-sm text-ardesia">Criado em</dt>
                 <dd className="mt-1">{new Date(veiculo.criadoEm).toLocaleDateString("pt-BR")}</dd>
               </div>
@@ -142,25 +180,82 @@ export function VeiculoDetalhe() {
         </div>
       )}
 
+      <div className="border border-pietra-clara rounded-lg p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-carbone">Estacionamento</h3>
+          {podeEditar && !editando && !editandoEstacionamento && (
+            <button
+              type="button"
+              onClick={() => {
+                setEstacionamentoSelecionado(veiculo.estacionamentoId ?? "");
+                setEditandoEstacionamento(true);
+              }}
+              className="btn btn-secundario btn-pequeno"
+            >
+              {veiculo.estacionamentoId ? "Alterar" : "+ Associar"}
+            </button>
+          )}
+        </div>
+
+        {editandoEstacionamento ? (
+          <div className="space-y-3">
+            <select
+              className="input"
+              value={estacionamentoSelecionado}
+              onChange={(e) => setEstacionamentoSelecionado(e.target.value)}
+            >
+              <option value="">Nenhum</option>
+              {estacionamentosOrdenados.map((est) => (
+                <option key={est.id} value={est.id}>
+                  {est.nome}
+                </option>
+              ))}
+            </select>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn btn-primario"
+                onClick={handleSalvarEstacionamento}
+              >
+                Salvar
+              </button>
+              <button
+                type="button"
+                className="btn btn-secundario"
+                onClick={() => {
+                  setEditandoEstacionamento(false);
+                  setEstacionamentoSelecionado(veiculo.estacionamentoId ?? "");
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            {estacionamentoAtual ? (
+              <Link
+                to={`/estacionamentos/${estacionamentoAtual.id}`}
+                className="font-semibold text-carbone hover:text-verde-escuro"
+              >
+                {estacionamentoAtual.nome}
+              </Link>
+            ) : (
+              <p className="text-sm text-ardesia">Nenhum estacionamento associado.</p>
+            )}
+          </div>
+        )}
+      </div>
+
       <section className="card">
         <div className="card-corpo">
-          <h4 className="mb-3">Pessoas Vinculadas</h4>
-          {pessoas.length === 0 ? (
-            <p className="text-ardesia text-sm">Nenhuma pessoa vinculada.</p>
-          ) : (
-            <ul className="divide-y divide-pietra-clara">
-              {pessoas.map((p) => (
-                <li
-                  key={p.id}
-                  className="py-3 flex items-center justify-between gap-3"
-                >
-                  <div>
-                    <div className="font-semibold text-carbone">{p.nome}</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+          <VinculoPessoa
+            titulo="Pessoas Vinculadas"
+            pessoasDisponiveis={pessoasDisponiveis}
+            pessoasVinculadas={pessoas}
+            aoVincular={handleVincularPessoa}
+            aoDesvincular={handleDesvincularPessoa}
+          />
         </div>
       </section>
 

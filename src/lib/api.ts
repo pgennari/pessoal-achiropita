@@ -3,7 +3,7 @@
 // Rotas públicas (fluxo de validação) usam sessaoJwt.
 import { auth } from "./firebase";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+const BASE = ((import.meta.env.VITE_API_URL as string | undefined) ?? "").replace(/\/+$/, "");
 
 async function getToken(): Promise<string> {
   const user = auth().currentUser;

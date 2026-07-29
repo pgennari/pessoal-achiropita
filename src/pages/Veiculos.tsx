@@ -53,6 +53,7 @@ export function Veiculos() {
                   <th className="text-left py-2 px-3 font-medium text-ardesia">Modelo</th>
                   <th className="text-left py-2 px-3 font-medium text-ardesia">Cor</th>
                   <th className="text-left py-2 px-3 font-medium text-ardesia">Estacionamento</th>
+                  <th className="text-left py-2 px-3 font-medium text-ardesia">Pessoas</th>
                 </tr>
               </thead>
               <tbody>
@@ -73,6 +74,22 @@ export function Veiculos() {
                             Vinculado
                           </span>
                         )
+                      ) : (
+                        <span className="text-ardesia">-</span>
+                      )}
+                    </td>
+                    <td className="py-2 px-3">
+                      {v.pessoas.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {v.pessoas.map((p) => (
+                            <span
+                              key={p.id}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-azul/10 text-azul-escuro"
+                            >
+                              {p.nome}
+                            </span>
+                          ))}
+                        </div>
                       ) : (
                         <span className="text-ardesia">-</span>
                       )}

@@ -26,7 +26,9 @@ import {
 } from "./tipos";
 import {
   buscarEstacionamentoPublico,
+  buscarHistoricoPublico,
 } from "./checkin";
+import type { DashboardInicial } from "./dashboard";
 
 export interface EstadoLista<T> {
   itens: T[];
@@ -366,6 +368,26 @@ export function useCheckinsEstacionamento(estacionamentoId: string | undefined) 
     enabled: !!estacionamentoId,
   });
   return { itens: data ?? [], carregando: isLoading && !!estacionamentoId, erro: erroMsg(error) };
+}
+
+export function useHistoricoPublico(token: string | undefined) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["checkin", "historico", token],
+    queryFn: () => buscarHistoricoPublico(token!),
+    enabled: !!token,
+    retry: false,
+  });
+  return { historico: data ?? null, carregando: isLoading && !!token, erro: erroMsg(error) };
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
+export function useDashboardEstacionamentos() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["dashboard", "estacionamentos"],
+    queryFn: () => api.get<DashboardInicial>("/api/estacionamentos/dashboard"),
+  });
+  return { dados: data ?? null, carregando: isLoading, erro: erroMsg(error) };
 }
 
 // ─── Utilitário ───────────────────────────────────────────────────────────────

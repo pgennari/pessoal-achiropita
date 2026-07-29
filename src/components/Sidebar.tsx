@@ -18,7 +18,12 @@ interface Secao {
 
 const secoes: Secao[] = [
   {
-    itens: [{ to: "/", label: "Painel" }],
+    label: "Gestão de Estacionamento",
+    perfis: ["ADM", "ORG", "OPC", "CRD"],
+    itens: [
+      { to: "/veiculos", label: "Veículos" },
+      { to: "/estacionamentos", label: "Estacionamentos" },
+    ],
   },
   {
     label: "Pessoal",
@@ -49,14 +54,13 @@ const secoes: Secao[] = [
           { to: "/formacao/pendencias", label: "Pendências", perfis: ["ADM", "ORG", "OPC", "CRD"] },
         ],
       },
-      { to: "/estacionamentos", label: "Estacionamentos" },
-      { to: "/veiculos", label: "Veículos" },
     ],
   },
   {
     label: "Festa",
     perfis: ["ADM", "ORG"],
     itens: [
+      { to: "/", label: "Painel" },
       {
         to: "/edicoes",
         label: "Edição",
@@ -170,6 +174,19 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
                 >
                   <span className="inline-block w-2 h-2 rounded-full bg-verde mr-2" />
                   {edicaoAtiva.numero}ª edição · {edicaoAtiva.ano}
+                </NavLink>
+                <NavLink
+                  to="/dashboard/estacionamentos"
+                  onClick={onFechar}
+                  className={({ isActive }) => [
+                    "flex items-center px-3 py-2.5 rounded-sm text-sm font-semibold transition",
+                    isActive
+                      ? "bg-verde/10 text-verde-escuro border-l-2 border-verde"
+                      : "text-carbone hover:bg-verde/5 border-l-2 border-transparent",
+                  ].join(" ")}
+                >
+                  <span className="inline-block w-2 h-2 rounded-full bg-verde mr-2" />
+                  Check-ins
                 </NavLink>
               </div>
             </div>

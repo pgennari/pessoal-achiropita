@@ -31,6 +31,7 @@ import { Setores } from "./pages/Setores";
 import { Veiculos } from "./pages/Veiculos";
 import { VeiculoNovo } from "./pages/VeiculoNovo";
 import { VeiculoDetalhe } from "./pages/VeiculoDetalhe";
+import { DashboardEstacionamentos } from "./pages/DashboardEstacionamentos";
 
 export function App() {
   return (
@@ -75,6 +76,7 @@ export function App() {
         <Route path="auditoria" element={<Auditoria />} />
         <Route path="setores" element={<Setores />} />
         <Route path="zeramento" element={<ZeramentoDados />} />
+        <Route path="dashboard/estacionamentos" element={<DashboardEstacionamentos />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

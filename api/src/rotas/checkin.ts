@@ -1,5 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
+import eventos from "../eventos.js";
 
 const app = new OpenAPIHono();
 
@@ -109,10 +110,11 @@ app.openapi(buscarPlacaRoute, async (c) => {
         AND p.ativo = true
     `;
 
-    // Verificar se ja tem check-in
+    // Verificar se ja tem check-in hoje
     const [existente] = await sql`
       SELECT id FROM checkins
       WHERE estacionamento_id = ${est.id} AND carro_id = ${v.id}
+      AND data = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
     `;
 
     resultados.push({
@@ -163,7 +165,7 @@ const postCheckinRoute = createRoute({
       content: {
         "application/json": { schema: z.object({ erro: z.string() }) },
       },
-      description: "Veículo já possui check-in",
+      description: "Veículo já possui check-in hoje",
     },
   },
 });
@@ -187,15 +189,16 @@ app.openapi(postCheckinRoute, async (c) => {
     return c.json({ erro: "Veiculo nao pertence a este estacionamento." }, 404);
   }
 
-  // Verificar unicidade
+  // Verificar unicidade por dia
   const [existente] = await sql`
     SELECT id FROM checkins
     WHERE estacionamento_id = ${est.id} AND carro_id = ${veiculoId}
+      AND data = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
   `;
   if (existente) {
     return c.json(
       {
-        erro: "Este veiculo ja possui check-in registrado neste estacionamento.",
+        erro: "Este veiculo ja possui check-in registrado neste estacionamento hoje.",
       },
       409,
     );
@@ -212,10 +215,26 @@ app.openapi(postCheckinRoute, async (c) => {
   const pessoaNome = pessoa?.nome ?? "Desconhecido";
 
   const [checkin] = await sql`
-    INSERT INTO checkins (pessoa_id, pessoa_nome, carro_id, placa, modelo, cor, estacionamento_id, estacionamento_nome)
-    VALUES (NULL, ${pessoaNome}, ${veiculoId}, ${veiculo.placa}, ${veiculo.modelo}, ${veiculo.cor}, ${est.id}, ${est.nome})
+    INSERT INTO checkins (pessoa_id, pessoa_nome, carro_id, placa, modelo, cor, estacionamento_id, estacionamento_nome, data)
+    VALUES (NULL, ${pessoaNome}, ${veiculoId}, ${veiculo.placa}, ${veiculo.modelo}, ${veiculo.cor}, ${est.id}, ${est.nome}, (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date)
     RETURNING id, timestamp
   `;
+
+  const dadosEvento = {
+    id: checkin.id,
+    timestamp:
+      checkin.timestamp instanceof Date
+        ? checkin.timestamp.toISOString()
+        : String(checkin.timestamp),
+    pessoaNome,
+    placa: veiculo.placa,
+    modelo: veiculo.modelo,
+    cor: veiculo.cor,
+    estacionamentoId: est.id,
+    estacionamentoNome: est.nome,
+  };
+
+  eventos.emit("checkin", dadosEvento);
 
   return c.json(
     {
@@ -236,6 +255,80 @@ app.openapi(postCheckinRoute, async (c) => {
     },
     200,
   );
+});
+
+// ─── GET /api/publico/checkin/{token}/historico ────────────────────────────────
+
+const getHistoricoRoute = createRoute({
+  method: "get",
+  path: "/{token}/historico",
+  tags: ["Público", "Check-in"],
+  summary: "Historico de check-ins do estacionamento (publico)",
+  request: {
+    params: z.object({ token: z.string() }),
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: z.any() } },
+      description: "Historico de check-ins agrupados por data",
+    },
+    404: {
+      content: {
+        "application/json": { schema: z.object({ erro: z.string() }) },
+      },
+      description: "Estacionamento nao encontrado",
+    },
+  },
+});
+
+app.openapi(getHistoricoRoute, async (c) => {
+  const { token } = c.req.valid("param");
+
+  const [est] = await sql`
+    SELECT id FROM estacionamentos WHERE token_checkin = ${token}
+  `;
+  if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
+
+  const checkins = await sql`
+    SELECT c.id, c.timestamp, c.pessoa_nome, c.placa, c.modelo, c.cor
+    FROM checkins c
+    WHERE c.estacionamento_id = ${est.id}
+    ORDER BY c.timestamp DESC
+  `;
+
+  // Agrupar por data
+  const porData: Record<string, Array<{
+    id: string;
+    timestamp: Date | string;
+    pessoa_nome: string;
+    placa: string;
+    modelo: string;
+    cor: string;
+  }>> = {};
+  for (const ck of checkins) {
+    const d = ck.timestamp instanceof Date ? ck.timestamp : new Date(String(ck.timestamp));
+    const chave = d.toLocaleDateString("pt-BR");
+    if (!porData[chave]) porData[chave] = [];
+    porData[chave].push(ck as never);
+  }
+
+  const dias = Object.entries(porData).map(([data, itens]) => ({
+    data,
+    total: itens.length,
+    checkins: itens.map((ck) => ({
+      id: ck.id,
+      timestamp:
+        ck.timestamp instanceof Date
+          ? ck.timestamp.toISOString()
+          : String(ck.timestamp),
+      pessoaNome: ck.pessoa_nome,
+      placa: ck.placa,
+      modelo: ck.modelo,
+      cor: ck.cor,
+    })),
+  }));
+
+  return c.json({ dias }, 200);
 });
 
 export default app;

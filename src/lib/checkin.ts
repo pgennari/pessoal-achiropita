@@ -30,6 +30,25 @@ export interface DadosCheckin {
   };
 }
 
+export interface CheckinHistorico {
+  id: string;
+  timestamp: string;
+  pessoaNome: string;
+  placa: string;
+  modelo: string;
+  cor: string;
+}
+
+export interface DiaHistorico {
+  data: string;
+  total: number;
+  checkins: CheckinHistorico[];
+}
+
+export interface DadosHistoricoPublico {
+  dias: DiaHistorico[];
+}
+
 export async function buscarEstacionamentoPublico(
   token: string
 ): Promise<DadosEstacionamentoPublico> {
@@ -56,4 +75,13 @@ export async function registrarCheckin(
   return apiPublica<DadosCheckin>("POST", `/api/publico/checkin/${token}`, {
     veiculoId,
   });
+}
+
+export async function buscarHistoricoPublico(
+  token: string
+): Promise<DadosHistoricoPublico> {
+  return apiPublica<DadosHistoricoPublico>(
+    "GET",
+    `/api/publico/checkin/${token}/historico`
+  );
 }

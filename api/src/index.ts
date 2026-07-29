@@ -22,6 +22,7 @@ import publico from "./rotas/publico.js";
 import admin from "./rotas/admin.js";
 import setores from "./rotas/setores.js";
 import historicoParticipacoes from "./rotas/historicoParticipacoes.js";
+import dashboard from "./rotas/dashboard.js";
 
 const app = new OpenAPIHono();
 
@@ -62,6 +63,7 @@ app.route("/api/formacoes", formacoes);
 app.route("/api/entregas", entregas);
 app.route("/api/links", links);
 app.route("/api/auditoria", auditoria);
+app.route("/api/estacionamentos/dashboard", dashboard);
 app.route("/api/estacionamentos", estacionamentos);
 app.route("/api/veiculos", veiculos);
 app.route("/api/publico/checkin", checkin);

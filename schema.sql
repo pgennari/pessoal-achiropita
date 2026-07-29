@@ -310,6 +310,7 @@ CREATE INDEX IF NOT EXISTS idx_pessoa_veiculo_veiculo ON pessoa_veiculo(veiculo_
 CREATE TABLE IF NOT EXISTS checkins (
   id                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   timestamp           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  data                DATE NOT NULL DEFAULT CURRENT_DATE,
   pessoa_id           TEXT REFERENCES pessoas(id) ON DELETE SET NULL,
   pessoa_nome         TEXT NOT NULL,
   carro_id            TEXT NOT NULL,
@@ -320,9 +321,10 @@ CREATE TABLE IF NOT EXISTS checkins (
   estacionamento_nome TEXT NOT NULL
 );
 
--- Unicidade por carro no estacionamento
-CREATE UNIQUE INDEX IF NOT EXISTS uq_checkins_estacionamento_carro
-ON checkins(estacionamento_id, carro_id);
+-- Unicidade por carro no estacionamento por dia
+DROP INDEX IF EXISTS uq_checkins_estacionamento_carro;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_checkins_estacionamento_carro_dia
+ON checkins(estacionamento_id, carro_id, data);
 
 -- Indices para consultas
 CREATE INDEX IF NOT EXISTS idx_checkins_estacionamento

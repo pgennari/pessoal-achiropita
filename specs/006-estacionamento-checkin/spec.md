@@ -74,8 +74,9 @@
 - O que acontece quando a pessoa associada ao carro foi inativada? O check-in deve ser permitido mesmo assim (a pessoa ja estava no sistema quando associada ao carro).
 - O que acontece quando o operador tenta fazer check-in de uma pessoa de outro estacionamento? Isso nao deve ser possivel — o link publico e especifico de um estacionamento, e as pessoas listadas sao apenas as associadas a ele.
 - O que acontece se o estacionamento for excluido? Os check-ins devem ser mantidos para historico, mas o link publico deixa de funcionar.
-- Multiplas pessoas no mesmo carro — o operador deve conseguir fazer check-in de qualquer uma delas individualmente, mas uma vez feito o check-in por qualquer pessoa, todas as pessoas daquele carro ficam com o botao desabilitado.
-- Carro ja fez check-in — ao pesquisar a placa, todas as pessoas associadas ao carro devem exibir o botao de check-in desabilitado.
+- Multiplas pessoas no mesmo carro — o operador deve conseguir fazer check-in de qualquer uma delas individualmente, mas uma vez feito o check-in por qualquer pessoa, todas as pessoas daquele carro ficam com o botao desabilitado **naquele dia**.
+- Carro ja fez check-in — ao pesquisar a placa, todas as pessoas associadas ao carro devem exibir o botao de check-in desabilitado se o carro ja fez check-in no dia atual.
+- O mesmo carro pode fazer check-in novamente em dias diferentes — a unicidade e por dia, nao absoluta.
 
 ## Requirements *(mandatory)*
 

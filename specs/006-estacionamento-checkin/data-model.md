@@ -4,10 +4,11 @@
 
 ### Check-in (nova)
 
-| Campo | Tipo | Obrigatorio | Descricao |
+| campo | Tipo | Obrigatorio | Descricao |
 |-------|------|-------------|-----------|
 | id | TEXT (UUID) | Sim | Chave primaria |
 | timestamp | TIMESTAMPTZ | Sim | Data/hora do check-in |
+| data | DATE | Sim | Data do check-in (para unicidade por dia) |
 | pessoa_id | TEXT (UUID) | Sim | FK para pessoas(id) |
 | pessoa_nome | TEXT | Sim | Nome da pessoa (denormalizado) |
 | carro_id | TEXT | Sim | ID do carro dentro da pessoa |
@@ -18,7 +19,7 @@
 | estacionamento_nome | TEXT | Sim | Nome do estacionamento (denormalizado) |
 
 **Constraints**:
-- `UNIQUE(estacionamento_id, carro_id)` — check-in unico por carro no estacionamento
+- `UNIQUE(estacionamento_id, carro_id, data)` — check-in unico por carro no estacionamento por dia
 - `REFERENCES pessoas(id) ON DELETE SET NULL` — se pessoa for excluida, mantem registro
 - `REFERENCES estacionamentos(id) ON DELETE SET NULL` — se estacionamento for excluido, mantem registro
 
@@ -76,6 +77,7 @@ ALTER COLUMN token_checkin SET NOT NULL;
 CREATE TABLE IF NOT EXISTS checkins (
   id                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   timestamp           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  data                DATE NOT NULL DEFAULT CURRENT_DATE,
   pessoa_id           TEXT REFERENCES pessoas(id) ON DELETE SET NULL,
   pessoa_nome         TEXT NOT NULL,
   carro_id            TEXT NOT NULL,
@@ -86,9 +88,10 @@ CREATE TABLE IF NOT EXISTS checkins (
   estacionamento_nome TEXT NOT NULL
 );
 
--- Unicidade por carro no estacionamento
-CREATE UNIQUE INDEX IF NOT EXISTS uq_checkins_estacionamento_carro 
-ON checkins(estacionamento_id, carro_id);
+-- Unicidade por carro no estacionamento por dia
+DROP INDEX IF EXISTS uq_checkins_estacionamento_carro;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_checkins_estacionamento_carro_dia
+ON checkins(estacionamento_id, carro_id, data);
 
 -- Indices para consultas
 CREATE INDEX IF NOT EXISTS idx_checkins_estacionamento 
@@ -103,7 +106,7 @@ ON checkins(pessoa_id);
 
 ## Indices
 
-- `uq_checkins_estacionamento_carro`: Unicidade por carro no estacionamento
+- `uq_checkins_estacionamento_carro_dia`: Unicidade por carro no estacionamento por dia
 - `idx_checkins_estacionamento`: Para listar check-ins de um estacionamento
 - `idx_checkins_timestamp`: Para ordenacao por data
 - `idx_checkins_pessoa`: Para buscas por pessoa

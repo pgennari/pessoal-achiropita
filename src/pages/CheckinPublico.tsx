@@ -1,13 +1,19 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useCheckinPublico } from "../lib/hooks";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCheckinPublico, useHistoricoPublico } from "../lib/hooks";
 import { buscarPorPlaca, ResultadoBusca, DadosCheckin } from "../lib/checkin";
 import { ModalCheckin } from "../components/ModalCheckin";
 import { VeiculoCard } from "../components/VeiculoCard";
+import { HistoricoCheckinPublico } from "../components/HistoricoCheckinPublico";
 
 export function CheckinPublico() {
   const { token } = useParams<{ token: string }>();
+  const queryClient = useQueryClient();
   const { estacionamento, carregando, erro } = useCheckinPublico(token);
+  const { historico, carregando: carregandoHistorico } = useHistoricoPublico(token);
+
+  const placaRef = useRef<HTMLInputElement>(null);
 
   const [placa, setPlaca] = useState("");
   const [buscando, setBuscando] = useState(false);
@@ -49,13 +55,11 @@ export function CheckinPublico() {
     setModalAberto(false);
     setSelecionado(null);
     setSucesso(checkin);
-    setResultados((prev) =>
-      prev.map((r) =>
-        r.veiculoId === checkin.id
-          ? { ...r, jaPossuiCheckin: true }
-          : r
-      )
-    );
+    setResultados([]);
+    setBuscou(false);
+    setPlaca("");
+    queryClient.invalidateQueries({ queryKey: ["checkin", "historico", token] });
+    setTimeout(() => placaRef.current?.focus(), 0);
   }
 
   if (carregando) {
@@ -103,6 +107,7 @@ export function CheckinPublico() {
             <div className="flex gap-2">
               <input
                 id="placa"
+                ref={placaRef}
                 className="input flex-1"
                 placeholder="ABC-1234"
                 value={placa}
@@ -153,6 +158,13 @@ export function CheckinPublico() {
               />
             ))}
           </div>
+        )}
+
+        {token && (
+          <HistoricoCheckinPublico
+            historico={historico}
+            carregando={carregandoHistorico}
+          />
         )}
       </div>
 

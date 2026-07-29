@@ -114,6 +114,68 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
 
   return (
     <div className="space-y-4">
+      {podeEditar && (
+        <div>
+          <h5 className="text-sm font-medium text-ardesia mb-2">
+            Associar novo veículo
+          </h5>
+          {todosVeiculos.filter((v) => v.estacionamentoId !== estacionamentoId).length === 0 ? (
+            <p className="text-sm text-ardesia">
+              Todos os veículos já estão associados a este estacionamento.
+            </p>
+          ) : (
+            <>
+              <input
+                type="text"
+                className="input mb-2"
+                placeholder="Buscar por placa, modelo, nome da pessoa..."
+                value={buscaAssociacao}
+                onChange={(e) => setBuscaAssociacao(e.target.value)}
+                aria-label="Buscar veículos para associar"
+              />
+              {buscaAssociacao.trim() && veiculosNaoAssociados.length === 0 && (
+                <p className="text-sm text-ardesia">
+                  Nenhum veiculo encontrado.
+                </p>
+              )}
+              {buscaAssociacao.trim() && veiculosNaoAssociados.length > 0 && (
+                <ul className="divide-y divide-pietra-clara" role="list">
+                  {veiculosNaoAssociados.map((v) => (
+                    <li
+                      key={v.id}
+                      className="py-2 flex items-center justify-between gap-3"
+                      role="listitem"
+                    >
+                      <div>
+                        <div className="text-sm font-semibold text-carbone">
+                          {v.fabricante} {v.modelo}
+                        </div>
+                        <div className="text-xs text-ardesia font-mono">
+                          {v.placa} · {v.cor}
+                        </div>
+                        {(v.pessoas ?? []).length > 0 && (
+                          <div className="text-xs text-ardesia">
+                    Pessoas: {(v.pessoas ?? []).map((p) => `#${p.cracha}-${p.nome}`).join(", ")}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-secundario btn-pequeno"
+                        onClick={() => handleAssociar(v.id)}
+                        disabled={acaoOcupado}
+                      >
+                        Associar
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <h4 className="font-semibold text-carbone">Veículos Associados</h4>
         <span className="text-sm text-ardesia">
@@ -174,68 +236,6 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
             </li>
           ))}
         </ul>
-      )}
-
-      {podeEditar && (
-        <div className="mt-4 pt-4 border-t border-pietra-clara">
-          <h5 className="text-sm font-medium text-ardesia mb-2">
-            Associar novo veículo
-          </h5>
-          {todosVeiculos.filter((v) => v.estacionamentoId !== estacionamentoId).length === 0 ? (
-            <p className="text-sm text-ardesia">
-              Todos os veículos já estão associados a este estacionamento.
-            </p>
-          ) : (
-            <>
-              <input
-                type="text"
-                className="input mb-2"
-                placeholder="Buscar por placa, modelo, nome da pessoa..."
-                value={buscaAssociacao}
-                onChange={(e) => setBuscaAssociacao(e.target.value)}
-                aria-label="Buscar veículos para associar"
-              />
-              {buscaAssociacao.trim() && veiculosNaoAssociados.length === 0 && (
-                <p className="text-sm text-ardesia">
-                  Nenhum veiculo encontrado.
-                </p>
-              )}
-              {buscaAssociacao.trim() && veiculosNaoAssociados.length > 0 && (
-                <ul className="divide-y divide-pietra-clara" role="list">
-                  {veiculosNaoAssociados.map((v) => (
-                    <li
-                      key={v.id}
-                      className="py-2 flex items-center justify-between gap-3"
-                      role="listitem"
-                    >
-                      <div>
-                        <div className="text-sm font-semibold text-carbone">
-                          {v.fabricante} {v.modelo}
-                        </div>
-                        <div className="text-xs text-ardesia font-mono">
-                          {v.placa} · {v.cor}
-                        </div>
-                        {(v.pessoas ?? []).length > 0 && (
-                          <div className="text-xs text-ardesia">
-                    Pessoas: {(v.pessoas ?? []).map((p) => `#${p.cracha}-${p.nome}`).join(", ")}
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        className="btn btn-secundario btn-pequeno"
-                        onClick={() => handleAssociar(v.id)}
-                        disabled={acaoOcupado}
-                      >
-                        Associar
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </>
-          )}
-        </div>
       )}
 
       {veiculoTransferencia && (

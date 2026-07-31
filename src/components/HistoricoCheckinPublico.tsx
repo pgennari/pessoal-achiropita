@@ -10,6 +10,15 @@ function hojeStr(): string {
   return new Date().toLocaleDateString("pt-BR");
 }
 
+function dataEmMs(data: string): number {
+  const [dia, mes, ano] = data.split("/").map(Number);
+  return new Date(ano, mes - 1, dia).getTime();
+}
+
+function ordenarDias(dias: DiaHistorico[]): DiaHistorico[] {
+  return [...dias].sort((a, b) => dataEmMs(b.data) - dataEmMs(a.data));
+}
+
 function formatarHora(timestamp: string): string {
   return new Date(timestamp).toLocaleTimeString("pt-BR", {
     hour: "2-digit",
@@ -38,14 +47,14 @@ function ListaDia({ dia }: { dia: DiaHistorico }) {
 }
 
 export function HistoricoCheckinPublico({ historico, carregando }: Props) {
-  const [abaAtiva, setAbaAtiva] = useState<string>(hojeStr());
+  const hoje = hojeStr();
+  const dias = ordenarDias(historico?.dias ?? []);
+  const temDias = dias.length > 0;
 
-  const dias = historico?.dias ?? [];
-  const diasHoje = dias.find((d) => d.data === hojeStr());
-  const diasAnteriores = dias.filter((d) => d.data !== hojeStr());
-  const temMultiplasAbas = dias.length > 1;
+  const diaInicial = dias.find((d) => d.data === hoje) ?? dias[0];
+  const [abaAtiva, setAbaAtiva] = useState<string>(diaInicial?.data ?? hoje);
 
-  const diaSelecionado = dias.find((d) => d.data === abaAtiva) ?? diasHoje;
+  const diaSelecionado = dias.find((d) => d.data === abaAtiva) ?? dias[0];
 
   return (
     <div className="space-y-3">
@@ -59,40 +68,30 @@ export function HistoricoCheckinPublico({ historico, carregando }: Props) {
         <p className="text-ardesia text-sm">Nenhum check-in registrado.</p>
       )}
 
-      {!carregando && temMultiplasAbas && (
-        <div className="flex gap-1 border-b border-pietra-clara">
-          <button
-            onClick={() => setAbaAtiva(hojeStr())}
-            className={`px-3 py-1.5 text-sm font-medium border-b-2 transition-colors ${
-              abaAtiva === hojeStr()
-                ? "border-primaria text-primaria"
-                : "border-transparent text-ardesia hover:text-carbone"
-            }`}
-          >
-            Hoje ({diasHoje?.total ?? 0})
-          </button>
-          {diasAnteriores.map((d) => (
-            <button
-              key={d.data}
-              onClick={() => setAbaAtiva(d.data)}
-              className={`px-3 py-1.5 text-sm font-medium border-b-2 transition-colors ${
-                abaAtiva === d.data
-                  ? "border-primaria text-primaria"
-                  : "border-transparent text-ardesia hover:text-carbone"
-              }`}
-            >
-              {d.data} ({d.total})
-            </button>
-          ))}
+      {!carregando && temDias && (
+        <div className="flex gap-1 border-b border-pietra-clara overflow-x-auto">
+          {dias.map((d) => {
+            const ativa = d.data === abaAtiva;
+            const rotulo = d.data === hoje ? `Hoje (${d.total})` : `${d.data} (${d.total})`;
+            return (
+              <button
+                key={d.data}
+                onClick={() => setAbaAtiva(d.data)}
+                className={`px-3 py-1.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  ativa
+                    ? "border-primaria text-primaria"
+                    : "border-transparent text-ardesia hover:text-carbone"
+                }`}
+              >
+                {rotulo}
+              </button>
+            );
+          })}
         </div>
       )}
 
       {!carregando && diaSelecionado && (
         <ListaDia dia={diaSelecionado} />
-      )}
-
-      {!carregando && !temMultiplasAbas && diasHoje && (
-        <ListaDia dia={diasHoje} />
       )}
     </div>
   );

@@ -4,6 +4,18 @@ import eventos from "../eventos.js";
 
 const app = new OpenAPIHono();
 
+// Formata data pura (sem fuso) no formato dd/mm/aaaa usado na UI.
+function formatarData(v: Date | string): string {
+  if (v instanceof Date) {
+    const s = v.toISOString().slice(0, 10);
+    const [ano, mes, dia] = s.split("-");
+    return `${dia}/${mes}/${ano}`;
+  }
+  const s = String(v ?? "").slice(0, 10);
+  const [ano, mes, dia] = s.split("-");
+  return ano && mes && dia ? `${dia}/${mes}/${ano}` : s;
+}
+
 // ─── GET /api/publico/checkin/{token} ────────────────────────────────────────
 
 const getEstacionamentoRoute = createRoute({
@@ -290,29 +302,30 @@ app.openapi(getHistoricoRoute, async (c) => {
   if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
 
   const checkins = await sql`
-    SELECT c.id, c.timestamp, c.pessoa_nome, c.placa, c.modelo, c.cor
+    SELECT c.id, c.timestamp, c.data, c.pessoa_nome, c.placa, c.modelo, c.cor
     FROM checkins c
     WHERE c.estacionamento_id = ${est.id}
     ORDER BY c.timestamp DESC
   `;
 
-  // Agrupar por data
-  const porData: Record<string, Array<{
+  // Agrupar por data (coluna já calculada em America/Sao_Paulo)
+  const porData: Map<string, Array<{
     id: string;
     timestamp: Date | string;
+    data: Date | string;
     pessoa_nome: string;
     placa: string;
     modelo: string;
     cor: string;
-  }>> = {};
+  }>> = new Map();
   for (const ck of checkins) {
-    const d = ck.timestamp instanceof Date ? ck.timestamp : new Date(String(ck.timestamp));
-    const chave = d.toLocaleDateString("pt-BR");
-    if (!porData[chave]) porData[chave] = [];
-    porData[chave].push(ck as never);
+    const chave = formatarData(ck.data);
+    const lista = porData.get(chave) ?? [];
+    lista.push(ck as never);
+    porData.set(chave, lista);
   }
 
-  const dias = Object.entries(porData).map(([data, itens]) => ({
+  const dias = [...porData.entries()].map(([data, itens]) => ({
     data,
     total: itens.length,
     checkins: itens.map((ck) => ({

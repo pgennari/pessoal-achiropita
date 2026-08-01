@@ -172,17 +172,10 @@ export function VeiculoDetalhe() {
             {veiculo.fabricante} {veiculo.modelo} - {veiculo.cor}
           </p>
         </div>
-        {podeEditar && (
-          <div className="flex gap-2">
-            {!editando && (
-              <button onClick={() => setEditando(true)} className="btn btn-secundario">
-                Editar
-              </button>
-            )}
-            <button onClick={handleExcluir} className="btn btn-perigo">
-              Excluir
-            </button>
-          </div>
+        {podeEditar && !editando && (
+          <button onClick={() => setEditando(true)} className="btn btn-secundario">
+            Editar
+          </button>
         )}
       </header>
 
@@ -406,7 +399,7 @@ export function VeiculoDetalhe() {
         </div>
       </section>
 
-      <div>
+      <div className="flex items-center justify-between gap-2">
         <button
           type="button"
           className="btn btn-secundario"
@@ -414,6 +407,11 @@ export function VeiculoDetalhe() {
         >
           Voltar
         </button>
+        {podeEditar && (
+          <button onClick={handleExcluir} className="btn btn-perigo">
+            Excluir
+          </button>
+        )}
       </div>
     </div>
   );

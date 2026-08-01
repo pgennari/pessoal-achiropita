@@ -37,7 +37,11 @@ export function DashboardEstacionamentos() {
 
   useEffect(() => {
     if (dados) {
-      setEstacionamentos(dados.estacionamentos);
+      setEstacionamentos(
+        [...dados.estacionamentos].sort((a, b) =>
+          a.nome.localeCompare(b.nome, "pt-BR"),
+        ),
+      );
       setUltimosCheckins(dados.ultimosCheckins);
     }
   }, [dados]);

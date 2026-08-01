@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useEstacionamentos } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
@@ -45,6 +46,11 @@ export function Estacionamentos() {
   const { sessao } = useSessao();
   const { itens, carregando, erro } = useEstacionamentos();
 
+  const ordenados = useMemo(
+    () => [...itens].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+    [itens]
+  );
+
   const podeCriar = sessao?.perfil === "ADM" || sessao?.perfil === "ORG";
 
   return (
@@ -79,7 +85,7 @@ export function Estacionamentos() {
       )}
 
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-        {itens.map((e) => {
+        {ordenados.map((e) => {
           const diff = e.vagasContratadas - e.vagasDistribuidas;
           return (
             <div

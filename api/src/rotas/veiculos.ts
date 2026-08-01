@@ -374,4 +374,52 @@ app.openapi(deletePessoaRoute, async (c) => {
   return c.json({ ok: true }, 200);
 });
 
+// GET /api/veiculos/:id/historico-estacionamentos
+const HistoricoEstacionamentoSchema = z.object({
+  id: z.string(),
+  veiculoId: z.string(),
+  estacionamentoId: z.string().nullable().optional(),
+  estacionamentoNome: z.string(),
+  operacao: z.enum(["associou", "transferiu", "desassociou"]),
+  autor: z.string(),
+  autorNome: z.string(),
+  criadoEm: z.string(),
+});
+
+const getHistoricoEstacionamentosRoute = createRoute({
+  method: "get",
+  path: "/{id}/historico-estacionamentos",
+  tags: ["Veiculos", "Estacionamentos"],
+  summary: "Lista o historico de associacao do veiculo a estacionamentos",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.array(HistoricoEstacionamentoSchema) } }, description: "Historico do veiculo" },
+    404: { content: { "application/json": { schema: msgErro } }, description: "Veiculo nao encontrado" },
+  },
+});
+
+app.openapi(getHistoricoEstacionamentosRoute, async (c) => {
+  const { id } = c.req.valid("param");
+  const [veiculo] = await sql`SELECT id FROM veiculos WHERE id = ${id}`;
+  if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
+  const rows = await sql`
+    SELECT * FROM veiculo_estacionamento_historico
+    WHERE veiculo_id = ${id}
+    ORDER BY criado_em DESC
+  `;
+  const resultado = rows.map((r) => ({
+    id: r.id,
+    veiculoId: r.veiculo_id,
+    estacionamentoId: r.estacionamento_id ?? null,
+    estacionamentoNome: r.estacionamento_nome,
+    operacao: r.operacao,
+    autor: r.autor,
+    autorNome: r.autor_nome,
+    criadoEm: r.criado_em instanceof Date ? r.criado_em.toISOString() : String(r.criado_em ?? ""),
+  }));
+  return c.json(resultado as any, 200);
+});
+
 export default app;

@@ -67,6 +67,7 @@ export async function associarVeiculoEstacionamento(estacionamentoId: string, ve
   await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId, "veiculos"] });
   await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId] });
   await queryClient.invalidateQueries({ queryKey: ["veiculos"] });
+  await queryClient.invalidateQueries({ queryKey: ["veiculos", veiculoId, "historico-estacionamentos"] });
 }
 
 export async function desassociarVeiculoEstacionamento(estacionamentoId: string, veiculoId: string): Promise<void> {
@@ -74,4 +75,5 @@ export async function desassociarVeiculoEstacionamento(estacionamentoId: string,
   await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId, "veiculos"] });
   await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId] });
   await queryClient.invalidateQueries({ queryKey: ["veiculos"] });
+  await queryClient.invalidateQueries({ queryKey: ["veiculos", veiculoId, "historico-estacionamentos"] });
 }

@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { useVeiculo, usePessoasVeiculo, useEstacionamentos, usePessoas } from "../lib/hooks";
+import { useVeiculo, usePessoasVeiculo, useEstacionamentos, usePessoas, useHistoricoEstacionamentosVeiculo } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import { VeiculoForm } from "../components/VeiculoForm";
 import { atualizarVeiculo, excluirVeiculo, associarVeiculoEstacionamento, desassociarVeiculoEstacionamento, vincularPessoaVeiculo, desvincularPessoaVeiculo, type DadosVeiculo } from "../lib/veiculos";
 import { VinculoPessoa } from "../components/VinculoPessoa";
+import type { HistoricoEstacionamentoVeiculo } from "../lib/tipos";
 
 export function VeiculoDetalhe() {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +17,7 @@ export function VeiculoDetalhe() {
   const { itens: pessoas } = usePessoasVeiculo(id);
   const { itens: estacionamentos } = useEstacionamentos();
   const { itens: todasPessoas } = usePessoas();
+  const { itens: historico, carregando: historicoCarregando } = useHistoricoEstacionamentosVeiculo(id);
   const [editando, setEditando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [editandoEstacionamento, setEditandoEstacionamento] = useState(false);
@@ -35,6 +37,12 @@ export function VeiculoDetalhe() {
     () => [...estacionamentos].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
     [estacionamentos]
   );
+
+  const estacionamentosPorId = useMemo(() => {
+    const m = new Map<string, { nome: string }>();
+    for (const e of estacionamentos) m.set(e.id, { nome: e.nome });
+    return m;
+  }, [estacionamentos]);
 
   const pessoasDisponiveis = useMemo(
     () => todasPessoas.filter((p) => !pessoas.some((vp) => vp.id === p.id)),
@@ -352,6 +360,40 @@ export function VeiculoDetalhe() {
         )}
       </div>
 
+      <div className="border border-pietra-clara rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-carbone mb-3">
+          Historico de associação
+        </h3>
+        {historicoCarregando ? (
+          <p className="text-sm text-ardesia">Carregando...</p>
+        ) : historico.length === 0 ? (
+          <p className="text-sm text-ardesia">
+            Nenhuma alteracao de estacionamento registrada.
+          </p>
+        ) : (
+          <ul className="divide-y divide-pietra-clara">
+            {historico.map((h) => (
+              <li key={h.id} className="py-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-semibold text-carbone">
+                    {rotuloOperacao(h.operacao)}
+                  </span>
+                  <span className="text-xs text-ardesia">
+                    {formatarDataHora(h.criadoEm)}
+                  </span>
+                </div>
+                <div className="text-sm text-ardesia mt-0.5">
+                  <EstacionamentoHistorico nome={h.estacionamentoNome} estacionamentoId={h.estacionamentoId} estacionamentosPorId={estacionamentosPorId} />
+                </div>
+                <div className="text-xs text-ardesia mt-0.5">
+                  por {h.autorNome}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <section className="card">
         <div className="card-corpo">
           <VinculoPessoa
@@ -375,4 +417,45 @@ export function VeiculoDetalhe() {
       </div>
     </div>
   );
+}
+
+function rotuloOperacao(operacao: HistoricoEstacionamentoVeiculo["operacao"]): string {
+  switch (operacao) {
+    case "associou":
+      return "Associado a";
+    case "transferiu":
+      return "Transferido para";
+    case "desassociou":
+      return "Desassociado de";
+    default:
+      return operacao;
+  }
+}
+
+function formatarDataHora(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString("pt-BR");
+}
+
+function EstacionamentoHistorico({
+  nome,
+  estacionamentoId,
+  estacionamentosPorId,
+}: {
+  nome: string;
+  estacionamentoId?: string;
+  estacionamentosPorId: Map<string, { nome: string }>;
+}) {
+  if (estacionamentoId && estacionamentosPorId.has(estacionamentoId)) {
+    return (
+      <Link
+        to={`/estacionamentos/${estacionamentoId}`}
+        className="font-medium text-carbone hover:text-verde-escuro"
+      >
+        {nome}
+      </Link>
+    );
+  }
+  return <span className="font-medium text-carbone">{nome}</span>;
 }

@@ -12,6 +12,7 @@ import {
   Estacionamento,
   EventoAuditoria,
   Formacao,
+  HistoricoEstacionamentoVeiculo,
   LinkValidacao,
   Participacao,
   ParticipacaoHistorica,
@@ -299,6 +300,15 @@ export function useVeiculosEstacionamento(estacionamentoId: string | undefined):
     enabled: !!estacionamentoId,
   });
   return { itens: data ?? [], carregando: isLoading && !!estacionamentoId, erro: erroMsg(error) };
+}
+
+export function useHistoricoEstacionamentosVeiculo(veiculoId: string | undefined): EstadoLista<HistoricoEstacionamentoVeiculo> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["veiculos", veiculoId, "historico-estacionamentos"],
+    queryFn: () => api.get<HistoricoEstacionamentoVeiculo[]>(`/api/veiculos/${veiculoId}/historico-estacionamentos`),
+    enabled: !!veiculoId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!veiculoId, erro: erroMsg(error) };
 }
 
 // ─── Estacionamentos ──────────────────────────────────────────────────────────

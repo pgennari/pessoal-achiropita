@@ -276,6 +276,19 @@ export interface Estacionamento {
   atualizadoEm: string;
 }
 
+export type OperacaoHistoricoEstacionamento = "associou" | "transferiu" | "desassociou";
+
+export interface HistoricoEstacionamentoVeiculo {
+  id: string;
+  veiculoId: string;
+  estacionamentoId?: string;
+  estacionamentoNome: string;
+  operacao: OperacaoHistoricoEstacionamento;
+  autor: string;
+  autorNome: string;
+  criadoEm: string;
+}
+
 export interface Checkin {
   id: string;
   timestamp: string;

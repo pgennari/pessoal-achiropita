@@ -315,6 +315,24 @@ CREATE TABLE IF NOT EXISTS pessoa_veiculo (
 
 CREATE INDEX IF NOT EXISTS idx_pessoa_veiculo_veiculo ON pessoa_veiculo(veiculo_id);
 
+-- veiculo_estacionamento_historico: append-only (sem UPDATE/DELETE via API).
+-- Registra cada mudanca de associacao do veiculo a um estacionamento.
+-- estacionamento_nome e um snapshot para preservar o nome mesmo se o
+-- estacionamento for renomeado ou excluido.
+CREATE TABLE IF NOT EXISTS veiculo_estacionamento_historico (
+  id                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  veiculo_id          TEXT NOT NULL REFERENCES veiculos(id) ON DELETE CASCADE,
+  estacionamento_id   TEXT REFERENCES estacionamentos(id) ON DELETE SET NULL,
+  estacionamento_nome TEXT NOT NULL,
+  operacao            TEXT NOT NULL, -- 'associou' | 'transferiu' | 'desassociou'
+  autor               TEXT NOT NULL,
+  autor_nome          TEXT NOT NULL,
+  criado_em           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_veiculo_est_hist_veiculo
+ON veiculo_estacionamento_historico(veiculo_id, criado_em DESC);
+
 -- checkins: registro de entrada no estacionamento
 CREATE TABLE IF NOT EXISTS checkins (
   id                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

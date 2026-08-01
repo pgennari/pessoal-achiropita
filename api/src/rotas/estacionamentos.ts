@@ -45,6 +45,24 @@ function estacionamentoDeRow(r: Record<string, unknown>) {
   };
 }
 
+async function registrarHistoricoEstacionamento(
+  sessao: { uid: string; nome: string },
+  veiculoId: string,
+  estacionamentoId: string,
+  estacionamentoNome: string,
+  operacao: "associou" | "transferiu" | "desassociou"
+): Promise<void> {
+  await sql`
+    INSERT INTO veiculo_estacionamento_historico
+      (id, veiculo_id, estacionamento_id, estacionamento_nome, operacao, autor, autor_nome, criado_em)
+    VALUES (
+      gen_random_uuid()::text,
+      ${veiculoId}, ${estacionamentoId}, ${estacionamentoNome}, ${operacao},
+      ${sessao.uid}, ${sessao.nome}, NOW()
+    )
+  `;
+}
+
 const msgErro = z.object({ erro: z.string() });
 
 const getRoute = createRoute({
@@ -433,12 +451,13 @@ app.openapi(postVeiculoEstacionamentoRoute, async (c) => {
   const sessao = c.get("sessao");
   if (!podeAdministrar(sessao.perfil)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   const { veiculoId } = c.req.valid("json");
-  const [est] = await sql`SELECT id FROM estacionamentos WHERE id = ${id}`;
+  const [est] = await sql`SELECT id, nome FROM estacionamentos WHERE id = ${id}`;
   if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
   const [veiculo] = await sql`SELECT id, estacionamento_id FROM veiculos WHERE id = ${veiculoId}`;
   if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
 
   const antigoEstacionamentoId = veiculo.estacionamento_id as string | null;
+  const operacao = antigoEstacionamentoId && antigoEstacionamentoId !== id ? "transferiu" : "associou";
 
   if (antigoEstacionamentoId && antigoEstacionamentoId !== id) {
     await sql`
@@ -458,6 +477,7 @@ app.openapi(postVeiculoEstacionamentoRoute, async (c) => {
     `;
   }
 
+  await registrarHistoricoEstacionamento(sessao, veiculoId, id, String(est.nome ?? ""), operacao);
   await registrarEvento(sessao, "estacionamento.veiculo.associou", `estacionamentos/${id}`, `veiculo ${veiculoId}`);
   return c.json({ ok: true }, 200);
 });
@@ -485,12 +505,14 @@ app.openapi(deleteVeiculoEstacionamentoRoute, async (c) => {
   const [veiculo] = await sql`SELECT id, estacionamento_id FROM veiculos WHERE id = ${veiculoId}`;
   if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
   if (veiculo.estacionamento_id !== id) return c.json({ erro: "Veiculo nao esta associado a este estacionamento." }, 404);
+  const [est] = await sql`SELECT nome FROM estacionamentos WHERE id = ${id}`;
   await sql`UPDATE veiculos SET estacionamento_id = NULL, atualizado_em = NOW() WHERE id = ${veiculoId}`;
   await sql`
     UPDATE estacionamentos
     SET vagas_distribuidas = GREATEST(vagas_distribuidas - 1, 0), atualizado_em = NOW()
     WHERE id = ${id}
   `;
+  await registrarHistoricoEstacionamento(sessao, veiculoId, id, String(est?.nome ?? ""), "desassociou");
   await registrarEvento(sessao, "estacionamento.veiculo.desassociou", `estacionamentos/${id}`, `veiculo ${veiculoId}`);
   return c.json({ ok: true }, 200);
 });

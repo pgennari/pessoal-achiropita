@@ -7,6 +7,22 @@ import { ModalCheckin } from "../components/ModalCheckin";
 import { VeiculoCard } from "../components/VeiculoCard";
 import { HistoricoCheckinPublico } from "../components/HistoricoCheckinPublico";
 
+function renderizarErroFormatado(texto: string) {
+  return texto.split("\n").map((linha, i) => (
+    <span key={i} className="block">
+      {linha.split(/\*(.*?)\*/).map((parte, j) =>
+        j % 2 === 1 ? (
+          <strong key={j} className="font-bold text-vermelho-escuro">
+            {parte}
+          </strong>
+        ) : (
+          <span key={j}>{parte}</span>
+        )
+      )}
+    </span>
+  ));
+}
+
 export function CheckinPublico() {
   const { token } = useParams<{ token: string }>();
   const queryClient = useQueryClient();
@@ -127,8 +143,21 @@ export function CheckinPublico() {
 
         {erroBusca && (
           <div className="card border-vermelho/40">
-            <div className="card-corpo text-sm text-vermelho-escuro">
-              {erroBusca}
+            <div className="card-corpo text-sm text-vermelho-escuro space-y-1">
+              {erroBusca.includes("*")
+                ? renderizarErroFormatado(erroBusca)
+                : erroBusca.split("\n").map((linha, i) =>
+                    i === 0 ? (
+                      <span key={i}>{linha}</span>
+                    ) : (
+                      <strong
+                        key={i}
+                        className="block text-lg font-bold text-vermelho-escuro"
+                      >
+                        {linha}
+                      </strong>
+                    )
+                  )}
             </div>
           </div>
         )}

@@ -1,13 +1,9 @@
 import { useState } from "react";
+import type { DadosVeiculo } from "../lib/veiculos";
 
 interface VeiculoFormProps {
-  veiculo?: {
-    fabricante: string;
-    modelo: string;
-    placa: string;
-    cor: string;
-  };
-  aoSalvar: (dados: { fabricante: string; modelo: string; placa: string; cor: string }) => void;
+  veiculo?: Partial<DadosVeiculo>;
+  aoSalvar: (dados: DadosVeiculo) => void;
   aoCancelar: () => void;
   carregando?: boolean;
 }
@@ -17,10 +13,21 @@ export function VeiculoForm({ veiculo, aoSalvar, aoCancelar, carregando }: Veicu
   const [modelo, setModelo] = useState(veiculo?.modelo ?? "");
   const [placa, setPlaca] = useState(veiculo?.placa ?? "");
   const [cor, setCor] = useState(veiculo?.cor ?? "");
+  const [observacao, setObservacao] = useState(veiculo?.observacao ?? "");
+  const [crachaCarroImpresso, setCrachaCarroImpresso] = useState(
+    veiculo?.crachaCarroImpresso ?? false
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    aoSalvar({ fabricante: fabricante.trim(), modelo: modelo.trim(), placa: placa.trim().toUpperCase(), cor: cor.trim() });
+    aoSalvar({
+      fabricante: fabricante.trim(),
+      modelo: modelo.trim(),
+      placa: placa.trim().toUpperCase(),
+      cor: cor.trim(),
+      observacao: observacao.trim(),
+      crachaCarroImpresso,
+    });
   };
 
   return (
@@ -78,6 +85,31 @@ export function VeiculoForm({ veiculo, aoSalvar, aoCancelar, carregando }: Veicu
           onChange={(e) => setCor(e.target.value)}
           placeholder="Ex: Prata"
         />
+      </div>
+      <div className="input-grupo">
+        <label className="input-label" htmlFor="observacao">
+          Observacao
+        </label>
+        <textarea
+          id="observacao"
+          className="input min-h-[96px]"
+          value={observacao}
+          onChange={(e) => setObservacao(e.target.value)}
+          placeholder="Ex: Reservado para convidados da festa"
+        />
+      </div>
+      <div className="input-grupo">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            className="checkbox"
+            checked={crachaCarroImpresso}
+            onChange={(e) => setCrachaCarroImpresso(e.target.checked)}
+          />
+          <span className="font-sans font-semibold text-carbone">
+            Crachá do carro impresso
+          </span>
+        </label>
       </div>
       <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-pietra-clara">
         <button

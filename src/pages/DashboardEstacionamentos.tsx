@@ -99,7 +99,7 @@ export function DashboardEstacionamentos() {
 
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-display text-verde-escuro">
-          Dashboard de Estacionamentos
+          Estacionamentos - {new Date().toLocaleDateString("pt-BR")}
         </h1>
 
         <div className="flex items-center gap-2 text-sm">
@@ -119,7 +119,7 @@ export function DashboardEstacionamentos() {
           </div>
         </div>
       ) : (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
           {estacionamentos.map((e) => (
             <CardOcupacao key={e.id} estacionamento={e} />
           ))}

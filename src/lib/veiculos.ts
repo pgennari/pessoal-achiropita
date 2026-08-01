@@ -10,23 +10,22 @@ export async function buscarVeiculo(id: string): Promise<Veiculo> {
   return api.get<Veiculo>(`/api/veiculos/${id}`);
 }
 
-export async function criarVeiculo(dados: {
+export interface DadosVeiculo {
   fabricante: string;
   modelo: string;
   placa: string;
   cor: string;
-}): Promise<Veiculo> {
+  observacao?: string;
+  crachaCarroImpresso?: boolean;
+}
+
+export async function criarVeiculo(dados: DadosVeiculo): Promise<Veiculo> {
   return api.post<Veiculo>("/api/veiculos", dados);
 }
 
 export async function atualizarVeiculo(
   id: string,
-  dados: {
-    fabricante: string;
-    modelo: string;
-    placa: string;
-    cor: string;
-  }
+  dados: DadosVeiculo
 ): Promise<Veiculo> {
   return api.put<Veiculo>(`/api/veiculos/${id}`, dados);
 }

@@ -13,6 +13,8 @@ const VeiculoSchema = z.object({
   placa: z.string(),
   cor: z.string(),
   estacionamentoId: z.string().nullable().optional(),
+  observacao: z.string().nullable().optional(),
+  crachaCarroImpresso: z.boolean().optional(),
   criadoEm: z.string(),
   atualizadoEm: z.string(),
 });
@@ -37,6 +39,8 @@ function veiculoDeRow(r: Record<string, unknown>) {
     placa: r.placa,
     cor: r.cor,
     estacionamentoId: r.estacionamento_id ?? null,
+    observacao: r.observacao ?? null,
+    crachaCarroImpresso: !!r.cracha_carro_impresso,
     criadoEm,
     atualizadoEm,
   };
@@ -116,6 +120,8 @@ const postRoute = createRoute({
             modelo: z.string().optional(),
             placa: z.string(),
             cor: z.string().optional(),
+            observacao: z.string().optional(),
+            crachaCarroImpresso: z.boolean().optional(),
           }),
         },
       },
@@ -147,8 +153,15 @@ app.openapi(postRoute, async (c) => {
   }
 
   const [row] = await sql`
-    INSERT INTO veiculos (fabricante, modelo, placa, cor)
-    VALUES (${body.fabricante?.trim() || null}, ${body.modelo?.trim() || null}, ${placaFormatada}, ${body.cor?.trim() || null})
+    INSERT INTO veiculos (fabricante, modelo, placa, cor, observacao, cracha_carro_impresso)
+    VALUES (
+      ${body.fabricante?.trim() || null},
+      ${body.modelo?.trim() || null},
+      ${placaFormatada},
+      ${body.cor?.trim() || null},
+      ${body.observacao?.trim() || null},
+      ${body.crachaCarroImpresso ?? false}
+    )
     RETURNING *
   `;
   await registrarEvento(sessao, "veiculo.criou", `veiculos/${row.id}`, placaFormatada);
@@ -173,6 +186,8 @@ const putRoute = createRoute({
             modelo: z.string().optional(),
             placa: z.string(),
             cor: z.string().optional(),
+            observacao: z.string().optional(),
+            crachaCarroImpresso: z.boolean().optional(),
           }),
         },
       },
@@ -211,6 +226,8 @@ app.openapi(putRoute, async (c) => {
       modelo = ${body.modelo?.trim() || null},
       placa = ${placaFormatada},
       cor = ${body.cor?.trim() || null},
+      observacao = ${body.observacao?.trim() || null},
+      cracha_carro_impresso = ${body.crachaCarroImpresso ?? false},
       atualizado_em = NOW()
     WHERE id = ${id} RETURNING *
   `;

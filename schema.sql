@@ -283,18 +283,27 @@ ALTER COLUMN token_checkin SET NOT NULL;
 
 -- veiculos: entidade independente para veículos
 CREATE TABLE IF NOT EXISTS veiculos (
-  id                TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  fabricante        TEXT NOT NULL,
-  modelo            TEXT NOT NULL,
-  placa             TEXT NOT NULL UNIQUE,
-  cor               TEXT NOT NULL,
-  estacionamento_id TEXT REFERENCES estacionamentos(id) ON DELETE SET NULL,
-  criado_em         TIMESTAMPTZ NOT NULL DEFAULT now(),
-  atualizado_em     TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                    TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  fabricante            TEXT NOT NULL,
+  modelo                TEXT NOT NULL,
+  placa                 TEXT NOT NULL UNIQUE,
+  cor                   TEXT NOT NULL,
+  estacionamento_id     TEXT REFERENCES estacionamentos(id) ON DELETE SET NULL,
+  observacao            TEXT,
+  cracha_carro_impresso BOOLEAN NOT NULL DEFAULT FALSE,
+  criado_em             TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_veiculos_placa ON veiculos(placa);
 CREATE INDEX IF NOT EXISTS idx_veiculos_estacionamento ON veiculos(estacionamento_id);
+
+-- Colunas adicionadas na iteracao veiculos (observacao + cracha do carro impresso).
+-- Executar no banco existente:
+-- ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS observacao TEXT;
+-- ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS cracha_carro_impresso BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS observacao TEXT;
+ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS cracha_carro_impresso BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- pessoa_veiculo: tabela de junção many-to-many
 CREATE TABLE IF NOT EXISTS pessoa_veiculo (

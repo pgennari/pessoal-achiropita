@@ -69,6 +69,8 @@ export interface Veiculo {
   placa: string;
   cor: string;
   estacionamentoId?: string;
+  observacao?: string;
+  crachaCarroImpresso?: boolean;
   criadoEm: string;
   atualizadoEm: string;
 }

@@ -103,9 +103,27 @@ app.openapi(buscarPlacaRoute, async (c) => {
   `;
 
   if (veiculos.length === 0) {
+    // Verificar se a placa pertence a outro estacionamento
+    const [outro] = await sql`
+      SELECT e.nome
+      FROM veiculos v
+      JOIN estacionamentos e ON e.id = v.estacionamento_id
+      WHERE UPPER(v.placa) LIKE ${padraoPlaca}
+        AND v.estacionamento_id IS NOT NULL
+        AND v.estacionamento_id <> ${est.id}
+      LIMIT 1
+    `;
+
+    if (outro) {
+      return c.json(
+        { erro: `Esta placa esta vinculada ao estacionamento:\n${outro.nome}` },
+        404,
+      );
+    }
+
     return c.json(
       {
-        erro: "Nenhum veiculo encontrado para esta placa neste estacionamento.",
+        erro: "Veículo não cadastrado.\n\nOriente a pessoa a procurar o *coordenador da equipe* ou\na equipe de *Gestão de Estacionamento*",
       },
       404,
     );

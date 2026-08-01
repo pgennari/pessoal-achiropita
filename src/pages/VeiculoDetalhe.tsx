@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useVeiculo, usePessoasVeiculo, useEstacionamentos, usePessoas } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import { VeiculoForm } from "../components/VeiculoForm";
-import { atualizarVeiculo, excluirVeiculo, associarVeiculoEstacionamento, desassociarVeiculoEstacionamento, vincularPessoaVeiculo, desvincularPessoaVeiculo } from "../lib/veiculos";
+import { atualizarVeiculo, excluirVeiculo, associarVeiculoEstacionamento, desassociarVeiculoEstacionamento, vincularPessoaVeiculo, desvincularPessoaVeiculo, type DadosVeiculo } from "../lib/veiculos";
 import { VinculoPessoa } from "../components/VinculoPessoa";
 
 export function VeiculoDetalhe() {
@@ -20,6 +20,8 @@ export function VeiculoDetalhe() {
   const [salvando, setSalvando] = useState(false);
   const [editandoEstacionamento, setEditandoEstacionamento] = useState(false);
   const [estacionamentoSelecionado, setEstacionamentoSelecionado] = useState("");
+  const [editandoObservacao, setEditandoObservacao] = useState(false);
+  const [observacaoTexto, setObservacaoTexto] = useState("");
   const [erroOperacao, setErroOperacao] = useState<string | null>(null);
 
   const podeEditar = sessao?.perfil === "ADM" || sessao?.perfil === "ORG";
@@ -51,7 +53,7 @@ export function VeiculoDetalhe() {
     await queryClient.invalidateQueries({ queryKey: ["veiculos", id, "pessoas"] });
   };
 
-  const handleSalvar = async (dados: { fabricante: string; modelo: string; placa: string; cor: string }) => {
+  const handleSalvar = async (dados: DadosVeiculo) => {
     if (!id) return;
     setSalvando(true);
     setErroOperacao(null);
@@ -61,6 +63,48 @@ export function VeiculoDetalhe() {
       setEditando(false);
     } catch (e) {
       setErroOperacao((e as Error).message ?? "Erro ao salvar veiculo.");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const handleAlternarCrachaCarro = async () => {
+    if (!id || !veiculo) return;
+    setErroOperacao(null);
+    try {
+      await atualizarVeiculo(id, {
+        fabricante: veiculo.fabricante ?? "",
+        modelo: veiculo.modelo ?? "",
+        placa: veiculo.placa,
+        cor: veiculo.cor ?? "",
+        observacao: veiculo.observacao ?? "",
+        crachaCarroImpresso: !veiculo.crachaCarroImpresso,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["veiculos"] });
+      await queryClient.invalidateQueries({ queryKey: ["veiculos", id] });
+    } catch (e) {
+      setErroOperacao((e as Error).message ?? "Erro ao atualizar cracha do carro.");
+    }
+  };
+
+  const handleSalvarObservacao = async () => {
+    if (!id || !veiculo) return;
+    setSalvando(true);
+    setErroOperacao(null);
+    try {
+      await atualizarVeiculo(id, {
+        fabricante: veiculo.fabricante ?? "",
+        modelo: veiculo.modelo ?? "",
+        placa: veiculo.placa,
+        cor: veiculo.cor ?? "",
+        observacao: observacaoTexto.trim(),
+        crachaCarroImpresso: !!veiculo.crachaCarroImpresso,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["veiculos"] });
+      await queryClient.invalidateQueries({ queryKey: ["veiculos", id] });
+      setEditandoObservacao(false);
+    } catch (e) {
+      setErroOperacao((e as Error).message ?? "Erro ao salvar observacao.");
     } finally {
       setSalvando(false);
     }
@@ -174,6 +218,67 @@ export function VeiculoDetalhe() {
               <div>
                 <dt className="text-sm text-ardesia">Criado em</dt>
                 <dd className="mt-1">{new Date(veiculo.criadoEm).toLocaleDateString("pt-BR")}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-sm text-ardesia">Observacao</dt>
+                  {podeEditar && !editandoObservacao && (
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-verde hover:underline"
+                      onClick={() => {
+                        setObservacaoTexto(veiculo.observacao ?? "");
+                        setEditandoObservacao(true);
+                      }}
+                    >
+                      Editar
+                    </button>
+                  )}
+                </div>
+                {editandoObservacao ? (
+                  <div className="mt-1 space-y-2">
+                    <textarea
+                      className="input min-h-[96px]"
+                      value={observacaoTexto}
+                      onChange={(e) => setObservacaoTexto(e.target.value)}
+                      placeholder="Ex: Pediu vaga fora do perímetro da festa"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-primario"
+                        onClick={handleSalvarObservacao}
+                        disabled={salvando}
+                      >
+                        {salvando ? "Salvando..." : "Salvar"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secundario"
+                        onClick={() => setEditandoObservacao(false)}
+                        disabled={salvando}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <dd className="mt-1 whitespace-pre-wrap">{veiculo.observacao || "—"}</dd>
+                )}
+              </div>
+              <div className="sm:col-span-2 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="checkbox"
+                    checked={!!veiculo.crachaCarroImpresso}
+                    disabled={!podeEditar}
+                    onChange={handleAlternarCrachaCarro}
+                  />
+                  <span className="font-sans font-semibold text-carbone">
+                    Crachá do carro impresso
+                  </span>
+                </label>
               </div>
             </dl>
           </div>

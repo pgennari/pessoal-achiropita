@@ -19,16 +19,17 @@ function textoCorOcupacao(percentual: number | null): string {
 }
 
 export function CardOcupacao({ estacionamento }: Props) {
-  const { nome, endereco, vagasContratadas, checkinsHoje, ocupacaoPercentual } =
+  const { nome, vagasContratadas, checkinsHoje, ocupacaoPercentual } =
     estacionamento;
 
   return (
     <div className="card">
       <div className="card-corpo space-y-3">
         <div className="space-y-1">
-          <h3 className="text-xl font-display text-carbone">{nome}</h3>
-          <p className="text-sm text-ardesia">{endereco}</p>
+          <h3 className="text-xl font-display text-carbone min-h-14">{nome}</h3>
         </div>
+
+        <div className="border-t border-pietra-clara" />
 
         <div className="flex items-baseline gap-2">
           <span className="text-sm text-ardesia">Vagas:</span>
@@ -58,7 +59,7 @@ export function CardOcupacao({ estacionamento }: Props) {
             </div>
           )}
 
-          <div className="flex justify-between text-xs text-ardesia mt-1">
+          <div className="flex flex-col text-xs text-ardesia mt-1">
             <span>{checkinsHoje} check-ins hoje</span>
             {ocupacaoPercentual !== null && (
               <span>

@@ -14,6 +14,57 @@ function aplicarFiltro(p: Pessoa, filtro: Filtro): boolean {
   return true;
 }
 
+type ColunaOrdenacao = "cracha" | "nome" | "telefone" | "email" | "ativo";
+
+type Ordenacao = { coluna: ColunaOrdenacao; direcao: "asc" | "desc" };
+
+function valorOrdenacao(p: Pessoa, coluna: ColunaOrdenacao): string {
+  switch (coluna) {
+    case "cracha":
+      return String(p.cracha).padStart(8, "0");
+    case "nome":
+      return p.nome;
+    case "telefone":
+      return p.telefone || "";
+    case "email":
+      return p.email || "";
+    case "ativo":
+      return p.ativo ? "1" : "0";
+  }
+}
+
+function CabecalhoOrdenavel({
+  titulo,
+  coluna,
+  ordenacao,
+  aoOrdenar,
+  className,
+}: {
+  titulo: string;
+  coluna: ColunaOrdenacao;
+  ordenacao: Ordenacao | null;
+  aoOrdenar: (coluna: ColunaOrdenacao) => void;
+  className?: string;
+}) {
+  const ativa = ordenacao?.coluna === coluna;
+  return (
+    <th className={`px-4 py-3 font-semibold ${className ?? ""}`}>
+      <button
+        type="button"
+        onClick={() => aoOrdenar(coluna)}
+        className="inline-flex items-center gap-1 hover:text-carbone cursor-pointer"
+      >
+        {titulo}
+        {ativa && (
+          <span className="text-xs text-ardesia">
+            {ordenacao!.direcao === "asc" ? "↑" : "↓"}
+          </span>
+        )}
+      </button>
+    </th>
+  );
+}
+
 function combina(p: Pessoa, termo: string): boolean {
   const t = normalizar(termo);
   if (!t) return true;
@@ -33,6 +84,18 @@ export function Pessoas() {
   const { itens, carregando, erro } = usePessoas();
   const [termo, setTermo] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("ativos");
+  const [ordenacao, setOrdenacao] = useState<Ordenacao | null>({
+    coluna: "nome",
+    direcao: "asc",
+  });
+
+  function alternarOrdenacao(coluna: ColunaOrdenacao) {
+    setOrdenacao((prev) =>
+      prev?.coluna === coluna
+        ? { coluna, direcao: prev.direcao === "asc" ? "desc" : "asc" }
+        : { coluna, direcao: "asc" }
+    );
+  }
 
   const podeCriar = sessao?.perfil === "ADM" || sessao?.perfil === "ORG";
   const isAdm = sessao?.perfil === "ADM";
@@ -55,10 +118,25 @@ export function Pessoas() {
     }
   }
 
-  const lista = useMemo(
-    () => itens.filter((p) => aplicarFiltro(p, filtro) && combina(p, termo)),
-    [itens, filtro, termo]
-  );
+  const lista = useMemo(() => {
+    const base = itens.filter((p) => aplicarFiltro(p, filtro) && combina(p, termo));
+    if (!ordenacao) return base;
+    const listaOrdenada = [...base];
+    const { coluna, direcao } = ordenacao;
+    listaOrdenada.sort((a, b) => {
+      const va = valorOrdenacao(a, coluna);
+      const vb = valorOrdenacao(b, coluna);
+      if (!va && !vb) return 0;
+      if (!va) return 1;
+      if (!vb) return -1;
+      const cmp = va.localeCompare(vb, "pt-BR", {
+        numeric: true,
+        sensitivity: "base",
+      });
+      return direcao === "asc" ? cmp : -cmp;
+    });
+    return listaOrdenada;
+  }, [itens, filtro, termo, ordenacao]);
 
   return (
     <div className="space-y-6">
@@ -142,15 +220,40 @@ export function Pessoas() {
         <div className="tabela-rolavel"><table className="tabela-larga">
           <thead className="bg-pietra-clara/60 text-left">
             <tr>
-              <th className="px-4 py-3 font-semibold w-20">Crachá</th>
-              <th className="px-4 py-3 font-semibold">Nome</th>
-              <th className="px-4 py-3 font-semibold hidden sm:table-cell">
-                Telefone
-              </th>
-              <th className="px-4 py-3 font-semibold hidden md:table-cell">
-                E-mail
-              </th>
-              <th className="px-4 py-3 font-semibold w-24 text-right">Ativo</th>
+              <CabecalhoOrdenavel
+                titulo="Crachá"
+                coluna="cracha"
+                ordenacao={ordenacao}
+                aoOrdenar={alternarOrdenacao}
+                className="w-20"
+              />
+              <CabecalhoOrdenavel
+                titulo="Nome"
+                coluna="nome"
+                ordenacao={ordenacao}
+                aoOrdenar={alternarOrdenacao}
+              />
+              <CabecalhoOrdenavel
+                titulo="Telefone"
+                coluna="telefone"
+                ordenacao={ordenacao}
+                aoOrdenar={alternarOrdenacao}
+                className="hidden sm:table-cell"
+              />
+              <CabecalhoOrdenavel
+                titulo="E-mail"
+                coluna="email"
+                ordenacao={ordenacao}
+                aoOrdenar={alternarOrdenacao}
+                className="hidden md:table-cell"
+              />
+              <CabecalhoOrdenavel
+                titulo="Ativo"
+                coluna="ativo"
+                ordenacao={ordenacao}
+                aoOrdenar={alternarOrdenacao}
+                className="w-24 text-right"
+              />
             </tr>
           </thead>
           <tbody>

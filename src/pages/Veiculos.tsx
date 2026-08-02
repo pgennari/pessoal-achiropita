@@ -13,12 +13,12 @@ import type { VeiculoComPessoas } from "../lib/tipos";
 
 type ColunaOrdenacao =
   | "placa"
-  | "fabricante"
-  | "modelo"
-  | "cor"
   | "estacionamento"
   | "pessoas"
   | "equipes"
+  | "fabricante"
+  | "modelo"
+  | "cor"
   | "observacao"
   | "impresso";
 
@@ -259,12 +259,12 @@ export function Veiculos() {
               <thead>
                 <tr className="border-b border-cinza-200">
                   <CabecalhoOrdenavel titulo="Placa" coluna="placa" ordenacao={ordenacao} aoOrdenar={alternarOrdenacao} />
-                  <CabecalhoOrdenavel titulo="Fabricante" coluna="fabricante" ordenacao={ordenacao} aoOrdenar={alternarOrdenacao} />
-                  <CabecalhoOrdenavel titulo="Modelo" coluna="modelo" ordenacao={ordenacao} aoOrdenar={alternarOrdenacao} />
-                  <CabecalhoOrdenavel titulo="Cor" coluna="cor" ordenacao={ordenacao} aoOrdenar={alternarOrdenacao} />
                   <CabecalhoOrdenavel titulo="Estacionamento" coluna="estacionamento" ordenacao={ordenacao} aoOrdenar={alternarOrdenacao} />
                   <CabecalhoOrdenavel titulo="Pessoas" coluna="pessoas" ordenacao={ordenacao} aoOrdenar={alternarOrdenacao} />
                   <CabecalhoOrdenavel titulo="Equipes" coluna="equipes" ordenacao={ordenacao} aoOrdenar={alternarOrdenacao} />
+                  <CabecalhoOrdenavel titulo="Fabricante" coluna="fabricante" ordenacao={ordenacao} aoOrdenar={alternarOrdenacao} />
+                  <CabecalhoOrdenavel titulo="Modelo" coluna="modelo" ordenacao={ordenacao} aoOrdenar={alternarOrdenacao} />
+                  <CabecalhoOrdenavel titulo="Cor" coluna="cor" ordenacao={ordenacao} aoOrdenar={alternarOrdenacao} />
                   <CabecalhoOrdenavel titulo="Observacao" coluna="observacao" ordenacao={ordenacao} aoOrdenar={alternarOrdenacao} />
                   <CabecalhoOrdenavel titulo="Impresso" coluna="impresso" ordenacao={ordenacao} aoOrdenar={alternarOrdenacao} />
                 </tr>
@@ -277,9 +277,6 @@ export function Veiculos() {
                     onClick={() => navigate(`/veiculos/${v.id}`)}
                   >
                     <td className="py-2 px-3 font-mono font-medium">{v.placa}</td>
-                    <td className="py-2 px-3">{v.fabricante}</td>
-                    <td className="py-2 px-3">{v.modelo}</td>
-                    <td className="py-2 px-3">{v.cor}</td>
                     <td className="py-2 px-3">
                       {v.estacionamentoId ? (
                         (() => {
@@ -337,6 +334,9 @@ export function Veiculos() {
                         <span className="text-ardesia">-</span>
                       )}
                     </td>
+                    <td className="py-2 px-3">{v.fabricante}</td>
+                    <td className="py-2 px-3">{v.modelo}</td>
+                    <td className="py-2 px-3">{v.cor}</td>
                     <td className="py-2 px-3 max-w-[200px]">
                       {v.observacao ? (
                         <span className="block truncate" title={v.observacao}>

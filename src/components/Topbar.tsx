@@ -71,7 +71,7 @@ export function Topbar({ sessao, onAbrirBusca, onAbrirSidebar }: Props) {
         className="hidden md:flex items-center gap-3 text-left text-sm text-ardesia bg-pietra-clara/60 hover:bg-pietra-clara border border-pietra-clara rounded-sm px-3 py-2 min-w-[260px]"
         aria-label="Abrir busca global"
       >
-        <span>Buscar pessoa, crachá ou e-mail...</span>
+        <span>Buscar pessoa, veículo ou placa...</span>
         <kbd className="ml-auto font-mono text-xs px-1.5 py-0.5 rounded bg-bianco border border-pietra">
           {ehMac ? "⌘" : "Ctrl"}K
         </kbd>

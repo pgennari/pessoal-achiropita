@@ -79,7 +79,7 @@ Retorna:
 
 **Queries SQL**:
 - `SELECT e.*, COUNT(c.id) AS checkins_hoje FROM estacionamentos e LEFT JOIN checkins c ON c.estacionamento_id = e.id AND c.data = CURRENT_DATE GROUP BY e.id ORDER BY e.nome`
-- `SELECT * FROM checkins WHERE data = CURRENT_DATE ORDER BY timestamp DESC LIMIT 20`
+- `SELECT * FROM checkins WHERE data = CURRENT_DATE ORDER BY timestamp DESC`
 
 ## Unknown 3: Frontend — Hook de Dashboard
 

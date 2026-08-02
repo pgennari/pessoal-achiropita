@@ -50,7 +50,6 @@ app.openapi(getDashboardRoute, async (c) => {
     FROM checkins
     WHERE data = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
     ORDER BY timestamp DESC
-    LIMIT 20
   `;
 
   const agora = new Date().toISOString();

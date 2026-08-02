@@ -68,10 +68,7 @@ export function DashboardEstacionamentos() {
           ),
         );
 
-        setUltimosCheckins((prev) => {
-          const atualizados = [checkin, ...prev].slice(0, 20);
-          return atualizados;
-        });
+        setUltimosCheckins((prev) => [checkin, ...prev]);
 
         setNovosCheckins((prev) => [...prev, checkin]);
       },
@@ -132,7 +129,7 @@ export function DashboardEstacionamentos() {
 
       <section>
         <h2 className="text-2xl font-display text-carbone mb-4">
-          Ultimos check-ins
+          Check-ins do dia
         </h2>
         <div className="card">
           <div className="card-corpo">

@@ -54,7 +54,7 @@
 
 ### Implementation for User Story 2
 
-- [x] T009 [P] [US2] Incluir `ultimosCheckins` no retorno de `GET /api/estacionamentos/dashboard` em `api/src/rotas/dashboard.ts` — query `SELECT ... FROM checkins WHERE data = CURRENT_DATE ORDER BY timestamp DESC LIMIT 20`
+- [x] T009 [P] [US2] Incluir `ultimosCheckins` no retorno de `GET /api/estacionamentos/dashboard` em `api/src/rotas/dashboard.ts` — query `SELECT ... FROM checkins WHERE data = CURRENT_DATE ORDER BY timestamp DESC` (sem limite, todos os check-ins do dia)
 - [x] T010 [P] [US2] Criar componente `ListaCheckinsRecentes` em `src/components/ListaCheckinsRecentes.tsx` — tabela com data/hora, pessoaNome, placa, modelo/cor, estacionamentoNome
 - [x] T011 [US2] Integrar `ListaCheckinsRecentes` na pagina `src/pages/DashboardEstacionamentos.tsx` abaixo dos cards de ocupacao
 

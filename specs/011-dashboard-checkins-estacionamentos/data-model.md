@@ -11,7 +11,7 @@ Retornado pelo endpoint `GET /api/estacionamentos/dashboard`.
 | Campo | Tipo | Origem | Descricao |
 |-------|------|--------|-----------|
 | `estacionamentos` | `EstacionamentoComOcupacao[]` | query agregada | Todos os estacionamentos com ocupacao calculada |
-| `ultimosCheckins` | `CheckinResumo[]` | query `checkins` | Ultimos 20 check-ins do dia |
+| `ultimosCheckins` | `CheckinResumo[]` | query `checkins` | Todos os check-ins do dia (sem limite) |
 | `timestamps` | `{ geradoEm, dataReferencia }` | metadado | Momento da geracao e data de referencia |
 
 ### EstacionamentoComOcupacao
@@ -87,5 +87,4 @@ SELECT
 FROM checkins
 WHERE data = CURRENT_DATE
 ORDER BY timestamp DESC
-LIMIT 20
 ```

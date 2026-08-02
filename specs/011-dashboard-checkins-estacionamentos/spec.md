@@ -42,7 +42,7 @@
 
 **Cenarios de aceite**:
 
-1. **Dado** que existem check-ins registrados, **Quando** o usuario visualiza o dashboard, **Entao** exibe uma secao "Ultimos check-ins" com os 20 registros mais recentes (valor fixo), independente do estacionamento.
+1. **Dado** que existem check-ins registrados, **Quando** o usuario visualiza o dashboard, **Entao** exibe uma secao "Check-ins do dia" com todos os registros do dia, de todos os estacionamentos, ordenados do mais recente para o mais antigo (sem limite).
 2. **Dado** que a secao de check-ins e exibida, **Quando** o usuario le os registros, **Entao** cada linha mostra: data/hora, nome da pessoa, placa do veiculo, modelo/cor e nome do estacionamento.
 3. **Dado** que nao existem check-ins registrados hoje, **Quando** o usuario visualiza a secao, **Entao** exibe "Nenhum check-in realizado hoje."
 4. **Dado** que o dashboard esta aberto, **Quando** um novo check-in acontece, **Entao** a lista de check-ins recentes se atualiza automaticamente com o novo registro no topo.
@@ -83,7 +83,7 @@
 - **FR-001**: O dashboard DEVE exibir todos os estacionamentos cadastrados, cada um com: nome, endereco, numero de vagas contratadas e ocupacao percentual.
 - **FR-002**: A ocupacao percentual DEVE ser calculada como: (numero de check-ins unicos do dia atual / vagas contratadas) * 100.
 - **FR-003**: Cada estacionamento DEVE ter um indicador visual de ocupacao com codigo de cores: verde (ate 50%), amarelo (51% a 80%), vermelho (acima de 80%).
-- **FR-004**: O dashboard DEVE incluir uma secao "Ultimos check-ins" listando os 20 registros mais recentes (valor fixo) de todos os estacionamentos, ordenados do mais recente para o mais antigo.
+- **FR-004**: O dashboard DEVE incluir uma secao "Check-ins do dia" listando todos os registros do dia de todos os estacionamentos, ordenados do mais recente para o mais antigo (sem limite).
 - **FR-005**: Cada registro na lista de ultimos check-ins DEVE exibir: data/hora, nome da pessoa, placa, modelo/cor e nome do estacionamento.
 - **FR-006**: O dashboard DEVE receber atualizacoes dos dados de ocupacao e check-ins atraves de push do backend — o backend DEVE enviar uma notificacao ao frontend sempre que um check-in for registrado, sem necessidade de polling.
 - **FR-007**: Ao receber a notificacao de novo check-in vinda do backend, o sistema DEVE exibir uma notificacao visual proeminente contendo: nome da pessoa, placa do veiculo, nome do estacionamento e horario do check-in, e DEVE atualizar os dados de ocupacao e a lista de check-ins na tela.
@@ -116,7 +116,7 @@
 - A atualizacao dos dados e orientada a eventos (push do backend), nao por polling — o frontend mantem uma conexao persistente (SSE — Server-Sent Events, conforme decisao tecnica documentada em research.md) para receber notificacoes em tempo real.
 - A notificacao visual e implementada como um toast/banner no topo da tela, com duracao de 5 segundos.
 - O dashboard e acessado exclusivamente por usuarios logados (ADM/ORG) — nao ha versao publica.
-- A lista de ultimos check-ins mostra 20 registros (valor fixo).
+- A lista de check-ins do dia mostra todos os registros do dia (sem limite).
 - O dashboard e otimizado para monitores widescreen (1920x1080 ou maior) — nao ha requisito de responsivo para dispositivos moveis.
 - Estacionamentos com 0 vagas contratadas exibem "N/A" — nao e possivel calcular ocupacao sem denominador.
 - O sistema ja possui os endpoints de API necessarios para consultar estacionamentos e check-ins (existentes no backend).

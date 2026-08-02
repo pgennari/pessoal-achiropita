@@ -62,11 +62,20 @@ export async function listarVeiculosEstacionamento(estacionamentoId: string): Pr
   return api.get<VeiculoComPessoas[]>(`/api/estacionamentos/${estacionamentoId}/veiculos`);
 }
 
-export async function associarVeiculoEstacionamento(estacionamentoId: string, veiculoId: string): Promise<void> {
+export async function associarVeiculoEstacionamento(
+  estacionamentoId: string,
+  veiculoId: string,
+  estacionamentoAnteriorId?: string
+): Promise<void> {
   await api.post(`/api/estacionamentos/${estacionamentoId}/veiculos`, { veiculoId });
   await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId, "veiculos"] });
   await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId] });
+  if (estacionamentoAnteriorId && estacionamentoAnteriorId !== estacionamentoId) {
+    await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoAnteriorId, "veiculos"] });
+    await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoAnteriorId] });
+  }
   await queryClient.invalidateQueries({ queryKey: ["veiculos"] });
+  await queryClient.invalidateQueries({ queryKey: ["veiculos", veiculoId] });
   await queryClient.invalidateQueries({ queryKey: ["veiculos", veiculoId, "historico-estacionamentos"] });
 }
 
@@ -75,5 +84,6 @@ export async function desassociarVeiculoEstacionamento(estacionamentoId: string,
   await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId, "veiculos"] });
   await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId] });
   await queryClient.invalidateQueries({ queryKey: ["veiculos"] });
+  await queryClient.invalidateQueries({ queryKey: ["veiculos", veiculoId] });
   await queryClient.invalidateQueries({ queryKey: ["veiculos", veiculoId, "historico-estacionamentos"] });
 }

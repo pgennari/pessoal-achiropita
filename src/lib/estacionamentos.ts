@@ -98,6 +98,7 @@ export async function associarPessoaEstacionamento(
 ): Promise<void> {
   await api.post(`/api/estacionamentos/${estacionamentoId}/pessoas`, { pessoaId });
   await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId, "pessoas"] });
+  await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId] });
   await queryClient.invalidateQueries({ queryKey: ["pessoas", pessoaId] });
 }
 
@@ -108,5 +109,6 @@ export async function desassociarPessoaEstacionamento(
 ): Promise<void> {
   await api.delete(`/api/estacionamentos/${estacionamentoId}/pessoas/${pessoaId}`);
   await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId, "pessoas"] });
+  await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId] });
   await queryClient.invalidateQueries({ queryKey: ["pessoas", pessoaId] });
 }

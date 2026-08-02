@@ -82,11 +82,11 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
     await confirmarAssociacao(veiculoId);
   }
 
-  async function confirmarAssociacao(veiculoId: string) {
+  async function confirmarAssociacao(veiculoId: string, estacionamentoAnteriorId?: string) {
     setAcaoErro(null);
     setAcaoOcupado(true);
     try {
-      await associarVeiculoEstacionamento(estacionamentoId, veiculoId);
+      await associarVeiculoEstacionamento(estacionamentoId, veiculoId, estacionamentoAnteriorId);
       setBuscaAssociacao("");
       setVeiculoTransferencia(null);
     } catch (e) {
@@ -282,7 +282,7 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
               <button
                 type="button"
                 className="btn btn-primario"
-                onClick={() => confirmarAssociacao(veiculoTransferencia.id)}
+                onClick={() => confirmarAssociacao(veiculoTransferencia.id, veiculoTransferencia.estacionamentoId)}
                 disabled={acaoOcupado}
               >
                 {acaoOcupado ? "Transferindo..." : "Confirmar transferência"}

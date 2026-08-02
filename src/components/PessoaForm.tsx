@@ -179,7 +179,7 @@ export function PessoaForm({
 
           <div className="input-grupo">
             <label className="input-label" htmlFor="cpf">
-              CPF
+              CPF <span className="opcional">(opcional)</span>
             </label>
             <input
               id="cpf"

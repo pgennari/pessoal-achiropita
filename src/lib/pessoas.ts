@@ -78,13 +78,13 @@ function validar(
       erros.email = "E-mail inválido.";
   }
 
-  if (!dados.cpf || !dados.cpf.trim()) {
-    erros.cpf = "CPF é obrigatório.";
-  } else if (!validarCPF(dados.cpf)) {
-    erros.cpf = "CPF inválido.";
-  } else {
-    const dup = ehDuplicataPorCpf(pessoas, dados.cpf, excetoId);
-    if (dup) erros.cpf = `CPF já cadastrado para ${dup.nome} (#${dup.cracha}).`;
+  if (dados.cpf && dados.cpf.trim()) {
+    if (!validarCPF(dados.cpf)) {
+      erros.cpf = "CPF inválido.";
+    } else {
+      const dup = ehDuplicataPorCpf(pessoas, dados.cpf, excetoId);
+      if (dup) erros.cpf = `CPF já cadastrado para ${dup.nome} (#${dup.cracha}).`;
+    }
   }
 
   if (!erros.nome && !erros.nascimento) {

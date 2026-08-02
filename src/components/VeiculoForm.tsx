@@ -70,7 +70,6 @@ export function VeiculoForm({ veiculo, aoSalvar, aoCancelar, carregando }: Veicu
           onChange={(e) => setPlaca(e.target.value)}
           required
           placeholder="Ex: ABC1D23"
-          maxLength={7}
         />
       </div>
       <div className="input-grupo">

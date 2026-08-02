@@ -392,33 +392,35 @@ export function EstacionamentoDetalhe() {
           <p className="text-sm text-ardesia">
             Compartilhe este link para que operadores registrem check-ins sem necessidade de login.
           </p>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 bg-pietra-clara/40 rounded-sm px-3 py-2 text-sm font-mono text-carbone break-all">
+          <div className="space-y-2">
+            <code className="block bg-pietra-clara/40 rounded-sm px-3 py-2 text-sm font-mono text-carbone break-all">
               {`${window.location.origin}/checkin/${estacionamento.tokenCheckin}`}
             </code>
-            <a
-              href={`/checkin/${estacionamento.tokenCheckin}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-secundario btn-pequeno shrink-0"
-            >
-              Abrir
-            </a>
-            <button
-              type="button"
-              className="btn btn-secundario btn-pequeno shrink-0"
-              onClick={handleCopiarLink}
-            >
-              {copiado ? "Copiado!" : "Copiar"}
-            </button>
-            <a
-              href={`/qr-checkin/${estacionamento.tokenCheckin}?imprimir=1`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-secundario btn-pequeno shrink-0"
-            >
-              QR Code
-            </a>
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href={`/checkin/${estacionamento.tokenCheckin}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-secundario btn-pequeno shrink-0"
+              >
+                Abrir
+              </a>
+              <button
+                type="button"
+                className="btn btn-secundario btn-pequeno shrink-0"
+                onClick={handleCopiarLink}
+              >
+                {copiado ? "Copiado!" : "Copiar"}
+              </button>
+              <a
+                href={`/qr-checkin/${estacionamento.tokenCheckin}?imprimir=1`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-secundario btn-pequeno shrink-0"
+              >
+                QR Code
+              </a>
+            </div>
           </div>
         </div>
       </section>

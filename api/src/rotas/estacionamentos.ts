@@ -350,6 +350,7 @@ app.openapi(deletePessoaEstacionamentoRoute, async (c) => {
 const CheckinSchema = z.object({
   id: z.string(),
   timestamp: z.string(),
+  carroId: z.string(),
   pessoaNome: z.string(),
   placa: z.string(),
   modelo: z.string(),
@@ -375,7 +376,7 @@ app.openapi(getCheckinsRoute, async (c) => {
   const [est] = await sql`SELECT id FROM estacionamentos WHERE id = ${id}`;
   if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
   const rows = await sql`
-    SELECT id, timestamp, pessoa_nome, placa, modelo, cor
+    SELECT id, timestamp, carro_id, pessoa_nome, placa, modelo, cor
     FROM checkins
     WHERE estacionamento_id = ${id}
     ORDER BY timestamp DESC
@@ -383,6 +384,7 @@ app.openapi(getCheckinsRoute, async (c) => {
   const resultado = rows.map((r) => ({
     id: r.id,
     timestamp: r.timestamp instanceof Date ? r.timestamp.toISOString() : String(r.timestamp),
+    carroId: r.carro_id,
     pessoaNome: r.pessoa_nome,
     placa: r.placa,
     modelo: r.modelo,

@@ -26,7 +26,7 @@ function BarraOcupacao({
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-sm text-ardesia">Ocupacao</span>
+        <span className="text-sm text-ardesia">Distribuição</span>
         <span className={`font-mono text-sm font-semibold ${cor.texto}`}>
           {pct.toFixed(0)}%
         </span>

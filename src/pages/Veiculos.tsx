@@ -10,6 +10,7 @@ import {
 import { useSessao } from "../lib/sessao";
 import { normalizar } from "../lib/utilsDominio";
 import type { VeiculoComPessoas } from "../lib/tipos";
+import { Icone } from "../components/Icone";
 
 type ColunaOrdenacao =
   | "placa"
@@ -219,8 +220,13 @@ export function Veiculos() {
           </p>
         </div>
         {podeCriar && (
-          <Link to="/veiculos/novo" className="btn btn-primario">
-            Novo veiculo
+          <Link
+            to="/veiculos/novo"
+            className="btn btn-primario"
+            aria-label="Novo veiculo"
+            title="Novo veiculo"
+          >
+            <Icone nome="mais" />
           </Link>
         )}
       </header>

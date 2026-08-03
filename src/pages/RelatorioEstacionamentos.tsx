@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   useEdicaoAtiva,
   useEquipes,
@@ -38,7 +38,6 @@ function formatarDataISO(data: string): string {
 }
 
 export function RelatorioEstacionamentos() {
-  const navigate = useNavigate();
   const { sessao } = useSessao();
   const { itens: veiculos, carregando, erro } = useVeiculos();
   const { itens: estacionamentos } = useEstacionamentos();
@@ -314,8 +313,7 @@ export function RelatorioEstacionamentos() {
                   return (
                     <tr
                       key={v.id}
-                      className="border-b border-pietra-clara hover:bg-pietra-clara/50 cursor-pointer align-top"
-                      onClick={() => navigate(`/veiculos/${v.id}`)}
+                      className="border-b border-pietra-clara hover:bg-pietra-clara/50 align-top"
                     >
                       <td className="py-0.5 px-0.5">
                         {equipesVeiculo.length > 0

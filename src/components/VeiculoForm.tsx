@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { DadosVeiculo } from "../lib/veiculos";
+import { Icone } from "./Icone";
 
 interface VeiculoFormProps {
   veiculo?: Partial<DadosVeiculo>;
@@ -115,16 +116,20 @@ export function VeiculoForm({ veiculo, aoSalvar, aoCancelar, carregando }: Veicu
           type="submit"
           className="btn btn-primario"
           disabled={carregando}
+          aria-label="Salvar"
+          title="Salvar"
         >
-          {carregando ? "Salvando..." : "Salvar"}
+          <Icone nome="check" />
         </button>
         <button
           type="button"
           className="btn btn-secundario"
           onClick={aoCancelar}
           disabled={carregando}
+          aria-label="Cancelar"
+          title="Cancelar"
         >
-          Cancelar
+          <Icone nome="fechar" />
         </button>
       </div>
     </form>

@@ -21,6 +21,7 @@ import {
 } from "../lib/equipes";
 import { EdicaoForm } from "../components/EdicaoForm";
 import { EquipeForm } from "../components/EquipeForm";
+import { Icone } from "../components/Icone";
 import {
   Equipe,
   Participacao,
@@ -132,8 +133,13 @@ export function EdicaoDetalhe() {
         <div className="card-corpo">
           <h3 className="mb-2">Edição não encontrada</h3>
           <p className="text-ardesia">{erro ?? "Verifique o link."}</p>
-          <Link to="/edicoes" className="btn btn-secundario mt-4">
-            Voltar
+          <Link
+            to="/edicoes"
+            className="btn btn-secundario mt-4"
+            aria-label="Voltar"
+            title="Voltar"
+          >
+            <Icone nome="seta-esquerda" />
           </Link>
         </div>
       </div>
@@ -221,7 +227,6 @@ export function EdicaoDetalhe() {
               inicial={edicao}
               onSubmit={handleSalvarEdicao}
               onCancelar={() => setEditandoEdicao(false)}
-              textoBotao="Salvar alterações"
             />
           </div>
         </div>
@@ -259,16 +264,20 @@ export function EdicaoDetalhe() {
               type="button"
               className="btn btn-secundario"
               onClick={() => setEditandoEdicao(true)}
+              aria-label="Editar"
+              title="Editar"
             >
-              Editar
+              <Icone nome="lapis" />
             </button>
             {edicao.status !== "ativa" && (
               <button
                 type="button"
                 className="btn btn-primario"
                 onClick={handleAtivar}
+                aria-label="Ativar"
+                title="Ativar"
               >
-                Ativar
+                <Icone nome="check" />
               </button>
             )}
             {edicao.status === "ativa" && (
@@ -276,8 +285,10 @@ export function EdicaoDetalhe() {
                 type="button"
                 className="btn btn-perigo"
                 onClick={handleEncerrar}
+                aria-label="Encerrar"
+                title="Encerrar"
               >
-                Encerrar
+                <Icone nome="fechar" />
               </button>
             )}
           </div>
@@ -338,8 +349,10 @@ export function EdicaoDetalhe() {
                 type="button"
                 className="btn btn-primario btn-pequeno lg:hidden"
                 onClick={() => setCriandoEquipe(true)}
+                aria-label="Nova equipe"
+                title="Nova equipe"
               >
-                Nova equipe
+                <Icone nome="mais" />
               </button>
             )}
           </div>
@@ -347,8 +360,10 @@ export function EdicaoDetalhe() {
           <div className="flex flex-wrap items-center gap-3 mt-3">
             <div className="flex gap-1 flex-wrap">
               <button
-                className={`btn btn-pequeno ${
-                  filtroSetor === "todos" ? "btn-primario" : "btn-secundario"
+                className={`filtro-chip ${
+                  filtroSetor === "todos"
+                    ? "filtro-chip-ativo"
+                    : "filtro-chip-inativo"
                 }`}
                 onClick={() => setFiltroSetor("todos")}
               >
@@ -359,7 +374,7 @@ export function EdicaoDetalhe() {
                 return (
                   <button
                     key={s.id}
-                    className="btn btn-pequeno"
+                    className="filtro-chip"
                     style={{
                       backgroundColor: ativo ? s.cor : `${s.cor}14`,
                       color: ativo ? "#fff" : s.cor,
@@ -379,8 +394,10 @@ export function EdicaoDetalhe() {
                   type="button"
                   className="btn btn-primario btn-pequeno hidden lg:inline-flex"
                   onClick={() => setCriandoEquipe(true)}
+                  aria-label="Nova equipe"
+                  title="Nova equipe"
                 >
-                  Nova equipe
+                  <Icone nome="mais" />
                 </button>
               </>
             )}
@@ -394,7 +411,6 @@ export function EdicaoDetalhe() {
               <EquipeForm
                 onSubmit={handleCriarEquipe}
                 onCancelar={() => setCriandoEquipe(false)}
-                textoBotao="Cadastrar equipe"
               />
             </div>
           </div>
@@ -491,8 +507,10 @@ export function EdicaoDetalhe() {
                         type="button"
                         className="btn btn-texto btn-pequeno text-vermelho-escuro"
                         onClick={(ev) => { ev.stopPropagation(); handleRemoverEquipe(e); }}
+                        aria-label="Remover"
+                        title="Remover"
                       >
-                        Remover
+                        <Icone nome="lixeira" />
                       </button>
                     </div>
                   )}
@@ -508,8 +526,10 @@ export function EdicaoDetalhe() {
           type="button"
           className="btn btn-secundario"
           onClick={() => navigate("/edicoes")}
+          aria-label="Voltar"
+          title="Voltar"
         >
-          Voltar
+          <Icone nome="seta-esquerda" />
         </button>
       </div>
     </div>

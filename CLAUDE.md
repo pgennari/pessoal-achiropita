@@ -119,6 +119,12 @@ schema.sql       — DDL PostgreSQL completo (rodar no Neon antes do 1º deploy)
 - **TypeScript obrigatório.** Sem `any`; usar `as never` em I/O de JSONB
   onde o tipo de postgres.js é mais restrito que necessário.
 - **Datas em ISO-8601** (`YYYY-MM-DD` para datas, timestamps com timezone).
+- **Botões só-ícone** (padrão do guia visual). `.btn` é quadrado (48×48;
+  `.btn-grande` 56; `.btn-pequeno` 40) sem rótulo de texto — o rótulo vai
+  em `aria-label`/`title`. Ícones vêm do componente `Icone`
+  (`src/components/Icone.tsx`, SVG de traço 2px via `currentColor`); não
+  adicionar lib de ícones. Exceção: chips de filtro (`filtro-chip*`)
+  mantêm rótulo.
 
 ## Princípios
 

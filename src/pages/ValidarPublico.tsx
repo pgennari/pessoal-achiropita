@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { LinkValidacao, Pessoa, ESTADOS_CIVIS, Filho } from "../lib/tipos";
+import { Icone } from "../components/Icone";
 import {
   carregarLinkPublico,
   DadosValidacao,
@@ -240,8 +241,10 @@ export function ValidarPublico() {
                   type="submit"
                   className="btn btn-primario btn-grande"
                   disabled={etapa === "verificando"}
+                  aria-label="Confirmar identidade"
+                  title="Confirmar identidade"
                 >
-                  {etapa === "verificando" ? "Verificando..." : "Confirmar identidade"}
+                  <Icone nome="check" />
                 </button>
               </div>
             </div>
@@ -390,8 +393,10 @@ export function ValidarPublico() {
                     type="button"
                     className="btn btn-secundario btn-pequeno"
                     onClick={adicionarFilho}
+                    aria-label="Adicionar filho"
+                    title="Adicionar filho"
                   >
-                    Adicionar
+                    <Icone nome="mais" />
                   </button>
                 </div>
                 {dados.filhos.length === 0 ? (
@@ -444,8 +449,10 @@ export function ValidarPublico() {
                               type="button"
                               className="btn btn-texto btn-pequeno text-vermelho-escuro ml-auto"
                               onClick={() => removerFilho(f.id)}
+                              aria-label="Remover"
+                              title="Remover"
                             >
-                              Remover
+                              <Icone nome="lixeira" />
                             </button>
                           </div>
                         </div>
@@ -467,8 +474,10 @@ export function ValidarPublico() {
                 type="submit"
                 className="btn btn-primario btn-grande"
                 disabled={etapa === "salvando"}
+                aria-label="Confirmar"
+                title="Confirmar"
               >
-                {etapa === "salvando" ? "Salvando..." : "Confirmar"}
+                <Icone nome="check" />
               </button>
             </div>
           </form>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { DadosCheckin, registrarCheckin } from "../lib/checkin";
+import { Icone } from "./Icone";
 
 interface Props {
   token: string;
@@ -79,16 +80,20 @@ export function ModalCheckin({
               className="btn btn-primario flex-1"
               onClick={handleConfirmar}
               disabled={ocupado}
+              aria-label="Confirmar"
+              title="Confirmar"
             >
-              {ocupado ? "Confirmando..." : "Confirmar"}
+              <Icone nome="check" />
             </button>
             <button
               type="button"
               className="btn btn-secundario flex-1"
               onClick={onFechar}
               disabled={ocupado}
+              aria-label="Cancelar"
+              title="Cancelar"
             >
-              Cancelar
+              <Icone nome="fechar" />
             </button>
           </div>
         </div>

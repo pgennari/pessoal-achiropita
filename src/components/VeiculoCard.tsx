@@ -1,4 +1,5 @@
 import type { ResultadoBusca } from "../lib/checkin";
+import { Icone } from "./Icone";
 
 interface VeiculoCardProps {
   veiculo: ResultadoBusca;
@@ -23,8 +24,10 @@ export function VeiculoCard({ veiculo, aoCheckin }: VeiculoCardProps) {
               type="button"
               className="btn btn-primario btn-pequeno"
               onClick={aoCheckin}
+              aria-label="Check-in"
+              title="Check-in"
             >
-              Check-in
+              <Icone nome="check" />
             </button>
           )}
         </div>

@@ -6,6 +6,7 @@ import { buscarPorPlaca, ResultadoBusca, DadosCheckin } from "../lib/checkin";
 import { ModalCheckin } from "../components/ModalCheckin";
 import { VeiculoCard } from "../components/VeiculoCard";
 import { HistoricoCheckinPublico } from "../components/HistoricoCheckinPublico";
+import { Icone } from "../components/Icone";
 
 function renderizarErroFormatado(texto: string) {
   return texto.split("\n").map((linha, i) => (
@@ -134,8 +135,10 @@ export function CheckinPublico() {
                 type="submit"
                 className="btn btn-primario"
                 disabled={buscando || !placa.trim()}
+                aria-label="Buscar"
+                title="Buscar"
               >
-                {buscando ? "Buscando..." : "Buscar"}
+                <Icone nome="busca" />
               </button>
             </div>
           </div>

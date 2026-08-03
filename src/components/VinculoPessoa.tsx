@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { Icone } from "./Icone";
 
 interface VinculoPessoaProps {
   titulo: string;
@@ -57,8 +58,10 @@ export function VinculoPessoa({
         <button
           onClick={() => setModalAberto(true)}
           className="btn btn-secundario btn-pequeno"
+          aria-label="Vincular pessoa"
+          title="Vincular pessoa"
         >
-          + Vincular
+          <Icone nome="mais" />
         </button>
       </div>
 
@@ -80,8 +83,10 @@ export function VinculoPessoa({
                 onClick={() => handleDesvincular(p.id)}
                 disabled={processando === p.id}
                 className="btn btn-perigo btn-pequeno"
+                aria-label="Remover pessoa"
+                title="Remover pessoa"
               >
-                {processando === p.id ? "Removendo..." : "Remover"}
+                <Icone nome="lixeira" />
               </button>
             </li>
           ))}
@@ -120,8 +125,10 @@ export function VinculoPessoa({
                           onClick={() => handleVincular(p.id)}
                           disabled={processando === p.id}
                           className="btn btn-primario btn-pequeno"
+                          aria-label="Vincular"
+                          title="Vincular"
                         >
-                          {processando === p.id ? "Vinculando..." : "Vincular"}
+                          <Icone nome="mais" />
                         </button>
                       </li>
                     ))}
@@ -136,8 +143,10 @@ export function VinculoPessoa({
                     setModalAberto(false);
                   }}
                   className="btn btn-secundario"
+                  aria-label="Fechar"
+                  title="Fechar"
                 >
-                  Fechar
+                  <Icone nome="fechar" />
                 </button>
               </div>
             </div>

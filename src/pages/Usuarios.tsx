@@ -25,6 +25,7 @@ import {
 } from "../lib/convites";
 import { UsuarioForm } from "../components/UsuarioForm";
 import { ConviteForm } from "../components/ConviteForm";
+import { Icone } from "../components/Icone";
 import { Convite, Perfil, StatusConvite, Usuario } from "../lib/tipos";
 import { formatarData } from "../lib/utilsDominio";
 
@@ -82,7 +83,6 @@ export function Usuarios() {
   const [editandoConviteId, setEditandoConviteId] = useState<string | null>(null);
   const [criandoConvite, setCriandoConvite] = useState(false);
   const [linkRecemCriado, setLinkRecemCriado] = useState<CriarConviteResultado | null>(null);
-  const [copiouToken, setCopiouToken] = useState<string | null>(null);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
 
   // Filtros da aba Usuários
@@ -151,8 +151,13 @@ export function Usuarios() {
           <p className="text-ardesia">
             Apenas Administração e Organização gerenciam usuários.
           </p>
-          <Link to="/" className="btn btn-secundario mt-4">
-            Voltar
+          <Link
+            to="/"
+            className="btn btn-secundario mt-4"
+            aria-label="Voltar"
+            title="Voltar"
+          >
+            <Icone nome="seta-esquerda" />
           </Link>
         </div>
       </div>
@@ -230,11 +235,6 @@ export function Usuarios() {
   async function copiar(token: string) {
     try {
       await navigator.clipboard.writeText(urlPublicaConvite(token));
-      setCopiouToken(token);
-      setTimeout(
-        () => setCopiouToken((c) => (c === token ? null : c)),
-        2000
-      );
     } catch {
       setAcaoErro("Não foi possível copiar. Selecione e copie manualmente.");
     }
@@ -262,8 +262,10 @@ export function Usuarios() {
               setAba("convites");
               setCriandoConvite(true);
             }}
+            aria-label="Novo convite"
+            title="Novo convite"
           >
-            Novo convite
+            <Icone nome="mais" />
           </button>
         )}
       </header>
@@ -299,15 +301,19 @@ export function Usuarios() {
                 type="button"
                 className="btn btn-primario btn-pequeno"
                 onClick={() => copiar(linkRecemCriado.token)}
+                aria-label="Copiar link"
+                title="Copiar link"
               >
-                {copiouToken === linkRecemCriado.token ? "Copiado!" : "Copiar link"}
+                <Icone nome="copiar" />
               </button>
               <button
                 type="button"
                 className="btn btn-secundario btn-pequeno"
                 onClick={() => setLinkRecemCriado(null)}
+                aria-label="Fechar"
+                title="Fechar"
               >
-                Fechar
+                <Icone nome="fechar" />
               </button>
             </div>
           </div>
@@ -359,7 +365,6 @@ export function Usuarios() {
                   equipesAtivas={equipes}
                   onSubmit={handleAtualizarUsuario}
                   onCancelar={() => setEditandoUid(null)}
-                  textoBotao="Salvar alterações"
                 />
               </div>
             </div>
@@ -443,8 +448,10 @@ export function Usuarios() {
                               setEditandoConviteId(null);
                               setEditandoUid(u.uid);
                             }}
+                            aria-label="Editar"
+                            title="Editar"
                           >
-                            Editar
+                            <Icone nome="lapis" />
                           </button>
                           {ehAdm && (
                             <button
@@ -455,13 +462,14 @@ export function Usuarios() {
                                 handleRemoverUsuario(u);
                               }}
                               disabled={u.uid === sessao.uid}
+                              aria-label="Remover"
                               title={
                                 u.uid === sessao.uid
                                   ? "Não pode remover o próprio usuário"
-                                  : ""
+                                  : "Remover"
                               }
                             >
-                              Remover
+                              <Icone nome="lixeira" />
                             </button>
                           )}
                         </div>
@@ -487,7 +495,6 @@ export function Usuarios() {
                   equipesAtivas={equipes}
                   onSubmit={handleCriarConvite}
                   onCancelar={() => setCriandoConvite(false)}
-                  textoBotao="Gerar convite"
                 />
               </div>
             </div>
@@ -505,7 +512,6 @@ export function Usuarios() {
                   equipesAtivas={equipes}
                   onSubmit={handleAtualizarConvite}
                   onCancelar={() => setEditandoConviteId(null)}
-                  textoBotao="Salvar convite"
                 />
               </div>
             </div>
@@ -624,8 +630,10 @@ export function Usuarios() {
                                 ev.stopPropagation();
                                 copiar(c.id);
                               }}
+                              aria-label="Copiar link"
+                              title="Copiar link"
                             >
-                              {copiouToken === c.id ? "Copiado!" : "Copiar link"}
+                              <Icone nome="copiar" />
                             </button>
                           )}
                           {c.status === "pendente" && (
@@ -637,8 +645,10 @@ export function Usuarios() {
                                 setEditandoUid(null);
                                 setEditandoConviteId(c.id);
                               }}
+                              aria-label="Editar"
+                              title="Editar"
                             >
-                              Editar
+                              <Icone nome="lapis" />
                             </button>
                           )}
                           {c.status === "pendente" && (
@@ -649,8 +659,10 @@ export function Usuarios() {
                                 ev.stopPropagation();
                                 handleRevogarConvite(c);
                               }}
+                              aria-label="Revogar"
+                              title="Revogar"
                             >
-                              Revogar
+                              <Icone nome="proibido" />
                             </button>
                           )}
                           {c.status !== "pendente" && ehAdm && (
@@ -661,8 +673,10 @@ export function Usuarios() {
                                 ev.stopPropagation();
                                 handleRemoverConvite(c);
                               }}
+                              aria-label="Apagar"
+                              title="Apagar"
                             >
-                              Apagar
+                              <Icone nome="lixeira" />
                             </button>
                           )}
                         </div>

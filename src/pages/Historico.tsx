@@ -8,6 +8,7 @@ import {
   useTodosHistoricosParticipacao,
 } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
+import { Icone } from "../components/Icone";
 import {
   FUNCOES,
   Funcao,
@@ -186,8 +187,13 @@ export function Historico() {
           <p className="text-ardesia">
             Apenas Administração e Organização podem consultar o histórico.
           </p>
-          <Link to="/" className="btn btn-secundario mt-4">
-            Voltar
+          <Link
+            to="/"
+            className="btn btn-secundario mt-4"
+            aria-label="Voltar"
+            title="Voltar"
+          >
+            <Icone nome="seta-esquerda" />
           </Link>
         </div>
       </div>
@@ -334,8 +340,10 @@ export function Historico() {
           className="btn btn-secundario btn-pequeno"
           onClick={exportarCsv}
           disabled={resultados.length === 0}
+          aria-label="Exportar CSV"
+          title="Exportar CSV"
         >
-          Exportar CSV
+          <Icone nome="baixar" />
         </button>
       </div>
 

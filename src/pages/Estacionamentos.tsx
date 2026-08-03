@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useEstacionamentos } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
+import { Icone } from "../components/Icone";
 
 function BarraOcupacao({
   contratadas,
@@ -64,8 +65,13 @@ export function Estacionamentos() {
           </p>
         </div>
         {podeCriar && (
-          <Link to="/estacionamentos/novo" className="btn btn-primario">
-            Novo estacionamento
+          <Link
+            to="/estacionamentos/novo"
+            className="btn btn-primario"
+            aria-label="Novo estacionamento"
+            title="Novo estacionamento"
+          >
+            <Icone nome="mais" />
           </Link>
         )}
       </header>

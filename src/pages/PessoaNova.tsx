@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { PessoaForm } from "../components/PessoaForm";
+import { Icone } from "../components/Icone";
 import { criarPessoa, DadosPessoaForm, ErroValidacao } from "../lib/pessoas";
 import { proximoCracha } from "../lib/utilsDominio";
 import { usePessoas } from "../lib/hooks";
@@ -22,8 +23,13 @@ export function PessoaNova() {
           <p className="text-ardesia">
             Apenas Administração e Organização podem cadastrar pessoas.
           </p>
-          <Link to="/pessoas" className="btn btn-secundario mt-4">
-            Voltar
+          <Link
+            to="/pessoas"
+            className="btn btn-secundario mt-4"
+            aria-label="Voltar"
+            title="Voltar"
+          >
+            <Icone nome="seta-esquerda" />
           </Link>
         </div>
       </div>
@@ -60,7 +66,6 @@ export function PessoaNova() {
           <PessoaForm
             onSubmit={handleSubmit}
             onCancelar={() => navigate("/pessoas")}
-            textoBotao="Cadastrar pessoa"
           />
         </div>
       </div>

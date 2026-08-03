@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
+import { Icone } from "../components/Icone";
 import {
   useEquipes,
   useEdicaoAtiva,
@@ -82,8 +83,13 @@ const indiceEquipes = useMemo(() => {
           <p className="text-ardesia">
             Apenas Administração e Organização podem ver pendências.
           </p>
-          <Link to="/" className="btn btn-secundario mt-4">
-            Voltar
+          <Link
+            to="/"
+            className="btn btn-secundario mt-4"
+            aria-label="Voltar"
+            title="Voltar"
+          >
+            <Icone nome="seta-esquerda" />
           </Link>
         </div>
       </div>
@@ -137,8 +143,10 @@ const indiceEquipes = useMemo(() => {
             <>
               <div className="flex gap-1">
                 <button
-                  className={`btn btn-pequeno ${
-                    filtroSetor === "todos" ? "btn-primario" : "btn-secundario"
+                  className={`filtro-chip ${
+                    filtroSetor === "todos"
+                      ? "filtro-chip-ativo"
+                      : "filtro-chip-inativo"
                   }`}
                   onClick={() => setFiltroSetor("todos")}
                 >
@@ -147,10 +155,10 @@ const indiceEquipes = useMemo(() => {
                 {SETORES.map((s) => (
                   <button
                     key={s.valor}
-                    className={`btn btn-pequeno ${
+                    className={`filtro-chip ${
                       filtroSetor === s.valor
-                        ? "btn-primario"
-                        : "btn-secundario"
+                        ? "filtro-chip-ativo"
+                        : "filtro-chip-inativo"
                     }`}
                     onClick={() => setFiltroSetor(s.valor)}
                   >

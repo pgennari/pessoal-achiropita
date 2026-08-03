@@ -8,6 +8,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
+import { Icone } from "../components/Icone";
 import { Convite } from "../lib/tipos";
 import {
   aceitarConvite,
@@ -267,8 +268,10 @@ export function PaginaConvite() {
                 type="submit"
                 className="btn btn-primario w-full"
                 disabled={etapa === "salvando"}
+                aria-label="Criar conta"
+                title="Criar conta"
               >
-                {etapa === "salvando" ? "Criando conta..." : "Criar conta"}
+                <Icone nome="check" />
               </button>
 
               <div className="relative my-1 flex items-center">
@@ -284,8 +287,10 @@ export function PaginaConvite() {
                 className="btn btn-secundario w-full"
                 onClick={handleGoogle}
                 disabled={etapa === "salvando"}
+                aria-label="Cadastrar com Google"
+                title="Cadastrar com Google"
               >
-                Cadastrar com Google
+                <Icone nome="usuario" />
               </button>
               <p className="input-ajuda text-center">
                 A conta Google precisa ter o e-mail{" "}
@@ -302,8 +307,13 @@ export function PaginaConvite() {
               <p className="text-ardesia">
                 Seu acesso foi liberado. Redirecionando para o sistema...
               </p>
-              <Link to="/" className="btn btn-primario">
-                Abrir agora
+              <Link
+                to="/"
+                className="btn btn-primario"
+                aria-label="Abrir agora"
+                title="Abrir agora"
+              >
+                <Icone nome="seta-direita" />
               </Link>
             </div>
           </div>
@@ -339,8 +349,13 @@ function Mensagem({ titulo, texto }: { titulo: string; texto: string }) {
       <div className="card-corpo text-center space-y-2">
         <h3>{titulo}</h3>
         {texto && <p className="text-ardesia">{texto}</p>}
-        <Link to="/login" className="btn btn-secundario mt-3">
-          Voltar para login
+        <Link
+          to="/login"
+          className="btn btn-secundario mt-3"
+          aria-label="Voltar para login"
+          title="Voltar para login"
+        >
+          <Icone nome="seta-esquerda" />
         </Link>
       </div>
     </div>

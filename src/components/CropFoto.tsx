@@ -1,4 +1,5 @@
 import { PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react";
+import { Icone } from "./Icone";
 
 const PREVIEW = 300;
 const LADO_FINAL = 600;
@@ -201,24 +202,30 @@ export function CropFoto({ arquivo, onConfirmar, onCancelar }: Props) {
             className="btn btn-texto btn-pequeno"
             onClick={centralizar}
             disabled={carregando}
+            aria-label="Centralizar"
+            title="Centralizar"
           >
-            Centralizar
+            <Icone nome="alvo" />
           </button>
           <div className="flex gap-2">
             <button
               type="button"
               className="btn btn-texto btn-pequeno"
               onClick={onCancelar}
+              aria-label="Cancelar"
+              title="Cancelar"
             >
-              Cancelar
+              <Icone nome="fechar" />
             </button>
             <button
               type="button"
               className="btn btn-primario btn-pequeno"
               onClick={confirmar}
               disabled={carregando}
+              aria-label="Usar foto"
+              title="Usar foto"
             >
-              Usar foto
+              <Icone nome="check" />
             </button>
           </div>
         </div>

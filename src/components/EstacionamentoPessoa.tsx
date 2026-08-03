@@ -4,6 +4,7 @@ import { useEstacionamentos } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import { associarPessoaEstacionamento, desassociarPessoaEstacionamento } from "../lib/estacionamentos";
 import { Pessoa } from "../lib/tipos";
+import { Icone } from "./Icone";
 
 interface Props {
   pessoa: Pessoa;
@@ -54,8 +55,10 @@ export function EstacionamentoPessoa({ pessoa }: Props) {
             type="button"
             onClick={() => setEditando(true)}
             className="btn btn-secundario btn-pequeno"
+            aria-label="Associar estacionamento"
+            title="Associar estacionamento"
           >
-            {pessoa.estacionamentoId ? "Alterar" : "+ Associar"}
+            <Icone nome="mais" />
           </button>
         )}
       </div>
@@ -85,8 +88,10 @@ export function EstacionamentoPessoa({ pessoa }: Props) {
               className="btn btn-primario"
               onClick={handleSalvar}
               disabled={acaoOcupado}
+              aria-label="Salvar"
+              title="Salvar"
             >
-              {acaoOcupado ? "Salvando..." : "Salvar"}
+              <Icone nome="check" />
             </button>
             <button
               type="button"
@@ -96,8 +101,10 @@ export function EstacionamentoPessoa({ pessoa }: Props) {
                 setEstacionamentoSelecionado(pessoa.estacionamentoId ?? "");
               }}
               disabled={acaoOcupado}
+              aria-label="Cancelar"
+              title="Cancelar"
             >
-              Cancelar
+              <Icone nome="fechar" />
             </button>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { PessoaForm } from "../components/PessoaForm";
 import { UploadFoto } from "../components/UploadFoto";
 import { HistoricoPessoa } from "../components/HistoricoPessoa";
 import { VinculoVeiculo } from "../components/VinculoVeiculo";
+import { Icone } from "../components/Icone";
 import { usePessoa, usePessoas, useVeiculos, useVeiculosPessoa } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import {
@@ -54,8 +55,13 @@ export function PessoaDetalhe() {
         <div className="card-corpo">
           <h3 className="mb-2">Pessoa não encontrada</h3>
           <p className="text-ardesia">{erro ?? "Verifique o link."}</p>
-          <Link to="/pessoas" className="btn btn-secundario mt-4">
-            Voltar
+          <Link
+            to="/pessoas"
+            className="btn btn-secundario mt-4"
+            aria-label="Voltar"
+            title="Voltar"
+          >
+            <Icone nome="seta-esquerda" />
           </Link>
         </div>
       </div>
@@ -114,7 +120,6 @@ export function PessoaDetalhe() {
               inicial={pessoa}
               onSubmit={handleSalvar}
               onCancelar={() => setEditando(false)}
-              textoBotao="Salvar alterações"
               bloquearSensivel={bloquearSensivel}
             />
           </div>
@@ -150,8 +155,10 @@ export function PessoaDetalhe() {
               type="button"
               className="btn btn-secundario"
               onClick={() => setEditando(true)}
+              aria-label="Editar"
+              title="Editar"
             >
-              Editar
+              <Icone nome="lapis" />
             </button>
             {podeInativar &&
               (pessoa.ativo ? (
@@ -160,8 +167,10 @@ export function PessoaDetalhe() {
                   className="btn btn-perigo"
                   onClick={() => handleAtivacao(false)}
                   disabled={acaoOcupado}
+                  aria-label="Inativar"
+                  title="Inativar"
                 >
-                  Inativar
+                  <Icone nome="usuario-x" />
                 </button>
               ) : (
                 <button
@@ -169,8 +178,10 @@ export function PessoaDetalhe() {
                   className="btn btn-primario"
                   onClick={() => handleAtivacao(true)}
                   disabled={acaoOcupado}
+                  aria-label="Reativar"
+                  title="Reativar"
                 >
-                  Reativar
+                  <Icone nome="check" />
                 </button>
               ))}
             {podeExcluir && !confirmandoExclusao && (
@@ -179,8 +190,10 @@ export function PessoaDetalhe() {
                 className="btn btn-perigo"
                 onClick={() => setConfirmandoExclusao(true)}
                 disabled={acaoOcupado}
+                aria-label="Excluir"
+                title="Excluir"
               >
-                Excluir
+                <Icone nome="lixeira" />
               </button>
             )}
           </div>
@@ -209,16 +222,20 @@ export function PessoaDetalhe() {
                 className="btn btn-perigo"
                 onClick={handleExcluir}
                 disabled={acaoOcupado}
+                aria-label="Confirmar exclusao"
+                title="Confirmar exclusao"
               >
-                {acaoOcupado ? "Excluindo..." : "Confirmar exclusao"}
+                <Icone nome="lixeira" />
               </button>
               <button
                 type="button"
                 className="btn btn-secundario"
                 onClick={() => setConfirmandoExclusao(false)}
                 disabled={acaoOcupado}
+                aria-label="Cancelar"
+                title="Cancelar"
               >
-                Cancelar
+                <Icone nome="fechar" />
               </button>
             </div>
           </div>
@@ -322,8 +339,10 @@ export function PessoaDetalhe() {
           type="button"
           className="btn btn-secundario"
           onClick={() => navigate("/pessoas")}
+          aria-label="Voltar"
+          title="Voltar"
         >
-          Voltar
+          <Icone nome="seta-esquerda" />
         </button>
       </div>
     </div>

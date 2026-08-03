@@ -6,6 +6,7 @@ import {
   DadosEstacionamentoForm,
   ErroValidacao,
 } from "../lib/estacionamentos";
+import { Icone } from "../components/Icone";
 
 export function EstacionamentoNovo() {
   const navigate = useNavigate();
@@ -34,8 +35,13 @@ export function EstacionamentoNovo() {
           <p className="text-ardesia">
             Apenas Administracao e Organizacao podem cadastrar estacionamentos.
           </p>
-          <Link to="/estacionamentos" className="btn btn-secundario mt-4">
-            Voltar
+          <Link
+            to="/estacionamentos"
+            className="btn btn-secundario mt-4"
+            aria-label="Voltar"
+            title="Voltar"
+          >
+            <Icone nome="seta-esquerda" />
           </Link>
         </div>
       </div>
@@ -206,16 +212,20 @@ export function EstacionamentoNovo() {
                 type="submit"
                 className="btn btn-primario"
                 disabled={enviando}
+                aria-label="Cadastrar estacionamento"
+                title="Cadastrar estacionamento"
               >
-                {enviando ? "Salvando..." : "Cadastrar estacionamento"}
+                <Icone nome="check" />
               </button>
               <button
                 type="button"
                 className="btn btn-secundario"
                 onClick={() => navigate("/estacionamentos")}
                 disabled={enviando}
+                aria-label="Cancelar"
+                title="Cancelar"
               >
-                Cancelar
+                <Icone nome="fechar" />
               </button>
             </div>
           </form>

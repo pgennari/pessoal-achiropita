@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Sessao, sair } from "../lib/sessao";
+import { Icone } from "./Icone";
 
 interface Props {
   sessao: Sessao;
@@ -83,8 +84,9 @@ export function Topbar({ sessao, onAbrirBusca, onAbrirSidebar }: Props) {
           onClick={onAbrirBusca}
           className="md:hidden btn btn-secundario btn-pequeno"
           aria-label="Abrir busca global"
+          title="Buscar"
         >
-          Buscar
+          <Icone nome="busca" />
         </button>
         <div className="text-right hidden sm:block">
           <div className="text-sm font-semibold text-carbone leading-tight">
@@ -106,8 +108,10 @@ export function Topbar({ sessao, onAbrirBusca, onAbrirSidebar }: Props) {
         <button
           onClick={handleSair}
           className="btn btn-secundario btn-pequeno"
+          aria-label="Sair"
+          title="Sair"
         >
-          Sair
+          <Icone nome="sair" />
         </button>
       </div>
     </header>

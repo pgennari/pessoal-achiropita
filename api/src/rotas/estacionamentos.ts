@@ -519,4 +519,103 @@ app.openapi(deleteVeiculoEstacionamentoRoute, async (c) => {
   return c.json({ ok: true }, 200);
 });
 
+// POST /api/estacionamentos/:id/veiculos/:veiculoId/checkins-manuais
+const postCheckinsManuaisRoute = createRoute({
+  method: "post",
+  path: "/{id}/veiculos/{veiculoId}/checkins-manuais",
+  tags: ["Estacionamentos", "Veiculos"],
+  summary: "Registra check-ins manuais do veiculo em dias selecionados",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid(), veiculoId: z.string() }),
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({ datas: z.array(z.string()).min(1) }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            ok: z.boolean(),
+            registrados: z.array(z.string()),
+            existentes: z.array(z.string()),
+          }),
+        },
+      },
+      description: "Sucesso",
+    },
+    400: { content: { "application/json": { schema: msgErro } }, description: "Dados invalidos" },
+    403: { content: { "application/json": { schema: msgErro } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: msgErro } }, description: "Nao encontrado" },
+  },
+});
+
+app.openapi(postCheckinsManuaisRoute, async (c) => {
+  const { id, veiculoId } = c.req.valid("param");
+  const { datas } = c.req.valid("json");
+  const sessao = c.get("sessao");
+  if (!podeAdministrar(sessao.perfil)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+
+  const datasValidas = Array.from(new Set(datas)).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
+  if (datasValidas.length === 0) return c.json({ erro: "Nenhuma data valida informada." }, 400);
+
+  const [est] = await sql`SELECT id, nome FROM estacionamentos WHERE id = ${id}`;
+  if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
+
+  const [veiculo] = await sql`
+    SELECT id, fabricante, modelo, placa, cor, estacionamento_id
+    FROM veiculos WHERE id = ${veiculoId}
+  `;
+  if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
+  if (veiculo.estacionamento_id !== id) {
+    return c.json({ erro: "Veiculo nao esta associado a este estacionamento." }, 404);
+  }
+
+  const [pessoa] = await sql`
+    SELECT p.nome
+    FROM pessoa_veiculo pv
+    JOIN pessoas p ON p.id = pv.pessoa_id
+    WHERE pv.veiculo_id = ${veiculoId}
+    LIMIT 1
+  `;
+  const pessoaNome = pessoa?.nome ?? "Desconhecido";
+
+  const existentes = await sql`
+    SELECT data FROM checkins
+    WHERE estacionamento_id = ${id} AND carro_id = ${veiculoId}
+      AND data = ANY(${datasValidas}::date[])
+  `;
+  const setExistentes = new Set(existentes.map((r) => String(r.data)));
+
+  const registrados: string[] = [];
+  for (const data of datasValidas) {
+    if (setExistentes.has(data)) continue;
+    await sql`
+      INSERT INTO checkins (pessoa_id, pessoa_nome, carro_id, placa, modelo, cor, estacionamento_id, estacionamento_nome, data, timestamp)
+      VALUES (NULL, ${pessoaNome}, ${veiculoId}, ${veiculo.placa}, ${veiculo.modelo}, ${veiculo.cor}, ${id}, ${est.nome}, ${data}, (${data}::date + interval '23 hours 59 minutes') AT TIME ZONE 'America/Sao_Paulo')
+    `;
+    registrados.push(data);
+  }
+
+  if (registrados.length > 0) {
+    await registrarEvento(
+      sessao,
+      "estacionamento.checkin.manual",
+      `estacionamentos/${id}`,
+      `veiculo ${veiculo.placa} (#${veiculoId}) · dias: ${registrados.join(", ")}`
+    );
+  }
+
+  return c.json(
+    { ok: true, registrados, existentes: Array.from(setExistentes) },
+    200
+  );
+});
+
 export default app;

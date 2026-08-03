@@ -58,13 +58,13 @@
 }
 
 @layer components {
-  /* Botões */
+  /* Botões — sempre quadrados, só com ícone.
+     Rótulo vai em aria-label/title. Alvo mínimo 48px; 56px em fluxo crítico;
+     40px só em linhas densas de tabela (desktop). */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-sm font-sans font-semibold transition;
-    padding: 14px 24px;
-    min-height: 48px;
-    font-size: 1rem;
-    letter-spacing: 0.01em;
+    @apply inline-flex items-center justify-center rounded-sm font-sans transition shrink-0;
+    width: 48px;
+    height: 48px;
   }
   .btn:disabled,
   .btn.disabled {
@@ -80,18 +80,42 @@
     @apply bg-vermelho text-white hover:bg-vermelho-escuro;
   }
   .btn-texto {
-    @apply bg-transparent text-verde hover:underline;
-    padding: 14px 0;
+    @apply bg-transparent text-verde hover:bg-verde/10;
   }
   .btn-grande {
-    font-size: 1.1rem;
-    padding: 18px 32px;
-    min-height: 58px;
+    width: 56px;
+    height: 56px;
   }
   .btn-pequeno {
-    font-size: 0.92rem;
-    padding: 10px 18px;
-    min-height: 40px;
+    width: 40px;
+    height: 40px;
+  }
+  .btn svg {
+    width: 24px;
+    height: 24px;
+  }
+  .btn-grande svg {
+    width: 28px;
+    height: 28px;
+  }
+  .btn-pequeno svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Chips de filtro — controles segmentados COM rótulo.
+     Não são ações; por isso fogem do padrão só-ícone dos botões. */
+  .filtro-chip {
+    @apply inline-flex items-center gap-1.5 rounded-md font-sans font-semibold transition;
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    min-height: 36px;
+  }
+  .filtro-chip-ativo {
+    @apply bg-verde text-white;
+  }
+  .filtro-chip-inativo {
+    @apply bg-bianco text-carbone border border-pietra hover:border-verde/50 hover:text-verde-escuro;
   }
 
   /* Badges */

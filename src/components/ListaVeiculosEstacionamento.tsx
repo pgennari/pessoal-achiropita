@@ -12,8 +12,10 @@ import { useSessao } from "../lib/sessao";
 import {
   associarVeiculoEstacionamento,
   desassociarVeiculoEstacionamento,
+  registrarCheckinsManuais,
 } from "../lib/veiculos";
 import type { VeiculoComPessoas } from "../lib/tipos";
+import { Icone } from "./Icone";
 
 interface Props {
   estacionamentoId: string;
@@ -70,6 +72,8 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
   const [acaoOcupado, setAcaoOcupado] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [veiculoTransferencia, setVeiculoTransferencia] = useState<VeiculoComPessoas | null>(null);
+  const [veiculoCheckinManual, setVeiculoCheckinManual] = useState<VeiculoComPessoas | null>(null);
+  const [diasCheckinSelecionados, setDiasCheckinSelecionados] = useState<Set<string>>(new Set());
 
   const buscaDebounced = useDebounce(busca, 300);
   const buscaAssociacaoDebounced = useDebounce(buscaAssociacao, 300);
@@ -201,6 +205,37 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
     }
   }
 
+  function abrirCheckinManual(veiculo: VeiculoComPessoas) {
+    setVeiculoCheckinManual(veiculo);
+    setDiasCheckinSelecionados(new Set());
+  }
+
+  function alternarDiaCheckin(data: string) {
+    setDiasCheckinSelecionados((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(data)) novo.delete(data);
+      else novo.add(data);
+      return novo;
+    });
+  }
+
+  async function confirmarCheckinManual() {
+    if (!veiculoCheckinManual) return;
+    const datas = Array.from(diasCheckinSelecionados).sort();
+    if (datas.length === 0) return;
+    setAcaoErro(null);
+    setAcaoOcupado(true);
+    try {
+      await registrarCheckinsManuais(estacionamentoId, veiculoCheckinManual.id, datas);
+      setVeiculoCheckinManual(null);
+      setDiasCheckinSelecionados(new Set());
+    } catch (e) {
+      setAcaoErro(e instanceof Error ? e.message : "Falha ao registrar check-in manual.");
+    } finally {
+      setAcaoOcupado(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -214,8 +249,10 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
               type="button"
               className="btn btn-primario btn-pequeno"
               onClick={() => setModalAssociarAberto(true)}
+              aria-label="Associar"
+              title="Associar"
             >
-              Associar
+              <Icone nome="mais" />
             </button>
           )}
         </div>
@@ -318,14 +355,28 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
                 </div>
               </div>
               {podeEditar && (
-                <button
-                  type="button"
-                  className="btn btn-perigo btn-pequeno self-end sm:self-auto"
-                  onClick={() => handleDesassociar(v.id)}
-                  disabled={acaoOcupado}
-                >
-                  Desassociar
-                </button>
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <button
+                    type="button"
+                    className="btn btn-secundario btn-pequeno"
+                    onClick={() => abrirCheckinManual(v)}
+                    disabled={acaoOcupado}
+                    aria-label="Check-in manual"
+                    title="Check-in manual"
+                  >
+                    <Icone nome="scan" />
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-perigo btn-pequeno"
+                    onClick={() => handleDesassociar(v.id)}
+                    disabled={acaoOcupado}
+                    aria-label="Desassociar"
+                    title="Desassociar"
+                  >
+                    <Icone nome="lixeira" />
+                  </button>
+                </div>
               )}
             </li>
           ))}
@@ -399,8 +450,10 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
                         className="btn btn-secundario btn-pequeno shrink-0"
                         onClick={() => handleAssociar(v.id)}
                         disabled={acaoOcupado}
+                        aria-label="Associar"
+                        title="Associar"
                       >
-                        Associar
+                        <Icone nome="mais" />
                       </button>
                     </li>
                   ))}
@@ -449,16 +502,110 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
                 className="btn btn-secundario"
                 onClick={() => setVeiculoTransferencia(null)}
                 disabled={acaoOcupado}
+                aria-label="Cancelar"
+                title="Cancelar"
               >
-                Cancelar
+                <Icone nome="fechar" />
               </button>
               <button
                 type="button"
                 className="btn btn-primario"
                 onClick={() => confirmarAssociacao(veiculoTransferencia.id, veiculoTransferencia.estacionamentoId)}
                 disabled={acaoOcupado}
+                aria-label="Confirmar transferência"
+                title="Confirmar transferência"
               >
-                {acaoOcupado ? "Transferindo..." : "Confirmar transferência"}
+                <Icone nome="check" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {veiculoCheckinManual && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-carbone/40"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Check-in manual"
+          onClick={() => setVeiculoCheckinManual(null)}
+        >
+          <div
+            className="card w-full max-w-md shadow-media"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 py-3 border-b border-pietra-clara flex items-center justify-between gap-3">
+              <h4 className="m-0">Check-in manual</h4>
+              <button
+                type="button"
+                className="text-ardesia hover:text-carbone text-2xl leading-none"
+                onClick={() => setVeiculoCheckinManual(null)}
+                aria-label="Fechar"
+              >
+                ×
+              </button>
+            </div>
+            <div className="px-4 py-4 space-y-4">
+              <div className="bg-pietra-clara/40 rounded-lg p-3">
+                <div className="font-semibold text-carbone">
+                  {veiculoCheckinManual.fabricante} {veiculoCheckinManual.modelo}
+                </div>
+                <div className="text-xs text-ardesia font-mono">
+                  {veiculoCheckinManual.placa.toUpperCase()} · {veiculoCheckinManual.cor}
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-ardesia mb-2">
+                  Selecione um ou mais dias para registrar o check-in às 23:59.
+                </p>
+                <div className="grid grid-cols-5 gap-2">
+                  {DIAS.map((d) => {
+                    const jaTemCheckin = checkinsPorVeiculo.get(veiculoCheckinManual.id)?.has(d.data) ?? false;
+                    const selecionado = diasCheckinSelecionados.has(d.data);
+                    const classe = jaTemCheckin
+                      ? "bg-pietra-clara text-ardesia/70 cursor-not-allowed"
+                      : selecionado
+                        ? "bg-verde text-white"
+                        : "bg-white text-carbone hover:bg-pietra-clara/60 border border-pietra-clara";
+                    return (
+                      <button
+                        key={d.numero}
+                        type="button"
+                        disabled={jaTemCheckin}
+                        title={`Dia ${d.numero} · ${formatarDataISO(d.data)}${jaTemCheckin ? " · já possui check-in" : ""}`}
+                        onClick={() => alternarDiaCheckin(d.data)}
+                        className={`w-full aspect-square rounded-sm flex flex-col items-center justify-center font-mono text-xs font-semibold select-none transition ${classe}`}
+                      >
+                        <span>{d.numero}</span>
+                        <span className="text-[0.6rem] font-normal leading-none">
+                          {formatarDataISO(d.data)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className="px-4 py-3 border-t border-pietra-clara flex items-center justify-end gap-3">
+              <button
+                type="button"
+                className="btn btn-secundario"
+                onClick={() => setVeiculoCheckinManual(null)}
+                disabled={acaoOcupado}
+                aria-label="Cancelar"
+                title="Cancelar"
+              >
+                <Icone nome="fechar" />
+              </button>
+              <button
+                type="button"
+                className="btn btn-primario"
+                onClick={confirmarCheckinManual}
+                disabled={acaoOcupado || diasCheckinSelecionados.size === 0}
+                aria-label="Confirmar check-in manual"
+                title="Confirmar check-in manual"
+              >
+                <Icone nome="check" />
               </button>
             </div>
           </div>

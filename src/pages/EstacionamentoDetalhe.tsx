@@ -11,6 +11,7 @@ import {
 } from "../lib/estacionamentos";
 import { ListaCheckins } from "../components/ListaCheckins";
 import { ListaVeiculosEstacionamento } from "../components/ListaVeiculosEstacionamento";
+import { Icone } from "../components/Icone";
 
 export function EstacionamentoDetalhe() {
   const { id } = useParams<{ id: string }>();
@@ -22,7 +23,7 @@ export function EstacionamentoDetalhe() {
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [acaoOcupado, setAcaoOcupado] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
-  const [copiado, setCopiado] = useState(false);
+  const [, setCopiado] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<"checkins" | "veiculos">("veiculos");
   const [searchParams] = useSearchParams();
 
@@ -59,8 +60,13 @@ export function EstacionamentoDetalhe() {
         <div className="card-corpo">
           <h3 className="mb-2">Estacionamento nao encontrado</h3>
           <p className="text-ardesia">{erro ?? "Verifique o link."}</p>
-          <Link to="/estacionamentos" className="btn btn-secundario mt-4">
-            Voltar
+          <Link
+            to="/estacionamentos"
+            className="btn btn-secundario mt-4"
+            aria-label="Voltar"
+            title="Voltar"
+          >
+            <Icone nome="seta-esquerda" />
           </Link>
         </div>
       </div>
@@ -269,16 +275,20 @@ export function EstacionamentoDetalhe() {
                   type="submit"
                   className="btn btn-primario"
                   disabled={acaoOcupado}
+                  aria-label="Salvar alteracoes"
+                  title="Salvar alteracoes"
                 >
-                  {acaoOcupado ? "Salvando..." : "Salvar alteracoes"}
+                  <Icone nome="check" />
                 </button>
                 <button
                   type="button"
                   className="btn btn-secundario"
                   onClick={() => navigate("/estacionamentos")}
                   disabled={acaoOcupado}
+                  aria-label="Cancelar"
+                  title="Cancelar"
                 >
-                  Cancelar
+                  <Icone nome="fechar" />
                 </button>
               </div>
             </form>
@@ -299,8 +309,10 @@ export function EstacionamentoDetalhe() {
                 className="btn btn-perigo"
                 onClick={() => setConfirmandoExclusao(true)}
                 disabled={acaoOcupado}
+                aria-label="Excluir estacionamento"
+                title="Excluir estacionamento"
               >
-                Excluir estacionamento
+                <Icone nome="lixeira" />
               </button>
             </div>
           </div>
@@ -321,16 +333,20 @@ export function EstacionamentoDetalhe() {
                   className="btn btn-perigo"
                   onClick={handleExcluir}
                   disabled={acaoOcupado}
+                  aria-label="Confirmar exclusao"
+                  title="Confirmar exclusao"
                 >
-                  {acaoOcupado ? "Excluindo..." : "Confirmar exclusao"}
+                  <Icone nome="lixeira" />
                 </button>
                 <button
                   type="button"
                   className="btn btn-secundario"
                   onClick={() => setConfirmandoExclusao(false)}
                   disabled={acaoOcupado}
+                  aria-label="Cancelar"
+                  title="Cancelar"
                 >
-                  Cancelar
+                  <Icone nome="fechar" />
                 </button>
               </div>
             </div>
@@ -355,8 +371,10 @@ export function EstacionamentoDetalhe() {
               type="button"
               className="btn btn-secundario"
               onClick={iniciarEdicao}
+              aria-label="Editar"
+              title="Editar"
             >
-              Editar
+              <Icone nome="lapis" />
             </button>
           </div>
         )}
@@ -402,23 +420,29 @@ export function EstacionamentoDetalhe() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-secundario btn-pequeno shrink-0"
+                aria-label="Abrir"
+                title="Abrir"
               >
-                Abrir
+                <Icone nome="seta-direita" />
               </a>
               <button
                 type="button"
                 className="btn btn-secundario btn-pequeno shrink-0"
                 onClick={handleCopiarLink}
+                aria-label="Copiar"
+                title="Copiar"
               >
-                {copiado ? "Copiado!" : "Copiar"}
+                <Icone nome="copiar" />
               </button>
               <a
                 href={`/qr-checkin/${estacionamento.tokenCheckin}?imprimir=1`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-secundario btn-pequeno shrink-0"
+                aria-label="QR Code"
+                title="QR Code"
               >
-                QR Code
+                <Icone nome="qr" />
               </a>
             </div>
           </div>
@@ -471,8 +495,10 @@ export function EstacionamentoDetalhe() {
           type="button"
           className="btn btn-secundario"
           onClick={() => navigate("/estacionamentos")}
+          aria-label="Voltar"
+          title="Voltar"
         >
-          Voltar
+          <Icone nome="seta-esquerda" />
         </button>
       </div>
     </div>

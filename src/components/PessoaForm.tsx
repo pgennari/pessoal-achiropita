@@ -2,13 +2,13 @@ import { FormEvent, useMemo, useState } from "react";
 import { Carro, ESTADOS_CIVIS, Filho, Pessoa } from "../lib/tipos";
 import { DadosPessoaForm, novoCarro, novoFilho } from "../lib/pessoas";
 import { mascararCPF, mascararTelefone } from "../lib/utilsDominio";
+import { Icone } from "./Icone";
 
 interface Props {
   inicial?: Pessoa | null;
   onSubmit: (dados: DadosPessoaForm) => Promise<void>;
   onCancelar: () => void;
   errosServidor?: Record<string, string>;
-  textoBotao?: string;
   bloquearSensivel?: boolean;
 }
 
@@ -36,7 +36,6 @@ export function PessoaForm({
   onSubmit,
   onCancelar,
   errosServidor,
-  textoBotao = "Salvar",
   bloquearSensivel = false,
 }: Props) {
   const [dados, setDados] = useState<DadosPessoaForm>(() =>
@@ -286,8 +285,10 @@ export function PessoaForm({
             type="button"
             className="btn btn-secundario btn-pequeno"
             onClick={adicionarFilho}
+            aria-label="Adicionar filho"
+            title="Adicionar filho"
           >
-            Adicionar filho
+            <Icone nome="mais" />
           </button>
         </div>
         {erros.filhos && (
@@ -341,8 +342,10 @@ export function PessoaForm({
                     type="button"
                     className="btn btn-texto btn-pequeno text-vermelho-escuro"
                     onClick={() => removerFilho(f.id)}
+                    aria-label="Remover filho"
+                    title="Remover filho"
                   >
-                    Remover
+                    <Icone nome="lixeira" />
                   </button>
                 </div>
               </div>
@@ -358,8 +361,10 @@ export function PessoaForm({
             type="button"
             className="btn btn-secundario btn-pequeno"
             onClick={adicionarCarro}
+            aria-label="Adicionar veículo"
+            title="Adicionar veículo"
           >
-            Adicionar veículo
+            <Icone nome="carro" />
           </button>
         </div>
         {erros.carros && (
@@ -380,8 +385,10 @@ export function PessoaForm({
                       type="button"
                       className="btn btn-texto btn-pequeno text-vermelho-escuro"
                       onClick={() => removerCarro(c.id)}
+                      aria-label="Remover veículo"
+                      title="Remover veículo"
                     >
-                      Remover
+                      <Icone nome="lixeira" />
                     </button>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -500,16 +507,20 @@ export function PessoaForm({
           type="submit"
           className="btn btn-primario"
           disabled={enviando}
+          aria-label="Salvar"
+          title="Salvar"
         >
-          {enviando ? "Salvando..." : textoBotao}
+          <Icone nome="check" />
         </button>
         <button
           type="button"
           className="btn btn-secundario"
           onClick={onCancelar}
           disabled={enviando}
+          aria-label="Cancelar"
+          title="Cancelar"
         >
-          Cancelar
+          <Icone nome="fechar" />
         </button>
       </div>
     </form>

@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import type { Veiculo } from "../lib/tipos";
+import { Icone } from "./Icone";
 
 interface VinculoVeiculoProps {
   titulo: string;
@@ -61,8 +62,10 @@ export function VinculoVeiculo({
         <button
           onClick={() => setModalAberto(true)}
           className="btn btn-secundario btn-pequeno"
+          aria-label="Vincular veiculo"
+          title="Vincular veiculo"
         >
-          + Vincular
+          <Icone nome="mais" />
         </button>
       </div>
 
@@ -82,8 +85,10 @@ export function VinculoVeiculo({
                 onClick={() => handleDesvincular(v.id)}
                 disabled={processando === v.id}
                 className="btn btn-perigo btn-pequeno"
+                aria-label="Remover veiculo"
+                title="Remover veiculo"
               >
-                {processando === v.id ? "Removendo..." : "Remover"}
+                <Icone nome="lixeira" />
               </button>
             </li>
           ))}
@@ -125,8 +130,10 @@ export function VinculoVeiculo({
                           onClick={() => handleVincular(v.id)}
                           disabled={processando === v.id}
                           className="btn btn-primario btn-pequeno"
+                          aria-label="Vincular"
+                          title="Vincular"
                         >
-                          {processando === v.id ? "Vinculando..." : "Vincular"}
+                          <Icone nome="mais" />
                         </button>
                       </li>
                     ))}
@@ -141,8 +148,10 @@ export function VinculoVeiculo({
                     setModalAberto(false);
                   }}
                   className="btn btn-secundario"
+                  aria-label="Fechar"
+                  title="Fechar"
                 >
-                  Fechar
+                  <Icone nome="fechar" />
                 </button>
               </div>
             </div>

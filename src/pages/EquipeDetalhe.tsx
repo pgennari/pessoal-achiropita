@@ -22,6 +22,7 @@ import {
 } from "../lib/participacoes";
 import { EquipeForm } from "../components/EquipeForm";
 import { AlocarPessoaDialog } from "../components/AlocarPessoaDialog";
+import { Icone } from "../components/Icone";
 import {
   FUNCOES,
   Funcao,
@@ -105,8 +106,13 @@ export function EquipeDetalhe() {
         <div className="card-corpo">
           <h3 className="mb-2">Equipe não encontrada</h3>
           <p className="text-ardesia">{erro ?? "Verifique o link."}</p>
-          <Link to="/edicoes" className="btn btn-secundario mt-4">
-            Voltar
+          <Link
+            to="/edicoes"
+            className="btn btn-secundario mt-4"
+            aria-label="Voltar"
+            title="Voltar"
+          >
+            <Icone nome="seta-esquerda" />
           </Link>
         </div>
       </div>
@@ -197,7 +203,6 @@ export function EquipeDetalhe() {
               inicial={equipe}
               onSubmit={handleSalvarEquipe}
               onCancelar={() => setEditando(false)}
-              textoBotao="Salvar alterações"
             />
           </div>
         </div>
@@ -226,15 +231,19 @@ export function EquipeDetalhe() {
               type="button"
               className="btn btn-secundario"
               onClick={() => setEditando(true)}
+              aria-label="Editar"
+              title="Editar"
             >
-              Editar
+              <Icone nome="lapis" />
             </button>
             <button
               type="button"
               className="btn btn-primario"
               onClick={() => abrirAlocacao("Equipista")}
+              aria-label="Alocar pessoa"
+              title="Alocar pessoa"
             >
-              Alocar pessoa
+              <Icone nome="mais" />
             </button>
           </div>
         )}
@@ -289,8 +298,10 @@ export function EquipeDetalhe() {
                 type="button"
                 className="btn btn-secundario btn-pequeno"
                 onClick={() => abrirAlocacao(f)}
+                aria-label={`Alocar ${f}`}
+                title={`Alocar ${f}`}
               >
-                + {f}
+                <Icone nome="mais" />
               </button>
             ))}
         </div>
@@ -365,15 +376,19 @@ export function EquipeDetalhe() {
                           setEquipeDestinoId("");
                           setFuncaoDestino(l.participacao.funcao);
                         }}
+                        aria-label="Mover"
+                        title="Mover"
                       >
-                        Mover
+                        <Icone nome="trocar" />
                       </button>
                       <button
                         type="button"
                         className="btn btn-texto btn-pequeno text-vermelho-escuro"
                         onClick={(ev) => { ev.stopPropagation(); handleDesalocar(l); }}
+                        aria-label="Desalocar"
+                        title="Desalocar"
                       >
-                        Desalocar
+                        <Icone nome="lixeira" />
                       </button>
                     </div>
                   )}
@@ -389,8 +404,10 @@ export function EquipeDetalhe() {
           type="button"
           className="btn btn-secundario"
           onClick={() => navigate(`/edicoes/${edicao.id}`)}
+          aria-label="Voltar"
+          title="Voltar"
         >
-          Voltar
+          <Icone nome="seta-esquerda" />
         </button>
       </div>
 
@@ -458,15 +475,19 @@ export function EquipeDetalhe() {
                   className="btn btn-primario"
                   disabled={!equipeDestinoId}
                   onClick={handleMover}
+                  aria-label="Confirmar mudança"
+                  title="Confirmar mudança"
                 >
-                  Confirmar mudança
+                  <Icone nome="check" />
                 </button>
                 <button
                   type="button"
                   className="btn btn-secundario"
                   onClick={() => setMovendoLinha(null)}
+                  aria-label="Cancelar"
+                  title="Cancelar"
                 >
-                  Cancelar
+                  <Icone nome="fechar" />
                 </button>
               </div>
             </div>

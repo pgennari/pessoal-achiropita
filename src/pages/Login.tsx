@@ -7,6 +7,7 @@ import {
   sair,
   useSessao,
 } from "../lib/sessao";
+import { Icone } from "../components/Icone";
 import { getRedirectResult } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import {
@@ -236,8 +237,10 @@ export function Login() {
                   type="button"
                   className="btn btn-secundario w-full"
                   onClick={() => sair()}
+                  aria-label="Sair"
+                  title="Sair"
                 >
-                  Sair
+                  <Icone nome="sair" />
                 </button>
               </div>
             </div>
@@ -343,8 +346,10 @@ export function Login() {
                 type="submit"
                 disabled={desabilitarSubmit}
                 className="btn btn-primario w-full"
+                aria-label="Entrar"
+                title="Entrar"
               >
-                {enviando ? "Entrando…" : "Entrar"}
+                <Icone nome="entrar" />
               </button>
 
               <div className="relative my-2 flex items-center">
@@ -359,8 +364,10 @@ export function Login() {
                 type="button"
                 onClick={handleGoogle}
                 className="btn btn-secundario w-full"
+                aria-label="Entrar com Google"
+                title="Entrar com Google"
               >
-                Entrar com Google
+                <Icone nome="usuario" />
               </button>
 
               <div className="text-center pt-2">
@@ -368,8 +375,10 @@ export function Login() {
                   type="button"
                   onClick={handleEsqueci}
                   className="btn btn-texto btn-pequeno"
+                  aria-label="Esqueci minha senha"
+                  title="Esqueci minha senha"
                 >
-                  Esqueci minha senha
+                  <Icone nome="ajuda" />
                 </button>
               </div>
             </div>

@@ -10,6 +10,7 @@ import {
 } from "../lib/links";
 import { LinkValidacao, TurmaFormacao } from "../lib/tipos";
 import { formatarData } from "../lib/utilsDominio";
+import { Icone } from "./Icone";
 
 interface Props {
   turma: TurmaFormacao;
@@ -28,7 +29,6 @@ export function LinkDaTurma({ turma }: Props) {
   const [tokenSvg, setTokenSvg] = useState<string | null>(null);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
-  const [copiouToken, setCopiouToken] = useState<string | null>(null);
 
   const linkAtivo = links.find((l) => statusDoLink(l) === "ativo") ?? null;
 
@@ -97,8 +97,6 @@ export function LinkDaTurma({ turma }: Props) {
   async function copiar(token: string) {
     try {
       await navigator.clipboard.writeText(urlPublica(token));
-      setCopiouToken(token);
-      setTimeout(() => setCopiouToken((c) => (c === token ? null : c)), 2000);
     } catch {
       setAcaoErro("Não foi possível copiar. Selecione e copie manualmente.");
     }
@@ -146,32 +144,40 @@ export function LinkDaTurma({ turma }: Props) {
                 type="button"
                 className="btn btn-secundario btn-pequeno"
                 onClick={() => copiar(linkAtivo.id)}
+                aria-label="Copiar URL"
+                title="Copiar URL"
               >
-                {copiouToken === linkAtivo.id ? "Copiado!" : "Copiar URL"}
+                <Icone nome="copiar" />
               </button>
               <a
                 href={`/v-qr/${linkAtivo.id}`}
                 target="_blank"
                 rel="noreferrer"
                 className="btn btn-secundario btn-pequeno"
+                aria-label="Abrir QR"
+                title="Abrir QR"
               >
-                Abrir QR
+                <Icone nome="qr" />
               </a>
               <a
                 href={`/v-qr/${linkAtivo.id}?imprimir=1`}
                 target="_blank"
                 rel="noreferrer"
                 className="btn btn-secundario btn-pequeno"
+                aria-label="Imprimir QR"
+                title="Imprimir QR"
               >
-                Imprimir QR
+                <Icone nome="impressora" />
               </a>
               <button
                 type="button"
                 className="btn btn-texto btn-pequeno text-vermelho-escuro"
                 onClick={revogar}
                 disabled={ocupado}
+                aria-label="Revogar"
+                title="Revogar"
               >
-                Revogar
+                <Icone nome="proibido" />
               </button>
             </div>
           </div>
@@ -187,8 +193,10 @@ export function LinkDaTurma({ turma }: Props) {
             className="btn btn-primario btn-pequeno"
             onClick={gerarNovo}
             disabled={ocupado}
+            aria-label="Gerar link"
+            title="Gerar link"
           >
-            {ocupado ? "Gerando..." : "Gerar link"}
+            <Icone nome="link" />
           </button>
         </div>
       )}

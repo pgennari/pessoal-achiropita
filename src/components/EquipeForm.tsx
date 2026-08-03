@@ -2,12 +2,12 @@ import { FormEvent, useMemo, useState } from "react";
 import { useSetores } from "../lib/hooks";
 import { Equipe, SETORES, Setor } from "../lib/tipos";
 import { DadosEquipeForm } from "../lib/equipes";
+import { Icone } from "./Icone";
 
 interface Props {
   inicial?: Equipe | null;
   onSubmit: (dados: DadosEquipeForm) => Promise<void>;
   onCancelar: () => void;
-  textoBotao?: string;
 }
 
 function inicialDados(e?: Equipe | null): DadosEquipeForm {
@@ -24,7 +24,6 @@ export function EquipeForm({
   inicial,
   onSubmit,
   onCancelar,
-  textoBotao = "Salvar",
 }: Props) {
   const { itens: setoresApi } = useSetores();
   const opcoesSetor = useMemo(() => {
@@ -160,16 +159,24 @@ export function EquipeForm({
       </div>
 
       <div className="flex flex-wrap gap-3 pt-4 border-t border-pietra-clara">
-        <button type="submit" className="btn btn-primario" disabled={enviando}>
-          {enviando ? "Salvando..." : textoBotao}
+        <button
+          type="submit"
+          className="btn btn-primario"
+          disabled={enviando}
+          aria-label="Salvar"
+          title="Salvar"
+        >
+          <Icone nome="check" />
         </button>
         <button
           type="button"
           className="btn btn-secundario"
           onClick={onCancelar}
           disabled={enviando}
+          aria-label="Cancelar"
+          title="Cancelar"
         >
-          Cancelar
+          <Icone nome="fechar" />
         </button>
       </div>
     </form>

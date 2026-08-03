@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { Equipe, Convite, Pessoa, Perfil } from "../lib/tipos";
 import { DadosConviteForm } from "../lib/convites";
 import { normalizar } from "../lib/utilsDominio";
+import { Icone } from "./Icone";
 
 interface Props {
   inicial?: Convite | null;
@@ -9,7 +10,6 @@ interface Props {
   equipesAtivas: Equipe[];
   onSubmit: (dados: DadosConviteForm) => Promise<void>;
   onCancelar: () => void;
-  textoBotao?: string;
 }
 
 const PERFIS: { valor: Perfil; rotulo: string; descricao: string }[] = [
@@ -39,7 +39,6 @@ export function ConviteForm({
   equipesAtivas,
   onSubmit,
   onCancelar,
-  textoBotao = "Enviar convite",
 }: Props) {
   const editando = !!inicial;
   const [dados, setDados] = useState<DadosConviteForm>(() =>
@@ -194,8 +193,10 @@ export function ConviteForm({
                 type="button"
                 className="btn btn-texto btn-pequeno"
                 onClick={() => set("pessoaId", "")}
+                aria-label="Desvincular"
+                title="Desvincular"
               >
-                desvincular
+                <Icone nome="fechar" />
               </button>
             </div>
           ) : (
@@ -242,16 +243,24 @@ export function ConviteForm({
       </div>
 
       <div className="flex flex-wrap gap-3 pt-4 border-t border-pietra-clara">
-        <button type="submit" className="btn btn-primario" disabled={enviando}>
-          {enviando ? "Salvando..." : textoBotao}
+        <button
+          type="submit"
+          className="btn btn-primario"
+          disabled={enviando}
+          aria-label="Salvar"
+          title="Salvar"
+        >
+          <Icone nome="check" />
         </button>
         <button
           type="button"
           className="btn btn-secundario"
           onClick={onCancelar}
           disabled={enviando}
+          aria-label="Cancelar"
+          title="Cancelar"
         >
-          Cancelar
+          <Icone nome="fechar" />
         </button>
       </div>
     </form>

@@ -87,3 +87,23 @@ export async function desassociarVeiculoEstacionamento(estacionamentoId: string,
   await queryClient.invalidateQueries({ queryKey: ["veiculos", veiculoId] });
   await queryClient.invalidateQueries({ queryKey: ["veiculos", veiculoId, "historico-estacionamentos"] });
 }
+
+export interface ResultadoCheckinsManuais {
+  ok: boolean;
+  registrados: string[];
+  existentes: string[];
+}
+
+export async function registrarCheckinsManuais(
+  estacionamentoId: string,
+  veiculoId: string,
+  datas: string[]
+): Promise<ResultadoCheckinsManuais> {
+  const resultado = await api.post<ResultadoCheckinsManuais>(
+    `/api/estacionamentos/${estacionamentoId}/veiculos/${veiculoId}/checkins-manuais`,
+    { datas }
+  );
+  await queryClient.invalidateQueries({ queryKey: ["checkins", estacionamentoId] });
+  await queryClient.invalidateQueries({ queryKey: ["checkins", "todos"] });
+  return resultado;
+}

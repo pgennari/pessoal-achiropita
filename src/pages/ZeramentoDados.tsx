@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
 import { zerarDados } from "../lib/zeramento";
+import { Icone } from "../components/Icone";
 
 type Estado = "idle" | "confirmando" | "zerando" | "concluido" | "erro";
 
@@ -18,8 +19,13 @@ export function ZeramentoDados() {
           <p className="text-ardesia">
             Apenas Administração pode executar o zeramento.
           </p>
-          <Link to="/" className="btn btn-secundario mt-4">
-            Voltar
+          <Link
+            to="/"
+            className="btn btn-secundario mt-4"
+            aria-label="Voltar"
+            title="Voltar"
+          >
+            <Icone nome="seta-esquerda" />
           </Link>
         </div>
       </div>
@@ -57,8 +63,10 @@ export function ZeramentoDados() {
               type="button"
               className="btn btn-perigo"
               onClick={() => setEstado("confirmando")}
+              aria-label="Zerar todos os dados"
+              title="Zerar todos os dados"
             >
-              Zerar todos os dados
+              <Icone nome="lixeira" />
             </button>
           )}
 
@@ -72,15 +80,19 @@ export function ZeramentoDados() {
                   type="button"
                   className="btn btn-perigo"
                   onClick={handleZerar}
+                  aria-label="Sim, apagar tudo"
+                  title="Sim, apagar tudo"
                 >
-                  Sim, apagar tudo
+                  <Icone nome="lixeira" />
                 </button>
                 <button
                   type="button"
                   className="btn btn-secundario"
                   onClick={() => setEstado("idle")}
+                  aria-label="Cancelar"
+                  title="Cancelar"
                 >
-                  Cancelar
+                  <Icone nome="fechar" />
                 </button>
               </div>
             </div>

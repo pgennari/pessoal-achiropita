@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
 import { auth } from "../lib/firebase";
+import { Icone } from "../components/Icone";
 
 type Etapa =
   | "carregando"
@@ -170,8 +171,10 @@ export function RedefinirSenha() {
                 type="submit"
                 className="btn btn-primario w-full"
                 disabled={etapa === "salvando"}
+                aria-label="Salvar nova senha"
+                title="Salvar nova senha"
               >
-                {etapa === "salvando" ? "Salvando..." : "Salvar nova senha"}
+                <Icone nome="check" />
               </button>
             </div>
           </form>
@@ -184,8 +187,13 @@ export function RedefinirSenha() {
               <p className="text-ardesia">
                 Já pode entrar com a nova senha. Redirecionando...
               </p>
-              <Link to="/login" className="btn btn-primario">
-                Ir para o login
+              <Link
+                to="/login"
+                className="btn btn-primario"
+                aria-label="Ir para o login"
+                title="Ir para o login"
+              >
+                <Icone nome="entrar" />
               </Link>
             </div>
           </div>
@@ -201,8 +209,13 @@ function Mensagem({ titulo, texto }: { titulo: string; texto: string }) {
       <div className="card-corpo text-center space-y-2">
         <h3>{titulo}</h3>
         <p className="text-ardesia">{texto}</p>
-        <Link to="/login" className="btn btn-secundario mt-3">
-          Voltar para login
+        <Link
+          to="/login"
+          className="btn btn-secundario mt-3"
+          aria-label="Voltar para login"
+          title="Voltar para login"
+        >
+          <Icone nome="seta-esquerda" />
         </Link>
       </div>
     </div>

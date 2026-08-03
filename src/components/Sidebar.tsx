@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { Sessao } from "../lib/sessao";
 import { Perfil } from "../lib/tipos";
 import { useEdicaoAtiva } from "../lib/hooks";
@@ -8,6 +8,7 @@ interface ItemNav {
   label: string;
   perfis?: Perfil[];
   filhos?: ItemNav[];
+  excluirAtivo?: string[];
 }
 
 interface Secao {
@@ -22,7 +23,11 @@ const secoes: Secao[] = [
     perfis: ["ADM", "ORG", "OPC", "CRD"],
     itens: [
       { to: "/veiculos", label: "Veículos" },
-      { to: "/estacionamentos", label: "Estacionamentos" },
+      {
+        to: "/estacionamentos",
+        label: "Estacionamentos",
+        excluirAtivo: ["/estacionamentos/relatorio"],
+      },
       { to: "/estacionamentos/relatorio", label: "Relatório" },
     ],
   },
@@ -87,6 +92,14 @@ function itemVisivel(item: ItemNav, perfil: Perfil): boolean {
   return !item.perfis || item.perfis.includes(perfil);
 }
 
+function itemAtivo(item: ItemNav, pathname: string): boolean {
+  if (pathname === item.to) return true;
+  if (!pathname.startsWith(`${item.to}/`)) return false;
+  if (item.excluirAtivo?.some((prefixo) => pathname.startsWith(prefixo)))
+    return false;
+  return true;
+}
+
 interface Props {
   sessao: Sessao;
   aberta: boolean;
@@ -95,6 +108,7 @@ interface Props {
 
 export function Sidebar({ sessao, aberta, onFechar }: Props) {
   const { edicao: edicaoAtiva } = useEdicaoAtiva();
+  const location = useLocation();
 
   const classeLink = (isActive: boolean) =>
     [
@@ -220,7 +234,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
                           to={item.to}
                           end={item.to === "/"}
                           onClick={onFechar}
-                          className={({ isActive }) => classeLink(isActive)}
+                          className={() => classeLink(itemAtivo(item, location.pathname))}
                         >
                           {item.label}
                         </NavLink>

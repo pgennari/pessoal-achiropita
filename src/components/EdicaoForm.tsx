@@ -1,12 +1,12 @@
 import { FormEvent, useState } from "react";
 import { Edicao, STATUS_EDICAO, StatusEdicao } from "../lib/tipos";
 import { DadosEdicaoForm } from "../lib/edicoes";
+import { Icone } from "./Icone";
 
 interface Props {
   inicial?: Edicao | null;
   onSubmit: (dados: DadosEdicaoForm) => Promise<void>;
   onCancelar: () => void;
-  textoBotao?: string;
 }
 
 function inicialDados(e?: Edicao | null): DadosEdicaoForm {
@@ -23,7 +23,6 @@ export function EdicaoForm({
   inicial,
   onSubmit,
   onCancelar,
-  textoBotao = "Salvar",
 }: Props) {
   const [dados, setDados] = useState<DadosEdicaoForm>(() => inicialDados(inicial));
   const [enviando, setEnviando] = useState(false);
@@ -161,16 +160,24 @@ export function EdicaoForm({
       </div>
 
       <div className="flex flex-wrap gap-3 pt-4 border-t border-pietra-clara">
-        <button type="submit" className="btn btn-primario" disabled={enviando}>
-          {enviando ? "Salvando..." : textoBotao}
+        <button
+          type="submit"
+          className="btn btn-primario"
+          disabled={enviando}
+          aria-label="Salvar"
+          title="Salvar"
+        >
+          <Icone nome="check" />
         </button>
         <button
           type="button"
           className="btn btn-secundario"
           onClick={onCancelar}
           disabled={enviando}
+          aria-label="Cancelar"
+          title="Cancelar"
         >
-          Cancelar
+          <Icone nome="fechar" />
         </button>
       </div>
     </form>

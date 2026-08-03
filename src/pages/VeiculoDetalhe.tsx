@@ -7,6 +7,7 @@ import { VeiculoForm } from "../components/VeiculoForm";
 import { atualizarVeiculo, excluirVeiculo, associarVeiculoEstacionamento, desassociarVeiculoEstacionamento, vincularPessoaVeiculo, desvincularPessoaVeiculo, type DadosVeiculo } from "../lib/veiculos";
 import { VinculoPessoa } from "../components/VinculoPessoa";
 import type { HistoricoEstacionamentoVeiculo } from "../lib/tipos";
+import { Icone } from "../components/Icone";
 
 export function VeiculoDetalhe() {
   const { id } = useParams<{ id: string }>();
@@ -173,8 +174,13 @@ export function VeiculoDetalhe() {
           </p>
         </div>
         {podeEditar && !editando && (
-          <button onClick={() => setEditando(true)} className="btn btn-secundario">
-            Editar
+          <button
+            onClick={() => setEditando(true)}
+            className="btn btn-secundario"
+            aria-label="Editar"
+            title="Editar"
+          >
+            <Icone nome="lapis" />
           </button>
         )}
       </header>
@@ -250,16 +256,20 @@ export function VeiculoDetalhe() {
                         className="btn btn-primario"
                         onClick={handleSalvarObservacao}
                         disabled={salvando}
+                        aria-label="Salvar"
+                        title="Salvar"
                       >
-                        {salvando ? "Salvando..." : "Salvar"}
+                        <Icone nome="check" />
                       </button>
                       <button
                         type="button"
                         className="btn btn-secundario"
                         onClick={() => setEditandoObservacao(false)}
                         disabled={salvando}
+                        aria-label="Cancelar"
+                        title="Cancelar"
                       >
-                        Cancelar
+                        <Icone nome="fechar" />
                       </button>
                     </div>
                   </div>
@@ -297,8 +307,10 @@ export function VeiculoDetalhe() {
                 setEditandoEstacionamento(true);
               }}
               className="btn btn-secundario btn-pequeno"
+              aria-label="Alterar estacionamento"
+              title="Alterar estacionamento"
             >
-              {veiculo.estacionamentoId ? "Alterar" : "+ Associar"}
+              <Icone nome="mais" />
             </button>
           )}
         </div>
@@ -322,8 +334,10 @@ export function VeiculoDetalhe() {
                 type="button"
                 className="btn btn-primario"
                 onClick={handleSalvarEstacionamento}
+                aria-label="Salvar"
+                title="Salvar"
               >
-                Salvar
+                <Icone nome="check" />
               </button>
               <button
                 type="button"
@@ -332,8 +346,10 @@ export function VeiculoDetalhe() {
                   setEditandoEstacionamento(false);
                   setEstacionamentoSelecionado(veiculo.estacionamentoId ?? "");
                 }}
+                aria-label="Cancelar"
+                title="Cancelar"
               >
-                Cancelar
+                <Icone nome="fechar" />
               </button>
             </div>
           </div>
@@ -404,12 +420,19 @@ export function VeiculoDetalhe() {
           type="button"
           className="btn btn-secundario"
           onClick={() => navigate("/veiculos")}
+          aria-label="Voltar"
+          title="Voltar"
         >
-          Voltar
+          <Icone nome="seta-esquerda" />
         </button>
         {podeEditar && (
-          <button onClick={handleExcluir} className="btn btn-perigo">
-            Excluir
+          <button
+            onClick={handleExcluir}
+            className="btn btn-perigo"
+            aria-label="Excluir"
+            title="Excluir"
+          >
+            <Icone nome="lixeira" />
           </button>
         )}
       </div>

@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuditoriaRecente } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
+import { Icone } from "../components/Icone";
 import { formatarData } from "../lib/utilsDominio";
 
 const ACOES: Record<string, string> = {
@@ -29,8 +30,13 @@ export function Auditoria() {
           <p className="text-ardesia">
             Apenas Administração e Organização podem ver a auditoria.
           </p>
-          <Link to="/" className="btn btn-secundario mt-4">
-            Voltar
+          <Link
+            to="/"
+            className="btn btn-secundario mt-4"
+            aria-label="Voltar"
+            title="Voltar"
+          >
+            <Icone nome="seta-esquerda" />
           </Link>
         </div>
       </div>

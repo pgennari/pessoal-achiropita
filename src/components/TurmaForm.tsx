@@ -1,13 +1,13 @@
 import { FormEvent, useState } from "react";
 import { Equipe, SETORES, Setor, TurmaFormacao } from "../lib/tipos";
 import { DadosTurmaForm } from "../lib/turmas";
+import { Icone } from "./Icone";
 
 interface Props {
   inicial?: TurmaFormacao | null;
   equipes: Equipe[];
   onSubmit: (dados: DadosTurmaForm) => Promise<void>;
   onCancelar: () => void;
-  textoBotao?: string;
 }
 
 function inicialDados(t?: TurmaFormacao | null): DadosTurmaForm {
@@ -27,7 +27,6 @@ export function TurmaForm({
   equipes,
   onSubmit,
   onCancelar,
-  textoBotao = "Salvar",
 }: Props) {
   const [dados, setDados] = useState<DadosTurmaForm>(() => inicialDados(inicial));
   const [enviando, setEnviando] = useState(false);
@@ -200,16 +199,24 @@ export function TurmaForm({
       </div>
 
       <div className="flex flex-wrap gap-3 pt-4 border-t border-pietra-clara">
-        <button type="submit" className="btn btn-primario" disabled={enviando}>
-          {enviando ? "Salvando..." : textoBotao}
+        <button
+          type="submit"
+          className="btn btn-primario"
+          disabled={enviando}
+          aria-label="Salvar"
+          title="Salvar"
+        >
+          <Icone nome="check" />
         </button>
         <button
           type="button"
           className="btn btn-secundario"
           onClick={onCancelar}
           disabled={enviando}
+          aria-label="Cancelar"
+          title="Cancelar"
         >
-          Cancelar
+          <Icone nome="fechar" />
         </button>
       </div>
     </form>

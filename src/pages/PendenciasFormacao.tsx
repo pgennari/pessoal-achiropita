@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
+import { Icone } from "../components/Icone";
 import {
   useEquipes,
   useEdicaoAtiva,
@@ -119,7 +120,6 @@ export function PendenciasFormacao() {
   } | null>(null);
   const [gerandoLink, setGerandoLink] = useState(false);
   const [erroLink, setErroLink] = useState<string | null>(null);
-  const [copiouLink, setCopiouLink] = useState<string | null>(null);
 
   // Filtros (US-06-04)
   const [busca, setBusca] = useState("");
@@ -307,8 +307,13 @@ export function PendenciasFormacao() {
           <p className="text-ardesia">
             Sem acesso a esta seção.
           </p>
-          <Link to="/" className="btn btn-secundario mt-4">
-            Voltar
+          <Link
+            to="/"
+            className="btn btn-secundario mt-4"
+            aria-label="Voltar"
+            title="Voltar"
+          >
+            <Icone nome="seta-esquerda" />
           </Link>
         </div>
       </div>
@@ -323,8 +328,13 @@ export function PendenciasFormacao() {
           <p className="text-ardesia">
             Marque uma edição como ativa para ver pendências de formação.
           </p>
-          <Link to="/edicoes" className="btn btn-primario mt-4">
-            Abrir edições
+          <Link
+            to="/edicoes"
+            className="btn btn-primario mt-4"
+            aria-label="Abrir edições"
+            title="Abrir edições"
+          >
+            <Icone nome="calendario" />
           </Link>
         </div>
       </div>
@@ -391,11 +401,6 @@ export function PendenciasFormacao() {
   async function handleCopiarLink(link: LinkValidacao) {
     try {
       await navigator.clipboard.writeText(urlPublica(link.id));
-      setCopiouLink(link.id);
-      setTimeout(
-        () => setCopiouLink((c) => (c === link.id ? null : c)),
-        2000
-      );
     } catch {
       setErroLink("Não foi possível copiar. Selecione e copie manualmente.");
     }
@@ -532,8 +537,10 @@ export function PendenciasFormacao() {
                         setMarcandoPara({ pessoa: p });
                         setJustificativa("");
                       }}
+                      aria-label="Marcar manual"
+                      title="Marcar manual"
                     >
-                      Marcar manual
+                      <Icone nome="check" />
                     </button>
                   ) : () => null}
                 />
@@ -556,9 +563,10 @@ export function PendenciasFormacao() {
               type="button"
               className="btn btn-secundario btn-pequeno ml-auto opacity-50 cursor-not-allowed"
               disabled
+              aria-label="Notificar todos"
               title="Requer Cloud Functions (plano Blaze) — não disponível no Spark"
             >
-              Notificar todos
+              <Icone nome="enviar" />
             </button>
           </div>
           <p className="text-ardesia text-sm mb-3">
@@ -608,10 +616,10 @@ export function PendenciasFormacao() {
                             className="btn btn-primario btn-pequeno"
                             disabled={confirmandoId === f.id}
                             onClick={(ev) => { ev.stopPropagation(); handleConfirmarDados(f, p); }}
+                            aria-label="Confirmar dados"
+                            title="Confirmar dados"
                           >
-                            {confirmandoId === f.id
-                              ? "Confirmando..."
-                              : "Confirmar dados"}
+                            <Icone nome="check" />
                           </button>
                         )}
                         {podeAdministrar && (
@@ -622,15 +630,16 @@ export function PendenciasFormacao() {
                               ev.stopPropagation();
                               if (f) {
                                 setErroLink(null);
-                                setCopiouLink(null);
                                 setCompartilhandoPara({
                                   pessoa: p,
                                   formacao: f,
                                 });
                               }
                             }}
+                            aria-label="Compartilhar link"
+                            title="Compartilhar link"
                           >
-                            Compartilhar link
+                            <Icone nome="link" />
                           </button>
                         )}
                         {podeAdministrar && f && (
@@ -638,8 +647,10 @@ export function PendenciasFormacao() {
                             type="button"
                             className="btn btn-texto btn-pequeno text-vermelho-escuro"
                             onClick={(ev) => { ev.stopPropagation(); handleRemoverFormacao(f); }}
+                            aria-label="Remover"
+                            title="Remover"
                           >
-                            Remover
+                            <Icone nome="lixeira" />
                           </button>
                         )}
                       </div>
@@ -714,8 +725,10 @@ export function PendenciasFormacao() {
                                 type="button"
                                 className="btn btn-texto btn-pequeno text-vermelho-escuro"
                                 onClick={(ev) => { ev.stopPropagation(); handleRemoverFormacao(f); }}
+                                aria-label="Remover"
+                                title="Remover"
                               >
-                                Remover
+                                <Icone nome="lixeira" />
                               </button>
                             )}
                           </td>
@@ -798,15 +811,19 @@ export function PendenciasFormacao() {
                   className="btn btn-primario"
                   onClick={handleConfirmarMarcacao}
                   disabled={justificativa.trim().length < 3}
+                  aria-label="Confirmar"
+                  title="Confirmar"
                 >
-                  Confirmar
+                  <Icone nome="check" />
                 </button>
                 <button
                   type="button"
                   className="btn btn-secundario"
                   onClick={() => setMarcandoPara(null)}
+                  aria-label="Cancelar"
+                  title="Cancelar"
                 >
-                  Cancelar
+                  <Icone nome="fechar" />
                 </button>
               </div>
             </div>
@@ -857,8 +874,10 @@ export function PendenciasFormacao() {
                   type="button"
                   className="btn btn-secundario"
                   onClick={() => setVendoJustificativa(null)}
+                  aria-label="Fechar"
+                  title="Fechar"
                 >
-                  Fechar
+                  <Icone nome="fechar" />
                 </button>
               </div>
             </div>
@@ -873,7 +892,6 @@ export function PendenciasFormacao() {
           onClick={() => {
             setCompartilhandoPara(null);
             setErroLink(null);
-            setCopiouLink(null);
           }}
         >
           <div
@@ -937,23 +955,29 @@ export function PendenciasFormacao() {
                             type="button"
                             className="btn btn-secundario btn-pequeno"
                             onClick={() => handleCopiarLink(link)}
+                            aria-label="Copiar URL"
+                            title="Copiar URL"
                           >
-                            {copiouLink === link.id ? "Copiado!" : "Copiar URL"}
+                            <Icone nome="copiar" />
                           </button>
                           <a
                             href={`https://wa.me/?text=${msgWpp}`}
                             target="_blank"
                             rel="noreferrer"
                             className="btn btn-primario btn-pequeno"
+                            aria-label="WhatsApp"
+                            title="WhatsApp"
                           >
-                            WhatsApp
+                            <Icone nome="chat" />
                           </a>
                           {compartilhandoPara.pessoa.email && (
                             <a
                               href={`mailto:${compartilhandoPara.pessoa.email}?subject=${encodeURIComponent(`Validação de dados — ${edicao.numero}ª Festa da Achiropita`)}&body=${msgEmail}`}
                               className="btn btn-secundario btn-pequeno"
+                              aria-label="E-mail"
+                              title="E-mail"
                             >
-                              E-mail
+                              <Icone nome="email" />
                             </a>
                           )}
                         </div>
@@ -988,8 +1012,10 @@ export function PendenciasFormacao() {
                             onClick={() =>
                               handleGerarLinkParaCompartilhar(t)
                             }
+                            aria-label="Gerar link"
+                            title="Gerar link"
                           >
-                            {gerandoLink ? "Gerando..." : "Gerar link"}
+                            <Icone nome="link" />
                           </button>
                         </div>
                       ))}
@@ -1005,10 +1031,11 @@ export function PendenciasFormacao() {
                   onClick={() => {
                     setCompartilhandoPara(null);
                     setErroLink(null);
-                    setCopiouLink(null);
                   }}
+                  aria-label="Fechar"
+                  title="Fechar"
                 >
-                  Fechar
+                  <Icone nome="fechar" />
                 </button>
               </div>
             </div>
@@ -1022,8 +1049,9 @@ export function PendenciasFormacao() {
           onClick={voltarAoTopo}
           className="fixed bottom-6 right-6 z-40 btn btn-primario btn-pequeno rounded-full shadow-media"
           aria-label="Voltar ao topo"
+          title="Voltar ao topo"
         >
-          ↑ Topo
+          <Icone nome="topo" />
         </button>
       )}
     </div>

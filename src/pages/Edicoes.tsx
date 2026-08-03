@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEdicoes } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import { EdicaoForm } from "../components/EdicaoForm";
+import { Icone } from "../components/Icone";
 import {
   DadosEdicaoForm,
   ativarEdicao,
@@ -76,8 +77,10 @@ export function Edicoes() {
               setCopiandoDe("");
               setCopiouEquipes(null);
             }}
+            aria-label="Nova edição"
+            title="Nova edição"
           >
-            Nova edição
+            <Icone nome="mais" />
           </button>
         )}
       </header>
@@ -138,7 +141,6 @@ export function Edicoes() {
                 setCriandoNova(false);
                 setCopiandoDe("");
               }}
-              textoBotao="Cadastrar edição"
             />
           </div>
         </div>
@@ -199,15 +201,19 @@ export function Edicoes() {
                           ev.stopPropagation();
                           handleAtivar(e);
                         }}
+                        aria-label="Ativar"
+                        title="Ativar"
                       >
-                        Ativar
+                        <Icone nome="check" />
                       </button>
                     )}
                     <Link
                       to={`/edicoes/${e.id}`}
                       className="btn btn-primario btn-pequeno"
+                      aria-label="Abrir"
+                      title="Abrir"
                     >
-                      Abrir
+                      <Icone nome="seta-direita" />
                     </Link>
                   </div>
                 </td>

@@ -488,23 +488,30 @@ section:first-child { border-top: 0; }
 
 .comp-row:last-child { margin-bottom: 0; }
 
-/* — Botões — */
+/* — Botões (sempre com ícone, sem rótulo) — */
 .btn {
   font-family: var(--fonte-corpo);
-  font-weight: 600;
-  font-size: 1rem;
-  letter-spacing: 0.01em;
-  padding: 14px 24px;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
   border-radius: var(--raio-pequeno);
   border: 0;
   cursor: pointer;
-  min-height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
   transition: all 0.15s ease;
   text-decoration: none;
+}
+
+.btn svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .btn-primario {
@@ -529,9 +536,8 @@ section:first-child { border-top: 0; }
 .btn-texto {
   background: transparent;
   color: var(--verde-achiropita);
-  padding: 14px 0;
 }
-.btn-texto:hover { text-decoration: underline; }
+.btn-texto:hover { background: rgba(22, 117, 58, 0.08); }
 
 .btn:disabled, .btn.disabled {
   opacity: 0.45;
@@ -539,8 +545,19 @@ section:first-child { border-top: 0; }
   pointer-events: none;
 }
 
-.btn-grande { font-size: 1.1rem; padding: 18px 32px; min-height: 58px; }
-.btn-pequeno { font-size: 0.92rem; padding: 10px 18px; min-height: 40px; }
+.btn-grande { width: 56px; height: 56px; }
+.btn-grande svg { width: 28px; height: 28px; }
+.btn-pequeno { width: 40px; height: 40px; }
+.btn-pequeno svg { width: 20px; height: 20px; }
+
+code {
+  font-family: var(--fonte-mono);
+  font-size: 0.85em;
+  background: var(--pietra-clara);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--carbone);
+}
 
 /* — Badges — */
 .badge {
@@ -1161,18 +1178,54 @@ section:first-child { border-top: 0; }
   <div class="comp-bloco">
     <h4>Botões</h4>
     <div class="comp-row">
-      <button class="btn btn-primario">Confirmar presença</button>
-      <button class="btn btn-secundario">Cancelar</button>
-      <button class="btn btn-perigo">Inativar cadastro</button>
-      <button class="btn btn-texto">Ver histórico</button>
-      <button class="btn btn-primario" disabled>Indisponível</button>
+      <button class="btn btn-primario" aria-label="Confirmar presença" title="Confirmar presença">
+        <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+      </button>
+      <button class="btn btn-secundario" aria-label="Cancelar" title="Cancelar">
+        <svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+      <button class="btn btn-perigo" aria-label="Inativar cadastro" title="Inativar cadastro">
+        <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" x2="22" y1="8" y2="13"/><line x1="22" x2="17" y1="8" y2="13"/></svg>
+      </button>
+      <button class="btn btn-texto" aria-label="Ver histórico" title="Ver histórico">
+        <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+      </button>
+      <button class="btn btn-primario" disabled aria-label="Indisponível" title="Indisponível">
+        <svg viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </button>
     </div>
     <div class="comp-row" style="margin-top: 1.5rem;">
-      <button class="btn btn-primario btn-grande">Escanear crachá</button>
-      <button class="btn btn-secundario btn-pequeno">Editar</button>
+      <button class="btn btn-primario btn-grande" aria-label="Escanear crachá" title="Escanear crachá">
+        <svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
+      </button>
+      <button class="btn btn-secundario btn-pequeno" aria-label="Editar" title="Editar">
+        <svg viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+      </button>
+    </div>
+    <div style="margin-top: 1.5rem; border: 1px solid var(--pietra); border-radius: var(--raio-pequeno); overflow: hidden; max-width: 460px;">
+      <div style="padding: 8px 12px; border-bottom: 1px solid var(--pietra); background: var(--crema); font-size: 0.8rem; color: var(--ardesia); letter-spacing: 0.05em; text-transform: uppercase;">
+        Linha de tabela densa · ações só de ícone
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 12px;">
+        <div style="min-width: 0;">
+          <div style="font-weight: 600; font-size: 0.92rem;">Rosa Calabrese Aprigliano</div>
+          <div style="font-size: 0.8rem; color: var(--ardesia);">CRACHÁ 02147</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-texto btn-pequeno" aria-label="Ver" title="Ver">
+            <svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          <button class="btn btn-texto btn-pequeno" aria-label="Editar" title="Editar">
+            <svg viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+          </button>
+          <button class="btn btn-perigo btn-pequeno" aria-label="Excluir" title="Excluir">
+            <svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+      </div>
     </div>
     <p style="font-size: 0.88rem; color: var(--ardesia); margin: 1.25rem 0 0;">
-      Altura mínima de 48px no padrão e 58px no botão principal de fluxos críticos (scan, confirmar). Um único botão primário por tela.
+      Botões são sempre quadrados e só com ícone — o rótulo vai no <code>aria-label</code> e no <code>title</code> (tooltip). Alvo mínimo de 48×48px, 56×56px no fluxo crítico (escanear, confirmar) e 40px reservado a linhas densas de tabela, no desktop. Um único botão primário por tela. Mesmo conjunto de ícones, traço de 2px.
     </p>
   </div>
 
@@ -1274,8 +1327,8 @@ section:first-child { border-top: 0; }
       <p>Anel verde de 3px ao redor de qualquer elemento focado por teclado. Nunca remover outline sem repor um sinal claro.</p>
     </div>
     <div class="a11y-item">
-      <h4>Cor + ícone + texto</h4>
-      <p>Estados nunca dependem só de cor. "Falta foto" é vermelho, mas também tem ícone e a palavra. Usuários com daltonismo continuam bem.</p>
+      <h4>Cor + ícone + rótulo acessível</h4>
+      <p>Estados nunca dependem só de cor. "Falta foto" é vermelho, mas também tem ícone e a palavra. Botões só de ícone carregam <code>aria-label</code> e tooltip (<code>title</code>) — quem navega por voz ouve o que o ícone desenha.</p>
     </div>
     <div class="a11y-item">
       <h4>Contraste AAA no corpo</h4>

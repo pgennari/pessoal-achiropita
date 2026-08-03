@@ -17,6 +17,7 @@ import {
 } from "../lib/turmas";
 import { TurmaForm } from "../components/TurmaForm";
 import { LinkDaTurma } from "../components/LinkDaTurma";
+import { Icone } from "../components/Icone";
 import { TurmaFormacao } from "../lib/tipos";
 import { formatarData } from "../lib/utilsDominio";
 
@@ -69,8 +70,13 @@ export function PaginaFormacao() {
           <p className="text-ardesia">
             Sem acesso a esta seção.
           </p>
-          <Link to="/" className="btn btn-secundario mt-4">
-            Voltar
+          <Link
+            to="/"
+            className="btn btn-secundario mt-4"
+            aria-label="Voltar"
+            title="Voltar"
+          >
+            <Icone nome="seta-esquerda" />
           </Link>
         </div>
       </div>
@@ -85,8 +91,13 @@ export function PaginaFormacao() {
           <p className="text-ardesia">
             Marque uma edição como ativa para gerenciar formação.
           </p>
-          <Link to="/edicoes" className="btn btn-primario mt-4">
-            Abrir edições
+          <Link
+            to="/edicoes"
+            className="btn btn-primario mt-4"
+            aria-label="Abrir edições"
+            title="Abrir edições"
+          >
+            <Icone nome="calendario" />
           </Link>
         </div>
       </div>
@@ -160,8 +171,10 @@ export function PaginaFormacao() {
               type="button"
               className="btn btn-primario btn-pequeno"
               onClick={() => setCriandoTurma(true)}
+              aria-label="Nova turma"
+              title="Nova turma"
             >
-              Nova turma
+              <Icone nome="mais" />
             </button>
           )}
         </div>
@@ -174,7 +187,6 @@ export function PaginaFormacao() {
                 equipes={equipes}
                 onSubmit={handleCriarTurma}
                 onCancelar={() => setCriandoTurma(false)}
-                textoBotao="Cadastrar turma"
               />
             </div>
           </div>
@@ -192,7 +204,6 @@ export function PaginaFormacao() {
                 equipes={equipes}
                 onSubmit={handleSalvarTurma}
                 onCancelar={() => setEditandoTurmaId(null)}
-                textoBotao="Salvar alterações"
               />
             </div>
           </div>
@@ -235,15 +246,19 @@ export function PaginaFormacao() {
                         type="button"
                         className="btn btn-secundario btn-pequeno"
                         onClick={() => setEditandoTurmaId(t.id)}
+                        aria-label="Editar"
+                        title="Editar"
                       >
-                        Editar
+                        <Icone nome="lapis" />
                       </button>
                       <button
                         type="button"
                         className="btn btn-texto btn-pequeno text-vermelho-escuro"
                         onClick={() => handleRemoverTurma(t)}
+                        aria-label="Remover"
+                        title="Remover"
                       >
-                        Remover
+                        <Icone nome="lixeira" />
                       </button>
                     </div>
                   </div>

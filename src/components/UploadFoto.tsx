@@ -3,6 +3,7 @@ import { Pessoa } from "../lib/tipos";
 import { enviarFoto, removerFoto } from "../lib/pessoas";
 import { Sessao } from "../lib/sessao";
 import { CropFoto } from "./CropFoto";
+import { Icone } from "./Icone";
 
 interface Props {
   sessao: Sessao;
@@ -105,12 +106,10 @@ export function UploadFoto({ sessao, pessoa, podeEditar }: Props) {
               className="btn btn-secundario btn-pequeno"
               onClick={() => inputRef.current?.click()}
               disabled={enviando}
+              aria-label="Adicionar foto"
+              title="Adicionar foto"
             >
-              {enviando
-                ? "Enviando..."
-                : pessoa.fotoUrl
-                ? "Trocar foto"
-                : "Adicionar foto"}
+              <Icone nome="camera" />
             </button>
             {pessoa.fotoUrl && (
               <button
@@ -118,8 +117,10 @@ export function UploadFoto({ sessao, pessoa, podeEditar }: Props) {
                 className="btn btn-texto btn-pequeno text-vermelho-escuro"
                 onClick={handleRemover}
                 disabled={enviando}
+                aria-label="Remover"
+                title="Remover"
               >
-                Remover
+                <Icone nome="lixeira" />
               </button>
             )}
           </div>
@@ -157,8 +158,9 @@ export function UploadFoto({ sessao, pessoa, podeEditar }: Props) {
             className="absolute top-4 right-4 btn btn-secundario btn-pequeno"
             onClick={() => setAmpliada(false)}
             aria-label="Fechar"
+            title="Fechar"
           >
-            Fechar
+            <Icone nome="fechar" />
           </button>
         </div>
       )}

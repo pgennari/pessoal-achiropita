@@ -5,6 +5,7 @@ import { useSessao } from "../lib/sessao";
 import { normalizar, soDigitos } from "../lib/utilsDominio";
 import { Pessoa } from "../lib/tipos";
 import { sincronizarTodosOsCrachas } from "../lib/buscaCracha";
+import { Icone } from "../components/Icone";
 
 type Filtro = "todos" | "ativos" | "inativos";
 
@@ -162,14 +163,20 @@ export function Pessoas() {
               className="btn btn-secundario"
               onClick={handleSincronizarLookup}
               disabled={sincronizando || carregando}
+              aria-label="Recriar lookup"
               title="Recria os documentos de lookup de crachá usados na validação pública"
             >
-              {sincronizando ? "Sincronizando..." : "Recriar lookup"}
+              <Icone nome="recarregar" />
             </button>
           )}
           {podeCriar && (
-            <Link to="/pessoas/nova" className="btn btn-primario">
-              Nova pessoa
+            <Link
+              to="/pessoas/nova"
+              className="btn btn-primario"
+              aria-label="Nova pessoa"
+              title="Nova pessoa"
+            >
+              <Icone nome="mais" />
             </Link>
           )}
         </div>
@@ -196,8 +203,9 @@ export function Pessoas() {
                 key={f}
                 type="button"
                 onClick={() => setFiltro(f)}
-                className={`btn btn-pequeno ${filtro === f ? "btn-primario" : "btn-secundario"
-                  }`}
+                className={`filtro-chip ${
+                  filtro === f ? "filtro-chip-ativo" : "filtro-chip-inativo"
+                }`}
               >
                 {f === "ativos"
                   ? "Ativos"

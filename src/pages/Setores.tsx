@@ -4,6 +4,7 @@ import { useSessao } from "../lib/sessao";
 import { api } from "../lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import type { SetorInfo } from "../lib/tipos";
+import { Icone } from "../components/Icone";
 
 const CORES_SUGESTAO = [
   "#1f7b4d", "#c95a2b", "#b8860b", "#2563eb", "#7c3aed",
@@ -129,8 +130,10 @@ export function Setores() {
             type="button"
             className="btn btn-primario"
             onClick={() => setCriandoNovo(true)}
+            aria-label="Novo setor"
+            title="Novo setor"
           >
-            Novo setor
+            <Icone nome="mais" />
           </button>
         )}
       </header>
@@ -243,15 +246,19 @@ export function Setores() {
                 className="btn btn-primario btn-pequeno"
                 disabled={criando || !novoNome.trim() || !novoId.trim()}
                 onClick={handleCriar}
+                aria-label="Cadastrar setor"
+                title="Cadastrar setor"
               >
-                {criando ? "Criando..." : "Cadastrar setor"}
+                <Icone nome="check" />
               </button>
               <button
                 type="button"
                 className="btn btn-secundario btn-pequeno"
                 onClick={cancelarCriacao}
+                aria-label="Cancelar"
+                title="Cancelar"
               >
-                Cancelar
+                <Icone nome="fechar" />
               </button>
             </div>
           </div>
@@ -344,15 +351,19 @@ export function Setores() {
                         className="btn btn-primario btn-pequeno"
                         disabled={salvando || !nomeEdit.trim()}
                         onClick={() => salvar(s.id)}
+                        aria-label="Salvar"
+                        title="Salvar"
                       >
-                        {salvando ? "Salvando..." : "Salvar"}
+                        <Icone nome="check" />
                       </button>
                       <button
                         type="button"
                         className="btn btn-secundario btn-pequeno"
                         onClick={cancelar}
+                        aria-label="Cancelar"
+                        title="Cancelar"
                       >
-                        Cancelar
+                        <Icone nome="fechar" />
                       </button>
                     </div>
                   </div>
@@ -363,8 +374,10 @@ export function Setores() {
                     type="button"
                     className="btn btn-secundario btn-pequeno w-full"
                     onClick={() => iniciarEdicao(s)}
+                    aria-label="Editar"
+                    title="Editar"
                   >
-                    Editar
+                    <Icone nome="lapis" />
                   </button>
                 )}
               </div>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
+import { Icone } from "../components/Icone";
 import {
   useEquipes,
   useEdicaoAtiva,
@@ -133,8 +134,13 @@ export function EntregaCrachas() {
             Apenas Administração, Organização e Operadores podem registrar
             entregas.
           </p>
-          <Link to="/" className="btn btn-secundario mt-4">
-            Voltar
+          <Link
+            to="/"
+            className="btn btn-secundario mt-4"
+            aria-label="Voltar"
+            title="Voltar"
+          >
+            <Icone nome="seta-esquerda" />
           </Link>
         </div>
       </div>
@@ -150,8 +156,13 @@ export function EntregaCrachas() {
           <p className="text-ardesia">
             Marque uma edição como ativa para começar a registrar entregas.
           </p>
-          <Link to="/edicoes" className="btn btn-primario mt-4">
-            Abrir edições
+          <Link
+            to="/edicoes"
+            className="btn btn-primario mt-4"
+            aria-label="Abrir edições"
+            title="Abrir edições"
+          >
+            <Icone nome="calendario" />
           </Link>
         </div>
       </div>
@@ -351,8 +362,10 @@ export function EntregaCrachas() {
                             className="btn btn-primario btn-pequeno"
                             onClick={(ev) => { ev.stopPropagation(); handleEntregar(l); }}
                             disabled={ocupado}
+                            aria-label="Entregar"
+                            title="Entregar"
                           >
-                            {ocupado ? "..." : "Entregar"}
+                            <Icone nome="check" />
                           </button>
                         )}
                         {l.entrega && podeDesbloquear && (
@@ -361,8 +374,10 @@ export function EntregaCrachas() {
                             className="btn btn-texto btn-pequeno text-vermelho-escuro"
                             onClick={(ev) => { ev.stopPropagation(); handleDesbloquear(l); }}
                             disabled={ocupado}
+                            aria-label="Desbloquear"
+                            title="Desbloquear"
                           >
-                            Desbloquear
+                            <Icone nome="cadeado-aberto" />
                           </button>
                         )}
                       </td>

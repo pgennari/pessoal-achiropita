@@ -23,6 +23,7 @@ const secoes: Secao[] = [
     itens: [
       { to: "/veiculos", label: "Veículos" },
       { to: "/estacionamentos", label: "Estacionamentos" },
+      { to: "/estacionamentos/relatorio", label: "Relatório" },
     ],
   },
   {

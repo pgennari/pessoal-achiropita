@@ -380,6 +380,25 @@ export function useCheckinsEstacionamento(estacionamentoId: string | undefined) 
   return { itens: data ?? [], carregando: isLoading && !!estacionamentoId, erro: erroMsg(error) };
 }
 
+export function useTodosCheckins(): EstadoLista<Checkin> {
+  const { itens: estacionamentos } = useEstacionamentos();
+  const ids = useMemo(
+    () => estacionamentos.map((e) => e.id).sort(),
+    [estacionamentos]
+  );
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["checkins", "todos", ids],
+    queryFn: async () => {
+      const resultados = await Promise.all(
+        ids.map((id) => api.get<Checkin[]>(`/api/estacionamentos/${id}/checkins`))
+      );
+      return resultados.flat();
+    },
+    enabled: ids.length > 0,
+  });
+  return { itens: data ?? [], carregando: isLoading && ids.length > 0, erro: erroMsg(error) };
+}
+
 export function useHistoricoPublico(token: string | undefined) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["checkin", "historico", token],

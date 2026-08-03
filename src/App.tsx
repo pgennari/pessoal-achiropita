@@ -32,6 +32,7 @@ import { Veiculos } from "./pages/Veiculos";
 import { VeiculoNovo } from "./pages/VeiculoNovo";
 import { VeiculoDetalhe } from "./pages/VeiculoDetalhe";
 import { DashboardEstacionamentos } from "./pages/DashboardEstacionamentos";
+import { RelatorioEstacionamentos } from "./pages/RelatorioEstacionamentos";
 
 export function App() {
   return (
@@ -68,6 +69,7 @@ export function App() {
         <Route path="formacao/pendencias" element={<PendenciasFormacao />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="estacionamentos" element={<Estacionamentos />} />
+        <Route path="estacionamentos/relatorio" element={<RelatorioEstacionamentos />} />
         <Route path="estacionamentos/novo" element={<EstacionamentoNovo />} />
         <Route path="estacionamentos/:id" element={<EstacionamentoDetalhe />} />
         <Route path="veiculos" element={<Veiculos />} />

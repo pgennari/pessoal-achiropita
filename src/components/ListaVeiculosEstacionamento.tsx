@@ -4,6 +4,9 @@ import {
   useVeiculos,
   useEstacionamentos,
   useCheckinsEstacionamento,
+  useEdicaoAtiva,
+  useEquipes,
+  useParticipacoes,
 } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import {
@@ -57,6 +60,9 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
   const { itens: todosVeiculos } = useVeiculos();
   const { itens: estacionamentos } = useEstacionamentos();
   const { itens: checkins, carregando: carregandoCheckins } = useCheckinsEstacionamento(estacionamentoId);
+  const { edicao } = useEdicaoAtiva();
+  const { itens: equipes } = useEquipes(edicao?.id);
+  const { itens: participacoes } = useParticipacoes(edicao?.id);
   const [busca, setBusca] = useState("");
   const [buscaAssociacao, setBuscaAssociacao] = useState("");
   const [modalAssociarAberto, setModalAssociarAberto] = useState(false);
@@ -81,6 +87,29 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
     }
     return mapa;
   }, [checkins]);
+
+  const equipesPorVeiculo = useMemo(() => {
+    const equipesPorId = new Map(equipes.map((e) => [e.id, e.nome]));
+    const equipePorPessoa = new Map<string, string>();
+    for (const part of participacoes) {
+      equipePorPessoa.set(part.pessoaId, equipesPorId.get(part.equipeId) ?? "");
+    }
+    const m = new Map<string, string[]>();
+    for (const v of veiculosEstacionamento) {
+      const nomes: string[] = [];
+      const vistos = new Set<string>();
+      for (const p of v.pessoas) {
+        const nome = equipePorPessoa.get(p.id);
+        if (nome && !vistos.has(nome)) {
+          vistos.add(nome);
+          nomes.push(nome);
+        }
+      }
+      nomes.sort((a, b) => a.localeCompare(b, "pt-BR"));
+      m.set(v.id, nomes);
+    }
+    return m;
+  }, [veiculosEstacionamento, participacoes, equipes]);
 
   const veiculosFiltrados = useMemo(() => {
     if (!buscaDebounced.trim()) return veiculosEstacionamento;
@@ -203,7 +232,7 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
           onClick={() => setFiltroCheckin(filtroCheckin === "com" ? null : "com")}
         >
           <span className="inline-block w-3 h-3 rounded-sm bg-verde" />
-          checkin no dia
+          checkin
         </button>
         <button
           type="button"
@@ -262,6 +291,11 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
                     </span>
                   )}
                 </div>
+                {(equipesPorVeiculo.get(v.id) ?? []).length > 0 && (
+                  <div className="text-[0.65rem] text-ardesia mt-0.5">
+                    {(equipesPorVeiculo.get(v.id) ?? []).join(" · ")}
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center gap-1 mt-2">
                   {DIAS.map((d) => {
                     const temCheckin = checkinsPorVeiculo.get(v.id)?.has(d.data) ?? false;

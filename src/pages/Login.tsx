@@ -348,7 +348,7 @@ export function Login() {
                 className="btn btn-primario w-full"
                 aria-label="Entrar"
                 title="Entrar"
-              >
+              > <span className="mr-2">Entrar</span>
                 <Icone nome="entrar" />
               </button>
 
@@ -366,7 +366,7 @@ export function Login() {
                 className="btn btn-secundario w-full"
                 aria-label="Entrar com Google"
                 title="Entrar com Google"
-              >
+              > <span className="mr-2">Entrar com Google</span>
                 <Icone nome="usuario" />
               </button>
 

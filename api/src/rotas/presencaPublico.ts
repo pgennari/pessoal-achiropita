@@ -28,20 +28,25 @@ app.openapi(getEquipistasRoute, async (c) => {
   const sessao = (c as any).get("sessaoPresenca") as SessaoPresenca;
   const equipeIdsArray = Array.isArray(sessao.equipeIds) ? sessao.equipeIds : [];
   const rows = await sql`
-    SELECT p.id AS pessoa_id, p.nome, p.cracha,
-      EXISTS(
-        SELECT 1 FROM presencas pr
-        WHERE pr.dia_festa_id = ${sessao.diaFestaId}
-          AND pr.pessoa_id = p.id
-      ) AS presenca_registrada
-    FROM participacoes part
-    JOIN pessoas p ON p.id = part.pessoa_id
-    WHERE part.edicao_id = ${sessao.edicaoId}
-      AND part.equipe_id = ANY(${equipeIdsArray}::text[])
-      AND part.funcao IN ('Equipista', 'Apoio')
-      AND p.ativo = true
-      AND p.id <> ${sessao.pessoaId}
-    ORDER BY p.nome
+    SELECT pessoa_id, nome, cracha, funcao, eh_coordenador, presenca_registrada
+    FROM (
+      SELECT DISTINCT ON (p.id)
+        p.id AS pessoa_id, p.nome, p.cracha, part.funcao,
+        (p.id = ${sessao.pessoaId}) AS eh_coordenador,
+        EXISTS(
+          SELECT 1 FROM presencas pr
+          WHERE pr.dia_festa_id = ${sessao.diaFestaId}
+            AND pr.pessoa_id = p.id
+        ) AS presenca_registrada
+      FROM participacoes part
+      JOIN pessoas p ON p.id = part.pessoa_id
+      WHERE part.edicao_id = ${sessao.edicaoId}
+        AND part.equipe_id = ANY(${equipeIdsArray}::text[])
+        AND p.ativo = true
+      ORDER BY p.id, CASE part.funcao
+        WHEN 'Equipista' THEN 0 WHEN 'Apoio' THEN 1 ELSE 2 END
+    ) sub
+    ORDER BY nome
   `;
   return c.json(
     {
@@ -49,6 +54,8 @@ app.openapi(getEquipistasRoute, async (c) => {
         pessoaId: String(r.pessoa_id),
         nome: String(r.nome),
         cracha: Number(r.cracha),
+        funcao: String(r.funcao),
+        coordenador: !!r.eh_coordenador,
         presencaRegistrada: !!r.presenca_registrada,
       })),
     },
@@ -198,15 +205,13 @@ app.openapi(postConfirmarRoute, async (c) => {
   const pessoasPorId = new Map(pessoas.map((p) => [String(p.id), p]));
   const participacoes = ids.length
     ? await sql`
-        SELECT pessoa_id, equipe_id, funcao FROM participacoes
+        SELECT pessoa_id, equipe_id FROM participacoes
         WHERE edicao_id = ${sessao.edicaoId} AND pessoa_id = ANY(${ids})
+          AND equipe_id = ANY(${sessao.equipeIds}::text[])
       `
     : [];
   const equipePorPessoa = new Map(
     participacoes.map((p) => [String(p.pessoa_id), String(p.equipe_id)])
-  );
-  const funcaoPorPessoa = new Map(
-    participacoes.map((p) => [String(p.pessoa_id), String(p.funcao)])
   );
 
   let registrados = 0;
@@ -221,10 +226,7 @@ app.openapi(postConfirmarRoute, async (c) => {
       const valido =
         !!pessoa &&
         Number(pessoa.cracha) === crachaNum &&
-        item.pessoaId !== sessao.pessoaId &&
-        !!equipeId &&
-        funcaoPorPessoa.get(item.pessoaId) !== "Coordenador" &&
-        sessao.equipeIds.includes(equipeId);
+        !!equipeId;
 
       if (!valido) {
         naoValidados++;
@@ -279,19 +281,11 @@ app.openapi(postRemoverPresencaRoute, async (c) => {
   const sessao = (c as any).get("sessaoPresenca") as SessaoPresenca;
   const { pessoaId } = c.req.valid("json");
 
-  if (pessoaId === sessao.pessoaId) {
-    return c.json({ erro: "Não é possível remover a própria presença." }, 403);
-  }
-
   const [participacao] = await sql`
-    SELECT equipe_id, funcao FROM participacoes
+    SELECT equipe_id FROM participacoes
     WHERE edicao_id = ${sessao.edicaoId} AND pessoa_id = ${pessoaId}
   `;
-  if (
-    !participacao ||
-    participacao.funcao === "Coordenador" ||
-    !sessao.equipeIds.includes(String(participacao.equipe_id))
-  ) {
+  if (!participacao || !sessao.equipeIds.includes(String(participacao.equipe_id))) {
     return c.json({ erro: "Acesso negado." }, 403);
   }
 

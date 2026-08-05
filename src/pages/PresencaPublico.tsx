@@ -290,8 +290,9 @@ export function PresencaPublico() {
                 <div className="eyebrow">Coordenador</div>
                 <h3 className="m-0">Olá, {nomeCoordenador}!</h3>
                 <p className="text-ardesia text-sm">
-                  Selecione os equipistas da sua equipe que estão presentes hoje.
-                  A presença é registrada para o dia {formatarDataDia(dataDia)}.
+                  Selecione as pessoas da sua equipe presentes hoje (incluindo
+                  você). A presença é registrada para o dia{" "}
+                  {formatarDataDia(dataDia)}.
                 </p>
               </div>
             </div>
@@ -362,9 +363,15 @@ export function PresencaPublico() {
                                       <span className="min-w-0">
                                         <span className="block font-semibold">
                                           {e.nome}
+                                          {e.coordenador && (
+                                            <span className="ml-2 rounded-sm bg-pietra-clara px-1.5 py-0.5 text-xs font-semibold text-ardesia">
+                                              você
+                                            </span>
+                                          )}
                                         </span>
                                         <span className="block text-ardesia text-sm font-mono">
                                           crachá {e.cracha}
+                                          {e.funcao && ` • ${e.funcao}`}
                                         </span>
                                       </span>
                                     </label>

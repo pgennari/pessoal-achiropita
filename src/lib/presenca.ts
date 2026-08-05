@@ -27,6 +27,8 @@ export interface EquipistaPresenca {
   pessoaId: string;
   nome: string;
   cracha: number;
+  funcao: string;
+  coordenador: boolean;
   presencaRegistrada: boolean;
 }
 

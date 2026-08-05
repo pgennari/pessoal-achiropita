@@ -5,6 +5,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { criarSessaoPresencaJwt, comSessaoPresenca } from "../sessaoPresenca.js";
+import { registrarEvento } from "../auditoria.js";
 import type { SessaoPresenca } from "../tipos.js";
 
 const app = new OpenAPIHono();
@@ -217,6 +218,7 @@ app.openapi(postConfirmarRoute, async (c) => {
   let registrados = 0;
   let jaRegistrados = 0;
   let naoValidados = 0;
+  const registradosDetalhes: Array<{ id: string; nome: string; cracha: number }> = [];
 
   await sql.begin(async (t) => {
     for (const item of body.equipistas) {
@@ -245,10 +247,25 @@ app.openapi(postConfirmarRoute, async (c) => {
         ON CONFLICT (id) DO NOTHING
         RETURNING id
       `;
-      if (inserida) registrados++;
-      else jaRegistrados++;
+      if (inserida) {
+        registrados++;
+        registradosDetalhes.push({
+          id: String(inserida.id),
+          nome: String(pessoa.nome),
+          cracha: crachaNum,
+        });
+      } else jaRegistrados++;
     }
   });
+
+  for (const detalhe of registradosDetalhes) {
+    await registrarEvento(
+      { uid: "publico:presenca", nome: nomeConfirmador },
+      "presenca.confirmou",
+      `presencas/${detalhe.id}`,
+      `${detalhe.nome} (#${detalhe.cracha})`
+    );
+  }
 
   return c.json({ registrados, jaRegistrados, naoValidados }, 200);
 });
@@ -289,14 +306,26 @@ app.openapi(postRemoverPresencaRoute, async (c) => {
     return c.json({ erro: "Acesso negado." }, 403);
   }
 
+  const [coordenador] = await sql`
+    SELECT nome FROM pessoas WHERE id = ${sessao.pessoaId}
+  `;
+  const nomeConfirmador = coordenador ? String(coordenador.nome) : `crachá ${sessao.cracha}`;
+
   const [removida] = await sql`
     DELETE FROM presencas
     WHERE dia_festa_id = ${sessao.diaFestaId} AND pessoa_id = ${pessoaId}
-    RETURNING id
+    RETURNING id, pessoa_nome, cracha
   `;
   if (!removida) {
     return c.json({ erro: "Presença não encontrada." }, 404);
   }
+
+  await registrarEvento(
+    { uid: "publico:presenca", nome: nomeConfirmador },
+    "presenca.removeu",
+    `presencas/${removida.id}`,
+    `${String(removida.pessoa_nome)} (#${Number(removida.cracha)})`
+  );
 
   return c.json({ removida: true }, 200);
 });

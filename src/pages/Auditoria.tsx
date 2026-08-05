@@ -12,6 +12,8 @@ const ACOES: Record<string, string> = {
   "pessoa.excluiu": "excluiu pessoa",
   "pessoa.foto.atualizou": "atualizou foto",
   "pessoa.foto.removeu": "removeu foto",
+  "presenca.confirmou": "confirmou presença",
+  "presenca.removeu": "removeu presença",
 };
 
 export function Auditoria() {

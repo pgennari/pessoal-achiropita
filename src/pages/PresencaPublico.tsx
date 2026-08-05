@@ -1,10 +1,11 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
-  buscarEquipista,
   confirmarPresenca,
   EquipistaPresenca,
   identificarCoordenador,
+  listarEquipistas,
+  removerPresenca,
   RespostaConfirmar,
   verificarLinkPresenca,
 } from "../lib/presenca";
@@ -35,13 +36,42 @@ export function PresencaPublico() {
   const [erroCoordenador, setErroCoordenador] = useState<string | null>(null);
   const [nomeCoordenador, setNomeCoordenador] = useState<string | null>(null);
   const [sessaoJwt, setSessaoJwt] = useState<string | null>(null);
-  const [crachaEquipista, setCrachaEquipista] = useState("");
-  const [erroEquipista, setErroEquipista] = useState<string | null>(null);
-  const [buscando, setBuscando] = useState(false);
   const [equipistas, setEquipistas] = useState<EquipistaPresenca[]>([]);
+  const [carregandoEquipistas, setCarregandoEquipistas] = useState(false);
+  const [erroEquipistas, setErroEquipistas] = useState<string | null>(null);
+  const [filtroEquipista, setFiltroEquipista] = useState("");
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [removendoPresenca, setRemovendoPresenca] = useState(false);
+  const [erroRemocao, setErroRemocao] = useState<string | null>(null);
   const [resumoConfirmacao, setResumoConfirmacao] = useState<string | null>(null);
   const [modalConfirmaAberto, setModalConfirmaAberto] = useState(false);
-  const campoEquipistaRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (etapa !== "equipistas" || !sessaoJwt) return;
+    let cancelado = false;
+    (async () => {
+      setCarregandoEquipistas(true);
+      setErroEquipistas(null);
+      try {
+        const lista = await listarEquipistas(sessaoJwt);
+        if (!cancelado) {
+          setEquipistas(lista);
+          setSelecionados(new Set());
+        }
+      } catch (e) {
+        if (!cancelado) {
+          setErroEquipistas(
+            e instanceof Error ? e.message : "Não foi possível carregar."
+          );
+        }
+      } finally {
+        if (!cancelado) setCarregandoEquipistas(false);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [etapa, sessaoJwt]);
 
   useEffect(() => {
     if (!token) {
@@ -90,7 +120,6 @@ export function PresencaPublico() {
       setNomeCoordenador(r.nome);
       setSessaoJwt(r.sessaoJwt);
       setEtapa("equipistas");
-      setTimeout(() => campoEquipistaRef.current?.focus(), 0);
     } catch (e) {
       setErroCoordenador(
         e instanceof Error ? e.message : "Não foi possível verificar agora."
@@ -99,57 +128,42 @@ export function PresencaPublico() {
     }
   }
 
-  async function handleIncluir(ev: FormEvent) {
-    ev.preventDefault();
-    if (!sessaoJwt) return;
-    const crachaNum = parseInt(crachaEquipista.trim(), 10);
-    if (!Number.isInteger(crachaNum) || crachaNum <= 0) {
-      setErroEquipista("Informe o número do crachá.");
-      return;
-    }
-    setErroEquipista(null);
-    setBuscando(true);
-    let incluiu = false;
+  function toggleSelecao(pessoaId: string) {
+    setSelecionados((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(pessoaId)) novo.delete(pessoaId);
+      else novo.add(pessoaId);
+      return novo;
+    });
+  }
+
+  async function handleRemoverPresenca(pessoaId: string) {
+    if (!sessaoJwt || removendoPresenca) return;
+    setRemovendoPresenca(true);
+    setErroRemocao(null);
     try {
-      if (equipistas.some((e) => e.cracha === crachaNum)) {
-        setErroEquipista("Este equipista já está na lista.");
-        return;
-      }
-      const r = await buscarEquipista(sessaoJwt, crachaNum);
-      switch (r.status) {
-        case "ok":
-          if (r.pessoa) {
-            setEquipistas((lista) => [...lista, r.pessoa!]);
-            setCrachaEquipista("");
-            incluiu = true;
-          }
-          break;
-        case "proprioCracha":
-          setErroEquipista("Você não pode confirmar a própria presença.");
-          break;
-        case "naoEquipe":
-          setErroEquipista("Este crachá não pertence à sua equipe.");
-          break;
-        case "jaRegistrado":
-          setErroEquipista("Presença já registrada para este equipista no dia.");
-          break;
-        default:
-          setErroEquipista("Crachá não encontrado.");
-      }
+      await removerPresenca(sessaoJwt, pessoaId);
+      setEquipistas((lista) =>
+        lista.map((e) =>
+          e.pessoaId === pessoaId ? { ...e, presencaRegistrada: false } : e
+        )
+      );
+      setSelecionados((prev) => {
+        const novo = new Set(prev);
+        novo.delete(pessoaId);
+        return novo;
+      });
     } catch (e) {
-      setErroEquipista(
-        e instanceof Error ? e.message : "Não foi possível incluir agora."
+      setErroRemocao(
+        e instanceof Error ? e.message : "Não foi possível remover agora."
       );
     } finally {
-      setBuscando(false);
-      if (incluiu) {
-        setTimeout(() => campoEquipistaRef.current?.focus(), 0);
-      }
+      setRemovendoPresenca(false);
     }
   }
 
   function handleConfirmar() {
-    if (!sessaoJwt || equipistas.length === 0) return;
+    if (!sessaoJwt || selecionados.size === 0) return;
     setModalConfirmaAberto(true);
   }
 
@@ -158,18 +172,26 @@ export function PresencaPublico() {
   }
 
   function confirmacaoConcluida(r: RespostaConfirmar) {
-    setResumoConfirmacao(
-      `${r.registrados} equipista(s) confirmado(s), ` +
-        `${r.jaRegistrados} já registrado(s).`
-    );
-    setEquipistas([]);
+    const partes = [`${r.registrados} equipista(s) confirmado(s)`];
+    if (r.jaRegistrados > 0) partes.push(`${r.jaRegistrados} já registrado(s)`);
+    if (r.naoValidados > 0) partes.push(`${r.naoValidados} não validado(s)`);
+    setResumoConfirmacao(`${partes.join(", ")}.`);
+    setSelecionados(new Set());
     setModalConfirmaAberto(false);
     setEtapa("sucesso");
   }
 
-  function removerEquipista(pessoaId: string) {
-    setEquipistas((lista) => lista.filter((e) => e.pessoaId !== pessoaId));
-  }
+  const filtroNorm = filtroEquipista.trim().toLowerCase();
+  const equipistasFiltrados = equipistas.filter((e) => {
+    if (!filtroNorm) return true;
+    return (
+      e.nome.toLowerCase().includes(filtroNorm) ||
+      String(e.cracha).includes(filtroNorm)
+    );
+  });
+  const selecionadosArray = equipistas.filter((e) =>
+    selecionados.has(e.pessoaId)
+  );
 
   return (
     <div className="min-h-screen flex items-start justify-center px-4 py-10">
@@ -183,8 +205,8 @@ export function PresencaPublico() {
           <div className="eyebrow">Festa Nsa. Sra. Achiropita</div>
           <h1 className="mt-1">Presença de equipistas</h1>
           {dataDia && (
-            <p className="text-ardesia text-sm">
-              Dia {formatarDataDia(dataDia)}
+            <p className="font-display text-2xl text-carbone mt-2">
+              Dia <strong>{formatarDataDia(dataDia)}</strong>
             </p>
           )}
         </header>
@@ -268,88 +290,122 @@ export function PresencaPublico() {
                 <div className="eyebrow">Coordenador</div>
                 <h3 className="m-0">Olá, {nomeCoordenador}!</h3>
                 <p className="text-ardesia text-sm">
-                  Informe os crachás dos equipistas da sua equipe. A presença é
-                  registrada para o dia {formatarDataDia(dataDia)}.
+                  Selecione os equipistas da sua equipe que estão presentes hoje.
+                  A presença é registrada para o dia {formatarDataDia(dataDia)}.
                 </p>
               </div>
             </div>
 
-            <form onSubmit={handleIncluir} className="card">
-              <div className="card-corpo space-y-4">
+            <div className="card">
+              <div className="card-corpo space-y-3">
                 <div className="input-grupo m-0">
-                  <label className="input-label" htmlFor="cracha-equipista">
-                    Crachá do equipista
+                  <label className="input-label" htmlFor="filtro-equipista">
+                    Filtrar por nome ou crachá
                   </label>
-                  <div className="flex gap-2">
-                    <input
-                      id="cracha-equipista"
-                      ref={campoEquipistaRef}
-                      inputMode="numeric"
-                      className="input flex-1 min-w-0"
-                      value={crachaEquipista}
-                      onChange={(e) => setCrachaEquipista(e.target.value)}
-                      disabled={buscando}
-                      required
-                    />
-                    <button
-                      type="submit"
-                      className="btn btn-primario w-auto px-4 h-auto"
-                      disabled={buscando}
-                      aria-label="INCLUIR"
-                      title="INCLUIR"
-                    >
-                      INCLUIR
-                    </button>
-                  </div>
+                  <input
+                    id="filtro-equipista"
+                    className="input w-full"
+                    placeholder="Ex.: Maria ou 03109"
+                    value={filtroEquipista}
+                    onChange={(e) => setFiltroEquipista(e.target.value)}
+                    autoFocus
+                  />
                 </div>
-                {erroEquipista && (
-                  <p className="input-erro-msg">{erroEquipista}</p>
+
+                {carregandoEquipistas && (
+                  <p className="text-ardesia text-sm">
+                    Carregando equipistas...
+                  </p>
+                )}
+                {!carregandoEquipistas && erroEquipistas && (
+                  <p className="input-erro-msg">{erroEquipistas}</p>
+                )}
+                {!carregandoEquipistas && !erroEquipistas && (
+                  <>
+                    {equipistas.length === 0 ? (
+                      <p className="text-ardesia text-sm">
+                        Nenhum equipista na sua equipe para este dia.
+                      </p>
+                    ) : (
+                      <>
+                        <h4 className="m-0">
+                          Equipistas ({equipistas.length})
+                        </h4>
+                        {equipistasFiltrados.length === 0 ? (
+                          <p className="text-ardesia text-sm">
+                            Nenhum equipista encontrado com este filtro.
+                          </p>
+                        ) : (
+                          <ul className="space-y-2">
+                            {equipistasFiltrados.map((e) => {
+                              const registrado = e.presencaRegistrada;
+                              const marcado =
+                                registrado || selecionados.has(e.pessoaId);
+                              return (
+                                <li
+                                  key={e.pessoaId}
+                                  className="border border-pietra-clara rounded-sm px-3 py-2"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <label
+                                      className={`flex items-center gap-3 flex-1 min-w-0 cursor-pointer ${
+                                        registrado ? "opacity-70" : ""
+                                      }`}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        className="checkbox"
+                                        checked={marcado}
+                                        disabled={registrado}
+                                        onChange={() => toggleSelecao(e.pessoaId)}
+                                      />
+                                      <span className="min-w-0">
+                                        <span className="block font-semibold">
+                                          {e.nome}
+                                        </span>
+                                        <span className="block text-ardesia text-sm font-mono">
+                                          crachá {e.cracha}
+                                        </span>
+                                      </span>
+                                    </label>
+                                    {registrado && (
+                                      <button
+                                        type="button"
+                                        className="btn btn-perigo btn-pequeno w-9 px-0 shrink-0"
+                                        onClick={() => handleRemoverPresenca(e.pessoaId)}
+                                        disabled={removendoPresenca}
+                                        aria-label={`Remover presença de ${e.nome}`}
+                                        title="Remover presença"
+                                      >
+                                        <Icone nome="lixeira" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+                {erroRemocao && (
+                  <p className="input-erro-msg">{erroRemocao}</p>
                 )}
               </div>
-            </form>
+            </div>
 
-            {equipistas.length > 0 && (
-              <div className="card">
-                <div className="card-corpo space-y-3">
-                  <h4 className="m-0">
-                    Equipistas ({equipistas.length})
-                  </h4>
-                  <ul className="space-y-2">
-                    {equipistas.map((e) => (
-                      <li
-                        key={e.pessoaId}
-                        className="flex items-center justify-between gap-3 border border-pietra-clara rounded-sm px-3 py-2"
-                      >
-                        <div>
-                          <div className="font-semibold">{e.nome}</div>
-                          <div className="text-ardesia text-sm font-mono">
-                            crachá {e.cracha}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                          onClick={() => removerEquipista(e.pessoaId)}
-                          aria-label="Remover"
-                          title="Remover"
-                        >
-                          <Icone nome="lixeira" />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    type="button"
-                    className="btn btn-primario btn-grande w-full px-6"
-                    onClick={handleConfirmar}
-                    aria-label="CONFIRMAR PRESENCA"
-                    title="CONFIRMAR PRESENCA"
-                  >
-                    CONFIRMAR PRESENCA
-                  </button>
-                </div>
-              </div>
-            )}
+            <button
+              type="button"
+              className="btn btn-primario btn-grande w-full px-6"
+              onClick={handleConfirmar}
+              disabled={selecionados.size === 0}
+              aria-label="CONFIRMAR PRESENCA"
+              title="CONFIRMAR PRESENCA"
+            >
+              CONFIRMAR PRESENCA
+            </button>
           </div>
         )}
 
@@ -367,7 +423,7 @@ export function PresencaPublico() {
 
         {modalConfirmaAberto && sessaoJwt && (
           <ModalConfirmarPresenca
-            equipistas={equipistas}
+            equipistas={selecionadosArray}
             dataDia={dataDia}
             sessaoJwt={sessaoJwt}
             onFechar={fecharModalConfirma}

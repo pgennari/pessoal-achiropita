@@ -51,8 +51,8 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: var(--fonte-corpo);
-  font-size: 17px;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.45;
   color: var(--carbone);
   background: var(--crema);
   background-image:
@@ -72,9 +72,9 @@ h1, h2, h3, h4 {
   color: var(--carbone);
 }
 
-h2 { font-size: clamp(2.5rem, 5vw, 4rem); font-variation-settings: "opsz" 144, "SOFT" 50; }
-h3 { font-size: clamp(1.5rem, 2.5vw, 2rem); font-weight: 500; margin-bottom: 0.5rem; }
-h4 { font-size: 1.15rem; font-weight: 600; font-family: var(--fonte-corpo); letter-spacing: 0.02em; text-transform: uppercase; color: var(--ardesia); margin-bottom: 0.75rem; }
+h2 { font-size: clamp(2rem, 4vw, 3rem); font-variation-settings: "opsz" 144, "SOFT" 50; }
+h3 { font-size: clamp(1.25rem, 2vw, 1.6rem); font-weight: 600; margin-bottom: 0.5rem; }
+h4 { font-size: 0.82rem; font-weight: 600; font-family: var(--fonte-corpo); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ardesia); margin-bottom: 0.75rem; }
 
 p { margin-bottom: 1rem; }
 
@@ -86,7 +86,7 @@ p { margin-bottom: 1rem; }
 }
 
 section {
-  padding: 96px 0;
+  padding: 64px 0;
   border-top: 1px solid var(--pietra);
 }
 
@@ -103,10 +103,10 @@ section:first-child { border-top: 0; }
 }
 
 .section-lead {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   color: var(--ardesia);
   max-width: 680px;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 }
 
 /* — Capa — */
@@ -443,7 +443,7 @@ section:first-child { border-top: 0; }
   background: var(--bianco);
   border: 1px solid var(--pietra);
   border-radius: var(--raio-medio);
-  padding: 32px;
+  padding: 24px;
 }
 
 .spacing-item { text-align: center; }
@@ -467,7 +467,7 @@ section:first-child { border-top: 0; }
   background: var(--bianco);
   border: 1px solid var(--pietra);
   border-radius: var(--raio-medio);
-  padding: 40px;
+  padding: 28px;
   margin-bottom: 24px;
 }
 
@@ -488,11 +488,11 @@ section:first-child { border-top: 0; }
 
 .comp-row:last-child { margin-bottom: 0; }
 
-/* — Botões (sempre com ícone, sem rótulo) — */
+/* — Botões (quadrados, só ícone) — */
 .btn {
   font-family: var(--fonte-corpo);
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
   border-radius: var(--raio-pequeno);
   border: 0;
@@ -505,8 +505,8 @@ section:first-child { border-top: 0; }
 }
 
 .btn svg {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -545,10 +545,23 @@ section:first-child { border-top: 0; }
   pointer-events: none;
 }
 
-.btn-grande { width: 56px; height: 56px; }
-.btn-grande svg { width: 28px; height: 28px; }
-.btn-pequeno { width: 40px; height: 40px; }
-.btn-pequeno svg { width: 20px; height: 20px; }
+.btn-grande { width: 48px; height: 48px; }
+.btn-grande svg { width: 24px; height: 24px; }
+.btn-pequeno { width: 34px; height: 34px; }
+.btn-pequeno svg { width: 18px; height: 18px; }
+
+.kbd {
+  font-family: var(--fonte-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--pietra);
+  border-bottom-width: 2px;
+  background: var(--bianco);
+  color: var(--carbone);
+  white-space: nowrap;
+}
 
 code {
   font-family: var(--fonte-mono);
@@ -563,11 +576,11 @@ code {
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   font-family: var(--fonte-corpo);
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  padding: 5px 12px;
+  padding: 3px 9px;
   border-radius: 999px;
   letter-spacing: 0.01em;
 }
@@ -606,14 +619,14 @@ code {
 .input {
   width: 100%;
   font-family: var(--fonte-corpo);
-  font-size: 1rem;
-  padding: 14px 16px;
+  font-size: 0.92rem;
+  padding: 9px 12px;
   border: 1.5px solid var(--pietra);
   border-radius: var(--raio-pequeno);
   background: var(--bianco);
   color: var(--carbone);
   transition: border-color 0.15s, box-shadow 0.15s;
-  min-height: 48px;
+  min-height: 38px;
 }
 
 .input:focus {
@@ -633,10 +646,10 @@ code {
   background: var(--bianco);
   border: 1px solid var(--pietra);
   border-radius: var(--raio-medio);
-  padding: 20px;
+  padding: 14px 16px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   max-width: 460px;
   transition: box-shadow 0.2s;
 }
@@ -644,8 +657,8 @@ code {
 .pessoa-card:hover { box-shadow: var(--sombra-media); }
 
 .pessoa-foto {
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--verde-claro), var(--verde-achiropita));
   display: flex;
@@ -653,45 +666,175 @@ code {
   justify-content: center;
   color: white;
   font-family: var(--fonte-display);
-  font-size: 1.6rem;
+  font-size: 1.15rem;
   font-weight: 500;
   flex-shrink: 0;
 }
 
 .pessoa-info { flex: 1; min-width: 0; }
-.pessoa-nome { font-weight: 700; font-size: 1.05rem; margin-bottom: 2px; }
-.pessoa-meta { font-size: 0.88rem; color: var(--ardesia); }
+.pessoa-nome { font-weight: 700; font-size: 0.95rem; margin-bottom: 2px; }
+.pessoa-meta { font-size: 0.82rem; color: var(--ardesia); }
 .pessoa-cracha {
   font-family: var(--fonte-mono);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: var(--vermelho-bixiga);
   font-weight: 500;
+}
+
+/* — Tabela densa — */
+.tabela-bloco {
+  border: 1px solid var(--pietra);
+  border-radius: var(--raio-pequeno);
+  overflow: hidden;
+  background: var(--bianco);
+}
+
+.tabela-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--pietra);
+  background: var(--crema);
+}
+
+.tabela-titulo {
+  font-family: var(--fonte-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ardesia);
+}
+
+.tabela-bloco table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.tabela-bloco th {
+  text-align: left;
+  font-family: var(--fonte-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ardesia);
+  font-weight: 500;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--pietra);
+  background: var(--crema);
+  white-space: nowrap;
+}
+
+.tabela-bloco td {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--pietra);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.tabela-bloco tbody tr:last-child td { border-bottom: 0; }
+.tabela-bloco tbody tr:hover { background: rgba(22, 117, 58, 0.05); }
+
+.tabela-bloco .cel-nome { font-weight: 600; color: var(--carbone); }
+.tabela-bloco .cel-meta { color: var(--ardesia); }
+.tabela-bloco .cel-alinhado { text-align: right; }
+.tabela-bloco .cel-acoes { text-align: right; }
+
+/* — Busca e filtros — */
+.barra-busca {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 12px;
+  border: 1.5px solid var(--pietra);
+  border-radius: var(--raio-pequeno);
+  background: var(--bianco);
+  max-width: 460px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.barra-busca:focus-within {
+  border-color: var(--verde-achiropita);
+  box-shadow: 0 0 0 3px rgba(22, 117, 58, 0.15);
+}
+
+.barra-busca svg {
+  width: 17px;
+  height: 17px;
+  stroke: var(--ardesia);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.barra-busca input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  font-family: var(--fonte-corpo);
+  font-size: 0.92rem;
+  color: var(--carbone);
+  background: transparent;
+}
+
+.filtros-linha {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filtro {
+  font-family: var(--fonte-corpo);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ardesia);
+  background: var(--bianco);
+  border: 1px solid var(--pietra);
+  border-radius: 999px;
+  padding: 3px 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.filtro:hover { color: var(--carbone); border-color: var(--ardesia); }
+
+.filtro-ativo {
+  background: var(--verde-achiropita);
+  color: white;
+  border-color: var(--verde-achiropita);
 }
 
 /* — Tabela KPI — */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
 }
 
 .kpi {
   background: var(--bianco);
   border: 1px solid var(--pietra);
   border-radius: var(--raio-medio);
-  padding: 24px;
+  padding: 14px 16px;
 }
 
 .kpi-label {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: var(--ardesia);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   font-weight: 500;
 }
 
 .kpi-valor {
   font-family: var(--fonte-display);
-  font-size: 2.5rem;
+  font-size: 1.9rem;
   font-weight: 400;
   line-height: 1;
   margin-bottom: 6px;
@@ -699,11 +842,11 @@ code {
 }
 
 .kpi-valor .unidade {
-  font-size: 1.2rem;
+  font-size: 1rem;
   color: var(--ardesia);
 }
 
-.kpi-delta { font-size: 0.85rem; font-weight: 600; }
+.kpi-delta { font-size: 0.78rem; font-weight: 600; }
 .kpi-delta.positivo { color: var(--verde-escuro); }
 .kpi-delta.negativo { color: var(--vermelho-escuro); }
 
@@ -731,14 +874,14 @@ code {
 
 .aba {
   font-family: var(--fonte-corpo);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--ardesia);
   background: transparent;
   border: 0;
   border-radius: var(--raio-pequeno);
-  padding: 12px 20px;
-  min-height: 48px;
+  padding: 8px 14px;
+  min-height: 38px;
   white-space: nowrap;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -768,7 +911,7 @@ code {
 }
 
 .tabs-painel {
-  padding: 24px;
+  padding: 16px;
   background: var(--bianco);
 }
 
@@ -933,9 +1076,9 @@ code {
   <div class="hero-decoration">100°</div>
   <div class="hero-eyebrow">Guia Visual · Aplicativo de Gestão · <span>Edição 2026</span></div>
   <h1>Festa de <em>Nossa Senhora</em><br><strong>Achiropita</strong>.</h1>
-  <p style="font-size: 1.25rem; max-width: 620px; color: var(--ardesia); margin-top: 1rem;">
+  <p style="font-size: 1.15rem; max-width: 620px; color: var(--ardesia); margin-top: 1rem;">
     Sistema de identidade para o aplicativo da equipe da centenária festa do Bixiga.
-    Pensado para honrar a tradição italiana e ser usado, com facilidade, por pessoas de todas as idades.
+    Feito para quem já vive o cotidiano digital: informação compacta, busca a um toque, decisão na hora.
   </p>
 
   <div class="hero-meta">
@@ -951,31 +1094,31 @@ code {
 ═══════════════════════════════════════════════════════════════ -->
 <section class="container">
   <div class="section-tag">01 · Filosofia</div>
-  <h2>Tradição que cabe na mão.</h2>
+  <h2>Densidade sem ruído.</h2>
   <p class="section-lead">
-    O app serve a uma comunidade que vai do voluntário de 16 anos ao coordenador veterano de 78. Cada decisão de design responde a três perguntas: <em>é digno da Achiropita? é claro na primeira leitura? funciona para quem não cresceu com tela?</em>
+    Quem usa o app coordena gente, barraca e prazo no ritmo da feira — e já vive o cotidiano digital. Cada decisão responde a três perguntas: <em>é digno da Achiropita? a informação está a um toque? cabe mais dado na tela sem perder a clareza?</em>
   </p>
 
   <div class="principios">
     <div class="principio">
       <div class="principio-num">i</div>
-      <h3>Editorial, não digital-genérico</h3>
-      <p>Tipografia com personalidade italiana. Espaços generosos. Hierarquia clara. Nada de gradientes roxos, glassmorphism ou neon — o sistema é uma extensão da festa, não da tendência da semana.</p>
+      <h3>Compactar por padrão</h3>
+      <p>Cada linha de tabela, badge e KPI disputa espaço com propósito: se um dado não orienta decisão nem busca, sai da tela. Densidade é o padrão, não uma exceção de "tela de coordenação".</p>
     </div>
     <div class="principio">
       <div class="principio-num">ii</div>
-      <h3>Acessível por padrão</h3>
-      <p>Texto a partir de 17px. Áreas de toque ≥48px. Contraste AAA no corpo, AA nos auxiliares. Cor nunca é o único sinal: ícones e rótulos andam junto.</p>
+      <h3>Busca é a porta de entrada</h3>
+      <p>Buscar, filtrar e atalhos de teclado são o caminho natural — não recursos escondidos. Achar uma pessoa, barraca ou pendência deve levar menos tempo do que abrir a planilha.</p>
     </div>
     <div class="principio">
       <div class="principio-num">iii</div>
       <h3>Verde e vermelho com regra</h3>
-      <p>As cores do logo carregam significado: verde é a marca, a presença, a confirmação; vermelho é o destaque, o nome, o alerta. Nunca aparecem em pé de igualdade — uma sempre lidera.</p>
+      <p>As cores da marca viram sinal compacto: verde é a presença e a confirmação; vermelho é o alerta e a pendência. Nunca aparecem em pé de igualdade — uma sempre lidera.</p>
     </div>
     <div class="principio">
       <div class="principio-num">iv</div>
-      <h3>Português direto</h3>
-      <p>Microcopy em português coloquial brasileiro, com respeito. Sem jargão de produto, sem inglês desnecessário. "Crachá", não "badge". "Escala", não "schedule".</p>
+      <h3>Português curto e direto</h3>
+      <p>Rótulos de uma palavra, colunas nomeadas, mensagens que dizem o que fazer. Sem jargão de produto e sem enrolação: "Crachá", não "badge". "Escala", não "schedule".</p>
     </div>
   </div>
 </section>
@@ -1161,10 +1304,10 @@ code {
       <span>Corpo</span><span>Manrope</span><span>Variable · 300–800</span><span>Open-source · Google Fonts</span>
     </div>
     <div style="font-family: var(--fonte-corpo); font-size: 1.5rem; font-weight: 500; line-height: 1.4;">
-      "Quem trabalha na festa há trinta edições não deveria ter que apertar os olhos para ler o nome de um equipista no celular."
+      "Busca resolve em dois toques o que a planilha resolvia em dois minutos."
     </div>
     <p style="margin-top: 1.5rem; color: var(--ardesia); margin-bottom: 0;">
-      Manrope é geométrica, com aberturas amplas que ajudam na leitura em tamanhos pequenos. Usada em texto corrido, formulários, listas, navegação e botões.
+      Manrope é geométrica, com aberturas amplas que seguram a legibilidade nos tamanhos densos da interface. Usada em texto corrido, formulários, tabelas, navegação e botões.
     </p>
   </div>
 
@@ -1192,23 +1335,23 @@ code {
     </div>
     <div class="escala-linha">
       <div class="nome">Corpo grande</div>
-      <div class="demo" style="font-family: var(--fonte-corpo); font-size: 1.125rem; line-height: 1.5;">Confirme sua presença na formação de domingo.</div>
-      <div class="tamanho">18 / 1.5</div>
+      <div class="demo" style="font-family: var(--fonte-corpo); font-size: 1rem; line-height: 1.5;">Confirme sua presença na formação de domingo.</div>
+      <div class="tamanho">16 / 1.5</div>
     </div>
     <div class="escala-linha">
       <div class="nome">Corpo</div>
-      <div class="demo" style="font-family: var(--fonte-corpo); font-size: 1rem; line-height: 1.6;">Texto padrão da interface — listas, descrições, microcopy de formulário.</div>
-      <div class="tamanho">17 / 1.6</div>
-    </div>
-    <div class="escala-linha">
-      <div class="nome">Apoio</div>
-      <div class="demo" style="font-family: var(--fonte-corpo); font-size: 0.92rem; line-height: 1.5; color: var(--ardesia);">Metadados, legendas e textos de ajuda em formulários.</div>
+      <div class="demo" style="font-family: var(--fonte-corpo); font-size: 0.94rem; line-height: 1.5;">Texto padrão da interface — listas, descrições, microcopy de formulário.</div>
       <div class="tamanho">15 / 1.5</div>
     </div>
     <div class="escala-linha">
+      <div class="nome">Apoio</div>
+      <div class="demo" style="font-family: var(--fonte-corpo); font-size: 0.81rem; line-height: 1.45; color: var(--ardesia);">Metadados, células de tabela e textos de ajuda.</div>
+      <div class="tamanho">13 / 1.45</div>
+    </div>
+    <div class="escala-linha">
       <div class="nome">Etiqueta</div>
-      <div class="demo" style="font-family: var(--fonte-mono); font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ardesia);">crachá · 04231 · setor interno</div>
-      <div class="tamanho">12 / 1.5</div>
+      <div class="demo" style="font-family: var(--fonte-mono); font-size: 0.69rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ardesia);">crachá · 04231 · setor interno</div>
+      <div class="tamanho">11 / 1.4</div>
     </div>
   </div>
 </section>
@@ -1220,15 +1363,15 @@ code {
   <div class="section-tag">05 · Espaçamento</div>
   <h2>Ritmo de 4.</h2>
   <p class="section-lead">
-    Sistema baseado em múltiplos de 4 pixels. Espaços generosos por padrão — densidade só é virtude em telas de coordenação intensa, e ainda assim com prudência.
+    Sistema baseado em múltiplos de 4 pixels. O padrão é compacto: telas de trabalho priorizam conteúdo a 12–16px. Respiro de 24–32px fica reservado a capas, estados vazios e confirmações.
   </p>
 
   <div class="spacing-grid">
     <div class="spacing-item"><div class="spacing-box" style="width:4px;height:4px;"></div><div class="spacing-label"><strong>4px</strong>colado</div></div>
     <div class="spacing-item"><div class="spacing-box" style="width:8px;height:8px;"></div><div class="spacing-label"><strong>8px</strong>justo</div></div>
-    <div class="spacing-item"><div class="spacing-box" style="width:12px;height:12px;"></div><div class="spacing-label"><strong>12px</strong>compacto</div></div>
+    <div class="spacing-item"><div class="spacing-box" style="width:12px;height:12px;"></div><div class="spacing-label"><strong>12px</strong>tabelas</div></div>
     <div class="spacing-item"><div class="spacing-box" style="width:16px;height:16px;"></div><div class="spacing-label"><strong>16px</strong>padrão</div></div>
-    <div class="spacing-item"><div class="spacing-box" style="width:24px;height:24px;"></div><div class="spacing-label"><strong>24px</strong>confortável</div></div>
+    <div class="spacing-item"><div class="spacing-box" style="width:24px;height:24px;"></div><div class="spacing-label"><strong>24px</strong>respiro</div></div>
     <div class="spacing-item"><div class="spacing-box" style="width:32px;height:32px;"></div><div class="spacing-label"><strong>32px</strong>seções</div></div>
     <div class="spacing-item"><div class="spacing-box" style="width:48px;height:48px;"></div><div class="spacing-label"><strong>48px</strong>blocos</div></div>
     <div class="spacing-item"><div class="spacing-box" style="width:64px;height:64px;"></div><div class="spacing-label"><strong>64px</strong>respiro</div></div>
@@ -1246,7 +1389,7 @@ code {
   <div class="section-tag">06 · Componentes</div>
   <h2>Peças do sistema.</h2>
   <p class="section-lead">
-    Implementáveis direto sobre shadcn/ui com tokens customizados. Foco em alvos de toque grandes, contraste alto e estados de foco visíveis para teclado.
+    Implementáveis direto sobre shadcn/ui com tokens customizados. Prioridade para densidade, tabelas ricas, busca e atalhos de teclado — telas de trabalho para quem opera rápido.
   </p>
 
   <div class="comp-bloco">
@@ -1299,7 +1442,7 @@ code {
       </div>
     </div>
     <p style="font-size: 0.88rem; color: var(--ardesia); margin: 1.25rem 0 0;">
-      Botões são sempre quadrados e só com ícone — o rótulo vai no <code>aria-label</code> e no <code>title</code> (tooltip). Alvo mínimo de 48×48px, 56×56px no fluxo crítico (escanear, confirmar) e 40px reservado a linhas densas de tabela, no desktop. Um único botão primário por tela. Mesmo conjunto de ícones, traço de 2px.
+      Botões são quadrados e só com ícone — o rótulo vai no <code>aria-label</code> e no <code>title</code> (tooltip). Padrão de 40×40px no desktop; 48px no fluxo crítico (escanear, confirmar); 34px em linhas densas de tabela. Atalhos de teclado aparecem no tooltip. Um único botão primário por tela. Mesmo conjunto de ícones, traço de 2px.
     </p>
   </div>
 
@@ -1334,7 +1477,92 @@ code {
       </div>
     </div>
     <p style="font-size: 0.88rem; color: var(--ardesia); margin: 1.25rem 0 0;">
-      Abas organizam seções de uma mesma entidade (pessoa, barraca, edição). A aba ativa é branca, com texto verde e traço indicador — cor, posição e forma andam juntas, nunca a cor sozinha. Alvo mínimo de 48px de altura, foco visível em anel verde. Em tela estreita a lista rola na horizontal, sem quebrar a linha.
+      Abas organizam seções de uma mesma entidade (pessoa, barraca, edição). A aba ativa é branca, com texto verde e traço indicador — cor, posição e forma andam juntas, nunca a cor sozinha. 38px de altura, foco visível em anel verde. Em tela estreita a lista rola na horizontal, sem quebrar a linha.
+    </p>
+  </div>
+
+  <div class="comp-bloco">
+    <h4>Busca e filtros</h4>
+    <div style="max-width: 460px; margin-bottom: 14px;">
+      <div class="barra-busca">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" placeholder="Nome, crachá, barraca..." value="carr">
+        <span class="kbd">/</span>
+      </div>
+    </div>
+    <div class="filtros-linha">
+      <button class="filtro filtro-ativo">Todos</button>
+      <button class="filtro">Equipistas</button>
+      <button class="filtro">Barracas</button>
+      <button class="filtro">Pendências de foto</button>
+      <button class="filtro">Sem formação</button>
+    </div>
+    <p style="font-size: 0.88rem; color: var(--ardesia); margin: 1.25rem 0 0;">
+      A busca global é o primeiro elemento da tela e atende pela tecla <span class="kbd">/</span>. Filtros são chips de uma palavra, com o contador de resultados no título da lista. Resultados navegáveis por setas e confirmados com <span class="kbd">Enter</span>.
+    </p>
+  </div>
+
+  <div class="comp-bloco">
+    <h4>Tabela densa</h4>
+    <div class="tabela-bloco">
+      <div class="tabela-header">
+        <span class="tabela-titulo">Barraca da Polenta · equipistas</span>
+        <span style="font-size: 0.72rem; color: var(--ardesia);">6 de 42 · página 1</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Crachá</th>
+            <th>Vaga</th>
+            <th>Formação</th>
+            <th>Foto</th>
+            <th class="cel-alinhado">Presença</th>
+            <th class="cel-acoes"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="cel-nome">Giuseppe A. Caruso</td>
+            <td class="cel-meta">02141</td>
+            <td>Chefe de setor</td>
+            <td><span class="badge badge-verde">OK</span></td>
+            <td><span class="badge badge-verde">OK</span></td>
+            <td class="cel-alinhado"><span class="badge badge-verde">Confirmada</span></td>
+            <td class="cel-acoes">
+              <button class="btn btn-texto btn-pequeno" aria-label="Ver" title="Ver"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              <button class="btn btn-texto btn-pequeno" aria-label="Editar" title="Editar"><svg viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td class="cel-nome">Rosa C. Aprigliano</td>
+            <td class="cel-meta">02142</td>
+            <td>Cozinha</td>
+            <td><span class="badge badge-verde">OK</span></td>
+            <td><span class="badge badge-vermelho">Falta</span></td>
+            <td class="cel-alinhado"><span class="badge badge-ouro">Pendente</span></td>
+            <td class="cel-acoes">
+              <button class="btn btn-texto btn-pequeno" aria-label="Ver" title="Ver"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              <button class="btn btn-texto btn-pequeno" aria-label="Editar" title="Editar"><svg viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></button>
+            </td>
+          </tr>
+          <tr>
+            <td class="cel-nome">Marco De Santi</td>
+            <td class="cel-meta">02143</td>
+            <td>Atendimento</td>
+            <td><span class="badge badge-azul">Prevista</span></td>
+            <td><span class="badge badge-verde">OK</span></td>
+            <td class="cel-alinhado"><span class="badge badge-cinza">—</span></td>
+            <td class="cel-acoes">
+              <button class="btn btn-texto btn-pequeno" aria-label="Ver" title="Ver"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              <button class="btn btn-texto btn-pequeno" aria-label="Editar" title="Editar"><svg viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size: 0.88rem; color: var(--ardesia); margin: 1.25rem 0 0;">
+      Células de 0.82rem com linha de 13px, canto arredondado mínimo, bordas finas em Pietra. Máximo de sete colunas por vista; pendências sobem para o topo via ordenação; colunas de status nunca usam cor sozinha — o badge carrega a palavra. Navegação total por teclado: setas percorrem a grade, <span class="kbd">Tab</span> chega às ações.
     </p>
   </div>
 
@@ -1403,27 +1631,27 @@ code {
 ═══════════════════════════════════════════════════════════════ -->
 <section class="container">
   <div class="section-tag">07 · Acessibilidade</div>
-  <h2>Pra todas as idades, de fato.</h2>
+  <h2>Denso, mas nunca inacessível.</h2>
   <p class="section-lead">
-    A equipe vai do adolescente ao octogenário. Estes não são "extras" — são requisitos que entram em todas as telas, do MVP em diante.
+    Público experiente não dispensa acessibilidade: telas densas exigem hierarquia ainda mais precisa. Compactar não pode significar texto miúdo demais, contraste baixo ou foco perdido.
   </p>
 
   <div class="a11y-grid">
     <div class="a11y-item">
-      <h4>Texto a partir de 17px</h4>
-      <p>O corpo padrão é maior que o de apps típicos. Nada abaixo de 15px, mesmo em legendas. Usuários podem aumentar o zoom do sistema sem quebrar layouts.</p>
+      <h4>Texto mínimo de 13px</h4>
+      <p>Corpo padrão em 15px, apoio em 13px. Nada abaixo disso: densidade tem piso, senão vira ruído. Zoom do sistema continua sem quebrar layouts.</p>
     </div>
     <div class="a11y-item">
-      <h4>Toque ≥48px</h4>
-      <p>Todos os elementos interativos (botões, links, ícones tocáveis) têm pelo menos 48×48px de área. Espaçamento de 8px entre alvos vizinhos.</p>
+      <h4>Alvo de 40px</h4>
+      <p>Padrão de 40×40px; 34px apenas em linhas de tabela no desktop. Em telas de toque — o celular do coordenador em campo — os alvos voltam a 48px.</p>
     </div>
     <div class="a11y-item">
       <h4>Foco visível</h4>
-      <p>Anel verde de 3px ao redor de qualquer elemento focado por teclado. Nunca remover outline sem repor um sinal claro.</p>
+      <p>Anel verde de 3px ao redor de qualquer elemento focado por teclado. Tabelas e buscas têm navegação completa por setas. Nunca remover outline sem repor um sinal claro.</p>
     </div>
     <div class="a11y-item">
       <h4>Cor + ícone + rótulo acessível</h4>
-      <p>Estados nunca dependem só de cor. "Falta foto" é vermelho, mas também tem ícone e a palavra. Botões só de ícone carregam <code>aria-label</code> e tooltip (<code>title</code>) — quem navega por voz ouve o que o ícone desenha.</p>
+      <p>Estados nunca dependem só de cor. "Falta foto" é vermelho, mas também tem a palavra e o ícone. Botões só de ícone carregam <code>aria-label</code> e tooltip (<code>title</code>) — quem navega por voz ouve o que o ícone desenha.</p>
     </div>
     <div class="a11y-item">
       <h4>Contraste AAA no corpo</h4>
@@ -1463,10 +1691,20 @@ code {
   <div class="section-tag">08 · Voz e tom</div>
   <h2>Como o app fala.</h2>
   <p class="section-lead">
-    Português brasileiro coloquial, com respeito. Pensa em vovó italiana coordenando barraca há trinta anos — ela não quer ser tratada como criança nem como engenheira de software.
+    Português brasileiro direto, enxuto e com respeito. Quem coordena a festa opera no ritmo da feira: mensagens curtas, verbo no imperativo, número primeiro quando o número decide.
   </p>
 
   <div class="voz-tabela">
+    <div class="voz-linha">
+      <div class="voz-celula sim">
+        <span class="marca">Falamos assim</span>
+        <p class="frase">"Polenta: 12 vagas · 6 sem foto"</p>
+      </div>
+      <div class="voz-celula nao">
+        <span class="marca">Não falamos assim</span>
+        <p class="frase">"A barraca Polenta apresenta 12 posições em aberto e 6 registros com pendências fotográficas a regularizar."</p>
+      </div>
+    </div>
     <div class="voz-linha">
       <div class="voz-celula sim">
         <span class="marca">Falamos assim</span>
@@ -1515,7 +1753,7 @@ code {
 ═══════════════════════════════════════════════════════════════ -->
 <section class="fechamento container">
   <div class="selo">100°</div>
-  <p>"Cento e um anos depois, a festa continua sendo da família — só que com a planilha trocada por uma ferramenta digna dela."</p>
+  <p>"Cento e um anos depois, a festa segue da família — com a planilha trocada por uma ferramenta que mostra tudo, na hora."</p>
   <div class="meta">Guia Visual · v1.0 · Festa 2026</div>
 </section>
 

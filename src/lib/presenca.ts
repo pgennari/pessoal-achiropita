@@ -27,11 +27,11 @@ export interface EquipistaPresenca {
   pessoaId: string;
   nome: string;
   cracha: number;
+  presencaRegistrada: boolean;
 }
 
-export interface RespostaBuscaEquipista {
-  status: "ok" | "naoEncontrado" | "naoEquipe" | "jaRegistrado" | "proprioCracha";
-  pessoa: EquipistaPresenca | null;
+export interface RespostaListaEquipistas {
+  equipistas: EquipistaPresenca[];
 }
 
 export interface RespostaConfirmar {
@@ -79,15 +79,14 @@ export async function identificarCoordenador(
   });
 }
 
-export async function buscarEquipista(
-  sessaoJwt: string,
-  cracha: number
-): Promise<RespostaBuscaEquipista> {
-  return api.post<RespostaBuscaEquipista>(
-    "/api/publico/presenca/equipista",
-    { cracha },
+export async function listarEquipistas(
+  sessaoJwt: string
+): Promise<EquipistaPresenca[]> {
+  const r = await api.get<RespostaListaEquipistas>(
+    "/api/publico/presenca/equipistas",
     sessaoJwt
   );
+  return r.equipistas ?? [];
 }
 
 export async function confirmarPresenca(
@@ -97,6 +96,17 @@ export async function confirmarPresenca(
   return api.post<RespostaConfirmar>(
     "/api/publico/presenca/confirmar",
     { equipistas },
+    sessaoJwt
+  );
+}
+
+export async function removerPresenca(
+  sessaoJwt: string,
+  pessoaId: string
+): Promise<void> {
+  await api.post<{ removida: boolean }>(
+    "/api/publico/presenca/remover",
+    { pessoaId },
     sessaoJwt
   );
 }

@@ -9,6 +9,53 @@ import type { SessaoPresenca } from "../tipos.js";
 
 const app = new OpenAPIHono();
 
+// ─── Lista de equipistas da equipe ────────────────────────────────────────────
+// Registrada antes da rota dinâmica GET /presenca/{token} para não ser
+// engolida pelo parâmetro {token}.
+
+const getEquipistasRoute = createRoute({
+  method: "get",
+  path: "/presenca/equipistas",
+  tags: ["Presença pública"],
+  summary: "Lista equipistas das equipes do coordenador em ordem alfabética",
+  middleware: [comSessaoPresenca as never] as const,
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de equipistas" }
+  }
+});
+
+app.openapi(getEquipistasRoute, async (c) => {
+  const sessao = (c as any).get("sessaoPresenca") as SessaoPresenca;
+  const equipeIdsArray = Array.isArray(sessao.equipeIds) ? sessao.equipeIds : [];
+  const rows = await sql`
+    SELECT p.id AS pessoa_id, p.nome, p.cracha,
+      EXISTS(
+        SELECT 1 FROM presencas pr
+        WHERE pr.dia_festa_id = ${sessao.diaFestaId}
+          AND pr.pessoa_id = p.id
+      ) AS presenca_registrada
+    FROM participacoes part
+    JOIN pessoas p ON p.id = part.pessoa_id
+    WHERE part.edicao_id = ${sessao.edicaoId}
+      AND part.equipe_id = ANY(${equipeIdsArray}::text[])
+      AND part.funcao IN ('Equipista', 'Apoio')
+      AND p.ativo = true
+      AND p.id <> ${sessao.pessoaId}
+    ORDER BY p.nome
+  `;
+  return c.json(
+    {
+      equipistas: rows.map((r) => ({
+        pessoaId: String(r.pessoa_id),
+        nome: String(r.nome),
+        cracha: Number(r.cracha),
+        presencaRegistrada: !!r.presenca_registrada,
+      })),
+    },
+    200
+  );
+});
+
 // ─── Consulta do link ─────────────────────────────────────────────────────────
 
 const getLinkPresencaRoute = createRoute({
@@ -109,73 +156,6 @@ app.openapi(postCoordenadorRoute, async (c) => {
   return c.json({ sessaoJwt, nome: String(pessoa.nome), cracha: crachaNum }, 200);
 });
 
-// ─── Busca de equipista ───────────────────────────────────────────────────────
-
-const postEquipistaRoute = createRoute({
-  method: "post",
-  path: "/presenca/equipista",
-  tags: ["Presença pública"],
-  summary: "Busca um equipista da mesma equipe pelo crachá",
-  middleware: [comSessaoPresenca as never] as const,
-  request: {
-    body: {
-      content: {
-        "application/json": {
-          schema: z.object({ cracha: z.union([z.string(), z.number()]) })
-        }
-      }
-    }
-  },
-  responses: {
-    200: { content: { "application/json": { schema: z.any() } }, description: "Resultado da busca" },
-    400: { content: { "application/json": { schema: z.any() } }, description: "Crachá inválido" }
-  }
-});
-
-app.openapi(postEquipistaRoute, async (c) => {
-  const sessao = (c as any).get("sessaoPresenca") as SessaoPresenca;
-  const body = c.req.valid("json");
-  const crachaNum = parseInt(String(body.cracha), 10);
-  if (!Number.isInteger(crachaNum) || crachaNum <= 0) {
-    return c.json({ erro: "Crachá inválido." }, 400);
-  }
-
-  const [pessoa] = await sql`
-    SELECT id, nome, cracha FROM pessoas
-    WHERE cracha = ${crachaNum} AND ativo = true
-  `;
-  if (!pessoa) return c.json({ status: "naoEncontrado", pessoa: null }, 200);
-  if (String(pessoa.id) === sessao.pessoaId) {
-    return c.json({ status: "proprioCracha", pessoa: null }, 200);
-  }
-
-  const [participacao] = await sql`
-    SELECT equipe_id, funcao FROM participacoes
-    WHERE edicao_id = ${sessao.edicaoId} AND pessoa_id = ${String(pessoa.id)}
-  `;
-  if (
-    !participacao ||
-    participacao.funcao === "Coordenador" ||
-    !sessao.equipeIds.includes(String(participacao.equipe_id))
-  ) {
-    return c.json({ status: "naoEquipe", pessoa: null }, 200);
-  }
-
-  const [presenca] = await sql`
-    SELECT id FROM presencas
-    WHERE dia_festa_id = ${sessao.diaFestaId} AND pessoa_id = ${String(pessoa.id)}
-  `;
-  if (presenca) return c.json({ status: "jaRegistrado", pessoa: null }, 200);
-
-  return c.json(
-    {
-      status: "ok",
-      pessoa: { pessoaId: String(pessoa.id), nome: String(pessoa.nome), cracha: crachaNum },
-    },
-    200
-  );
-});
-
 // ─── Confirmação de presença ──────────────────────────────────────────────────
 
 const postConfirmarRoute = createRoute({
@@ -269,6 +249,62 @@ app.openapi(postConfirmarRoute, async (c) => {
   });
 
   return c.json({ registrados, jaRegistrados, naoValidados }, 200);
+});
+
+// ─── Remoção de presença ──────────────────────────────────────────────────────
+
+const postRemoverPresencaRoute = createRoute({
+  method: "post",
+  path: "/presenca/remover",
+  tags: ["Presença pública"],
+  summary: "Remove a presença de um equipista da equipe do coordenador no dia",
+  middleware: [comSessaoPresenca as never] as const,
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({ pessoaId: z.string() })
+        }
+      }
+    }
+  },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Presença removida" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Presença não encontrada" }
+  }
+});
+
+app.openapi(postRemoverPresencaRoute, async (c) => {
+  const sessao = (c as any).get("sessaoPresenca") as SessaoPresenca;
+  const { pessoaId } = c.req.valid("json");
+
+  if (pessoaId === sessao.pessoaId) {
+    return c.json({ erro: "Não é possível remover a própria presença." }, 403);
+  }
+
+  const [participacao] = await sql`
+    SELECT equipe_id, funcao FROM participacoes
+    WHERE edicao_id = ${sessao.edicaoId} AND pessoa_id = ${pessoaId}
+  `;
+  if (
+    !participacao ||
+    participacao.funcao === "Coordenador" ||
+    !sessao.equipeIds.includes(String(participacao.equipe_id))
+  ) {
+    return c.json({ erro: "Acesso negado." }, 403);
+  }
+
+  const [removida] = await sql`
+    DELETE FROM presencas
+    WHERE dia_festa_id = ${sessao.diaFestaId} AND pessoa_id = ${pessoaId}
+    RETURNING id
+  `;
+  if (!removida) {
+    return c.json({ erro: "Presença não encontrada." }, 404);
+  }
+
+  return c.json({ removida: true }, 200);
 });
 
 export default app;

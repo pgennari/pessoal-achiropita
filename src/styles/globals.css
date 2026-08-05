@@ -9,8 +9,8 @@
 
   body {
     @apply bg-crema text-carbone font-sans antialiased;
-    font-size: 17px;
-    line-height: 1.6;
+    font-size: 15px;
+    line-height: 1.45;
     background-image:
       radial-gradient(at 0% 0%, rgba(22, 117, 58, 0.04) 0px, transparent 50%),
       radial-gradient(at 100% 100%, rgba(200, 16, 46, 0.03) 0px, transparent 50%);
@@ -30,22 +30,23 @@
 
   h1 {
     @apply text-verde-escuro;
-    font-size: clamp(2.75rem, 6vw, 4.5rem);
+    font-size: clamp(2.25rem, 5vw, 3.5rem);
     font-weight: 600;
     font-variation-settings: "opsz" 144, "SOFT" 30;
   }
   h2 {
-    font-size: clamp(2rem, 4vw, 3rem);
+    font-size: clamp(1.75rem, 3.5vw, 2.6rem);
     font-variation-settings: "opsz" 144, "SOFT" 50;
   }
   h3 {
-    font-size: clamp(1.35rem, 2vw, 1.75rem);
+    font-size: clamp(1.2rem, 2vw, 1.5rem);
+    font-weight: 600;
   }
   h4 {
     @apply font-sans uppercase text-ardesia;
-    font-size: 1.05rem;
+    font-size: 0.82rem;
     font-weight: 600;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.12em;
   }
 
   ::selection {
@@ -58,13 +59,14 @@
 }
 
 @layer components {
-  /* Botões — sempre quadrados, só com ícone.
-     Rótulo vai em aria-label/title. Alvo mínimo 48px; 56px em fluxo crítico;
-     40px só em linhas densas de tabela (desktop). */
+  /* Botões — quadrados, só com ícone.
+     Rótulo vai em aria-label/title. Padrão 40px (desktop-first);
+     48px no fluxo crítico (escanear, confirmar); 34px em linhas densas
+     de tabela. Atalhos de teclado aparecem no tooltip. */
   .btn {
     @apply inline-flex items-center justify-center rounded-sm font-sans transition shrink-0;
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
   }
   .btn:disabled,
   .btn.disabled {
@@ -83,33 +85,45 @@
     @apply bg-transparent text-verde hover:bg-verde/10;
   }
   .btn-grande {
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
   }
   .btn-pequeno {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
   }
   .btn svg {
+    width: 20px;
+    height: 20px;
+  }
+  .btn-grande svg {
     width: 24px;
     height: 24px;
   }
-  .btn-grande svg {
-    width: 28px;
-    height: 28px;
-  }
   .btn-pequeno svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Atalhos de teclado (kbd) */
+  .kbd {
+    @apply inline-flex items-center font-mono bg-bianco text-carbone;
+    font-size: 0.68rem;
+    font-weight: 500;
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid #e0d9c8;
+    border-bottom-width: 2px;
+    white-space: nowrap;
   }
 
   /* Chips de filtro — controles segmentados COM rótulo.
      Não são ações; por isso fogem do padrão só-ícone dos botões. */
   .filtro-chip {
-    @apply inline-flex items-center gap-1.5 rounded-md font-sans font-semibold transition;
-    font-size: 0.85rem;
-    padding: 6px 12px;
-    min-height: 36px;
+    @apply inline-flex items-center gap-1.5 rounded-full font-sans font-semibold transition;
+    font-size: 0.78rem;
+    padding: 3px 11px;
+    min-height: 30px;
   }
   .filtro-chip-ativo {
     @apply bg-verde text-white;
@@ -129,13 +143,13 @@
   }
   .tabs-painel {
     @apply bg-bianco;
-    padding: 24px;
+    padding: 16px;
   }
   .aba {
     @apply relative inline-flex items-center gap-1.5 font-sans font-semibold rounded-sm whitespace-nowrap transition-colors text-ardesia;
-    font-size: 0.95rem;
-    padding: 12px 20px;
-    min-height: 48px;
+    font-size: 0.85rem;
+    padding: 8px 14px;
+    min-height: 38px;
   }
   .aba:hover {
     @apply bg-pietra-clara text-carbone;
@@ -162,8 +176,8 @@
   /* Badges */
   .badge {
     @apply inline-flex items-center gap-1.5 rounded-full font-sans font-semibold;
-    font-size: 0.85rem;
-    padding: 5px 12px;
+    font-size: 0.75rem;
+    padding: 3px 9px;
     letter-spacing: 0.01em;
   }
   .badge::before {
@@ -205,9 +219,9 @@
   }
   .input {
     @apply w-full font-sans bg-bianco text-carbone rounded-sm border-[1.5px] border-pietra transition;
-    padding: 14px 16px;
-    font-size: 1rem;
-    min-height: 48px;
+    padding: 9px 12px;
+    font-size: 0.92rem;
+    min-height: 38px;
   }
   .input:focus {
     @apply outline-none border-verde;
@@ -233,7 +247,7 @@
     @apply bg-bianco border border-pietra rounded-md;
   }
   .card-corpo {
-    @apply p-6 sm:p-8;
+    @apply p-5 sm:p-6;
   }
 
   /* Wrapper de tabela com scroll horizontal no mobile.
@@ -249,29 +263,29 @@
 
   /* KPI */
   .kpi-grid {
-    @apply grid gap-4;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    @apply grid gap-3;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   }
   .kpi {
-    @apply bg-bianco border border-pietra rounded-md p-6;
+    @apply bg-bianco border border-pietra rounded-md p-4;
   }
   .kpi-label {
-    @apply text-ardesia mb-2 font-medium;
-    font-size: 0.85rem;
+    @apply text-ardesia mb-1.5 font-medium;
+    font-size: 0.75rem;
   }
   .kpi-valor {
     @apply font-display leading-none mb-1.5;
-    font-size: 2.5rem;
+    font-size: 1.9rem;
     font-weight: 400;
     font-variation-settings: "opsz" 144;
   }
   .kpi-valor .unidade {
     @apply text-ardesia;
-    font-size: 1.2rem;
+    font-size: 1rem;
   }
   .kpi-delta {
     @apply font-semibold;
-    font-size: 0.85rem;
+    font-size: 0.78rem;
   }
   .kpi-delta.positivo {
     @apply text-verde-escuro;
@@ -313,5 +327,41 @@
     @apply inline-block font-mono uppercase text-vermelho;
     font-size: 0.78rem;
     letter-spacing: 0.15em;
+  }
+
+  /* Telas de toque: densidade é de desktop (guia visual §07).
+     No celular do coordenador em campo os alvos voltam a 48px. */
+  @media (pointer: coarse) {
+    .btn {
+      width: 48px;
+      height: 48px;
+    }
+    .btn svg {
+      width: 24px;
+      height: 24px;
+    }
+    .btn-pequeno {
+      width: 44px;
+      height: 44px;
+    }
+    .btn-pequeno svg {
+      width: 22px;
+      height: 22px;
+    }
+    .filtro-chip {
+      min-height: 44px;
+      font-size: 0.85rem;
+      padding: 8px 14px;
+    }
+    .aba {
+      font-size: 0.9rem;
+      padding: 10px 16px;
+      min-height: 44px;
+    }
+    .input {
+      padding: 11px 14px;
+      font-size: 1rem;
+      min-height: 44px;
+    }
   }
 }

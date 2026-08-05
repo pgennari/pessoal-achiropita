@@ -291,19 +291,6 @@ export function EquipeDetalhe() {
       <section className="card overflow-hidden">
         <div className="card-corpo flex flex-wrap items-center gap-2 border-b border-pietra-clara">
           <h4 className="m-0 mr-auto">Pessoas alocadas</h4>
-          {podeAdministrar &&
-            FUNCOES.map((f) => (
-              <button
-                key={f}
-                type="button"
-                className="btn btn-secundario btn-pequeno"
-                onClick={() => abrirAlocacao(f)}
-                aria-label={`Alocar ${f}`}
-                title={`Alocar ${f}`}
-              >
-                <Icone nome="mais" />
-              </button>
-            ))}
         </div>
         <div className="tabela-rolavel"><table className="tabela-larga">
           <thead className="bg-pietra-clara/40 text-left">
@@ -323,11 +310,7 @@ export function EquipeDetalhe() {
               </tr>
             )}
             {linhasDaEquipe.map((l) => (
-              <tr
-                key={l.participacao.id}
-                className="border-t border-pietra-clara cursor-pointer"
-                onClick={() => l.pessoa ? navigate(`/pessoas/${l.pessoa.id}`) : undefined}
-              >
+              <tr key={l.participacao.id} className="border-t border-pietra-clara">
                 <td className="px-4 py-3 font-mono text-ardesia">
                   {l.pessoa ? `#${l.pessoa.cracha}` : "—"}
                 </td>

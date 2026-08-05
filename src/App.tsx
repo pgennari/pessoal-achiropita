@@ -24,6 +24,9 @@ import { QrTurma } from "./pages/QrTurma";
 import { PaginaConvite } from "./pages/PaginaConvite";
 import { RedefinirSenha } from "./pages/RedefinirSenha";
 import { UploadFotoPublico } from "./pages/UploadFotoPublico";
+import { Presenca } from "./pages/Presenca";
+import { PresencaPublico } from "./pages/PresencaPublico";
+import { QrPresenca } from "./pages/QrPresenca";
 import { CheckinPublico } from "./pages/CheckinPublico";
 import { QrEstacionamento } from "./pages/QrEstacionamento";
 import { ZeramentoDados } from "./pages/ZeramentoDados";
@@ -45,6 +48,8 @@ export function App() {
       <Route path="/foto/:token" element={<UploadFotoPublico />} />
       <Route path="/checkin/:token" element={<CheckinPublico />} />
       <Route path="/qr-checkin/:token" element={<QrEstacionamento />} />
+      <Route path="/presenca/:token" element={<PresencaPublico />} />
+      <Route path="/qr-presenca/:token" element={<QrPresenca />} />
       <Route
         element={
           <ProtegerRota>
@@ -67,6 +72,7 @@ export function App() {
         <Route path="pendencias/fotos" element={<PendenciasFoto />} />
         <Route path="formacao" element={<PaginaFormacao />} />
         <Route path="formacao/pendencias" element={<PendenciasFormacao />} />
+        <Route path="presenca" element={<Presenca />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="estacionamentos" element={<Estacionamentos />} />
         <Route path="estacionamentos/relatorio" element={<RelatorioEstacionamentos />} />

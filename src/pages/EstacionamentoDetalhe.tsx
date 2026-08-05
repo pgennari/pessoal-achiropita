@@ -449,46 +449,36 @@ export function EstacionamentoDetalhe() {
         </div>
       </section>
 
-      <div className="flex border-b border-pietra-clara">
-        <button
-          type="button"
-          className={`px-4 py-2 text-sm font-semibold transition border-b-2 ${
-            abaAtiva === "veiculos"
-              ? "border-verde text-verde-escuro"
-              : "border-transparent text-ardesia hover:text-carbone"
-          }`}
-          onClick={() => setAbaAtiva("veiculos")}
-        >
-          Veículos
-        </button>
-        <button
-          type="button"
-          className={`px-4 py-2 text-sm font-semibold transition border-b-2 ${
-            abaAtiva === "checkins"
-              ? "border-verde text-verde-escuro"
-              : "border-transparent text-ardesia hover:text-carbone"
-          }`}
-          onClick={() => setAbaAtiva("checkins")}
-        >
-          Check-in
-        </button>
-      </div>
+      <div className="tabs">
+        <div className="tabs-lista">
+          <button
+            type="button"
+            className={`aba ${abaAtiva === "veiculos" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaAtiva("veiculos")}
+          >
+            Veículos
+          </button>
+          <button
+            type="button"
+            className={`aba ${abaAtiva === "checkins" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaAtiva("checkins")}
+          >
+            Check-in
+          </button>
+        </div>
 
-      {abaAtiva === "checkins" && (
-        <section className="card">
-          <div className="card-corpo">
+        {abaAtiva === "checkins" && (
+          <div className="tabs-painel">
             <ListaCheckins checkins={checkins} carregando={carregandoCheckins} />
           </div>
-        </section>
-      )}
+        )}
 
-      {abaAtiva === "veiculos" && (
-        <section className="card">
-          <div className="card-corpo">
+        {abaAtiva === "veiculos" && (
+          <div className="tabs-painel">
             <ListaVeiculosEstacionamento estacionamentoId={id!} />
           </div>
-        </section>
-      )}
+        )}
+      </div>
 
       <div>
         <button

@@ -69,29 +69,30 @@ export function HistoricoCheckinPublico({ historico, carregando }: Props) {
       )}
 
       {!carregando && temDias && (
-        <div className="flex gap-1 border-b border-pietra-clara overflow-x-auto">
-          {dias.map((d) => {
-            const ativa = d.data === abaAtiva;
-            const rotulo = d.data === hoje ? `Hoje (${d.total})` : `${d.data} (${d.total})`;
-            return (
-              <button
-                key={d.data}
-                onClick={() => setAbaAtiva(d.data)}
-                className={`px-3 py-1.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                  ativa
-                    ? "border-primaria text-primaria"
-                    : "border-transparent text-ardesia hover:text-carbone"
-                }`}
-              >
-                {rotulo}
-              </button>
-            );
-          })}
-        </div>
-      )}
+        <div className="tabs">
+          <div className="tabs-lista">
+            {dias.map((d) => {
+              const ativa = d.data === abaAtiva;
+              const rotulo = d.data === hoje ? `Hoje (${d.total})` : `${d.data} (${d.total})`;
+              return (
+                <button
+                  key={d.data}
+                  type="button"
+                  onClick={() => setAbaAtiva(d.data)}
+                  className={`aba ${ativa ? "aba-ativa" : ""}`}
+                >
+                  {rotulo}
+                </button>
+              );
+            })}
+          </div>
 
-      {!carregando && diaSelecionado && (
-        <ListaDia dia={diaSelecionado} />
+          {diaSelecionado && (
+            <div className="tabs-painel">
+              <ListaDia dia={diaSelecionado} />
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

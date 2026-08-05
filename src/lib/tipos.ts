@@ -152,6 +152,16 @@ export interface Edicao {
   atualizadoEm: string;
 }
 
+// Dia em que a festa acontece em uma edição. A numeração (dia 1, dia 2, ...)
+// é derivada da ordem cronológica da data.
+export interface DiaFesta {
+  id: string;
+  edicaoId: string;
+  data: string; // ISO YYYY-MM-DD
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
 export type Setor = string;
 
 export const SETORES: { valor: Setor; rotulo: string }[] = [
@@ -306,6 +316,31 @@ export interface PessoaEstacionamento {
   id: string;
   nome: string;
   cracha: number;
+}
+
+// Link de acesso publico da presenca de um dia da festa (013-presenca-equipistas).
+export interface LinkPresenca {
+  id: string; // = token
+  diaFestaId: string;
+  edicaoId: string;
+  status: StatusLink;
+  criadoPorUid: string;
+  criadoPorNome: string;
+  criadoEm: string;
+}
+
+// Presenca de um equipista em um dia da festa. id = "${diaFestaId}__${pessoaId}".
+export interface Presenca {
+  id: string;
+  diaFestaId: string;
+  edicaoId: string;
+  equipeId: string;
+  pessoaId: string;
+  pessoaNome: string;
+  cracha: number;
+  confirmadoPorCracha: number;
+  confirmadoPorNome: string;
+  registradoEm: string;
 }
 
 export type TipoPresenca = "manual" | "validacao";

@@ -118,6 +118,47 @@
     @apply bg-bianco text-carbone border border-pietra hover:border-verde/50 hover:text-verde-escuro;
   }
 
+  /* Abas — navegacao entre seções de uma mesma entidade (guia visual).
+     A aba ativa é branca, com texto verde e barra indicadora:
+     cor, posição e forma andam juntas — nunca a cor sozinha. */
+  .tabs {
+    @apply bg-bianco rounded-md border border-pietra overflow-hidden;
+  }
+  .tabs-lista {
+    @apply flex items-center gap-1 bg-crema border-b border-pietra p-1.5 overflow-x-auto;
+  }
+  .tabs-painel {
+    @apply bg-bianco;
+    padding: 24px;
+  }
+  .aba {
+    @apply relative inline-flex items-center gap-1.5 font-sans font-semibold rounded-sm whitespace-nowrap transition-colors text-ardesia;
+    font-size: 0.95rem;
+    padding: 12px 20px;
+    min-height: 48px;
+  }
+  .aba:hover {
+    @apply bg-pietra-clara text-carbone;
+  }
+  .aba:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(22, 117, 58, 0.4);
+  }
+  .aba-ativa {
+    @apply text-verde bg-bianco shadow-suave;
+  }
+  .aba-ativa::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 6px;
+    width: 70%;
+    height: 3px;
+    border-radius: 3px;
+    @apply bg-verde;
+  }
+
   /* Badges */
   .badge {
     @apply inline-flex items-center gap-1.5 rounded-full font-sans font-semibold;

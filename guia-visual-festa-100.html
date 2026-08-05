@@ -707,6 +707,80 @@ code {
 .kpi-delta.positivo { color: var(--verde-escuro); }
 .kpi-delta.negativo { color: var(--vermelho-escuro); }
 
+/* — Abas — */
+.tabs-bloco {
+  border-left: 4px solid var(--verde-achiropita);
+}
+
+.tabs {
+  border: 1px solid var(--pietra);
+  border-radius: var(--raio-medio);
+  overflow: hidden;
+  background: var(--bianco);
+  max-width: 560px;
+}
+
+.tabs-lista {
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  background: var(--crema);
+  border-bottom: 1px solid var(--pietra);
+  overflow-x: auto;
+}
+
+.aba {
+  font-family: var(--fonte-corpo);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ardesia);
+  background: transparent;
+  border: 0;
+  border-radius: var(--raio-pequeno);
+  padding: 12px 20px;
+  min-height: 48px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.aba:hover { background: var(--pietra-clara); color: var(--carbone); }
+
+.aba:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(22, 117, 58, 0.4);
+}
+
+.aba-ativa {
+  background: var(--bianco);
+  color: var(--verde-achiropita);
+  box-shadow: var(--sombra-suave);
+}
+
+.aba-ativa::after {
+  content: '';
+  display: block;
+  height: 3px;
+  width: 70%;
+  margin: 4px auto 0;
+  border-radius: 3px;
+  background: var(--verde-achiropita);
+}
+
+.tabs-painel {
+  padding: 24px;
+  background: var(--bianco);
+}
+
+.tabs-painel .rotulo-painel {
+  font-family: var(--fonte-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ardesia);
+  margin-bottom: 8px;
+}
+
 /* — Acessibilidade — */
 .a11y-grid {
   display: grid;
@@ -1240,6 +1314,27 @@ code {
     </div>
     <p style="font-size: 0.88rem; color: var(--ardesia); margin: 1.25rem 0 0;">
       Sempre acompanhados de texto — nunca usar a cor sozinha como sinal. O ponto à esquerda é decorativo e reforça o sinal para quem tem dificuldade com cor.
+    </p>
+  </div>
+
+  <div class="comp-bloco tabs-bloco">
+    <h4>Abas</h4>
+    <div class="tabs" role="tablist" aria-label="Seções da pessoa">
+      <div class="tabs-lista">
+        <button class="aba aba-ativa" role="tab" aria-selected="true">Dados</button>
+        <button class="aba" role="tab" aria-selected="false">Barracas</button>
+        <button class="aba" role="tab" aria-selected="false">Formação</button>
+        <button class="aba" role="tab" aria-selected="false">Histórico</button>
+      </div>
+      <div class="tabs-painel" role="tabpanel" tabindex="0">
+        <div class="rotulo-painel">Conteúdo da aba ativa</div>
+        <div style="font-weight: 700;">Rosa Calabrese Aprigliano</div>
+        <div style="font-size: 0.92rem; color: var(--ardesia);">Equipista · Barraca da Polenta</div>
+        <div style="margin-top: 14px;"><span class="badge badge-verde">Cadastro completo</span></div>
+      </div>
+    </div>
+    <p style="font-size: 0.88rem; color: var(--ardesia); margin: 1.25rem 0 0;">
+      Abas organizam seções de uma mesma entidade (pessoa, barraca, edição). A aba ativa é branca, com texto verde e traço indicador — cor, posição e forma andam juntas, nunca a cor sozinha. Alvo mínimo de 48px de altura, foco visível em anel verde. Em tela estreita a lista rola na horizontal, sem quebrar a linha.
     </p>
   </div>
 

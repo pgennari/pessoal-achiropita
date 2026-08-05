@@ -362,3 +362,51 @@ ON checkins(timestamp DESC);
 
 CREATE INDEX IF NOT EXISTS idx_checkins_pessoa
 ON checkins(pessoa_id);
+
+-- dias_festa: dias em que a festa acontece em cada edicao.
+-- A numeracao (dia 1, dia 2, ...) e derivada da ordem cronologica da data.
+CREATE TABLE IF NOT EXISTS dias_festa (
+  id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  edicao_id     TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
+  data          DATE NOT NULL,
+  criado_em     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(edicao_id, data)
+);
+
+CREATE INDEX IF NOT EXISTS idx_dias_festa_edicao ON dias_festa(edicao_id);
+
+-- links_presenca: link de acesso publico da presenca de um dia da festa.
+-- Um dia possui no maximo um link ativo por vez; regenerar revoga o ativo.
+CREATE TABLE IF NOT EXISTS links_presenca (
+  id              TEXT PRIMARY KEY,
+  dia_festa_id    TEXT NOT NULL REFERENCES dias_festa(id) ON DELETE CASCADE,
+  edicao_id       TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
+  status          status_link NOT NULL DEFAULT 'ativo',
+  criado_por_uid  TEXT NOT NULL,
+  criado_por_nome TEXT NOT NULL,
+  criado_em       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_links_presenca_dia    ON links_presenca(dia_festa_id);
+CREATE INDEX IF NOT EXISTS idx_links_presenca_edicao ON links_presenca(edicao_id);
+
+-- presencas: registro de presenca de um equipista em um dia da festa.
+-- id = "${dia_festa_id}__${pessoa_id}" (mesmo padrao de formacoes/entregas_cracha).
+CREATE TABLE IF NOT EXISTS presencas (
+  id                   TEXT PRIMARY KEY,
+  dia_festa_id         TEXT NOT NULL REFERENCES dias_festa(id) ON DELETE CASCADE,
+  edicao_id            TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
+  equipe_id            TEXT NOT NULL REFERENCES equipes(id) ON DELETE CASCADE,
+  pessoa_id            TEXT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+  pessoa_nome          TEXT NOT NULL,
+  cracha               INTEGER NOT NULL,
+  confirmado_por_cracha INTEGER NOT NULL,
+  confirmado_por_nome  TEXT NOT NULL,
+  registrado_em        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(dia_festa_id, pessoa_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_presencas_edicao ON presencas(edicao_id);
+CREATE INDEX IF NOT EXISTS idx_presencas_dia    ON presencas(dia_festa_id);
+CREATE INDEX IF NOT EXISTS idx_presencas_pessoa ON presencas(pessoa_id);

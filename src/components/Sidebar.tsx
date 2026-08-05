@@ -60,6 +60,11 @@ const secoes: Secao[] = [
           { to: "/formacao/pendencias", label: "Pendências", perfis: ["ADM", "ORG", "OPC", "CRD"] },
         ],
       },
+      {
+        to: "/presenca",
+        label: "Presença",
+        perfis: ["ADM", "ORG"],
+      },
     ],
   },
   {

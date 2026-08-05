@@ -23,6 +23,9 @@ import admin from "./rotas/admin.js";
 import setores from "./rotas/setores.js";
 import historicoParticipacoes from "./rotas/historicoParticipacoes.js";
 import dashboard from "./rotas/dashboard.js";
+import diasFesta from "./rotas/diasFesta.js";
+import presenca from "./rotas/presenca.js";
+import presencaPublico from "./rotas/presencaPublico.js";
 
 const app = new OpenAPIHono();
 
@@ -68,9 +71,12 @@ app.route("/api/estacionamentos", estacionamentos);
 app.route("/api/veiculos", veiculos);
 app.route("/api/publico/checkin", checkin);
 app.route("/api/publico", publico);
+app.route("/api/publico", presencaPublico);
 app.route("/api/admin", admin);
 app.route("/api/historico-participacoes", historicoParticipacoes);
 app.route("/api/setores", setores);
+app.route("/api/dias-festa", diasFesta);
+app.route("/api/presenca", presenca);
 
 app.onError((err, c) => {
   console.error("[API Error]", err);

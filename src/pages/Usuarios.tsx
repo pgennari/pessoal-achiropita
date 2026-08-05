@@ -321,374 +321,370 @@ export function Usuarios() {
       )}
 
       {/* Abas */}
-      <div className="border-b border-pietra-clara flex gap-0">
-        <button
-          type="button"
-          className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition ${aba === "usuarios"
-              ? "border-verde text-verde-escuro"
-              : "border-transparent text-ardesia hover:text-carbone"
-            }`}
-          onClick={() => setAba("usuarios")}
-        >
-          Usuários
-          <span className="ml-1.5 text-xs font-normal text-ardesia">
-            ({usuarios.length})
-          </span>
-        </button>
-        <button
-          type="button"
-          className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition ${aba === "convites"
-              ? "border-verde text-verde-escuro"
-              : "border-transparent text-ardesia hover:text-carbone"
-            }`}
-          onClick={() => setAba("convites")}
-        >
-          Convites
-          {convitesPendentes.length > 0 && (
-            <span className="ml-1.5 badge badge-ouro text-xs">
-              {convitesPendentes.length}
+      <div className="tabs">
+        <div className="tabs-lista">
+          <button
+            type="button"
+            className={`aba ${aba === "usuarios" ? "aba-ativa" : ""}`}
+            onClick={() => setAba("usuarios")}
+          >
+            Usuários
+            <span className="ml-1 text-xs font-normal text-ardesia">
+              ({usuarios.length})
             </span>
-          )}
-        </button>
-      </div>
+          </button>
+          <button
+            type="button"
+            className={`aba ${aba === "convites" ? "aba-ativa" : ""}`}
+            onClick={() => setAba("convites")}
+          >
+            Convites
+            {convitesPendentes.length > 0 && (
+              <span className="ml-1 badge badge-ouro text-xs">
+                {convitesPendentes.length}
+              </span>
+            )}
+          </button>
+        </div>
 
-      {/* Aba Usuários */}
-      {aba === "usuarios" && (
-        <section className="space-y-4">
-          {editandoUid && usuarioEditando && (
+        {/* Aba Usuários */}
+        {aba === "usuarios" && (
+          <section className="space-y-4 tabs-painel">
+            {editandoUid && usuarioEditando && (
+              <div className="card">
+                <div className="card-corpo">
+                  <h3 className="mb-4">Editando {usuarioEditando.nome}</h3>
+                  <UsuarioForm
+                    inicial={usuarioEditando}
+                    pessoas={pessoas}
+                    equipesAtivas={equipes}
+                    onSubmit={handleAtualizarUsuario}
+                    onCancelar={() => setEditandoUid(null)}
+                  />
+                </div>
+              </div>
+            )}
+  
             <div className="card">
               <div className="card-corpo">
-                <h3 className="mb-4">Editando {usuarioEditando.nome}</h3>
-                <UsuarioForm
-                  inicial={usuarioEditando}
-                  pessoas={pessoas}
-                  equipesAtivas={equipes}
-                  onSubmit={handleAtualizarUsuario}
-                  onCancelar={() => setEditandoUid(null)}
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="card">
-            <div className="card-corpo">
-              <input
-                className="input"
-                placeholder="Buscar por nome, e-mail ou perfil..."
-                value={filtroUsuario}
-                onChange={(e) => setFiltroUsuario(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="card overflow-hidden">
-            <div className="tabela-rolavel">
-              <table className="tabela-larga">
-                <thead className="bg-pietra-clara/60 text-left">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold">Nome / e-mail</th>
-                    <th className="px-4 py-3 font-semibold w-24">Perfil</th>
-                    <th className="px-4 py-3 font-semibold hidden md:table-cell">
-                      Vinculada a
-                    </th>
-                    <th className="px-4 py-3 font-semibold hidden lg:table-cell w-36">
-                      Criado em
-                    </th>
-                    <th className="px-4 py-3 font-semibold w-44 text-right">
-                      Ações
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {listaUsuarios.length === 0 && !carregando && (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="px-4 py-8 text-center text-ardesia"
-                      >
-                        Nenhum usuário encontrado.
-                      </td>
-                    </tr>
-                  )}
-                  {listaUsuarios.map((u) => (
-                    <tr
-                      key={u.uid}
-                      className="border-t border-pietra-clara hover:bg-pietra-clara/40 cursor-pointer"
-                      onClick={() => {
-                        setEditandoConviteId(null);
-                        setEditandoUid(u.uid);
-                      }}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="font-semibold">{u.nome}</div>
-                        <div className="text-xs text-ardesia font-mono">
-                          {u.email}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={classePerfilBadge(u.perfil)}>
-                          {ROTULO_PERFIL[u.perfil]}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 hidden md:table-cell text-ardesia">
-                        {u.pessoaId
-                          ? indicePessoas.get(u.pessoaId) ?? "(pessoa removida)"
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-3 hidden lg:table-cell text-ardesia font-mono text-xs">
-                        {formatarData(u.criadoEm)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            className="btn btn-secundario btn-pequeno"
-                            onClick={(ev) => {
-                              ev.stopPropagation();
-                              setEditandoConviteId(null);
-                              setEditandoUid(u.uid);
-                            }}
-                            aria-label="Editar"
-                            title="Editar"
-                          >
-                            <Icone nome="lapis" />
-                          </button>
-                          {ehAdm && (
-                            <button
-                              type="button"
-                              className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                              onClick={(ev) => {
-                                ev.stopPropagation();
-                                handleRemoverUsuario(u);
-                              }}
-                              disabled={u.uid === sessao.uid}
-                              aria-label="Remover"
-                              title={
-                                u.uid === sessao.uid
-                                  ? "Não pode remover o próprio usuário"
-                                  : "Remover"
-                              }
-                            >
-                              <Icone nome="lixeira" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Aba Convites */}
-      {aba === "convites" && (
-        <section className="space-y-4">
-          {criandoConvite && (
-            <div className="card">
-              <div className="card-corpo">
-                <h3 className="mb-4">Novo convite</h3>
-                <ConviteForm
-                  pessoas={pessoas}
-                  equipesAtivas={equipes}
-                  onSubmit={handleCriarConvite}
-                  onCancelar={() => setCriandoConvite(false)}
-                />
-              </div>
-            </div>
-          )}
-
-          {editandoConviteId && conviteEditando && (
-            <div className="card">
-              <div className="card-corpo">
-                <h3 className="mb-4">
-                  Editando convite — {conviteEditando.email}
-                </h3>
-                <ConviteForm
-                  inicial={conviteEditando}
-                  pessoas={pessoas}
-                  equipesAtivas={equipes}
-                  onSubmit={handleAtualizarConvite}
-                  onCancelar={() => setEditandoConviteId(null)}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Filtros */}
-          <div className="card">
-            <div className="card-corpo">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <input
                   className="input"
-                  placeholder="Filtrar por e-mail..."
-                  value={filtroConviteEmail}
-                  onChange={(e) => setFiltroConviteEmail(e.target.value)}
+                  placeholder="Buscar por nome, e-mail ou perfil..."
+                  value={filtroUsuario}
+                  onChange={(e) => setFiltroUsuario(e.target.value)}
                 />
-                <select
-                  className="input"
-                  value={filtroConvitePerfil}
-                  onChange={(e) =>
-                    setFiltroConvitePerfil(e.target.value as Perfil | "")
-                  }
-                >
-                  {PERFIS_FILTRO.map((p) => (
-                    <option key={p.valor} value={p.valor}>
-                      {p.rotulo}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="input"
-                  value={filtroConviteStatus}
-                  onChange={(e) =>
-                    setFiltroConviteStatus(e.target.value as StatusConvite | "")
-                  }
-                >
-                  {STATUS_CONVITE_FILTRO.map((s) => (
-                    <option key={s.valor} value={s.valor}>
-                      {s.rotulo}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
-          </div>
-
-          {/* Tabela de convites */}
-          <div className="card overflow-hidden">
-            <div className="tabela-rolavel">
-              <table className="tabela-larga">
-                <thead className="bg-pietra-clara/60 text-left">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold">E-mail</th>
-                    <th className="px-4 py-3 font-semibold w-24">Perfil</th>
-                    <th className="px-4 py-3 font-semibold w-28">Status</th>
-                    <th className="px-4 py-3 font-semibold hidden lg:table-cell w-36">
-                      Criado em
-                    </th>
-                    <th className="px-4 py-3 font-semibold hidden lg:table-cell w-36">
-                      Expira em
-                    </th>
-                    <th className="px-4 py-3 font-semibold w-56 text-right">
-                      Ações
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {carregandoConvites && (
+  
+            <div className="card overflow-hidden">
+              <div className="tabela-rolavel">
+                <table className="tabela-larga">
+                  <thead className="bg-pietra-clara/60 text-left">
                     <tr>
-                      <td colSpan={6} className="px-4 py-6 text-center text-ardesia">
-                        Carregando...
-                      </td>
+                      <th className="px-4 py-3 font-semibold">Nome / e-mail</th>
+                      <th className="px-4 py-3 font-semibold w-24">Perfil</th>
+                      <th className="px-4 py-3 font-semibold hidden md:table-cell">
+                        Vinculada a
+                      </th>
+                      <th className="px-4 py-3 font-semibold hidden lg:table-cell w-36">
+                        Criado em
+                      </th>
+                      <th className="px-4 py-3 font-semibold w-44 text-right">
+                        Ações
+                      </th>
                     </tr>
-                  )}
-                  {!carregandoConvites && listaConvites.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-ardesia">
-                        Nenhum convite encontrado.
-                      </td>
-                    </tr>
-                  )}
-                  {listaConvites.map((c) => (
-                    <tr
-                      key={c.id}
-                      className={`border-t border-pietra-clara hover:bg-pietra-clara/40${c.status === "pendente" ? " cursor-pointer" : ""}`}
-                      onClick={() => {
-                        if (c.status === "pendente") {
-                          setEditandoUid(null);
-                          setEditandoConviteId(c.id);
-                        }
-                      }}
-                    >
-                      <td className="px-4 py-3 font-mono text-xs">{c.email}</td>
-                      <td className="px-4 py-3">
-                        <span className={classePerfilBadge(c.perfil)}>
-                          {ROTULO_PERFIL[c.perfil]}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={classeStatusBadge(c.status)}>
-                          {c.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 hidden lg:table-cell text-ardesia font-mono text-xs">
-                        {formatarData(c.criadoEm)}
-                      </td>
-                      <td className="px-4 py-3 hidden lg:table-cell text-ardesia font-mono text-xs">
-                        {formatarData(c.expiraEm)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-2 flex-wrap">
-                          {c.status === "pendente" && (
+                  </thead>
+                  <tbody>
+                    {listaUsuarios.length === 0 && !carregando && (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-4 py-8 text-center text-ardesia"
+                        >
+                          Nenhum usuário encontrado.
+                        </td>
+                      </tr>
+                    )}
+                    {listaUsuarios.map((u) => (
+                      <tr
+                        key={u.uid}
+                        className="border-t border-pietra-clara hover:bg-pietra-clara/40 cursor-pointer"
+                        onClick={() => {
+                          setEditandoConviteId(null);
+                          setEditandoUid(u.uid);
+                        }}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="font-semibold">{u.nome}</div>
+                          <div className="text-xs text-ardesia font-mono">
+                            {u.email}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={classePerfilBadge(u.perfil)}>
+                            {ROTULO_PERFIL[u.perfil]}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell text-ardesia">
+                          {u.pessoaId
+                            ? indicePessoas.get(u.pessoaId) ?? "(pessoa removida)"
+                            : "—"}
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell text-ardesia font-mono text-xs">
+                          {formatarData(u.criadoEm)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex justify-end gap-2">
                             <button
                               type="button"
                               className="btn btn-secundario btn-pequeno"
                               onClick={(ev) => {
                                 ev.stopPropagation();
-                                copiar(c.id);
-                              }}
-                              aria-label="Copiar link"
-                              title="Copiar link"
-                            >
-                              <Icone nome="copiar" />
-                            </button>
-                          )}
-                          {c.status === "pendente" && (
-                            <button
-                              type="button"
-                              className="btn btn-secundario btn-pequeno"
-                              onClick={(ev) => {
-                                ev.stopPropagation();
-                                setEditandoUid(null);
-                                setEditandoConviteId(c.id);
+                                setEditandoConviteId(null);
+                                setEditandoUid(u.uid);
                               }}
                               aria-label="Editar"
                               title="Editar"
                             >
                               <Icone nome="lapis" />
                             </button>
-                          )}
-                          {c.status === "pendente" && (
-                            <button
-                              type="button"
-                              className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                              onClick={(ev) => {
-                                ev.stopPropagation();
-                                handleRevogarConvite(c);
-                              }}
-                              aria-label="Revogar"
-                              title="Revogar"
-                            >
-                              <Icone nome="proibido" />
-                            </button>
-                          )}
-                          {c.status !== "pendente" && ehAdm && (
-                            <button
-                              type="button"
-                              className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                              onClick={(ev) => {
-                                ev.stopPropagation();
-                                handleRemoverConvite(c);
-                              }}
-                              aria-label="Apagar"
-                              title="Apagar"
-                            >
-                              <Icone nome="lixeira" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                            {ehAdm && (
+                              <button
+                                type="button"
+                                className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  handleRemoverUsuario(u);
+                                }}
+                                disabled={u.uid === sessao.uid}
+                                aria-label="Remover"
+                                title={
+                                  u.uid === sessao.uid
+                                    ? "Não pode remover o próprio usuário"
+                                    : "Remover"
+                                }
+                              >
+                                <Icone nome="lixeira" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )}
+
+        {/* Aba Convites */}
+        {aba === "convites" && (
+          <section className="space-y-4 tabs-painel">
+            {criandoConvite && (
+              <div className="card">
+                <div className="card-corpo">
+                  <h3 className="mb-4">Novo convite</h3>
+                  <ConviteForm
+                    pessoas={pessoas}
+                    equipesAtivas={equipes}
+                    onSubmit={handleCriarConvite}
+                    onCancelar={() => setCriandoConvite(false)}
+                  />
+                </div>
+              </div>
+            )}
+  
+            {editandoConviteId && conviteEditando && (
+              <div className="card">
+                <div className="card-corpo">
+                  <h3 className="mb-4">
+                    Editando convite — {conviteEditando.email}
+                  </h3>
+                  <ConviteForm
+                    inicial={conviteEditando}
+                    pessoas={pessoas}
+                    equipesAtivas={equipes}
+                    onSubmit={handleAtualizarConvite}
+                    onCancelar={() => setEditandoConviteId(null)}
+                  />
+                </div>
+              </div>
+            )}
+  
+            {/* Filtros */}
+            <div className="card">
+              <div className="card-corpo">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <input
+                    className="input"
+                    placeholder="Filtrar por e-mail..."
+                    value={filtroConviteEmail}
+                    onChange={(e) => setFiltroConviteEmail(e.target.value)}
+                  />
+                  <select
+                    className="input"
+                    value={filtroConvitePerfil}
+                    onChange={(e) =>
+                      setFiltroConvitePerfil(e.target.value as Perfil | "")
+                    }
+                  >
+                    {PERFIS_FILTRO.map((p) => (
+                      <option key={p.valor} value={p.valor}>
+                        {p.rotulo}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="input"
+                    value={filtroConviteStatus}
+                    onChange={(e) =>
+                      setFiltroConviteStatus(e.target.value as StatusConvite | "")
+                    }
+                  >
+                    {STATUS_CONVITE_FILTRO.map((s) => (
+                      <option key={s.valor} value={s.valor}>
+                        {s.rotulo}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+  
+            {/* Tabela de convites */}
+            <div className="card overflow-hidden">
+              <div className="tabela-rolavel">
+                <table className="tabela-larga">
+                  <thead className="bg-pietra-clara/60 text-left">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">E-mail</th>
+                      <th className="px-4 py-3 font-semibold w-24">Perfil</th>
+                      <th className="px-4 py-3 font-semibold w-28">Status</th>
+                      <th className="px-4 py-3 font-semibold hidden lg:table-cell w-36">
+                        Criado em
+                      </th>
+                      <th className="px-4 py-3 font-semibold hidden lg:table-cell w-36">
+                        Expira em
+                      </th>
+                      <th className="px-4 py-3 font-semibold w-56 text-right">
+                        Ações
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {carregandoConvites && (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-6 text-center text-ardesia">
+                          Carregando...
+                        </td>
+                      </tr>
+                    )}
+                    {!carregandoConvites && listaConvites.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 text-center text-ardesia">
+                          Nenhum convite encontrado.
+                        </td>
+                      </tr>
+                    )}
+                    {listaConvites.map((c) => (
+                      <tr
+                        key={c.id}
+                        className={`border-t border-pietra-clara hover:bg-pietra-clara/40${c.status === "pendente" ? " cursor-pointer" : ""}`}
+                        onClick={() => {
+                          if (c.status === "pendente") {
+                            setEditandoUid(null);
+                            setEditandoConviteId(c.id);
+                          }
+                        }}
+                      >
+                        <td className="px-4 py-3 font-mono text-xs">{c.email}</td>
+                        <td className="px-4 py-3">
+                          <span className={classePerfilBadge(c.perfil)}>
+                            {ROTULO_PERFIL[c.perfil]}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={classeStatusBadge(c.status)}>
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell text-ardesia font-mono text-xs">
+                          {formatarData(c.criadoEm)}
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell text-ardesia font-mono text-xs">
+                          {formatarData(c.expiraEm)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex justify-end gap-2 flex-wrap">
+                            {c.status === "pendente" && (
+                              <button
+                                type="button"
+                                className="btn btn-secundario btn-pequeno"
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  copiar(c.id);
+                                }}
+                                aria-label="Copiar link"
+                                title="Copiar link"
+                              >
+                                <Icone nome="copiar" />
+                              </button>
+                            )}
+                            {c.status === "pendente" && (
+                              <button
+                                type="button"
+                                className="btn btn-secundario btn-pequeno"
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  setEditandoUid(null);
+                                  setEditandoConviteId(c.id);
+                                }}
+                                aria-label="Editar"
+                                title="Editar"
+                              >
+                                <Icone nome="lapis" />
+                              </button>
+                            )}
+                            {c.status === "pendente" && (
+                              <button
+                                type="button"
+                                className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  handleRevogarConvite(c);
+                                }}
+                                aria-label="Revogar"
+                                title="Revogar"
+                              >
+                                <Icone nome="proibido" />
+                              </button>
+                            )}
+                            {c.status !== "pendente" && ehAdm && (
+                              <button
+                                type="button"
+                                className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  handleRemoverConvite(c);
+                                }}
+                                aria-label="Apagar"
+                                title="Apagar"
+                              >
+                                <Icone nome="lixeira" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { api } from "./api";
 import {
   Checkin,
   Convite,
+  DiaFesta,
   Edicao,
   EntregaCracha,
   Equipe,
@@ -13,6 +14,7 @@ import {
   EventoAuditoria,
   Formacao,
   HistoricoEstacionamentoVeiculo,
+  LinkPresenca,
   LinkValidacao,
   Participacao,
   ParticipacaoHistorica,
@@ -93,6 +95,17 @@ export function useEdicao(id: string | undefined): EstadoItem<Edicao> {
     enabled: !!id,
   });
   return { item: data ?? null, carregando: isLoading && !!id, erro: erroMsg(error) };
+}
+
+// ─── Dias de festa ───────────────────────────────────────────────────────────
+
+export function useDiasFesta(edicaoId: string | undefined): EstadoLista<DiaFesta> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["dias-festa", edicaoId],
+    queryFn: () => api.get<DiaFesta[]>(`/api/dias-festa?edicaoId=${edicaoId}`),
+    enabled: !!edicaoId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
 }
 
 // ─── Equipes ──────────────────────────────────────────────────────────────────
@@ -244,6 +257,17 @@ export function useLinksDaTurma(turmaId: string | undefined): EstadoLista<LinkVa
     enabled: !!turmaId,
   });
   return { itens: data ?? [], carregando: isLoading && !!turmaId, erro: erroMsg(error) };
+}
+
+// ─── Links de presença ─────────────────────────────────────────────────────────
+
+export function useLinksPresenca(edicaoId: string | undefined): EstadoLista<LinkPresenca> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["links-presenca", edicaoId],
+    queryFn: () => api.get<LinkPresenca[]>(`/api/presenca/links?edicaoId=${edicaoId}`),
+    enabled: !!edicaoId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
 }
 
 // ─── Convites ─────────────────────────────────────────────────────────────────

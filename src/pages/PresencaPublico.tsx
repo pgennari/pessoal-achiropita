@@ -206,7 +206,7 @@ export function PresencaPublico() {
           <h1 className="mt-1">Presença de equipistas</h1>
           {dataDia && (
             <p className="font-display text-2xl text-carbone mt-2">
-              Dia <strong>{formatarDataDia(dataDia)}</strong>
+              <strong>{formatarDataDia(dataDia)}</strong>
             </p>
           )}
         </header>
@@ -491,13 +491,12 @@ function ModalConfirmarPresenca({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-carbone/50">
-      <div className="card w-full max-w-md mx-4">
-        <div className="card-corpo space-y-4">
+      <div className="card w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
+        <div className="card-corpo flex flex-col flex-1 min-h-0 space-y-4">
           <h3>Confirmar presença</h3>
 
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-ardesia">Data</span>
               <span className="font-mono">{formatarDataDia(dataDia)}</span>
             </div>
             <div className="flex justify-between">
@@ -508,19 +507,21 @@ function ModalConfirmarPresenca({
             </div>
           </div>
 
-          <ul className="space-y-2">
-            {equipistas.map((e) => (
-              <li
-                key={e.pessoaId}
-                className="border border-pietra-clara rounded-sm px-3 py-2"
-              >
-                <div className="text-sm font-semibold">{e.nome}</div>
-                <div className="text-ardesia text-xs font-mono">
-                  crachá {e.cracha}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <ul className="space-y-2">
+              {equipistas.map((e) => (
+                <li
+                  key={e.pessoaId}
+                  className="border border-pietra-clara rounded-sm px-3 py-2"
+                >
+                  <div className="text-sm font-semibold">{e.nome}</div>
+                  <div className="text-ardesia text-xs font-mono">
+                    crachá {e.cracha}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
 
           {erro && (
             <div className="rounded-sm bg-vermelho/10 border border-vermelho/30 p-3 text-sm text-vermelho-escuro">

@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
 import {
   useDiasFesta,
   useEdicaoAtiva,
   useLinksPresenca,
+  usePresencasDoDia,
+  useResumoEquipesDoDia,
 } from "../lib/hooks";
 import {
   gerarLinkPresenca,
@@ -13,17 +15,56 @@ import {
 import { Icone } from "../components/Icone";
 import { formatarData } from "../lib/utilsDominio";
 
+const POR_PAGINA = 20;
+const INTERVALO_ATUALIZACAO = 60_000;
+
 export function Presenca() {
   const { sessao } = useSessao();
   const { edicao, carregando: carregandoEdicao } = useEdicaoAtiva();
   const { itens: dias, carregando: carregandoDias } = useDiasFesta(edicao?.id);
-  const { itens: links, carregando: carregandoLinks } = useLinksPresenca(edicao?.id);
+  const {
+    itens: links,
+    carregando: carregandoLinks,
+    atualizadoEm: linksAtualizadoEm,
+  } = useLinksPresenca(edicao?.id);
   const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  const [pagina, setPagina] = useState(1);
+  const [agora, setAgora] = useState(() => Date.now());
 
   const podeAdministrar =
     !!sessao && (sessao.perfil === "ADM" || sessao.perfil === "ORG");
+
+  const diasOrdenados = [...dias].sort((a, b) => a.data.localeCompare(b.data));
+  const diaAtivo = diasOrdenados.find((d) => d.id === diaSelecionado) ?? diasOrdenados[0];
+
+  const {
+    itens: presencas,
+    carregando: carregandoPresencas,
+    atualizadoEm: presencasAtualizadoEm,
+  } = usePresencasDoDia(diaAtivo?.id);
+  const {
+    itens: resumoEquipes,
+    carregando: carregandoResumo,
+    atualizadoEm: resumoAtualizadoEm,
+  } = useResumoEquipesDoDia(diaAtivo?.id);
+
+  useEffect(() => {
+    setPagina(1);
+  }, [diaAtivo?.id]);
+
+  useEffect(() => {
+    const id = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const ultimaAtualizacao = Math.max(
+    linksAtualizadoEm ?? 0,
+    presencasAtualizadoEm ?? 0,
+    resumoAtualizadoEm ?? 0
+  );
+  const ateProxima = Math.max(0, ultimaAtualizacao + INTERVALO_ATUALIZACAO - agora);
 
   if (!sessao) return null;
   if (!podeAdministrar) {
@@ -66,11 +107,15 @@ export function Presenca() {
     );
   }
 
-  const diasOrdenados = [...dias].sort((a, b) => a.data.localeCompare(b.data));
-  const diaAtivo = diasOrdenados.find((d) => d.id === diaSelecionado) ?? diasOrdenados[0];
-
   const linkAtivo = links.find(
     (l) => l.diaFestaId === diaAtivo?.id && l.status === "ativo"
+  );
+
+  const totalPaginas = Math.max(1, Math.ceil(presencas.length / POR_PAGINA));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const linhasDaPagina = presencas.slice(
+    (paginaAtual - 1) * POR_PAGINA,
+    paginaAtual * POR_PAGINA
   );
 
   async function handleGerar() {
@@ -97,13 +142,29 @@ export function Presenca() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <div className="eyebrow">Operação</div>
-        <h2 className="mt-1">Presença de equipistas</h2>
-        <p className="text-ardesia text-sm">
-          {edicao.numero}ª edição ({edicao.ano}) · um link público por dia de
-          festa para o coordenador confirmar a presença da equipe
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="eyebrow">Operação</div>
+          <h2 className="mt-1">Presença de equipistas</h2>
+          <p className="text-ardesia text-sm">
+            {edicao.numero}ª edição ({edicao.ano}) · um link público por dia de
+            festa para o coordenador confirmar a presença da equipe
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ardesia">
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              className="w-2 h-2 rounded-full bg-verde"
+              aria-hidden="true"
+            />
+            Atualizado às {formatarHora(ultimaAtualizacao)}
+          </span>
+          <span aria-hidden="true">·</span>
+          <span>
+            Próxima atualização em {formatarContagem(ateProxima)}
+          </span>
+        </div>
       </header>
 
       {erro && <p className="text-vermelho-escuro text-sm">{erro}</p>}
@@ -136,6 +197,130 @@ export function Presenca() {
           </div>
 
           <section className="tabs-painel" role="tabpanel" tabIndex={0}>
+            {diaAtivo && (
+              <section className="mb-6">
+
+                {!carregandoResumo && resumoEquipes.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-1 mb-4">
+                    {resumoEquipes.map((e) => (
+                      <div
+                        key={e.equipeId}
+                        className={`flex items-center justify-between gap-0 px-4 py-1 ${corFundoConfirmados(e.confirmados, e.total)}`}
+                      >
+                        <span className="text-xs text-carbone min-w-0 truncate">
+                          {e.equipeNome}
+                        </span>
+                        <span
+                          className={`text-xs font-display font-semibold whitespace-nowrap ${corConfirmados(e.confirmados, e.total)}`}
+                        >
+                          {e.confirmados}/{e.total}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+                  <h3 className="font-display text-lg">Presenças confirmadas</h3>
+                  <p className="text-ardesia text-sm">
+                    {carregandoPresencas
+                      ? "Carregando..."
+                      : `${presencas.length} registro${presencas.length === 1 ? "" : "s"} para ${formatarData(diaAtivo.data)}`}
+                  </p>
+                </div>
+
+                {!carregandoPresencas && presencas.length > 0 && (
+                  <div className="card overflow-hidden">
+                    <div className="tabela-rolavel">
+                      <table className="tabela-larga">
+                        <thead className="bg-pietra-clara/60 text-left">
+                          <tr>
+                            <th className="px-4 py-2 font-semibold">Equipe</th>
+                            <th className="px-4 py-2 font-semibold">Crachá · Nome</th>
+                            <th className="px-4 py-2 font-semibold">Função</th>
+                            <th className="px-4 py-2 font-semibold">Confirmado por</th>
+                            <th className="px-4 py-2 font-semibold">
+                              Data e hora do registro
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {linhasDaPagina.map((p) => (
+                            <tr
+                              key={p.id}
+                              className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                            >
+                              <td className="px-4 py-2 text-ardesia whitespace-nowrap">
+                                {p.equipeNome}
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap">
+                                <span className="font-mono text-ardesia">
+                                  #{p.cracha}
+                                </span>{" "}
+                                <span className="font-semibold">
+                                  {p.pessoaNome}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 text-ardesia">
+                                {p.funcao ?? "—"}
+                              </td>
+                              <td className="px-4 py-2 text-ardesia whitespace-nowrap">
+                                {p.confirmadoPorNome}
+                              </td>
+                              <td className="px-4 py-2 text-ardesia whitespace-nowrap">
+                                {formatarDataHora(p.registradoEm)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {totalPaginas > 1 && (
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-pietra-clara px-4 py-2">
+                        <span className="text-sm text-ardesia">
+                          Página {paginaAtual} de {totalPaginas}
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-secundario btn-pequeno"
+                            onClick={() => setPagina((p) => Math.max(1, p - 1))}
+                            disabled={paginaAtual === 1}
+                            aria-label="Página anterior"
+                            title="Página anterior"
+                          >
+                            <Icone nome="seta-esquerda" />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secundario btn-pequeno"
+                            onClick={() =>
+                              setPagina((p) => Math.min(totalPaginas, p + 1))
+                            }
+                            disabled={paginaAtual === totalPaginas}
+                            aria-label="Próxima página"
+                            title="Próxima página"
+                          >
+                            <Icone nome="seta-direita" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!carregandoPresencas && presencas.length === 0 && (
+                  <div className="card">
+                    <div className="card-corpo">
+                      <p className="text-ardesia">
+                        Nenhuma presença confirmada para este dia.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
+
             {diaAtivo && (
               <div className="card">
                 <div className="card-corpo space-y-4">
@@ -208,4 +393,49 @@ export function Presenca() {
       )}
     </div>
   );
+}
+
+function formatarDataHora(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatarHora(ms: number): string {
+  if (!ms) return "—";
+  return new Date(ms).toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function formatarContagem(ms: number): string {
+  if (!ms) return "—";
+  const totalSegundos = Math.ceil(ms / 1000);
+  const minutos = Math.floor(totalSegundos / 60);
+  const segundos = totalSegundos % 60;
+  return `${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}`;
+}
+
+function corConfirmados(confirmados: number, total: number): string {
+  if (total <= 0) return "text-ardesia";
+  const pct = (confirmados / total) * 100;
+  if (pct < 75) return "text-vermelho-escuro";
+  if (pct < 90) return "text-ouro-texto";
+  return "text-verde-escuro";
+}
+
+function corFundoConfirmados(confirmados: number, total: number): string {
+  if (total <= 0) return "bg-pietra-clara";
+  const pct = (confirmados / total) * 100;
+  if (pct < 75) return "bg-vermelho/10";
+  if (pct < 90) return "bg-ouro/15";
+  return "bg-verde/10";
 }

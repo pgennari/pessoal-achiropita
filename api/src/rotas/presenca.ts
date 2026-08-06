@@ -19,6 +19,23 @@ function linkPresencaDeRow(r: Record<string, unknown>) {
   };
 }
 
+function presencaDeRow(r: Record<string, unknown>) {
+  const registradoEm = r.registrado_em instanceof Date ? r.registrado_em.toISOString() : String(r.registrado_em ?? "");
+  return {
+    id: r.id,
+    diaFestaId: r.dia_festa_id,
+    edicaoId: r.edicao_id,
+    equipeId: r.equipe_id,
+    equipeNome: r.equipe_nome,
+    pessoaId: r.pessoa_id,
+    pessoaNome: r.pessoa_nome,
+    cracha: Number(r.cracha),
+    funcao: (r.funcao as string | null) ?? null,
+    confirmadoPorNome: r.confirmado_por_nome,
+    registradoEm,
+  };
+}
+
 const getLinksPresencaRoute = createRoute({
   method: "get",
   path: "/links",
@@ -115,6 +132,103 @@ app.openapi(postLinkPresencaRoute, async (c) => {
   const dataDia = dia.data instanceof Date ? dia.data.toISOString().slice(0, 10) : String(dia.data ?? "");
   await registrarEvento(sessao, "presenca.link.gerou", `linksPresenca/${row.id}`, `dia ${dataDia}`);
   return c.json(linkPresencaDeRow(row) as any, 201);
+});
+
+const getPresencasRoute = createRoute({
+  method: "get",
+  path: "/presencas",
+  tags: ["Presenca"],
+  summary: "Lista presencas confirmadas de um dia da festa",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { query: z.object({ diaFestaId: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de presencas" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
+  }
+});
+
+app.openapi(getPresencasRoute, async (c) => {
+  const sessao = c.get("sessao");
+  if (!podeAdministrar(sessao.perfil)) {
+    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  }
+  const { diaFestaId } = c.req.valid("query");
+  const rows = await sql`
+    SELECT
+      pr.id, pr.dia_festa_id, pr.edicao_id, pr.equipe_id, pr.pessoa_id,
+      pr.pessoa_nome, pr.cracha, pr.confirmado_por_nome, pr.registrado_em,
+      eq.nome AS equipe_nome, part.funcao
+    FROM presencas pr
+    JOIN equipes eq ON eq.id = pr.equipe_id
+    LEFT JOIN participacoes part
+      ON part.edicao_id = pr.edicao_id AND part.pessoa_id = pr.pessoa_id
+    WHERE pr.dia_festa_id = ${diaFestaId}
+    ORDER BY pr.registrado_em DESC, pr.pessoa_nome ASC
+  `;
+  return c.json(rows.map(presencaDeRow) as any, 200);
+});
+
+const getResumoEquipesRoute = createRoute({
+  method: "get",
+  path: "/resumo-equipes",
+  tags: ["Presenca"],
+  summary: "Resumo de presencas confirmadas por equipe de um dia",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { query: z.object({ diaFestaId: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Resumo por equipe" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Dia não encontrado" }
+  }
+});
+
+app.openapi(getResumoEquipesRoute, async (c) => {
+  const sessao = c.get("sessao");
+  if (!podeAdministrar(sessao.perfil)) {
+    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  }
+  const { diaFestaId } = c.req.valid("query");
+  const [dia] = await sql`
+    SELECT edicao_id FROM dias_festa WHERE id = ${diaFestaId}
+  `;
+  if (!dia) {
+    return c.json({ erro: "Dia da festa não encontrado." }, 404);
+  }
+  const rows = await sql`
+    SELECT
+      eq.id AS equipe_id,
+      eq.nome AS equipe_nome,
+      COALESCE(total_cont.total, 0)::int AS total,
+      COALESCE(pres.confirmados, 0)::int AS confirmados
+    FROM equipes eq
+    LEFT JOIN (
+      SELECT part.equipe_id, COUNT(*)::int AS total
+      FROM participacoes part
+      JOIN pessoas p ON p.id = part.pessoa_id
+      WHERE part.funcao IN ('Equipista', 'Apoio') AND p.ativo = true
+      GROUP BY part.equipe_id
+    ) total_cont ON total_cont.equipe_id = eq.id
+    LEFT JOIN (
+      SELECT pr.equipe_id, COUNT(*)::int AS confirmados
+      FROM presencas pr
+      WHERE pr.dia_festa_id = ${diaFestaId}
+      GROUP BY pr.equipe_id
+    ) pres ON pres.equipe_id = eq.id
+    WHERE eq.edicao_id = ${String(dia.edicao_id)}
+      AND (total_cont.total IS NOT NULL OR pres.confirmados IS NOT NULL)
+    ORDER BY eq.nome
+  `;
+  return c.json(
+    rows.map((r) => ({
+      equipeId: String(r.equipe_id),
+      equipeNome: String(r.equipe_nome),
+      confirmados: Number(r.confirmados),
+      total: Number(r.total),
+    })) as any,
+    200
+  );
 });
 
 export default app;

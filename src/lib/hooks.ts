@@ -21,6 +21,8 @@ import {
   Pessoa,
   PessoaComVeiculos,
   PessoaEstacionamento,
+  PresencaRegistrada,
+  ResumoEquipePresenca,
   SetorInfo,
   TurmaFormacao,
   Usuario,
@@ -31,12 +33,14 @@ import {
   buscarEstacionamentoPublico,
   buscarHistoricoPublico,
 } from "./checkin";
+import { listarPresencasDoDia, listarResumoEquipesDoDia } from "./presenca";
 import type { DashboardInicial } from "./dashboard";
 
 export interface EstadoLista<T> {
   itens: T[];
   carregando: boolean;
   erro: string | null;
+  atualizadoEm?: number;
 }
 
 export interface EstadoItem<T> {
@@ -262,12 +266,35 @@ export function useLinksDaTurma(turmaId: string | undefined): EstadoLista<LinkVa
 // ─── Links de presença ─────────────────────────────────────────────────────────
 
 export function useLinksPresenca(edicaoId: string | undefined): EstadoLista<LinkPresenca> {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, dataUpdatedAt } = useQuery({
     queryKey: ["links-presenca", edicaoId],
     queryFn: () => api.get<LinkPresenca[]>(`/api/presenca/links?edicaoId=${edicaoId}`),
     enabled: !!edicaoId,
+    refetchInterval: 60_000,
   });
-  return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
+  return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error), atualizadoEm: dataUpdatedAt };
+}
+
+// ─── Presenças confirmadas ────────────────────────────────────────────────────
+
+export function usePresencasDoDia(diaFestaId: string | undefined): EstadoLista<PresencaRegistrada> {
+  const { data, isLoading, error, dataUpdatedAt } = useQuery({
+    queryKey: ["presencas", "dia", diaFestaId],
+    queryFn: () => listarPresencasDoDia(diaFestaId as string),
+    enabled: !!diaFestaId,
+    refetchInterval: 60_000,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!diaFestaId, erro: erroMsg(error), atualizadoEm: dataUpdatedAt };
+}
+
+export function useResumoEquipesDoDia(diaFestaId: string | undefined): EstadoLista<ResumoEquipePresenca> {
+  const { data, isLoading, error, dataUpdatedAt } = useQuery({
+    queryKey: ["presencas", "resumo-equipes", diaFestaId],
+    queryFn: () => listarResumoEquipesDoDia(diaFestaId as string),
+    enabled: !!diaFestaId,
+    refetchInterval: 60_000,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!diaFestaId, erro: erroMsg(error), atualizadoEm: dataUpdatedAt };
 }
 
 // ─── Convites ─────────────────────────────────────────────────────────────────

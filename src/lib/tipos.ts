@@ -343,7 +343,30 @@ export interface Presenca {
   registradoEm: string;
 }
 
+// Presenca confirmada de um dia da festa, com dados da equipe e funcao.
+export interface PresencaRegistrada {
+  id: string;
+  diaFestaId: string;
+  edicaoId: string;
+  equipeId: string;
+  equipeNome: string;
+  pessoaId: string;
+  pessoaNome: string;
+  cracha: number;
+  funcao: string | null;
+  confirmadoPorNome: string;
+  registradoEm: string;
+}
+
 export type TipoPresenca = "manual" | "validacao";
+
+// Resumo de presencas confirmadas por equipe em um dia da festa.
+export interface ResumoEquipePresenca {
+  equipeId: string;
+  equipeNome: string;
+  confirmados: number;
+  total: number;
+}
 
 export interface Formacao {
   id: string; // formato: `${edicaoId}__${pessoaId}`

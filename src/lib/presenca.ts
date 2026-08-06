@@ -2,7 +2,7 @@
 import { api, apiPublica } from "./api";
 import { gerarToken } from "./links";
 import { queryClient } from "./queryClient";
-import { LinkPresenca } from "./tipos";
+import { LinkPresenca, PresencaRegistrada, ResumoEquipePresenca } from "./tipos";
 
 export type StatusLinkPresenca = "ativo" | "revogado" | "naoEncontrado";
 
@@ -49,6 +49,14 @@ export function urlPresenca(token: string): string {
 
 export async function listarLinksPresenca(edicaoId: string): Promise<LinkPresenca[]> {
   return api.get<LinkPresenca[]>(`/api/presenca/links?edicaoId=${edicaoId}`);
+}
+
+export async function listarPresencasDoDia(diaFestaId: string): Promise<PresencaRegistrada[]> {
+  return api.get<PresencaRegistrada[]>(`/api/presenca/presencas?diaFestaId=${diaFestaId}`);
+}
+
+export async function listarResumoEquipesDoDia(diaFestaId: string): Promise<ResumoEquipePresenca[]> {
+  return api.get<ResumoEquipePresenca[]>(`/api/presenca/resumo-equipes?diaFestaId=${diaFestaId}`);
 }
 
 export async function gerarLinkPresenca(

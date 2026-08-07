@@ -87,6 +87,15 @@ export function podeAdministrar(sessao: {
   return sessao.perfil === "ADM" || sessao.perfil === "ORG" || temPermissao(sessao, "administracao");
 }
 
+// Operacao de estacionamentos (veiculos e check-in): ADM/ORG ou permissao
+// "estacionamentos.operar" do catalogo de perfis.
+export function podeOperarEstacionamentos(sessao: {
+  perfil: string;
+  permissoes?: string[];
+}): boolean {
+  return podeAdministrar(sessao) || temPermissao(sessao, "estacionamentos.operar");
+}
+
 // OPC opera a formação presencial: edita dados e troca foto das pessoas,
 // além de ADM e ORG.
 export function podeEditarPessoa(sessao: {

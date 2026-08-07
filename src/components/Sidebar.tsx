@@ -209,19 +209,21 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
                   <span className="inline-block w-2 h-2 rounded-full bg-verde mr-2" />
                   {edicaoAtiva.numero}ª edição · {edicaoAtiva.ano}
                 </NavLink>
-                <NavLink
-                  to="/dashboard/estacionamentos"
-                  onClick={onFechar}
-                  className={({ isActive }) => [
-                    "flex items-center px-3 py-2.5 rounded-sm text-sm font-semibold transition",
-                    isActive
-                      ? "bg-verde/10 text-verde-escuro border-l-2 border-verde"
-                      : "text-carbone hover:bg-verde/5 border-l-2 border-transparent",
-                  ].join(" ")}
-                >
-                  <span className="inline-block w-2 h-2 rounded-full bg-verde mr-2" />
-                  Check-ins
-                </NavLink>
+                {itemVisivel({ permissoes: ["administracao", "estacionamentos.operar"] }, sessao) && (
+                  <NavLink
+                    to="/dashboard/estacionamentos"
+                    onClick={onFechar}
+                    className={({ isActive }) => [
+                      "flex items-center px-3 py-2.5 rounded-sm text-sm font-semibold transition",
+                      isActive
+                        ? "bg-verde/10 text-verde-escuro border-l-2 border-verde"
+                        : "text-carbone hover:bg-verde/5 border-l-2 border-transparent",
+                    ].join(" ")}
+                  >
+                    <span className="inline-block w-2 h-2 rounded-full bg-verde mr-2" />
+                    Check-ins
+                  </NavLink>
+                )}
               </div>
             </div>
           )}
@@ -282,8 +284,8 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
           })}
         </nav>
 
-        <div className="p-4 border-t border-pietra-clara text-xs text-ardesia font-mono">
-          v0.1
+        <div className="p-4 border-t border-pietra-clara text-xs text-ardesia font-mono" title="Versão do build">
+          {VERSAO_APP}
         </div>
       </aside>
     </>

@@ -145,6 +145,11 @@ export function podeZerar(sessao: Sessao | null): boolean {
   return !!sessao && (sessao.perfil === "ADM" || temPermissao(sessao, "zeramento.executar"));
 }
 
+// Operacao de estacionamentos = ADM/ORG legado OU permissao "estacionamentos.operar".
+export function podeOperarEstacionamentos(sessao: Sessao | null): boolean {
+  return !!sessao && (podeAdministrar(sessao) || temPermissao(sessao, "estacionamentos.operar"));
+}
+
 // Edicao de pessoas = ADM/ORG/OPC/CRD legado OU permissao "pessoas.editar".
 export function podeEditarPessoa(sessao: Sessao | null): boolean {
   return (

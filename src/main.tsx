@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { App } from "./App";
 import { queryClient } from "./lib/queryClient";
+import { AvisoAtualizacao } from "./components/AvisoAtualizacao";
 import "./styles/globals.css";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
@@ -11,6 +12,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <App />
+        <AvisoAtualizacao />
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>

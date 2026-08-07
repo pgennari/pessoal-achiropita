@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import path from "node:path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
 
 function versaoDoBuild(): string {
   let sha = "sem-git";
@@ -18,7 +19,67 @@ export default defineConfig({
   define: {
     VERSAO_APP: JSON.stringify(versaoDoBuild()),
   },
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: "prompt",
+      includeAssets: ["favicon.svg", "logo-achiropita.png"],
+      manifest: {
+        name: "Achiropita — Pessoal — Gestão da equipe",
+        short_name: "Achiropita",
+        description: "Gestão da equipe da Festa de Nossa Senhora Achiropita",
+        lang: "pt-BR",
+        theme_color: "#16753A",
+        background_color: "#FFFFFF",
+        display: "standalone",
+        start_url: "/",
+        scope: "/",
+        icons: [
+          {
+            src: "/pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "/pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+          },
+          {
+            src: "/pwa-maskable-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+          {
+            src: "/pwa-apple-180x180.png",
+            sizes: "180x180",
+            type: "image/png",
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        navigateFallback: "/index.html",
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "fontes-google",
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365,
+              },
+            },
+          },
+        ],
+      },
+      devOptions: {
+        enabled: false,
+      },
+    }),
+  ],
   resolve: {
     alias: { "@": path.resolve(__dirname, "src") },
   },

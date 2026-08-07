@@ -9,7 +9,7 @@ import {
   usePessoas,
   useSetores,
 } from "../lib/hooks";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
 import {
   DadosEquipeForm,
   atualizarEquipe,
@@ -56,8 +56,7 @@ export function EquipeDetalhe() {
   const [equipeDestinoId, setEquipeDestinoId] = useState("");
   const [funcaoDestino, setFuncaoDestino] = useState<Funcao>("Equipista");
 
-  const podeAdministrar =
-    !!sessao && (sessao.perfil === "ADM" || sessao.perfil === "ORG");
+  const podeAdministrar = adminPode(sessao);
 
   const linhasDaEquipe: Linha[] = useMemo(
     () =>
@@ -74,10 +73,6 @@ export function EquipeDetalhe() {
   );
 
   const totais = useMemo(() => {
-    const previstas = equipe
-      ? equipe.vagasCoordenador + equipe.vagasEquipista + equipe.vagasApoio
-      : 0;
-    const alocadas = linhasDaEquipe.length;
     const porFuncao = {
       Coordenador: linhasDaEquipe.filter(
         (l) => l.participacao.funcao === "Coordenador"
@@ -89,12 +84,10 @@ export function EquipeDetalhe() {
         .length,
     };
     return {
-      previstas,
-      alocadas,
-      pct: previstas > 0 ? Math.round((alocadas / previstas) * 100) : 0,
+      alocadas: linhasDaEquipe.length,
       porFuncao,
     };
-  }, [equipe, linhasDaEquipe]);
+  }, [linhasDaEquipe]);
 
   if (!sessao) return null;
   if (carregando || carregandoEdicao || carregandoParticipacoes)
@@ -258,33 +251,19 @@ export function EquipeDetalhe() {
       <section className="kpi-grid">
         <div className="kpi">
           <div className="kpi-label">Coordenadores</div>
-          <div className="kpi-valor">
-            {totais.porFuncao.Coordenador}{" "}
-            <span className="unidade">/ {equipe.vagasCoordenador}</span>
-          </div>
+          <div className="kpi-valor">{totais.porFuncao.Coordenador}</div>
         </div>
         <div className="kpi">
           <div className="kpi-label">Equipistas</div>
-          <div className="kpi-valor">
-            {totais.porFuncao.Equipista}{" "}
-            <span className="unidade">/ {equipe.vagasEquipista}</span>
-          </div>
+          <div className="kpi-valor">{totais.porFuncao.Equipista}</div>
         </div>
         <div className="kpi">
           <div className="kpi-label">Apoio</div>
-          <div className="kpi-valor">
-            {totais.porFuncao.Apoio}{" "}
-            <span className="unidade">/ {equipe.vagasApoio}</span>
-          </div>
+          <div className="kpi-valor">{totais.porFuncao.Apoio}</div>
         </div>
         <div className="kpi">
-          <div className="kpi-label">Preenchimento total</div>
-          <div className="kpi-valor">
-            {totais.pct} <span className="unidade">%</span>
-          </div>
-          <div className="kpi-delta">
-            {totais.alocadas} de {totais.previstas} vagas
-          </div>
+          <div className="kpi-label">Pessoas alocadas</div>
+          <div className="kpi-valor">{totais.alocadas}</div>
         </div>
       </section>
 
@@ -484,8 +463,6 @@ export function EquipeDetalhe() {
         onConfirmar={handleAlocar}
         participacoesDaEdicao={participacoes}
         funcaoInicial={funcaoInicial}
-        vagasPrevistas={totais.previstas}
-        vagasAlocadas={totais.alocadas}
       />
     </div>
   );

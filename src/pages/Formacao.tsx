@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar as adminPode, temPermissao } from "../lib/sessao";
 import {
   useEquipes,
   useEdicaoAtiva,
@@ -43,10 +43,12 @@ export function PaginaFormacao() {
   const turmaEditando =
     turmas.find((t) => t.id === editandoTurmaId) ?? null;
 
-  const podeAdministrar =
-    !!sessao && (sessao.perfil === "ADM" || sessao.perfil === "ORG");
+  const podeAdministrar = adminPode(sessao);
 
-  const podeAcessar = podeAdministrar || sessao?.perfil === "CRD";
+  const podeAcessar =
+    podeAdministrar ||
+    sessao?.perfil === "CRD" ||
+    temPermissao(sessao, "formacao.operar");
 
   // Índices derivados (para KPIs) ---
 

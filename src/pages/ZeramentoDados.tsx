@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeZerar } from "../lib/sessao";
 import { zerarDados } from "../lib/zeramento";
 import { Icone } from "../components/Icone";
 
@@ -11,7 +11,7 @@ export function ZeramentoDados() {
   const [estado, setEstado] = useState<Estado>("idle");
   const [erro, setErro] = useState<string | null>(null);
 
-  if (!sessao || sessao.perfil !== "ADM") {
+  if (!podeZerar(sessao)) {
     return (
       <div className="card">
         <div className="card-corpo">

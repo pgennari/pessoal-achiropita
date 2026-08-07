@@ -91,7 +91,7 @@ const postEdicaoRoute = createRoute({
 });
 app.openapi(postEdicaoRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
@@ -144,7 +144,7 @@ const putEdicaoRoute = createRoute({
 app.openapi(putEdicaoRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
@@ -201,7 +201,7 @@ const postEdicaoAtivarRoute = createRoute({
 app.openapi(postEdicaoAtivarRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const [row] = await sql.begin(async (t) => {
@@ -230,7 +230,7 @@ const postEdicaoEncerrarRoute = createRoute({
 app.openapi(postEdicaoEncerrarRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const [row] = await sql`

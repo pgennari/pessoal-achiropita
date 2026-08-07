@@ -230,6 +230,9 @@
   .input.erro {
     @apply border-vermelho;
   }
+  .input-somente-leitura {
+    @apply bg-pietra-clara/40 text-ardesia cursor-default;
+  }
   .input.erro:focus {
     box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.15);
   }

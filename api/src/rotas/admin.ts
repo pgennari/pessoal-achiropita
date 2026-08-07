@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth } from "../auth.js";
+import { comAuth, podeZerar } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
@@ -21,7 +21,7 @@ const postZerarRoute = createRoute({
 
 app.openapi(postZerarRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (sessao.perfil !== "ADM") return c.json({ erro: "Acesso negado. Requer perfil ADM." }, 403);
+  if (!podeZerar(sessao)) return c.json({ erro: "Acesso negado. Requer perfil ADM." }, 403);
   await sql.begin(async (t) => {
     await t`TRUNCATE TABLE entregas_cracha CASCADE`;
     await t`TRUNCATE TABLE formacoes CASCADE`;

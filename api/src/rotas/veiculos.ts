@@ -137,7 +137,7 @@ const postRoute = createRoute({
 
 app.openapi(postRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = c.req.valid("json");
@@ -205,7 +205,7 @@ const putRoute = createRoute({
 app.openapi(putRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = c.req.valid("json");
@@ -256,7 +256,7 @@ const deleteRoute = createRoute({
 app.openapi(deleteRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
 
@@ -323,7 +323,7 @@ const postPessoaRoute = createRoute({
 app.openapi(postPessoaRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const { pessoaId } = c.req.valid("json");
@@ -361,7 +361,7 @@ const deletePessoaRoute = createRoute({
 app.openapi(deletePessoaRoute, async (c) => {
   const { id, pessoaId } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
 

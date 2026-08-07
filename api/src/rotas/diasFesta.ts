@@ -64,7 +64,7 @@ const postDiaRoute = createRoute({
 
 app.openapi(postDiaRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
@@ -107,7 +107,7 @@ const deleteDiaRoute = createRoute({
 app.openapi(deleteDiaRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const [row] = await sql`

@@ -14,11 +14,14 @@ function inicialDados(e?: Equipe | null): DadosEquipeForm {
   return {
     nome: e?.nome ?? "",
     setor: e?.setor ?? "Interna",
-    vagasCoordenador: e?.vagasCoordenador ?? 1,
-    vagasEquipista: e?.vagasEquipista ?? 0,
-    vagasApoio: e?.vagasApoio ?? 0,
   };
 }
+
+const CAMPOS_VAGAS = [
+  { chave: "vagasCoordenador", rotulo: "Vagas Coordenador" },
+  { chave: "vagasEquipista", rotulo: "Vagas Equipista" },
+  { chave: "vagasApoio", rotulo: "Vagas Apoio" },
+] as const;
 
 export function EquipeForm({
   inicial,
@@ -105,58 +108,29 @@ export function EquipeForm({
 
         <div className="hidden sm:block" />
 
-        <div className="input-grupo">
-          <label className="input-label" htmlFor="vagasCoordenador">
-            Vagas Coordenador
-          </label>
-          <input
-            id="vagasCoordenador"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            className={`input ${erros.vagasCoordenador ? "erro" : ""}`}
-            value={dados.vagasCoordenador ?? ""}
-            onChange={(e) => {
-              const v = e.target.value;
-              set("vagasCoordenador", v === "" ? undefined : parseInt(v, 10));
-            }}
-          />
-        </div>
-        <div className="input-grupo">
-          <label className="input-label" htmlFor="vagasEquipista">
-            Vagas Equipista
-          </label>
-          <input
-            id="vagasEquipista"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            className={`input ${erros.vagasEquipista ? "erro" : ""}`}
-            value={dados.vagasEquipista ?? ""}
-            onChange={(e) => {
-              const v = e.target.value;
-              set("vagasEquipista", v === "" ? undefined : parseInt(v, 10));
-            }}
-          />
-        </div>
-        <div className="input-grupo">
-          <label className="input-label" htmlFor="vagasApoio">
-            Vagas Apoio
-          </label>
-          <input
-            id="vagasApoio"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            className={`input ${erros.vagasApoio ? "erro" : ""}`}
-            value={dados.vagasApoio ?? ""}
-            onChange={(e) => {
-              const v = e.target.value;
-              set("vagasApoio", v === "" ? undefined : parseInt(v, 10));
-            }}
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:col-span-2">
+          {CAMPOS_VAGAS.map((campo) => (
+            <div className="input-grupo" key={campo.chave}>
+              <label className="input-label" htmlFor={campo.chave}>
+                {campo.rotulo}
+              </label>
+              <input
+                id={campo.chave}
+                className="input input-somente-leitura"
+                value={inicial?.[campo.chave] ?? 0}
+                readOnly
+                tabIndex={-1}
+                aria-readonly="true"
+              />
+            </div>
+          ))}
         </div>
       </div>
+
+      <p className="input-ajuda">
+        Vagas são calculadas automaticamente pela quantidade de pessoas
+        alocadas na equipe em cada função.
+      </p>
 
       <div className="flex flex-wrap gap-3 pt-4 border-t border-pietra-clara">
         <button

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
 import {
   useDiasFesta,
   useEdicaoAtiva,
@@ -33,8 +33,7 @@ export function Presenca() {
   const [pagina, setPagina] = useState(1);
   const [agora, setAgora] = useState(() => Date.now());
 
-  const podeAdministrar =
-    !!sessao && (sessao.perfil === "ADM" || sessao.perfil === "ORG");
+  const podeAdministrar = adminPode(sessao);
 
   const diasOrdenados = [...dias].sort((a, b) => a.data.localeCompare(b.data));
   const diaAtivo = diasOrdenados.find((d) => d.id === diaSelecionado) ?? diasOrdenados[0];
@@ -207,9 +206,12 @@ export function Presenca() {
                         key={e.equipeId}
                         className={`flex items-center justify-between gap-0 px-4 py-1 ${corFundoConfirmados(e.confirmados, e.total)}`}
                       >
-                        <span className="text-xs text-carbone min-w-0 truncate">
+                        <Link
+                          to={`/edicoes/${edicao.id}/equipes/${e.equipeId}`}
+                          className="text-xs text-carbone min-w-0 truncate no-underline hover:text-verde hover:underline"
+                        >
                           {e.equipeNome}
-                        </span>
+                        </Link>
                         <span
                           className={`text-xs font-display font-semibold whitespace-nowrap ${corConfirmados(e.confirmados, e.total)}`}
                         >

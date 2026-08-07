@@ -138,7 +138,7 @@ const postRoute = createRoute({
 
 app.openapi(postRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = c.req.valid("json");
@@ -188,7 +188,7 @@ const putRoute = createRoute({
 app.openapi(putRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = c.req.valid("json");
@@ -226,7 +226,7 @@ const deleteRoute = createRoute({
 app.openapi(deleteRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const [row] = await sql`DELETE FROM estacionamentos WHERE id = ${id} RETURNING id, endereco`;
@@ -285,7 +285,7 @@ const postPessoaEstacionamentoRoute = createRoute({
 app.openapi(postPessoaEstacionamentoRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const { pessoaId } = c.req.valid("json");
@@ -326,7 +326,7 @@ const deletePessoaEstacionamentoRoute = createRoute({
 app.openapi(deletePessoaEstacionamentoRoute, async (c) => {
   const { id, pessoaId } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const [pessoa] = await sql`SELECT id, nome, estacionamento_id FROM pessoas WHERE id = ${pessoaId}`;
@@ -451,7 +451,7 @@ const postVeiculoEstacionamentoRoute = createRoute({
 app.openapi(postVeiculoEstacionamentoRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!podeAdministrar(sessao)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   const { veiculoId } = c.req.valid("json");
   const [est] = await sql`SELECT id, nome FROM estacionamentos WHERE id = ${id}`;
   if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
@@ -503,7 +503,7 @@ const deleteVeiculoEstacionamentoRoute = createRoute({
 app.openapi(deleteVeiculoEstacionamentoRoute, async (c) => {
   const { id, veiculoId } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!podeAdministrar(sessao)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   const [veiculo] = await sql`SELECT id, estacionamento_id FROM veiculos WHERE id = ${veiculoId}`;
   if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
   if (veiculo.estacionamento_id !== id) return c.json({ erro: "Veiculo nao esta associado a este estacionamento." }, 404);
@@ -560,7 +560,7 @@ app.openapi(postCheckinsManuaisRoute, async (c) => {
   const { id, veiculoId } = c.req.valid("param");
   const { datas } = c.req.valid("json");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!podeAdministrar(sessao)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
 
   const datasValidas = Array.from(new Set(datas)).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
   if (datasValidas.length === 0) return c.json({ erro: "Nenhuma data valida informada." }, 400);

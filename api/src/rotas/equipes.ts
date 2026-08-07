@@ -22,6 +22,23 @@ function equipeDeRow(r: Record<string, unknown>) {
   };
 }
 
+// Vagas sao campos somente leitura: sempre calculadas pela quantidade de
+// pessoas alocadas na equipe para cada funcao.
+const SEL_EQUIPES = sql`
+  SELECT
+    e.id,
+    e.edicao_id,
+    e.nome,
+    e.setor,
+    e.criado_em,
+    e.atualizado_em,
+    COALESCE(COUNT(*) FILTER (WHERE p.funcao = 'Coordenador'), 0)::int AS vagas_coordenador,
+    COALESCE(COUNT(*) FILTER (WHERE p.funcao = 'Equipista'), 0)::int  AS vagas_equipista,
+    COALESCE(COUNT(*) FILTER (WHERE p.funcao = 'Apoio'), 0)::int      AS vagas_apoio
+  FROM equipes e
+  LEFT JOIN participacoes p ON p.equipe_id = e.id
+`;
+
 const getEquipesRoute = createRoute({
   method: "get",
   path: "/",
@@ -40,16 +57,16 @@ app.openapi(getEquipesRoute, async (c) => {
   const edicaoId = query.edicaoId;
 
   if (edicaoId) {
-    const rows = await sql`SELECT * FROM equipes WHERE edicao_id = ${edicaoId} ORDER BY nome`;
+    const rows = await sql`${SEL_EQUIPES} WHERE e.edicao_id = ${edicaoId} GROUP BY e.id ORDER BY e.nome`;
     return c.json(rows.map(equipeDeRow) as any, 200);
   }
 
   if (sessao.perfil === "CRD" && sessao.equipesCRD?.length) {
-    const rows = await sql`SELECT * FROM equipes WHERE id = ANY(${sessao.equipesCRD}) ORDER BY nome`;
+    const rows = await sql`${SEL_EQUIPES} WHERE e.id = ANY(${sessao.equipesCRD}) GROUP BY e.id ORDER BY e.nome`;
     return c.json(rows.map(equipeDeRow) as any, 200);
   }
 
-  const rows = await sql`SELECT * FROM equipes ORDER BY nome`;
+  const rows = await sql`${SEL_EQUIPES} GROUP BY e.id ORDER BY e.nome`;
   return c.json(rows.map(equipeDeRow) as any, 200);
 });
 
@@ -68,7 +85,7 @@ const getEquipeIdRoute = createRoute({
 });
 app.openapi(getEquipeIdRoute, async (c) => {
   const { id } = c.req.valid("param");
-  const [row] = await sql`SELECT * FROM equipes WHERE id = ${id}`;
+  const [row] = await sql`${SEL_EQUIPES} WHERE e.id = ${id} GROUP BY e.id`;
   if (!row) return c.json({ erro: "Equipe não encontrada." }, 404);
   return c.json(equipeDeRow(row) as any, 200);
 });
@@ -88,20 +105,19 @@ const postEquipeRoute = createRoute({
 });
 app.openapi(postEquipeRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
-  const { edicaoId, nome, setor, vagasCoordenador, vagasEquipista, vagasApoio } = body;
+  const { edicaoId, nome, setor } = body;
   const [row] = await sql`
-    INSERT INTO equipes (edicao_id, nome, setor, vagas_coordenador, vagas_equipista, vagas_apoio)
-    VALUES (
-      ${String(edicaoId ?? "")}, ${String(nome ?? "")}, ${String(setor ?? "Interna")},
-      ${Number(vagasCoordenador ?? 0)}, ${Number(vagasEquipista ?? 0)}, ${Number(vagasApoio ?? 0)}
-    ) RETURNING *
+    INSERT INTO equipes (edicao_id, nome, setor)
+    VALUES (${String(edicaoId ?? "")}, ${String(nome ?? "")}, ${String(setor ?? "Interna")})
+    RETURNING id
   `;
   await registrarEvento(sessao, "equipe.criou", `equipes/${row.id}`, String(nome ?? ""));
-  return c.json(equipeDeRow(row) as any, 201);
+  const [criada] = await sql`${SEL_EQUIPES} WHERE e.id = ${row.id} GROUP BY e.id`;
+  return c.json(equipeDeRow(criada) as any, 201);
 });
 
 const putEquipeRoute = createRoute({
@@ -121,24 +137,22 @@ const putEquipeRoute = createRoute({
 app.openapi(putEquipeRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
-  const { nome, setor, vagasCoordenador, vagasEquipista, vagasApoio } = body;
+  const { nome, setor } = body;
   const [row] = await sql`
     UPDATE equipes SET
-      nome              = ${String(nome ?? "")},
-      setor             = ${String(setor ?? "Interna")},
-      vagas_coordenador = ${Number(vagasCoordenador ?? 0)},
-      vagas_equipista   = ${Number(vagasEquipista ?? 0)},
-      vagas_apoio       = ${Number(vagasApoio ?? 0)},
-      atualizado_em     = NOW()
-    WHERE id = ${id} RETURNING *
+      nome          = ${String(nome ?? "")},
+      setor         = ${String(setor ?? "Interna")},
+      atualizado_em = NOW()
+    WHERE id = ${id} RETURNING id
   `;
   if (!row) return c.json({ erro: "Equipe não encontrada." }, 404);
   await registrarEvento(sessao, "equipe.atualizou", `equipes/${id}`, String(nome ?? ""));
-  return c.json(equipeDeRow(row) as any, 200);
+  const [atualizada] = await sql`${SEL_EQUIPES} WHERE e.id = ${id} GROUP BY e.id`;
+  return c.json(equipeDeRow(atualizada) as any, 200);
 });
 
 const deleteEquipeRoute = createRoute({
@@ -158,7 +172,7 @@ const deleteEquipeRoute = createRoute({
 app.openapi(deleteEquipeRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const [row] = await sql`DELETE FROM equipes WHERE id = ${id} RETURNING nome`;
@@ -182,7 +196,7 @@ const postEquipeCopiarRoute = createRoute({
 });
 app.openapi(postEquipeCopiarRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const { edicaoOrigemId, edicaoDestinoId } = await c.req.json() as {
@@ -190,8 +204,8 @@ app.openapi(postEquipeCopiarRoute, async (c) => {
     edicaoDestinoId: string;
   };
   const result = await sql`
-    INSERT INTO equipes (edicao_id, nome, setor, vagas_coordenador, vagas_equipista, vagas_apoio, criado_em, atualizado_em)
-    SELECT ${edicaoDestinoId}, nome, setor, vagas_coordenador, vagas_equipista, vagas_apoio, NOW(), NOW()
+    INSERT INTO equipes (edicao_id, nome, setor, criado_em, atualizado_em)
+    SELECT ${edicaoDestinoId}, nome, setor, NOW(), NOW()
     FROM equipes WHERE edicao_id = ${edicaoOrigemId}
     RETURNING id
   `;

@@ -89,7 +89,7 @@ const postTurmaRoute = createRoute({
 
 app.openapi(postTurmaRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
@@ -131,7 +131,7 @@ const putTurmaRoute = createRoute({
 app.openapi(putTurmaRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
@@ -173,7 +173,7 @@ const deleteTurmaRoute = createRoute({
 app.openapi(deleteTurmaRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   // Revoga links ativos antes de deletar (ON DELETE CASCADE remove os registros).

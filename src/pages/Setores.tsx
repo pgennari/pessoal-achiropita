@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSetores } from "../lib/hooks";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
 import { api } from "../lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import type { SetorInfo } from "../lib/tipos";
@@ -44,7 +44,7 @@ export function Setores() {
   const [criando, setCriando] = useState(false);
   const [erroCriar, setErroCriar] = useState<string | null>(null);
 
-  const podeEditar = sessao?.perfil === "ADM" || sessao?.perfil === "ORG";
+  const podeEditar = adminPode(sessao);
 
   function iniciarEdicao(s: SetorInfo) {
     setEditandoId(s.id);

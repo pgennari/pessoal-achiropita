@@ -20,8 +20,6 @@ export interface DadosConviteForm {
   equipesCRD?: string[];
 }
 
-const PERFIS_VALIDOS: Perfil[] = ["ADM", "ORG", "CRD", "EQP", "OPC", "REC"];
-
 export function normalizarEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -57,11 +55,11 @@ export function conviteDeSnap(id: string, data: Record<string, unknown>): Convit
   };
 }
 
-function validar(d: DadosConviteForm): Record<string, string> {
+function validar(d: DadosConviteForm, perfisSiglas: Set<string>): Record<string, string> {
   const erros: Record<string, string> = {};
   if (!d.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email))
     erros.email = "E-mail inválido.";
-  if (!PERFIS_VALIDOS.includes(d.perfil)) erros.perfil = "Perfil inválido.";
+  if (!perfisSiglas.has(d.perfil)) erros.perfil = "Perfil inválido.";
   if (d.perfil === "CRD" && (!d.equipesCRD || d.equipesCRD.length === 0))
     erros.equipesCRD = "Coordenador precisa de pelo menos uma equipe.";
   return erros;
@@ -75,9 +73,10 @@ export interface CriarConviteResultado {
 export async function criarConvite(
   _sessao: Sessao,
   dados: DadosConviteForm,
-  jaExiste: { emailEmUso: boolean; pendenteParaEmail: boolean }
+  jaExiste: { emailEmUso: boolean; pendenteParaEmail: boolean },
+  perfisSiglas: Set<string>
 ): Promise<CriarConviteResultado> {
-  const erros = validar(dados);
+  const erros = validar(dados, perfisSiglas);
   if (Object.keys(erros).length) throw new ErroConvite(erros);
   if (jaExiste.emailEmUso) {
     throw new ErroConvite({
@@ -105,9 +104,10 @@ export async function criarConvite(
 export async function atualizarConvite(
   _sessao: Sessao,
   conviteId: string,
-  dados: DadosConviteForm
+  dados: DadosConviteForm,
+  perfisSiglas: Set<string>
 ): Promise<void> {
-  const erros = validar(dados);
+  const erros = validar(dados, perfisSiglas);
   if (Object.keys(erros).length) throw new ErroConvite(erros);
   await api.put(`/api/convites/${conviteId}`, {
     perfil: dados.perfil,

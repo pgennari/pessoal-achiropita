@@ -2,7 +2,7 @@ import { useState, FormEvent } from "react";
 import { useEffect } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useEstacionamento, useCheckinsEstacionamento } from "../lib/hooks";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar } from "../lib/sessao";
 import {
   atualizarEstacionamento,
   excluirEstacionamento,
@@ -47,7 +47,7 @@ export function EstacionamentoDetalhe() {
   const diferencaVisualizando = (estacionamento?.vagasContratadas ?? 0) - (estacionamento?.vagasDistribuidas ?? 0);
 
   if (!sessao) return null;
-  const podeEditar = sessao.perfil === "ADM" || sessao.perfil === "ORG";
+  const podeEditar = podeAdministrar(sessao);
   const podeExcluir = sessao.perfil === "ADM";
 
   if (carregando) {

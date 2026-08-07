@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
 import {
   useEquipes,
@@ -72,9 +72,9 @@ const indiceEquipes = useMemo(() => {
 
   if (!sessao) return null;
   const podeVer =
-    sessao.perfil === "ADM" ||
-    sessao.perfil === "ORG" ||
-    sessao.perfil === "CRD";
+    podeAdministrar(sessao) ||
+    sessao.perfil === "CRD" ||
+    temPermissao(sessao, "fotos.pendencias");
   if (!podeVer) {
     return (
       <div className="card">
@@ -128,7 +128,7 @@ const indiceEquipes = useMemo(() => {
 
       <div className="card">
         <div className="card-corpo flex flex-wrap items-center gap-3">
-          {(sessao.perfil === "ADM" || sessao.perfil === "ORG") && (
+          {podeAdministrar(sessao) && (
             <label className="flex items-center gap-2 text-sm font-semibold">
               <input
                 type="checkbox"

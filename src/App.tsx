@@ -17,6 +17,7 @@ import { Historico } from "./pages/Historico";
 import { EntregaCrachas } from "./pages/EntregaCrachas";
 import { PendenciasFoto } from "./pages/PendenciasFoto";
 import { Usuarios } from "./pages/Usuarios";
+import { Perfis } from "./pages/Perfis";
 import { PaginaFormacao } from "./pages/Formacao";
 import { PendenciasFormacao } from "./pages/PendenciasFormacao";
 import { ValidarPublico } from "./pages/ValidarPublico";
@@ -74,6 +75,7 @@ export function App() {
         <Route path="formacao/pendencias" element={<PendenciasFormacao />} />
         <Route path="presenca" element={<Presenca />} />
         <Route path="usuarios" element={<Usuarios />} />
+        <Route path="perfis" element={<Perfis />} />
         <Route path="estacionamentos" element={<Estacionamentos />} />
         <Route path="estacionamentos/relatorio" element={<RelatorioEstacionamentos />} />
         <Route path="estacionamentos/novo" element={<EstacionamentoNovo />} />

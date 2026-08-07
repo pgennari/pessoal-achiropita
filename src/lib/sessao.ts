@@ -17,7 +17,10 @@ import { Perfil, Usuario } from "./tipos";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
 
-export interface Sessao extends Usuario { }
+export interface Sessao extends Usuario {
+  // Permissoes do catalogo de perfis, carregadas de /api/usuarios/me.
+  permissoes?: string[];
+}
 
 export interface EstadoSessao {
   sessao: Sessao | null;
@@ -65,6 +68,7 @@ export function useSessao(): EstadoSessao {
           pessoaId?: string;
           equipesCRD?: string[];
           tokenConvite?: string;
+          permissoes?: string[];
         };
         setEstado({
           sessao: {
@@ -75,6 +79,7 @@ export function useSessao(): EstadoSessao {
             pessoaId: dados.pessoaId,
             equipesCRD: dados.equipesCRD,
             tokenConvite: dados.tokenConvite,
+            permissoes: dados.permissoes ?? [],
           },
           semAcesso: false,
           carregando: false,
@@ -123,6 +128,35 @@ export async function sair(): Promise<void> {
   await signOut(auth());
 }
 
+export function temPermissao(sessao: Sessao | null, codigo: string): boolean {
+  return !!sessao && (sessao.permissoes ?? []).includes(codigo);
+}
+
+// Admistracao = perfil ADM/ORG legado OU permissao "administracao" do catalogo.
 export function podeAdministrar(sessao: Sessao | null): boolean {
-  return !!sessao && (sessao.perfil === "ADM" || sessao.perfil === "ORG");
+  return (
+    !!sessao &&
+    (sessao.perfil === "ADM" || sessao.perfil === "ORG" || temPermissao(sessao, "administracao"))
+  );
+}
+
+// Zeramento e exclusivo do ADM (ou de perfil com zeramento.executar).
+export function podeZerar(sessao: Sessao | null): boolean {
+  return !!sessao && (sessao.perfil === "ADM" || temPermissao(sessao, "zeramento.executar"));
+}
+
+// Edicao de pessoas = ADM/ORG/OPC/CRD legado OU permissao "pessoas.editar".
+export function podeEditarPessoa(sessao: Sessao | null): boolean {
+  return (
+    !!sessao &&
+    (podeAdministrar(sessao) ||
+      sessao.perfil === "OPC" ||
+      sessao.perfil === "CRD" ||
+      temPermissao(sessao, "pessoas.editar"))
+  );
+}
+
+// Controle de perfil e exclusivo do ADM (ou de perfil com perfis.gerenciar).
+export function podeGerirPerfis(sessao: Sessao | null): boolean {
+  return !!sessao && (sessao.perfil === "ADM" || temPermissao(sessao, "perfis.gerenciar"));
 }

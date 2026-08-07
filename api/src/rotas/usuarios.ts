@@ -37,7 +37,7 @@ const getUsuariosRoute = createRoute({
 
 app.openapi(getUsuariosRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const rows = await sql`SELECT * FROM usuarios ORDER BY nome`;
@@ -61,7 +61,7 @@ app.openapi(getUsuarioMeRoute, async (c) => {
   const sessao = c.get("sessao");
   const [row] = await sql`SELECT * FROM usuarios WHERE uid = ${sessao.uid}`;
   if (!row) return c.json({ erro: "Usuário não encontrado." }, 404);
-  return c.json(usuarioDeRow(row) as any, 200);
+  return c.json({ ...(usuarioDeRow(row) as object), permissoes: sessao.permissoes } as any, 200);
 });
 
 const putUsuarioRoute = createRoute({
@@ -85,7 +85,7 @@ const putUsuarioRoute = createRoute({
 app.openapi(putUsuarioRoute, async (c) => {
   const { uid } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
@@ -123,7 +123,7 @@ const deleteUsuarioRoute = createRoute({
 app.openapi(deleteUsuarioRoute, async (c) => {
   const { uid } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   if (uid === sessao.uid) {

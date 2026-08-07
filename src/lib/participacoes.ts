@@ -19,6 +19,8 @@ export function participacaoDeSnap(id: string, data: Record<string, unknown>): P
 
 function invalidarParticipacoes() {
   queryClient.invalidateQueries({ queryKey: ["participacoes"] });
+  // Vagas sao calculadas pelas alocacoes; recarrega as equipes tambem.
+  queryClient.invalidateQueries({ queryKey: ["equipes"] });
 }
 
 export async function alocar(

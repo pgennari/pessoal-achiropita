@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useVeiculo, usePessoasVeiculo, useEstacionamentos, usePessoas, useHistoricoEstacionamentosVeiculo } from "../lib/hooks";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
 import { VeiculoForm } from "../components/VeiculoForm";
 import { atualizarVeiculo, excluirVeiculo, associarVeiculoEstacionamento, desassociarVeiculoEstacionamento, vincularPessoaVeiculo, desvincularPessoaVeiculo, type DadosVeiculo } from "../lib/veiculos";
 import { VinculoPessoa } from "../components/VinculoPessoa";
@@ -27,7 +27,7 @@ export function VeiculoDetalhe() {
   const [observacaoTexto, setObservacaoTexto] = useState("");
   const [erroOperacao, setErroOperacao] = useState<string | null>(null);
 
-  const podeEditar = sessao?.perfil === "ADM" || sessao?.perfil === "ORG";
+  const podeEditar = adminPode(sessao);
 
   const estacionamentoAtual = useMemo(
     () => estacionamentos.find((e) => e.id === veiculo?.estacionamentoId),

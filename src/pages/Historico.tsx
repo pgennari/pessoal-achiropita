@@ -7,7 +7,7 @@ import {
   useTodasParticipacoes,
   useTodosHistoricosParticipacao,
 } from "../lib/hooks";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar } from "../lib/sessao";
 import { Icone } from "../components/Icone";
 import {
   FUNCOES,
@@ -178,7 +178,7 @@ export function Historico() {
   }, [edicoes, resultados]);
 
   if (!sessao) return null;
-  const podeVer = sessao.perfil === "ADM" || sessao.perfil === "ORG";
+  const podeVer = podeAdministrar(sessao);
   if (!podeVer) {
     return (
       <div className="card">

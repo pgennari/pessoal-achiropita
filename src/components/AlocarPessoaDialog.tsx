@@ -9,8 +9,6 @@ interface Props {
   onConfirmar: (args: { pessoa: Pessoa; funcao: Funcao }) => Promise<void>;
   participacoesDaEdicao: Participacao[];
   funcaoInicial?: Funcao;
-  vagasPrevistas: number;
-  vagasAlocadas: number;
 }
 
 const LIMITE = 12;
@@ -21,8 +19,6 @@ export function AlocarPessoaDialog({
   onConfirmar,
   participacoesDaEdicao,
   funcaoInicial = "Equipista",
-  vagasPrevistas,
-  vagasAlocadas,
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { itens } = usePessoas();
@@ -87,17 +83,10 @@ export function AlocarPessoaDialog({
     setErro(null);
     try {
       await onConfirmar({ pessoa: p, funcao });
-      // Fecha apenas quando a equipe atingir 100% das vagas.
-      // Caso contrário, mantém a janela aberta para alocações consecutivas.
-      const barracaCheia =
-        vagasPrevistas > 0 && vagasAlocadas + 1 >= vagasPrevistas;
-      if (barracaCheia) {
-        onFechar();
-      } else {
-        setTermo("");
-        setDestaque(0);
-        window.setTimeout(() => inputRef.current?.focus(), 30);
-      }
+      // Mantém a janela aberta para alocações consecutivas.
+      setTermo("");
+      setDestaque(0);
+      window.setTimeout(() => inputRef.current?.focus(), 30);
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Falha ao alocar.");
     } finally {

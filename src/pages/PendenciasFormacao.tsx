@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar as adminPode, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
 import {
   useEquipes,
@@ -139,16 +139,17 @@ export function PendenciasFormacao() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const podeAdministrar =
-    !!sessao && (sessao.perfil === "ADM" || sessao.perfil === "ORG");
+  const podeAdministrar = adminPode(sessao);
 
   const podeConfirmarDados =
-    !!sessao &&
-    (sessao.perfil === "ADM" ||
-      sessao.perfil === "ORG" ||
-      sessao.perfil === "OPC");
+    podeAdministrar ||
+    sessao?.perfil === "OPC" ||
+    temPermissao(sessao, "formacao.operar");
 
-  const podeAcessar = podeConfirmarDados || sessao?.perfil === "CRD";
+  const podeAcessar =
+    podeConfirmarDados ||
+    sessao?.perfil === "CRD" ||
+    temPermissao(sessao, "formacao.operar");
 
   // Índices derivados ---
 

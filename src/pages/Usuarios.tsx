@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar } from "../lib/sessao";
 import {
   useEquipes,
   useConvites,
@@ -8,6 +8,7 @@ import {
   usePessoas,
   useUsuarios,
 } from "../lib/hooks";
+import { usePerfis } from "../lib/hooks";
 import {
   DadosUsuarioForm,
   atualizarUsuario,
@@ -26,29 +27,10 @@ import {
 import { UsuarioForm } from "../components/UsuarioForm";
 import { ConviteForm } from "../components/ConviteForm";
 import { Icone } from "../components/Icone";
-import { Convite, Perfil, StatusConvite, Usuario } from "../lib/tipos";
+import { Convite, StatusConvite, Usuario } from "../lib/tipos";
 import { formatarData } from "../lib/utilsDominio";
 
 type Aba = "usuarios" | "convites";
-
-const ROTULO_PERFIL: Record<string, string> = {
-  ADM: "ADM",
-  ORG: "ORG",
-  CRD: "CRD",
-  EQP: "EQP",
-  OPC: "OPC",
-  REC: "REC",
-};
-
-const PERFIS_FILTRO: Array<{ valor: Perfil | ""; rotulo: string }> = [
-  { valor: "", rotulo: "Todos os perfis" },
-  { valor: "ADM", rotulo: "ADM" },
-  { valor: "ORG", rotulo: "ORG" },
-  { valor: "CRD", rotulo: "CRD" },
-  { valor: "EQP", rotulo: "EQP" },
-  { valor: "OPC", rotulo: "OPC" },
-  { valor: "REC", rotulo: "REC" },
-];
 
 const STATUS_CONVITE_FILTRO: Array<{ valor: StatusConvite | ""; rotulo: string }> = [
   { valor: "", rotulo: "Todos os status" },
@@ -77,6 +59,13 @@ export function Usuarios() {
   const { itens: pessoas } = usePessoas();
   const { edicao } = useEdicaoAtiva();
   const { itens: equipes } = useEquipes(edicao?.id);
+  const { itens: perfis } = usePerfis();
+
+  const rotuloPerfil = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of perfis) m.set(p.sigla, p.sigla);
+    return m;
+  }, [perfis]);
 
   const [aba, setAba] = useState<Aba>("usuarios");
   const [editandoUid, setEditandoUid] = useState<string | null>(null);
@@ -90,7 +79,7 @@ export function Usuarios() {
 
   // Filtros da aba Convites
   const [filtroConviteEmail, setFiltroConviteEmail] = useState("");
-  const [filtroConvitePerfil, setFiltroConvitePerfil] = useState<Perfil | "">("");
+  const [filtroConvitePerfil, setFiltroConvitePerfil] = useState("");
   const [filtroConviteStatus, setFiltroConviteStatus] = useState<StatusConvite | "">("");
 
   const indicePessoas = useMemo(() => {
@@ -112,6 +101,11 @@ export function Usuarios() {
           .map((c) => c.email.toLowerCase())
       ),
     [convites]
+  );
+
+  const siglasPerfis = useMemo(
+    () => new Set(perfis.map((p) => p.sigla)),
+    [perfis]
   );
 
   const listaUsuarios = useMemo(() => {
@@ -142,7 +136,7 @@ export function Usuarios() {
 
   if (!sessao) return null;
   const ehAdm = sessao.perfil === "ADM";
-  const ehAdmOuOrg = ehAdm || sessao.perfil === "ORG";
+  const ehAdmOuOrg = podeAdministrar(sessao);
   if (!ehAdmOuOrg) {
     return (
       <div className="card">
@@ -173,20 +167,20 @@ export function Usuarios() {
     const resultado = await criarConvite(sessao, dados, {
       emailEmUso: emailsEmUso.has(emailNorm),
       pendenteParaEmail: emailsPendentes.has(emailNorm),
-    });
+    }, siglasPerfis);
     setCriandoConvite(false);
     setLinkRecemCriado(resultado);
   }
 
   async function handleAtualizarConvite(dados: DadosConviteForm) {
     if (!sessao || !conviteEditando) return;
-    await atualizarConvite(sessao, conviteEditando.id, dados);
+    await atualizarConvite(sessao, conviteEditando.id, dados, siglasPerfis);
     setEditandoConviteId(null);
   }
 
   async function handleAtualizarUsuario(dados: DadosUsuarioForm) {
     if (!sessao || !usuarioEditando) return;
-    await atualizarUsuario(sessao, usuarioEditando.uid, dados);
+    await atualizarUsuario(sessao, usuarioEditando.uid, dados, siglasPerfis);
     setEditandoUid(null);
   }
 
@@ -422,7 +416,7 @@ export function Usuarios() {
                         </td>
                         <td className="px-4 py-3">
                           <span className={classePerfilBadge(u.perfil)}>
-                            {ROTULO_PERFIL[u.perfil]}
+                            {rotuloPerfil.get(u.perfil) ?? u.perfil}
                           </span>
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell text-ardesia">
@@ -526,12 +520,13 @@ export function Usuarios() {
                     className="input"
                     value={filtroConvitePerfil}
                     onChange={(e) =>
-                      setFiltroConvitePerfil(e.target.value as Perfil | "")
+                      setFiltroConvitePerfil(e.target.value)
                     }
                   >
-                    {PERFIS_FILTRO.map((p) => (
-                      <option key={p.valor} value={p.valor}>
-                        {p.rotulo}
+                    <option value="">Todos os perfis</option>
+                    {perfis.map((p) => (
+                      <option key={p.sigla} value={p.sigla}>
+                        {p.sigla}
                       </option>
                     ))}
                   </select>
@@ -601,7 +596,7 @@ export function Usuarios() {
                         <td className="px-4 py-3 font-mono text-xs">{c.email}</td>
                         <td className="px-4 py-3">
                           <span className={classePerfilBadge(c.perfil)}>
-                            {ROTULO_PERFIL[c.perfil]}
+                            {rotuloPerfil.get(c.perfil) ?? c.perfil}
                           </span>
                         </td>
                         <td className="px-4 py-3">

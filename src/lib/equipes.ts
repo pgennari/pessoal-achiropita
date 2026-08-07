@@ -7,9 +7,6 @@ import { normalizar } from "./utilsDominio";
 export interface DadosEquipeForm {
   nome: string;
   setor: Setor;
-  vagasCoordenador: number | undefined;
-  vagasEquipista: number | undefined;
-  vagasApoio: number | undefined;
 }
 
 export class ErroEquipe extends Error {
@@ -46,11 +43,6 @@ function validar(
       (e) => e.id !== excetoId && normalizar(e.nome) === normalizar(d.nome)
     );
     if (dup) erros.nome = "Já existe uma equipe com este nome nesta edição.";
-  }
-  for (const chave of ["vagasCoordenador", "vagasEquipista", "vagasApoio"] as const) {
-    const v = d[chave];
-    if (typeof v !== "number" || !Number.isInteger(v) || v < 0)
-      erros[chave] = "Valor inválido.";
   }
   return erros;
 }

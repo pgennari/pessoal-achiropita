@@ -49,7 +49,7 @@ app.openapi(getHistoricoRoute, async (c) => {
     return c.json(rows.map(historicoDeRow) as any, 200);
   }
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const rows = await sql`

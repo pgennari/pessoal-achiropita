@@ -44,7 +44,7 @@ const getConvitesRoute = createRoute({
 
 app.openapi(getConvitesRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const rows = await sql`SELECT * FROM convites ORDER BY criado_em DESC`;
@@ -69,7 +69,7 @@ const postConviteRoute = createRoute({
 
 app.openapi(postConviteRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
@@ -115,7 +115,7 @@ const putConviteRoute = createRoute({
 app.openapi(putConviteRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
@@ -150,7 +150,7 @@ const putConviteRevogarRoute = createRoute({
 app.openapi(putConviteRevogarRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const [row] = await sql`UPDATE convites SET status = 'revogado' WHERE id = ${id} RETURNING email`;
@@ -178,7 +178,7 @@ const deleteConviteRoute = createRoute({
 app.openapi(deleteConviteRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const [row] = await sql`DELETE FROM convites WHERE id = ${id} RETURNING email`;

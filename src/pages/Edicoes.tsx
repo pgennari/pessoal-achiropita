@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useEdicoes } from "../lib/hooks";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
 import { EdicaoForm } from "../components/EdicaoForm";
 import { Icone } from "../components/Icone";
 import {
@@ -29,8 +29,7 @@ export function Edicoes() {
   const [copiouEquipes, setCopiouEquipes] = useState<number | null>(null);
 
   if (!sessao) return null;
-  const podeAdministrar =
-    sessao.perfil === "ADM" || sessao.perfil === "ORG";
+  const podeAdministrar = adminPode(sessao);
 
   async function handleCriar(dados: DadosEdicaoForm) {
     if (!sessao) return;
@@ -130,7 +129,7 @@ export function Edicoes() {
                     ))}
                 </select>
                 <p className="input-ajuda">
-                  Se selecionada, copia todas as equipes com suas vagas para a nova edição. Pessoas <strong>não</strong> são copiadas.
+                  Se selecionada, copia todas as equipes para a nova edição. Pessoas <strong>não</strong> são copiadas.
                 </p>
               </div>
             )}

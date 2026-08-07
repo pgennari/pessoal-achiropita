@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useSessao } from "../lib/sessao";
 import {
-  useEquipes,
   useEdicaoAtiva,
   useEntregasCracha,
   useFormacoes,
@@ -14,7 +13,6 @@ export function Painel() {
   const { sessao } = useSessao();
   const { itens: pessoas, carregando: carregandoPessoas } = usePessoas();
   const { edicao, carregando: carregandoEdicao } = useEdicaoAtiva();
-  const { itens: equipes } = useEquipes(edicao?.id);
   const { itens: participacoes } = useParticipacoes(edicao?.id);
   const { itens: entregas } = useEntregasCracha(edicao?.id);
   const { itens: formacoes } = useFormacoes(edicao?.id);
@@ -51,12 +49,7 @@ export function Painel() {
 
   const ativas = pessoas.filter((p) => p.ativo).length;
   const total = pessoas.length;
-  const previstas = equipes.reduce(
-    (acc, e) => acc + e.vagasCoordenador + e.vagasEquipista + e.vagasApoio,
-    0
-  );
   const alocadas = participacoesFiltradas.length;
-  const pct = previstas > 0 ? Math.round((alocadas / previstas) * 100) : 0;
   const entregues = entregasFiltradas.length;
   const pctEntregues =
     alocadas > 0 ? Math.round((entregues / alocadas) * 100) : 0;
@@ -97,13 +90,13 @@ export function Painel() {
           </Link>
         </div>
         <div className="kpi">
-          <div className="kpi-label">Vagas preenchidas</div>
+          <div className="kpi-label">Pessoas alocadas</div>
           <div className="kpi-valor">
-            {edicao ? pct : "—"} <span className="unidade">%</span>
+            {edicao ? numero(alocadas, carregandoEdicao) : "—"}
           </div>
           {edicao && (
             <Link to={`/edicoes/${edicao.id}`} className="kpi-delta positivo">
-              {alocadas} de {previstas} vagas →
+              Abrir edição →
             </Link>
           )}
         </div>

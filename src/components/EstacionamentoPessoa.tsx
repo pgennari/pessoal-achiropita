@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useEstacionamentos } from "../lib/hooks";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
 import { associarPessoaEstacionamento, desassociarPessoaEstacionamento } from "../lib/estacionamentos";
 import { Pessoa } from "../lib/tipos";
 import { Icone } from "./Icone";
@@ -23,7 +23,7 @@ export function EstacionamentoPessoa({ pessoa }: Props) {
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
 
   if (!sessao) return null;
-  const podeEditar = sessao.perfil === "ADM" || sessao.perfil === "ORG";
+  const podeEditar = adminPode(sessao);
 
   async function handleSalvar() {
     if (!sessao || !pessoa) return;

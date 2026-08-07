@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useEstacionamentos } from "../lib/hooks";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
 import { Icone } from "../components/Icone";
 
 function BarraOcupacao({
@@ -52,7 +52,7 @@ export function Estacionamentos() {
     [itens]
   );
 
-  const podeCriar = sessao?.perfil === "ADM" || sessao?.perfil === "ORG";
+  const podeCriar = adminPode(sessao);
 
   return (
     <div className="space-y-6">

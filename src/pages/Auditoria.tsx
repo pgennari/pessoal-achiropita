@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuditoriaRecente } from "../lib/hooks";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar } from "../lib/sessao";
 import { Icone } from "../components/Icone";
 import { formatarData } from "../lib/utilsDominio";
 
@@ -22,7 +22,7 @@ export function Auditoria() {
   const { itens, carregando, erro } = useAuditoriaRecente(200);
 
   if (!sessao) return null;
-  const podeVer = sessao.perfil === "ADM" || sessao.perfil === "ORG";
+  const podeVer = podeAdministrar(sessao);
 
   if (!podeVer) {
     return (

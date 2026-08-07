@@ -26,7 +26,7 @@ const getDashboardRoute = createRoute({
 
 app.openapi(getDashboardRoute, async (c) => {
   const sessao = c.var.sessao;
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
 
@@ -107,14 +107,18 @@ const comAuthSSE = createMiddleware<{
   }
 
   const rows = await sql`
-    SELECT uid, email, nome, perfil FROM usuarios WHERE uid = ${decoded.uid}
+    SELECT u.uid, u.email, u.nome, u.perfil,
+           COALESCE(p.permissoes, '{}') AS permissoes
+    FROM usuarios u
+    LEFT JOIN perfis p ON p.sigla = u.perfil
+    WHERE u.uid = ${decoded.uid}
   `;
   if (rows.length === 0) {
     return c.json({ erro: "Usuario sem acesso ao sistema." }, 403);
   }
 
   const u = rows[0];
-  if (!podeAdministrar(u.perfil as string)) {
+  if (!podeAdministrar({ perfil: u.perfil as string, permissoes: (u.permissoes as string[] | null) ?? [] })) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
 
@@ -123,6 +127,7 @@ const comAuthSSE = createMiddleware<{
     email: u.email as string,
     nome: u.nome as string,
     perfil: u.perfil as string,
+    permissoes: (u.permissoes as string[] | null) ?? [],
   });
 
   await next();

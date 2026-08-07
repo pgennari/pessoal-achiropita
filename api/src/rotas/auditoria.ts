@@ -35,7 +35,7 @@ const getAuditoriaRoute = createRoute({
 });
 app.openapi(getAuditoriaRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const query = c.req.valid("query");

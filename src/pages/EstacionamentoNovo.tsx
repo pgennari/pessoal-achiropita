@@ -1,6 +1,6 @@
 import { useState, FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar } from "../lib/sessao";
 import {
   criarEstacionamento,
   DadosEstacionamentoForm,
@@ -25,7 +25,7 @@ export function EstacionamentoNovo() {
   const diferenca = (parseInt(dados.vagasContratadas, 10) || 0) - (parseInt(dados.vagasDistribuidas, 10) || 0);
 
   if (!sessao) return null;
-  const podeCriar = sessao.perfil === "ADM" || sessao.perfil === "ORG";
+  const podeCriar = podeAdministrar(sessao);
 
   if (!podeCriar) {
     return (

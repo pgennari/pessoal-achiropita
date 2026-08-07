@@ -90,7 +90,7 @@ const postLinkPresencaRoute = createRoute({
 
 app.openapi(postLinkPresencaRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = c.req.valid("json");
@@ -150,7 +150,7 @@ const getPresencasRoute = createRoute({
 
 app.openapi(getPresencasRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const { diaFestaId } = c.req.valid("query");
@@ -186,7 +186,7 @@ const getResumoEquipesRoute = createRoute({
 
 app.openapi(getResumoEquipesRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const { diaFestaId } = c.req.valid("query");
@@ -207,7 +207,7 @@ app.openapi(getResumoEquipesRoute, async (c) => {
       SELECT part.equipe_id, COUNT(*)::int AS total
       FROM participacoes part
       JOIN pessoas p ON p.id = part.pessoa_id
-      WHERE part.funcao IN ('Equipista', 'Apoio') AND p.ativo = true
+      WHERE p.ativo = true
       GROUP BY part.equipe_id
     ) total_cont ON total_cont.equipe_id = eq.id
     LEFT JOIN (

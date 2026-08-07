@@ -180,7 +180,7 @@ const postPessoaRoute = createRoute({
 });
 app.openapi(postPessoaRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
@@ -248,7 +248,7 @@ const putPessoaRoute = createRoute({
 app.openapi(putPessoaRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeEditarPessoa(sessao.perfil)) {
+  if (!podeEditarPessoa(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM, ORG ou OPC." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
@@ -304,7 +304,7 @@ const putPessoaAtivacaoRoute = createRoute({
 app.openapi(putPessoaAtivacaoRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const { ativo } = c.req.valid("json");
@@ -340,7 +340,7 @@ const postPessoaFotoRoute = createRoute({
 app.openapi(postPessoaFotoRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeEditarPessoa(sessao.perfil)) {
+  if (!podeEditarPessoa(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM, ORG ou OPC." }, 403);
   }
   const body = await c.req.parseBody();
@@ -375,7 +375,7 @@ const deletePessoaFotoRoute = createRoute({
 app.openapi(deletePessoaFotoRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!podeAdministrar(sessao)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   const [row] = await sql`UPDATE pessoas SET foto_url = NULL, atualizado_em = NOW() WHERE id = ${id} AND foto_url IS NOT NULL RETURNING id, nome, cracha`;
   if (!row) return c.json({ erro: "Pessoa sem foto ou não encontrada." }, 404);
   try { await deletarFoto(id); } catch { }
@@ -401,7 +401,7 @@ const deletePessoaRoute = createRoute({
 app.openapi(deletePessoaRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!podeAdministrar(sessao)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   const [row] = await sql`DELETE FROM pessoas WHERE id = ${id} RETURNING id, nome, cracha`;
   if (!row) return c.json({ erro: "Pessoa não encontrada." }, 404);
   await registrarEvento(sessao, "pessoa.excluiu", `pessoas/${id}`, `${row.nome} (#${row.cracha})`);
@@ -459,7 +459,7 @@ const postVeiculoPessoaRoute = createRoute({
 app.openapi(postVeiculoPessoaRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!podeAdministrar(sessao)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   const { veiculoId } = c.req.valid("json");
   const [pessoa] = await sql`SELECT id, nome FROM pessoas WHERE id = ${id}`;
   if (!pessoa) return c.json({ erro: "Pessoa nao encontrada." }, 404);
@@ -493,7 +493,7 @@ const deleteVeiculoPessoaRoute = createRoute({
 app.openapi(deleteVeiculoPessoaRoute, async (c) => {
   const { id, veiculoId } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!podeAdministrar(sessao)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   const [existente] = await sql`SELECT veiculo_id FROM pessoa_veiculo WHERE pessoa_id = ${id} AND veiculo_id = ${veiculoId}`;
   if (!existente) return c.json({ erro: "Vinculo nao encontrado." }, 404);
   await sql`DELETE FROM pessoa_veiculo WHERE pessoa_id = ${id} AND veiculo_id = ${veiculoId}`;

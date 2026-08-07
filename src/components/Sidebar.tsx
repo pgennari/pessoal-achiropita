@@ -1,26 +1,28 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { Sessao } from "../lib/sessao";
-import { Perfil } from "../lib/tipos";
 import { useEdicaoAtiva } from "../lib/hooks";
 
+// A navegacao e controlada pelas permissoes do catalogo de perfis
+// (sessao.permissoes). Um item aparece se o perfil tem QUALQUER uma das
+// permissoes listadas; item sem `permissoes` fica visivel para todos.
 interface ItemNav {
   to: string;
   label: string;
-  perfis?: Perfil[];
+  permissoes?: string[];
   filhos?: ItemNav[];
   excluirAtivo?: string[];
 }
 
 interface Secao {
   label?: string;
-  perfis?: Perfil[];
+  permissoes?: string[];
   itens: ItemNav[];
 }
 
 const secoes: Secao[] = [
   {
     label: "Gestão de Estacionamento",
-    perfis: ["ADM", "ORG", "OPC", "CRD"],
+    permissoes: ["administracao", "estacionamentos.operar"],
     itens: [
       { to: "/veiculos", label: "Veículos" },
       {
@@ -33,7 +35,7 @@ const secoes: Secao[] = [
   },
   {
     label: "Pessoal",
-    perfis: ["ADM", "ORG", "OPC", "CRD"],
+    permissoes: ["administracao", "pessoas.ver"],
     itens: [
       {
         to: "/pessoas",
@@ -42,59 +44,71 @@ const secoes: Secao[] = [
           {
             to: "/entregas/crachas",
             label: "Entrega de Crachá",
-            perfis: ["ADM", "ORG", "OPC", "CRD"],
+            permissoes: ["administracao", "crachas.entregar"],
           },
           {
             to: "/pendencias/fotos",
             label: "Pendências de Fotos",
-            perfis: ["ADM", "ORG", "CRD"],
+            permissoes: ["administracao", "fotos.pendencias"],
           },
         ],
       },
       {
         to: "/formacao",
         label: "Formação",
-        perfis: ["ADM", "ORG", "OPC", "CRD"],
+        permissoes: ["administracao", "formacao.operar"],
         filhos: [
-          { to: "/formacao", label: "Turmas", perfis: ["ADM", "ORG", "OPC", "CRD"] },
-          { to: "/formacao/pendencias", label: "Pendências", perfis: ["ADM", "ORG", "OPC", "CRD"] },
+          { to: "/formacao", label: "Turmas" },
+          { to: "/formacao/pendencias", label: "Pendências" },
         ],
       },
       {
         to: "/presenca",
         label: "Presença",
-        perfis: ["ADM", "ORG"],
+        permissoes: ["administracao"],
       },
     ],
   },
   {
     label: "Festa",
-    perfis: ["ADM", "ORG"],
+    permissoes: ["administracao"],
     itens: [
       { to: "/", label: "Painel" },
       {
         to: "/edicoes",
         label: "Edição",
-        filhos: [
-          { to: "/historico", label: "Histórico", perfis: ["ADM", "ORG"] },
-        ],
+        filhos: [{ to: "/historico", label: "Histórico" }],
       },
-      { to: "/setores", label: "Setores", perfis: ["ADM", "ORG"] },
+      { to: "/setores", label: "Setores" },
     ],
   },
   {
     label: "Administração",
-    perfis: ["ADM", "ORG"],
+    permissoes: ["administracao"],
     itens: [
-      { to: "/usuarios", label: "Usuários", perfis: ["ADM", "ORG"] },
-      { to: "/auditoria", label: "Auditoria", perfis: ["ADM", "ORG"] },
-      { to: "/zeramento", label: "Zeramento", perfis: ["ADM"] },
+      { to: "/usuarios", label: "Usuários" },
+      { to: "/auditoria", label: "Auditoria" },
+      {
+        to: "/perfis",
+        label: "Perfis",
+        permissoes: ["perfis.gerenciar"],
+      },
+      {
+        to: "/zeramento",
+        label: "Zeramento",
+        permissoes: ["zeramento.executar"],
+      },
     ],
   },
 ];
 
-function itemVisivel(item: ItemNav, perfil: Perfil): boolean {
-  return !item.perfis || item.perfis.includes(perfil);
+function temPermissao(sessao: Sessao, codigo: string): boolean {
+  return (sessao.permissoes ?? []).includes(codigo);
+}
+
+function itemVisivel(item: { permissoes?: string[] }, sessao: Sessao): boolean {
+  if (!item.permissoes) return true;
+  return item.permissoes.some((c) => temPermissao(sessao, c));
 }
 
 function itemAtivo(item: ItemNav, pathname: string): boolean {
@@ -213,10 +227,10 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
           )}
 
           {secoes.map((secao, si) => {
-            if (secao.perfis && !secao.perfis.includes(sessao.perfil))
+            if (secao.permissoes && !itemVisivel(secao, sessao))
               return null;
             const itensVisiveis = secao.itens.filter((item) =>
-              itemVisivel(item, sessao.perfil)
+              itemVisivel(item, sessao)
             );
             if (itensVisiveis.length === 0) return null;
 
@@ -230,7 +244,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
                 <div className="space-y-0.5">
                   {itensVisiveis.map((item) => {
                     const filhosVisiveis = item.filhos?.filter((f) =>
-                      itemVisivel(f, sessao.perfil)
+                      itemVisivel(f, sessao)
                     );
 
                     return (

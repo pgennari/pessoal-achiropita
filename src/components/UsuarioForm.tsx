@@ -2,10 +2,10 @@ import { FormEvent, useState } from "react";
 import {
   Equipe,
   Pessoa,
-  Perfil,
   Usuario,
 } from "../lib/tipos";
 import { DadosUsuarioForm } from "../lib/usuarios";
+import { usePerfis } from "../lib/hooks";
 import { normalizar } from "../lib/utilsDominio";
 import { Icone } from "./Icone";
 
@@ -16,19 +16,6 @@ interface Props {
   onSubmit: (dados: DadosUsuarioForm) => Promise<void>;
   onCancelar: () => void;
 }
-
-const PERFIS: { valor: Perfil; rotulo: string; descricao: string }[] = [
-  { valor: "ADM", rotulo: "ADM", descricao: "Acesso total" },
-  { valor: "ORG", rotulo: "ORG", descricao: "Organização geral" },
-  {
-    valor: "CRD",
-    rotulo: "CRD",
-    descricao: "Coordenador (precisa de equipes)",
-  },
-  { valor: "EQP", rotulo: "EQP", descricao: "Equipista" },
-  { valor: "OPC", rotulo: "OPC", descricao: "Operador de campo" },
-  { valor: "REC", rotulo: "REC", descricao: "Recreação" },
-];
 
 function inicialDados(u?: Usuario | null): DadosUsuarioForm {
   return {
@@ -50,6 +37,7 @@ export function UsuarioForm({
   const [dados, setDados] = useState<DadosUsuarioForm>(() =>
     inicialDados(inicial)
   );
+  const { itens: perfis } = usePerfis();
   const [enviando, setEnviando] = useState(false);
   const [erros, setErros] = useState<Record<string, string>>({});
   const [buscaPessoa, setBuscaPessoa] = useState("");
@@ -152,11 +140,12 @@ export function UsuarioForm({
             id="perfil"
             className={`input ${erros.perfil ? "erro" : ""}`}
             value={dados.perfil}
-            onChange={(e) => set("perfil", e.target.value as Perfil)}
+            onChange={(e) => set("perfil", e.target.value)}
           >
-            {PERFIS.map((p) => (
-              <option key={p.valor} value={p.valor}>
-                {p.rotulo} — {p.descricao}
+            {perfis.length === 0 && <option value={dados.perfil}>{dados.perfil}</option>}
+            {perfis.map((p) => (
+              <option key={p.sigla} value={p.sigla}>
+                {p.sigla} — {p.nome}
               </option>
             ))}
           </select>

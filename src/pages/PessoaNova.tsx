@@ -5,7 +5,7 @@ import { Icone } from "../components/Icone";
 import { criarPessoa, DadosPessoaForm, ErroValidacao } from "../lib/pessoas";
 import { proximoCracha } from "../lib/utilsDominio";
 import { usePessoas } from "../lib/hooks";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar } from "../lib/sessao";
 
 export function PessoaNova() {
   const navigate = useNavigate();
@@ -13,7 +13,7 @@ export function PessoaNova() {
   const { itens, carregando } = usePessoas();
 
   if (!sessao) return null;
-  const podeCriar = sessao.perfil === "ADM" || sessao.perfil === "ORG";
+  const podeCriar = podeAdministrar(sessao);
 
   if (!podeCriar) {
     return (

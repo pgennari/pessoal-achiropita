@@ -19,8 +19,6 @@ export interface DadosUsuarioForm {
   equipesCRD?: string[];
 }
 
-const PERFIS_VALIDOS: Perfil[] = ["ADM", "ORG", "CRD", "EQP", "OPC", "REC"];
-
 export function usuarioDeSnap(uid: string, data: Record<string, unknown>): Usuario {
   return {
     uid,
@@ -35,12 +33,12 @@ export function usuarioDeSnap(uid: string, data: Record<string, unknown>): Usuar
   };
 }
 
-function validar(d: DadosUsuarioForm): Record<string, string> {
+function validar(d: DadosUsuarioForm, perfisSiglas: Set<string>): Record<string, string> {
   const erros: Record<string, string> = {};
   if (!d.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email))
     erros.email = "E-mail inválido.";
   if (!d.nome.trim()) erros.nome = "Nome é obrigatório.";
-  if (!PERFIS_VALIDOS.includes(d.perfil)) erros.perfil = "Perfil inválido.";
+  if (!perfisSiglas.has(d.perfil)) erros.perfil = "Perfil inválido.";
   if (d.perfil === "CRD" && (!d.equipesCRD || d.equipesCRD.length === 0))
     erros.equipesCRD = "Coordenador precisa de pelo menos uma equipe.";
   return erros;
@@ -49,9 +47,10 @@ function validar(d: DadosUsuarioForm): Record<string, string> {
 export async function atualizarUsuario(
   _sessao: Sessao,
   uid: string,
-  dados: DadosUsuarioForm
+  dados: DadosUsuarioForm,
+  perfisSiglas: Set<string>
 ): Promise<void> {
-  const erros = validar(dados);
+  const erros = validar(dados, perfisSiglas);
   if (Object.keys(erros).length) throw new ErroUsuario(erros);
   await api.put(`/api/usuarios/${uid}`, {
     email: dados.email.trim().toLowerCase(),

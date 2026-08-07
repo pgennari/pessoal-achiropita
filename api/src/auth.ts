@@ -29,8 +29,11 @@ export const comAuth = createMiddleware<Variaveis>(async (c, next) => {
   }
 
   const rows = await sql`
-    SELECT uid, email, nome, perfil, pessoa_id, equipes_crd
-    FROM usuarios WHERE uid = ${decoded.uid}
+    SELECT u.uid, u.email, u.nome, u.perfil, u.pessoa_id, u.equipes_crd,
+           COALESCE(p.permissoes, '{}') AS permissoes
+    FROM usuarios u
+    LEFT JOIN perfis p ON p.sigla = u.perfil
+    WHERE u.uid = ${decoded.uid}
   `;
   if (rows.length === 0) {
     return c.json({ erro: "Usuário sem acesso ao sistema." }, 403);
@@ -43,6 +46,7 @@ export const comAuth = createMiddleware<Variaveis>(async (c, next) => {
     perfil: u.perfil as string,
     pessoaId: (u.pessoa_id as string | null) ?? undefined,
     equipesCRD: (u.equipes_crd as string[] | null) ?? undefined,
+    permissoes: (u.permissoes as string[] | null) ?? [],
   });
   await next();
 });
@@ -67,12 +71,43 @@ export const comAuthFirebase = createMiddleware<VariaveisFirebase>(
   }
 );
 
-export function podeAdministrar(perfil: string): boolean {
-  return perfil === "ADM" || perfil === "ORG";
+// Guards de autorizacao. Os perfis legados (ADM/ORG/OPC) continuam valendo
+// para nao quebrar o comportamento dos seis perfis padrao; alem disso, um
+// perfil criado na tela de controle de perfil ganha acesso conforme as
+// permissoes cadastradas em perfis.permissoes.
+
+export function temPermissao(sessao: { permissoes?: string[] }, codigo: string): boolean {
+  return (sessao.permissoes ?? []).includes(codigo);
+}
+
+export function podeAdministrar(sessao: {
+  perfil: string;
+  permissoes?: string[];
+}): boolean {
+  return sessao.perfil === "ADM" || sessao.perfil === "ORG" || temPermissao(sessao, "administracao");
 }
 
 // OPC opera a formação presencial: edita dados e troca foto das pessoas,
 // além de ADM e ORG.
-export function podeEditarPessoa(perfil: string): boolean {
-  return podeAdministrar(perfil) || perfil === "OPC";
+export function podeEditarPessoa(sessao: {
+  perfil: string;
+  permissoes?: string[];
+}): boolean {
+  return podeAdministrar(sessao) || sessao.perfil === "OPC" || temPermissao(sessao, "pessoas.editar");
+}
+
+// Zeramento de dados é exclusivo do ADM (ou de perfil com zeramento.executar).
+export function podeZerar(sessao: {
+  perfil: string;
+  permissoes?: string[];
+}): boolean {
+  return sessao.perfil === "ADM" || temPermissao(sessao, "zeramento.executar");
+}
+
+// Controle de perfil é exclusivo do ADM (ou de perfil com perfis.gerenciar).
+export function podeGerirPerfis(sessao: {
+  perfil: string;
+  permissoes?: string[];
+}): boolean {
+  return sessao.perfil === "ADM" || temPermissao(sessao, "perfis.gerenciar");
 }

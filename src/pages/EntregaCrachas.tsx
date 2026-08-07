@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
 import {
   useEquipes,
@@ -119,11 +119,14 @@ export function EntregaCrachas() {
 
   if (!sessao) return null;
   const podeOperar =
-    sessao.perfil === "ADM" ||
-    sessao.perfil === "ORG" ||
-    sessao.perfil === "OPC";
+    podeAdministrar(sessao) ||
+    sessao.perfil === "OPC" ||
+    temPermissao(sessao, "crachas.entregar");
   const podeDesbloquear = sessao.perfil === "ADM";
-  const podeAcessar = podeOperar || sessao.perfil === "CRD";
+  const podeAcessar =
+    podeOperar ||
+    sessao.perfil === "CRD" ||
+    temPermissao(sessao, "crachas.entregar");
 
   if (!podeAcessar) {
     return (

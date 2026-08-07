@@ -7,6 +7,8 @@ export interface Sessao {
   perfil: string;
   pessoaId?: string;
   equipesCRD?: string[];
+  // Permissoes vindas do catalogo de perfis (perfis.permissoes).
+  permissoes: string[];
 }
 
 export interface SessaoPublica {

@@ -7,7 +7,7 @@ import {
   useParticipacoes,
   useSetores,
 } from "../lib/hooks";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
 import {
   DadosEdicaoForm,
   ativarEdicao,
@@ -31,7 +31,6 @@ import { Icone } from "../components/Icone";
 import {
   DiaFesta,
   Equipe,
-  Participacao,
   SetorInfo,
 } from "../lib/tipos";
 import { formatarData } from "../lib/utilsDominio";
@@ -41,54 +40,6 @@ function formatarDiaFesta(data: string): string {
   if (isNaN(d.getTime())) return data;
   const diaSemana = d.toLocaleDateString("pt-BR", { weekday: "long" });
   return `${diaSemana.charAt(0).toUpperCase()}${diaSemana.slice(1)}, ${formatarData(data)}`;
-}
-
-interface ResumoVagas {
-  previstas: number;
-  alocadas: number;
-  pct: number;
-}
-
-function resumoEquipe(e: Equipe, parts: Participacao[]): ResumoVagas {
-  const previstas = e.vagasCoordenador + e.vagasEquipista + e.vagasApoio;
-  const alocadas = parts.filter((p) => p.equipeId === e.id).length;
-  const pct = previstas > 0 ? Math.round((alocadas / previstas) * 100) : 0;
-  return { previstas, alocadas, pct };
-}
-
-function BarraPreenchimento({
-  previstas,
-  alocadas,
-  pct,
-}: ResumoVagas) {
-  const pctExibida = Math.min(pct, 100);
-
-  const getCor = () => {
-    if (pct >= 100)
-      return { bar: "bg-verde", track: "bg-verde/15", texto: "text-verde-escuro" };
-    if (pct >= 60)
-      return { bar: "bg-ouro", track: "bg-ouro/15", texto: "text-ouro-texto" };
-    return { bar: "bg-vermelho", track: "bg-vermelho/15", texto: "text-vermelho-escuro" };
-  };
-
-  const cor = getCor();
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="text-sm text-ardesia">Preenchimento</span>
-        <span className={`font-mono text-sm font-semibold ${cor.texto}`}>
-          {alocadas}/{previstas} &middot; {pct}%
-        </span>
-      </div>
-      <div className={`h-2.5 rounded-full ${cor.track} overflow-hidden`}>
-        <div
-          className={`h-full rounded-full ${cor.bar} transition-all`}
-          style={{ width: `${pctExibida}%` }}
-        />
-      </div>
-    </div>
-  );
 }
 
 export function EdicaoDetalhe() {
@@ -122,18 +73,9 @@ export function EdicaoDetalhe() {
     return mapaSetor.get(id);
   }
 
-  const podeAdministrar =
-    !!sessao && (sessao.perfil === "ADM" || sessao.perfil === "ORG");
+  const podeAdministrar = adminPode(sessao);
 
-  const totais = useMemo(() => {
-    const previstas = equipes.reduce(
-      (acc, e) => acc + e.vagasCoordenador + e.vagasEquipista + e.vagasApoio,
-      0
-    );
-    const alocadas = participacoes.length;
-    const pct = previstas > 0 ? Math.round((alocadas / previstas) * 100) : 0;
-    return { previstas, alocadas, pct };
-  }, [equipes, participacoes]);
+  const alocadas = participacoes.length;
 
   const lista = useMemo(
     () =>
@@ -222,9 +164,6 @@ export function EdicaoDetalhe() {
       await atualizarEquipe(sessao, equipe, {
         nome: equipe.nome,
         setor: novoSector,
-        vagasCoordenador: equipe.vagasCoordenador,
-        vagasEquipista: equipe.vagasEquipista,
-        vagasApoio: equipe.vagasApoio,
       }, equipes);
       setAlterandoSetorId(null);
     } catch (err) {
@@ -360,29 +299,8 @@ export function EdicaoDetalhe() {
           <div className="kpi-valor">{equipes.length}</div>
         </div>
         <div className="kpi">
-          <div className="kpi-label">Vagas previstas</div>
-          <div className="kpi-valor">{totais.previstas}</div>
-        </div>
-        <div className="kpi">
           <div className="kpi-label">Pessoas alocadas</div>
-          <div className="kpi-valor">{totais.alocadas}</div>
-        </div>
-        <div className="kpi">
-          <div className="kpi-label">Preenchimento</div>
-          <div className="kpi-valor">
-            {totais.pct} <span className="unidade">%</span>
-          </div>
-          <div
-            className={`kpi-delta ${
-              totais.pct >= 90
-                ? "positivo"
-                : totais.pct < 60
-                ? "negativo"
-                : ""
-            }`}
-          >
-            {totais.alocadas} de {totais.previstas} vagas
-          </div>
+          <div className="kpi-valor">{alocadas}</div>
         </div>
       </section>
 
@@ -498,7 +416,6 @@ export function EdicaoDetalhe() {
                 </div>
               )}
               {lista.map((e) => {
-                const r = resumoEquipe(e, participacoes);
                 const setorInfo = getSetor(e.setor);
                 const cor = setorInfo?.cor ?? "#888";
                 return (
@@ -567,12 +484,6 @@ export function EdicaoDetalhe() {
                           <span className="font-mono font-semibold">{e.vagasApoio}</span>
                         </div>
                       </div>
-
-                      <BarraPreenchimento
-                        previstas={r.previstas}
-                        alocadas={r.alocadas}
-                        pct={r.pct}
-                      />
 
                       {podeAdministrar && (
                         <div className="flex justify-end">

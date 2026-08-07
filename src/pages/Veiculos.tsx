@@ -7,7 +7,7 @@ import {
   useParticipacoes,
   useVeiculos,
 } from "../lib/hooks";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
 import { normalizar } from "../lib/utilsDominio";
 import type { VeiculoComPessoas } from "../lib/tipos";
 import { Icone } from "../components/Icone";
@@ -150,7 +150,7 @@ export function Veiculos() {
     return m;
   }, [itens, equipesPorPessoa]);
 
-  const podeCriar = sessao?.perfil === "ADM" || sessao?.perfil === "ORG";
+  const podeCriar = adminPode(sessao);
 
   const veiculosFiltrados = useMemo(() => {
     const t = normalizar(termo);

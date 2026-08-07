@@ -35,6 +35,7 @@ import {
 } from "./checkin";
 import { listarPresencasDoDia, listarResumoEquipesDoDia } from "./presenca";
 import type { DashboardInicial } from "./dashboard";
+import { PerfilInfo } from "./tipos";
 
 export interface EstadoLista<T> {
   itens: T[];
@@ -217,6 +218,16 @@ export function useUsuarios(): EstadoLista<Usuario> {
   const { data, isLoading, error } = useQuery({
     queryKey: ["usuarios"],
     queryFn: () => api.get<Usuario[]>("/api/usuarios"),
+  });
+  return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
+}
+
+// ─── Perfis ────────────────────────────────────────────────────────────────────
+
+export function usePerfis(): EstadoLista<PerfilInfo> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["perfis"],
+    queryFn: () => api.get<PerfilInfo[]>("/api/perfis"),
   });
   return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
 }

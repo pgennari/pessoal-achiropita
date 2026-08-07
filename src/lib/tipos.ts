@@ -1,4 +1,24 @@
-export type Perfil = "ADM" | "ORG" | "CRD" | "EQP" | "OPC" | "REC";
+// Perfis sao um catalogo editavel (tela de controle de perfil); a sigla e a
+// chave do registro em /perfis. Os seis perfis padrao (ADM, ORG, CRD, EQP,
+// OPC, REC) sao semeados no banco; o ADM e fixo e nao pode ser alterado.
+export type Perfil = string;
+
+// Registro do catalogo de perfis (GET/POST/PUT/DELETE /api/perfis).
+export interface PerfilInfo {
+  sigla: string;
+  nome: string;
+  fixo: boolean;
+  permissoes: string[];
+  criadoEm?: string;
+  atualizadoEm?: string;
+}
+
+// Item do catalogo de permissoes (fonte da verdade em api/src/perfis.ts).
+export interface Permissao {
+  codigo: string;
+  rotulo: string;
+  descricao: string;
+}
 
 export interface Usuario {
   uid: string;

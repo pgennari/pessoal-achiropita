@@ -8,7 +8,7 @@ import {
   useEquipes,
   useParticipacoes,
 } from "../lib/hooks";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
 import {
   associarVeiculoEstacionamento,
   desassociarVeiculoEstacionamento,
@@ -78,7 +78,7 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
   const buscaDebounced = useDebounce(busca, 300);
   const buscaAssociacaoDebounced = useDebounce(buscaAssociacao, 300);
 
-  const podeEditar = sessao?.perfil === "ADM" || sessao?.perfil === "ORG";
+  const podeEditar = adminPode(sessao);
 
   const checkinsPorVeiculo = useMemo(() => {
     const mapa = new Map<string, Set<string>>();

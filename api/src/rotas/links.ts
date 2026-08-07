@@ -81,7 +81,7 @@ const postLinkRoute = createRoute({
 
 app.openapi(postLinkRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = await c.req.json() as {
@@ -137,7 +137,7 @@ const putLinkRevogarRoute = createRoute({
 app.openapi(putLinkRevogarRoute, async (c) => {
   const { token } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const [row] = await sql`
@@ -168,7 +168,7 @@ const putLinkAjustarRoute = createRoute({
 app.openapi(putLinkAjustarRoute, async (c) => {
   const { turmaId } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao.perfil)) {
+  if (!podeAdministrar(sessao)) {
     return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
   }
   const body = await c.req.json() as { turmaData: string; turmaHorarioInicio: string };

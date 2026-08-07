@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { usePessoas } from "../lib/hooks";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
 import { normalizar, soDigitos } from "../lib/utilsDominio";
 import { Pessoa } from "../lib/tipos";
 import { sincronizarTodosOsCrachas } from "../lib/buscaCracha";
@@ -98,7 +98,7 @@ export function Pessoas() {
     );
   }
 
-  const podeCriar = sessao?.perfil === "ADM" || sessao?.perfil === "ORG";
+  const podeCriar = adminPode(sessao);
   const isAdm = sessao?.perfil === "ADM";
   const [sincronizando, setSincronizando] = useState(false);
   const [mensagemSync, setMensagemSync] = useState<string | null>(null);

@@ -7,7 +7,7 @@ import { HistoricoPessoa } from "../components/HistoricoPessoa";
 import { VinculoVeiculo } from "../components/VinculoVeiculo";
 import { Icone } from "../components/Icone";
 import { usePessoa, usePessoas, useVeiculos, useVeiculosPessoa } from "../lib/hooks";
-import { useSessao } from "../lib/sessao";
+import { useSessao, podeAdministrar, podeEditarPessoa } from "../lib/sessao";
 import {
   DadosPessoaForm,
   atualizarPessoa,
@@ -36,12 +36,8 @@ export function PessoaDetalhe() {
 
   if (!sessao) return null;
   const ehProprio = !!sessao.pessoaId && sessao.pessoaId === id;
-  const podeEditar =
-    sessao.perfil === "ADM" ||
-    sessao.perfil === "ORG" ||
-    sessao.perfil === "OPC" ||
-    ehProprio;
-  const podeInativar = sessao.perfil === "ADM" || sessao.perfil === "ORG";
+  const podeEditar = podeEditarPessoa(sessao) || ehProprio;
+  const podeInativar = podeAdministrar(sessao);
   const podeExcluir = sessao.perfil === "ADM";
   const bloquearSensivel = sessao.perfil !== "ADM";
 

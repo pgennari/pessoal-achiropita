@@ -20,6 +20,17 @@ export interface Permissao {
   descricao: string;
 }
 
+// Item do catalogo de menus controlaveis pela tela de controle de menus
+// (/controle-menu). Os codigos em `permissoes` sao os do catalogo de
+// permissoes que liberam o menu na navegacao.
+export interface MenuCatalogo {
+  id: string;
+  rotulo: string;
+  secao: string;
+  descricao: string;
+  permissoes: string[];
+}
+
 export interface Usuario {
   uid: string;
   email: string;

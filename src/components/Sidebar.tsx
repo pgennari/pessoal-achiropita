@@ -35,11 +35,11 @@ const secoes: Secao[] = [
   },
   {
     label: "Pessoal",
-    permissoes: ["administracao", "pessoas.ver"],
     itens: [
       {
         to: "/pessoas",
         label: "Pessoas",
+        permissoes: ["administracao", "pessoas.ver"],
         filhos: [
           {
             to: "/entregas/crachas",
@@ -84,13 +84,17 @@ const secoes: Secao[] = [
   },
   {
     label: "Administração",
-    permissoes: ["administracao"],
     itens: [
-      { to: "/usuarios", label: "Usuários" },
-      { to: "/auditoria", label: "Auditoria" },
+      { to: "/usuarios", label: "Usuários", permissoes: ["administracao"] },
+      { to: "/auditoria", label: "Auditoria", permissoes: ["administracao"] },
       {
         to: "/perfis",
         label: "Perfis",
+        permissoes: ["perfis.gerenciar"],
+      },
+      {
+        to: "/controle-menu",
+        label: "Controle de Menus",
         permissoes: ["perfis.gerenciar"],
       },
       {

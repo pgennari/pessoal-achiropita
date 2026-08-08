@@ -13,6 +13,7 @@ import {
   Estacionamento,
   EventoAuditoria,
   Formacao,
+  HistoricoEquipePessoa,
   HistoricoEstacionamentoVeiculo,
   LinkPresenca,
   LinkValidacao,
@@ -352,6 +353,15 @@ export function useVeiculosPessoa(pessoaId: string | undefined): EstadoLista<Vei
   const { data, isLoading, error } = useQuery({
     queryKey: ["pessoas", pessoaId, "veiculos"],
     queryFn: () => api.get<Veiculo[]>(`/api/pessoas/${pessoaId}/veiculos`),
+    enabled: !!pessoaId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!pessoaId, erro: erroMsg(error) };
+}
+
+export function useHistoricoEquipesPessoa(pessoaId: string | undefined): EstadoLista<HistoricoEquipePessoa> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["pessoas", pessoaId, "historico-equipes"],
+    queryFn: () => api.get<HistoricoEquipePessoa[]>(`/api/pessoas/${pessoaId}/historico-equipes`),
     enabled: !!pessoaId,
   });
   return { itens: data ?? [], carregando: isLoading && !!pessoaId, erro: erroMsg(error) };

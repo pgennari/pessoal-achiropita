@@ -244,6 +244,27 @@ INSERT INTO setores (id, nome, cor, editavel) VALUES
   ('Alimentacao', 'Alimentacao', '#b8860b', FALSE)
 ON CONFLICT (id) DO NOTHING;
 
+-- pessoa_equipe_historico: append-only (sem UPDATE/DELETE via API).
+-- Registra cada movimentacao de uma pessoa entre equipes em uma edicao.
+-- Os nomes das equipes sao snapshots para preservar o historico mesmo se a
+-- equipe for renomeada ou excluida (mesmo padrao de veiculo_estacionamento_historico).
+CREATE TABLE IF NOT EXISTS pessoa_equipe_historico (
+  id                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  pessoa_id           TEXT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+  edicao_id           TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
+  equipe_origem_id    TEXT REFERENCES equipes(id) ON DELETE SET NULL,
+  equipe_origem_nome  TEXT NOT NULL,
+  equipe_destino_id   TEXT REFERENCES equipes(id) ON DELETE SET NULL,
+  equipe_destino_nome TEXT NOT NULL,
+  funcao              funcao_participacao NOT NULL,
+  autor               TEXT NOT NULL,
+  autor_nome          TEXT NOT NULL,
+  criado_em           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pessoa_equipe_historico_pessoa
+ON pessoa_equipe_historico(pessoa_id, criado_em DESC);
+
 -- participacoes_historicas: reservada para EP-13 (importação legada)
 -- TODO(US-13-01): implementar importação
 CREATE TABLE participacoes_historicas (

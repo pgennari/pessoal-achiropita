@@ -253,6 +253,23 @@ export interface ParticipacaoHistorica {
   criadoEm: string;
 }
 
+// Movimentacao de uma pessoa entre equipes em uma edicao (append-only).
+// Os nomes das equipes sao snapshots para preservar o historico mesmo se a
+// equipe for renomeada ou excluida.
+export interface HistoricoEquipePessoa {
+  id: string;
+  pessoaId: string;
+  edicaoId: string;
+  equipeOrigemId?: string;
+  equipeOrigemNome: string;
+  equipeDestinoId?: string;
+  equipeDestinoNome: string;
+  funcao: Funcao;
+  autor: string;
+  autorNome: string;
+  criadoEm: string;
+}
+
 export interface EntregaCracha {
   id: string; // formato: `${edicaoId}__${pessoaId}`
   edicaoId: string;

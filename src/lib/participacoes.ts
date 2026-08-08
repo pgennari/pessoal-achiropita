@@ -56,6 +56,9 @@ export async function moverDeEquipe(
     equipeDestinoNome,
   });
   invalidarParticipacoes();
+  await queryClient.invalidateQueries({
+    queryKey: ["pessoas", participacao.pessoaId, "historico-equipes"],
+  });
 }
 
 export async function trocarFuncao(

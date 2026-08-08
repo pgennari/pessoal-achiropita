@@ -129,6 +129,11 @@ app.openapi(putParticipacaoRoute, async (c) => {
     equipeOrigemNome?: string;
     equipeDestinoNome?: string;
   };
+  const [antes] = await sql`
+    SELECT id, edicao_id, equipe_id, pessoa_id FROM participacoes WHERE id = ${id}
+  `;
+  if (!antes) return c.json({ erro: "Participação não encontrada." }, 404);
+
   const [row] = await sql`
     UPDATE participacoes SET
       equipe_id     = ${body.equipeId},
@@ -136,12 +141,28 @@ app.openapi(putParticipacaoRoute, async (c) => {
       atualizado_em = NOW()
     WHERE id = ${id} RETURNING *
   `;
-  if (!row) return c.json({ erro: "Participação não encontrada." }, 404);
 
   const detalhe = body.pessoaNome
     ? `${body.pessoaNome}: ${body.equipeOrigemNome ?? "?"} → ${body.equipeDestinoNome ?? "?"} (${body.funcao})`
     : `funcao: ${body.funcao}`;
   await registrarEvento(sessao, "participacao.moveu", `participacoes/${id}`, detalhe);
+
+  // Movimentacao entre equipes: registra no historico da pessoa (append-only).
+  if (String(antes.equipe_id) !== String(body.equipeId)) {
+    await sql`
+      INSERT INTO pessoa_equipe_historico (
+        pessoa_id, edicao_id,
+        equipe_origem_id, equipe_origem_nome,
+        equipe_destino_id, equipe_destino_nome,
+        funcao, autor, autor_nome
+      ) VALUES (
+        ${antes.pessoa_id}, ${antes.edicao_id},
+        ${antes.equipe_id}, ${body.equipeOrigemNome ?? "?"},
+        ${body.equipeId}, ${body.equipeDestinoNome ?? "?"},
+        ${body.funcao}, ${sessao.uid}, ${sessao.nome}
+      )
+    `;
+  }
   return c.json(participacaoDeRow(row) as any, 200);
 });
 

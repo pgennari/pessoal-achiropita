@@ -528,4 +528,62 @@ app.openapi(deleteVeiculoPessoaRoute, async (c) => {
   return c.json({ ok: true }, 200);
 });
 
+// GET /api/pessoas/:id/historico-equipes
+const getHistoricoEquipesPessoaRoute = createRoute({
+  method: "get",
+  path: "/{id}/historico-equipes",
+  tags: ["Pessoas"],
+  summary: "Lista o historico de movimentacoes da pessoa entre equipes",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.array(z.any()) } }, description: "Historico de movimentacoes" },
+    403: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Pessoa nao encontrada" },
+  },
+});
+
+app.openapi(getHistoricoEquipesPessoaRoute, async (c) => {
+  const { id } = c.req.valid("param");
+  const sessao = c.get("sessao");
+  const escopo = escopoPessoas(sessao);
+  if (!escopo) return c.json({ erro: "Acesso negado. Sem permissao de leitura de pessoas." }, 403);
+
+  let filtro = sql`p.id = ${id}`;
+  if (escopo === "equipe") {
+    const equipes = sessao.equipesCRD ?? [];
+    filtro = sql`p.id = ${id} AND EXISTS (
+      SELECT 1 FROM participacoes part
+      JOIN edicoes e ON e.id = part.edicao_id AND e.status = 'ativa'
+      WHERE part.pessoa_id = p.id AND part.equipe_id = ANY(${equipes})
+    )`;
+  } else if (escopo === "proprio") {
+    if (!sessao.pessoaId || sessao.pessoaId !== id) return c.json({ erro: "Pessoa não encontrada." }, 404);
+  }
+
+  const [pessoa] = await sql`SELECT p.id FROM pessoas p WHERE ${filtro}`;
+  if (!pessoa) return c.json({ erro: "Pessoa nao encontrada." }, 404);
+
+  const rows = await sql`
+    SELECT * FROM pessoa_equipe_historico
+    WHERE pessoa_id = ${id}
+    ORDER BY criado_em DESC
+  `;
+  const resultado = rows.map((r) => ({
+    id: r.id,
+    pessoaId: r.pessoa_id,
+    edicaoId: r.edicao_id,
+    equipeOrigemId: r.equipe_origem_id ?? null,
+    equipeOrigemNome: r.equipe_origem_nome,
+    equipeDestinoId: r.equipe_destino_id ?? null,
+    equipeDestinoNome: r.equipe_destino_nome,
+    funcao: r.funcao,
+    autor: r.autor,
+    autorNome: r.autor_nome,
+    criadoEm: r.criado_em instanceof Date ? r.criado_em.toISOString() : String(r.criado_em ?? ""),
+  }));
+  return c.json(resultado as any, 200);
+});
+
 export default app;

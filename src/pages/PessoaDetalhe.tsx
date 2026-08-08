@@ -10,6 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { PessoaForm } from "../components/PessoaForm";
 import { UploadFoto } from "../components/UploadFoto";
 import { HistoricoPessoa } from "../components/HistoricoPessoa";
+import { HistoricoEquipesPessoa } from "../components/HistoricoEquipesPessoa";
 import { VinculoVeiculo } from "../components/VinculoVeiculo";
 import { Icone } from "../components/Icone";
 import { usePessoa, usePessoas, useVeiculos, useVeiculosPessoa } from "../lib/hooks";
@@ -39,6 +40,8 @@ export function PessoaDetalhe() {
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [acaoOcupado, setAcaoOcupado] = useState(false);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [abaCadastro, setAbaCadastro] = useState<"foto" | "dados" | "filhos" | "veiculos">("dados");
+  const [abaHistorico, setAbaHistorico] = useState<"movimentacao" | "participacoes">("participacoes");
 
   if (!sessao) return null;
   const ehProprio = !!sessao.pessoaId && sessao.pessoaId === id;
@@ -244,91 +247,161 @@ export function PessoaDetalhe() {
         </div>
       )}
 
-      <section className="card">
-        <div className="card-corpo">
-          <UploadFoto sessao={sessao} pessoa={pessoa} podeEditar={podeEditar} />
+      <div className="tabs" role="tablist" aria-label="Cadastro da pessoa">
+        <div className="tabs-lista">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={abaCadastro === "foto"}
+            className={`aba ${abaCadastro === "foto" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaCadastro("foto")}
+          >
+            Foto
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={abaCadastro === "dados"}
+            className={`aba ${abaCadastro === "dados" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaCadastro("dados")}
+          >
+            Dados
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={abaCadastro === "filhos"}
+            className={`aba ${abaCadastro === "filhos" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaCadastro("filhos")}
+          >
+            Filhos
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={abaCadastro === "veiculos"}
+            className={`aba ${abaCadastro === "veiculos" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaCadastro("veiculos")}
+          >
+            Veículos
+          </button>
         </div>
-      </section>
 
-      <section className="card">
-        <div className="card-corpo grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Linha
-            rotulo="Nascimento"
-            valor={`${formatarData(pessoa.nascimento)}${
-              idade !== null ? ` · ${idade} anos` : ""
-            }`}
-          />
-          <Linha rotulo="Estado civil" valor={pessoa.estadoCivil ?? "—"} />
-          <Linha rotulo="Telefone" valor={pessoa.telefone || "—"} />
-          <Linha rotulo="E-mail" valor={pessoa.email ?? "—"} />
-          <Linha
-            rotulo="CPF"
-            valor={pessoa.cpf ? formatarCPF(pessoa.cpf) : "—"}
-          />
-          <Linha rotulo="RG" valor={pessoa.rg ?? "—"} />
-          <Linha rotulo="Endereço" valor={pessoa.endereco ?? "—"} />
-          <Linha rotulo="Bairro" valor={pessoa.bairro ?? "—"} />
-        </div>
-      </section>
+        {abaCadastro === "foto" && (
+          <div className="tabs-painel" role="tabpanel" tabIndex={0}>
+            <UploadFoto sessao={sessao} pessoa={pessoa} podeEditar={podeEditar} />
+          </div>
+        )}
 
-      <section className="card">
-        <div className="card-corpo">
-          <h4 className="mb-3">Filhos</h4>
-          {pessoa.filhos.length === 0 ? (
-            <p className="text-ardesia text-sm">Nenhum filho cadastrado.</p>
-          ) : (
-            <ul className="divide-y divide-pietra-clara">
-              {pessoa.filhos.map((f) => (
-                <li
-                  key={f.id}
-                  className="py-3 flex items-center justify-between gap-3"
-                >
-                  <div>
-                    <div className="font-semibold text-carbone">{f.nome}</div>
-                    <div className="text-xs text-ardesia">
-                      {formatarData(f.nascimento)}
-                      {(() => {
-                        const i = calcularIdade(f.nascimento);
-                        return i !== null ? ` · ${i} anos` : "";
-                      })()}
+        {abaCadastro === "dados" && (
+          <div className="tabs-painel" role="tabpanel" tabIndex={0}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Linha
+                rotulo="Nascimento"
+                valor={`${formatarData(pessoa.nascimento)}${
+                  idade !== null ? ` · ${idade} anos` : ""
+                }`}
+              />
+              <Linha rotulo="Estado civil" valor={pessoa.estadoCivil ?? "—"} />
+              <Linha rotulo="Telefone" valor={pessoa.telefone || "—"} />
+              <Linha rotulo="E-mail" valor={pessoa.email ?? "—"} />
+              <Linha
+                rotulo="CPF"
+                valor={pessoa.cpf ? formatarCPF(pessoa.cpf) : "—"}
+              />
+              <Linha rotulo="RG" valor={pessoa.rg ?? "—"} />
+              <Linha rotulo="Endereço" valor={pessoa.endereco ?? "—"} />
+              <Linha rotulo="Bairro" valor={pessoa.bairro ?? "—"} />
+            </div>
+          </div>
+        )}
+
+        {abaCadastro === "filhos" && (
+          <div className="tabs-painel" role="tabpanel" tabIndex={0}>
+            {pessoa.filhos.length === 0 ? (
+              <p className="text-ardesia text-sm">Nenhum filho cadastrado.</p>
+            ) : (
+              <ul className="divide-y divide-pietra-clara">
+                {pessoa.filhos.map((f) => (
+                  <li
+                    key={f.id}
+                    className="py-3 flex items-center justify-between gap-3"
+                  >
+                    <div>
+                      <div className="font-semibold text-carbone">{f.nome}</div>
+                      <div className="text-xs text-ardesia">
+                        {formatarData(f.nascimento)}
+                        {(() => {
+                          const i = calcularIdade(f.nascimento);
+                          return i !== null ? ` · ${i} anos` : "";
+                        })()}
+                      </div>
                     </div>
-                  </div>
-                  {f.frequentaRecreacao && (
-                    <span className="badge badge-azul">recreação</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
-
-      <section className="card">
-        <div className="card-corpo">
-          <VinculoVeiculo
-            titulo="Veículos"
-            veiculosDisponiveis={veiculos.filter(
-              (v) => !veiculosPessoa.some((vp) => vp.id === v.id)
+                    {f.frequentaRecreacao && (
+                      <span className="badge badge-azul">recreação</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
             )}
-            veiculosVinculados={veiculosPessoa}
-            aoVincular={async (veiculoId) => {
-              await vincularVeiculoPessoa(id!, veiculoId);
-              await queryClient.invalidateQueries({ queryKey: ["pessoas", id, "veiculos"] });
-            }}
-            aoDesvincular={async (veiculoId) => {
-              await desvincularVeiculoPessoa(id!, veiculoId);
-              await queryClient.invalidateQueries({ queryKey: ["pessoas", id, "veiculos"] });
-            }}
-          />
-        </div>
-      </section>
+          </div>
+        )}
 
-      <section className="card">
-        <div className="card-corpo">
-          <h4 className="mb-4">Histórico de participações</h4>
-          <HistoricoPessoa pessoa={pessoa} />
+        {abaCadastro === "veiculos" && (
+          <div className="tabs-painel" role="tabpanel" tabIndex={0}>
+            <VinculoVeiculo
+              titulo="Veículos vinculados"
+              veiculosDisponiveis={veiculos.filter(
+                (v) => !veiculosPessoa.some((vp) => vp.id === v.id)
+              )}
+              veiculosVinculados={veiculosPessoa}
+              aoVincular={async (veiculoId) => {
+                await vincularVeiculoPessoa(id!, veiculoId);
+                await queryClient.invalidateQueries({ queryKey: ["pessoas", id, "veiculos"] });
+              }}
+              aoDesvincular={async (veiculoId) => {
+                await desvincularVeiculoPessoa(id!, veiculoId);
+                await queryClient.invalidateQueries({ queryKey: ["pessoas", id, "veiculos"] });
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="tabs" role="tablist" aria-label="Históricos da pessoa">
+        <div className="tabs-lista">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={abaHistorico === "movimentacao"}
+            className={`aba ${abaHistorico === "movimentacao" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaHistorico("movimentacao")}
+          >
+            Histórico movimentação
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={abaHistorico === "participacoes"}
+            className={`aba ${abaHistorico === "participacoes" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaHistorico("participacoes")}
+          >
+            Histórico participações
+          </button>
         </div>
-      </section>
+
+        {abaHistorico === "movimentacao" && (
+          <div className="tabs-painel" role="tabpanel" tabIndex={0}>
+            <HistoricoEquipesPessoa pessoaId={pessoa.id} />
+          </div>
+        )}
+
+        {abaHistorico === "participacoes" && (
+          <div className="tabs-painel" role="tabpanel" tabIndex={0}>
+            <HistoricoPessoa pessoa={pessoa} />
+          </div>
+        )}
+      </div>
 
       {pessoa.atualizadoEm && (
         <p className="text-xs text-ardesia font-mono">

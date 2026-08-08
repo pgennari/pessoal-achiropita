@@ -71,6 +71,13 @@ export const CATALOGO_MENUS: MenuCatalogo[] = [
     descricao: "Executar o zeramento de dados.",
     permissoes: ["zeramento.executar"],
   },
+  {
+    id: "sincronizacao",
+    rotulo: "Sincronização",
+    secao: "Administração",
+    descricao: "Comparar e aplicar a sincronização com a planilha Google Sheets.",
+    permissoes: ["sincronizacao.executar"],
+  },
 ];
 
 export interface DadosPerfilForm {

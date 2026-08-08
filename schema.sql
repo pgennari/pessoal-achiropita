@@ -509,7 +509,8 @@ INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
   ('perfil.editar', 'Perfis: editar', 'Editar os detalhes de perfis e o controle de menus.'),
   ('perfil.excluir', 'Perfis: excluir', 'Excluir perfis de acesso.'),
   ('permissao.gerenciar', 'Permissões: gerenciar', 'Criar, editar e excluir permissões do catálogo.'),
-  ('zeramento.executar', 'Zeramento', 'Executar o zeramento de dados.')
+  ('zeramento.executar', 'Zeramento', 'Executar o zeramento de dados.'),
+  ('sincronizacao.executar', 'Sincronização: executar', 'Comparar e aplicar a sincronização com a planilha Google Sheets.')
 ON CONFLICT (codigo) DO NOTHING;
 
 -- Desativa codigos antigos do catalogo substituidos pelos granulares acima.
@@ -597,3 +598,22 @@ WHERE sigla = 'CRD';
 -- recriar o tipo ENUM; ele fica sem uso apos esta migracao).
 ALTER TABLE usuarios ALTER COLUMN perfil TYPE TEXT;
 ALTER TABLE convites ALTER COLUMN perfil TYPE TEXT;
+
+-- planilhas_acessadas: historico de planilhas Google Sheets acessadas na
+-- sincronizacao, com o ultimo mapeamento de colunas usado (apenas leitura).
+-- A aba e o mapeamento salvos permitem preencher o formulario em um novo
+-- acesso.
+CREATE TABLE IF NOT EXISTS planilhas_acessadas (
+  id             TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  planilha_id    TEXT NOT NULL UNIQUE,
+  abas           JSONB NOT NULL DEFAULT '[]',
+  aba            TEXT,
+  mapeamento     JSONB,
+  autor          TEXT NOT NULL,
+  autor_nome     TEXT NOT NULL,
+  criado_em      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_planilhas_acessadas_atualizado
+ON planilhas_acessadas(atualizado_em DESC);

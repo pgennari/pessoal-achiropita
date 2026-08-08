@@ -45,17 +45,28 @@ export function HistoricoEquipesPessoa({ pessoaId }: { pessoaId: string }) {
           <li key={h.id} className="py-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-semibold text-carbone">
-                {h.equipeOrigemNome}
-                <span className="text-ardesia"> → </span>
-                {h.equipeDestinoId ? (
-                  <Link
-                    to={`/edicoes/${h.edicaoId}/equipes/${h.equipeDestinoId}`}
-                    className="hover:text-verde"
-                  >
-                    {h.equipeDestinoNome}
-                  </Link>
+                {h.equipeDestinoNome ? (
+                  <>
+                    {h.equipeOrigemNome}
+                    <span className="text-ardesia"> → </span>
+                    {h.equipeDestinoId ? (
+                      <Link
+                        to={`/edicoes/${h.edicaoId}/equipes/${h.equipeDestinoId}`}
+                        className="hover:text-verde"
+                      >
+                        {h.equipeDestinoNome}
+                      </Link>
+                    ) : (
+                      h.equipeDestinoNome
+                    )}
+                  </>
                 ) : (
-                  h.equipeDestinoNome
+                  <>
+                    Removido(a) da equipe{" "}
+                    <span className="text-vermelho-escuro">
+                      {h.equipeOrigemNome}
+                    </span>
+                  </>
                 )}
               </span>
               <span className="text-xs text-ardesia">

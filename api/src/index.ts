@@ -28,6 +28,7 @@ import dashboard from "./rotas/dashboard.js";
 import diasFesta from "./rotas/diasFesta.js";
 import presenca from "./rotas/presenca.js";
 import presencaPublico from "./rotas/presencaPublico.js";
+import sincronizacao from "./rotas/sincronizacao.js";
 
 const app = new OpenAPIHono();
 
@@ -81,6 +82,7 @@ app.route("/api/historico-participacoes", historicoParticipacoes);
 app.route("/api/setores", setores);
 app.route("/api/dias-festa", diasFesta);
 app.route("/api/presenca", presenca);
+app.route("/api/sincronizacao", sincronizacao);
 
 app.onError((err, c) => {
   console.error("[API Error]", err);

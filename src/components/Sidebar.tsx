@@ -140,6 +140,11 @@ const secoes: Secao[] = [
         label: "Zeramento",
         permissoes: ["zeramento.executar"],
       },
+      {
+        to: "/sincronizacao",
+        label: "Sincronização",
+        permissoes: ["sincronizacao.executar"],
+      },
     ],
   },
 ];

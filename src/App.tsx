@@ -39,6 +39,7 @@ import { VeiculoNovo } from "./pages/VeiculoNovo";
 import { VeiculoDetalhe } from "./pages/VeiculoDetalhe";
 import { DashboardEstacionamentos } from "./pages/DashboardEstacionamentos";
 import { RelatorioEstacionamentos } from "./pages/RelatorioEstacionamentos";
+import { Sincronizacao } from "./pages/Sincronizacao";
 
 export function App() {
   return (
@@ -90,6 +91,7 @@ export function App() {
         <Route path="auditoria" element={<Auditoria />} />
         <Route path="setores" element={<Setores />} />
         <Route path="zeramento" element={<ZeramentoDados />} />
+        <Route path="sincronizacao" element={<Sincronizacao />} />
         <Route path="dashboard/estacionamentos" element={<DashboardEstacionamentos />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

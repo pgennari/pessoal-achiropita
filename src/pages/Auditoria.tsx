@@ -19,6 +19,14 @@ const ACOES: Record<string, string> = {
   "pessoa.foto.removeu": "removeu foto",
   "presenca.confirmou": "confirmou presença",
   "presenca.removeu": "removeu presença",
+  "sincronizacao.pessoa.criou": "criou pessoa (sincronização)",
+  "sincronizacao.pessoa.atualizou": "atualizou pessoa (sincronização)",
+  "sincronizacao.equipe.criou": "criou equipe (sincronização)",
+  "sincronizacao.equipe.atualizou": "atualizou equipe (sincronização)",
+  "sincronizacao.participacao.alocou": "alocou em equipe (sincronização)",
+  "sincronizacao.participacao.moveu": "moveu de equipe (sincronização)",
+  "sincronizacao.participacao.removeu": "removeu da equipe (sincronização)",
+  "sincronizacao.participacao.atualizou": "atualizou participação (sincronização)",
 };
 
 export function Auditoria() {

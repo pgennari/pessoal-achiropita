@@ -1,6 +1,8 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Sem guarda na UI — a API exige podeAdministrar no POST /api/veiculos.
+// Sem guarda propria na UI — o acesso parte do botao "Criar" de Veiculos,
+// restrito a permissao "veiculos.incluir". A API tambem exige essa permissao
+// no POST /api/veiculos.
 // ============================================================================
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";

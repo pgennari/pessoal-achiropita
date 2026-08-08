@@ -1,11 +1,11 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Ver: podeAdministrar || perfil CRD || permissao "fotos.pendencias".
-// Marcar foto: podeAdministrar.
+// Ver: permissao "pessoas.pendenciaFotos".
+// Ver todas as pessoas ativas (fora da edicao): permissao "pessoas.lista".
 // ============================================================================
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useSessao, podeAdministrar, temPermissao } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
 import {
   useEquipes,
@@ -76,10 +76,8 @@ const indiceEquipes = useMemo(() => {
   ]);
 
   if (!sessao) return null;
-  const podeVer =
-    podeAdministrar(sessao) ||
-    sessao.perfil === "CRD" ||
-    temPermissao(sessao, "fotos.pendencias");
+  const podeVer = temPermissao(sessao, "pessoas.pendenciaFotos");
+  const podeVerTodas = temPermissao(sessao, "pessoas.lista");
   if (!podeVer) {
     return (
       <div className="card">
@@ -133,7 +131,7 @@ const indiceEquipes = useMemo(() => {
 
       <div className="card">
         <div className="card-corpo flex flex-wrap items-center gap-3">
-          {podeAdministrar(sessao) && (
+          {podeVerTodas && (
             <label className="flex items-center gap-2 text-sm font-semibold">
               <input
                 type="checkbox"

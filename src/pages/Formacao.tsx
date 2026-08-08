@@ -1,11 +1,10 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Operar: podeAdministrar || perfil CRD || permissao "formacao.operar".
-// Secao de administracao (cadastrar turmas): podeAdministrar.
+// Acesso e operacao (turmas): permissao "formacao.turmas".
 // ============================================================================
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useSessao, podeAdministrar as adminPode, temPermissao } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import {
   useEquipes,
   useEdicaoAtiva,
@@ -48,12 +47,7 @@ export function PaginaFormacao() {
   const turmaEditando =
     turmas.find((t) => t.id === editandoTurmaId) ?? null;
 
-  const podeAdministrar = adminPode(sessao);
-
-  const podeAcessar =
-    podeAdministrar ||
-    sessao?.perfil === "CRD" ||
-    temPermissao(sessao, "formacao.operar");
+  const podeAcessar = temPermissao(sessao, "formacao.turmas");
 
   // Índices derivados (para KPIs) ---
 
@@ -163,7 +157,7 @@ export function PaginaFormacao() {
       )}
 
       {/* Seção de turmas */}
-      {podeAdministrar && <section>
+      {podeAcessar && <section>
         <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
           <div>
             <h3>Turmas</h3>

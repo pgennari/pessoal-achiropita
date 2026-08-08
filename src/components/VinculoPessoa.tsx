@@ -9,6 +9,7 @@ interface VinculoPessoaProps {
   aoVincular: (pessoaId: string) => Promise<void>;
   aoDesvincular: (pessoaId: string) => Promise<void>;
   carregando?: boolean;
+  podeEditar?: boolean;
 }
 
 export function VinculoPessoa({
@@ -18,6 +19,7 @@ export function VinculoPessoa({
   aoVincular,
   aoDesvincular,
   carregando: _carregando,
+  podeEditar = true,
 }: VinculoPessoaProps) {
   const [modalAberto, setModalAberto] = useState(false);
   const [processando, setProcessando] = useState<string | null>(null);
@@ -60,6 +62,7 @@ export function VinculoPessoa({
           className="btn btn-secundario btn-pequeno"
           aria-label="Vincular pessoa"
           title="Vincular pessoa"
+          disabled={!podeEditar}
         >
           <Icone nome="mais" />
         </button>
@@ -81,7 +84,7 @@ export function VinculoPessoa({
               </div>
               <button
                 onClick={() => handleDesvincular(p.id)}
-                disabled={processando === p.id}
+                disabled={processando === p.id || !podeEditar}
                 className="btn btn-perigo btn-pequeno"
                 aria-label="Remover pessoa"
                 title="Remover pessoa"

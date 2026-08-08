@@ -1,11 +1,11 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Restrita: podeAdministrar (ADM/ORG ou permissao "administracao").
+// Ver: permissao "presenca.lista". Gerar link: permissao "presenca.linkGerar".
 // Sem a permissao exibe bloco "Sem permissao".
 // ============================================================================
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import {
   useDiasFesta,
   useEdicaoAtiva,
@@ -38,7 +38,8 @@ export function Presenca() {
   const [pagina, setPagina] = useState(1);
   const [agora, setAgora] = useState(() => Date.now());
 
-  const podeAdministrar = adminPode(sessao);
+  const podeVer = temPermissao(sessao, "presenca.lista");
+  const podeGerarLink = temPermissao(sessao, "presenca.linkGerar");
 
   const diasOrdenados = [...dias].sort((a, b) => a.data.localeCompare(b.data));
   const diaAtivo = diasOrdenados.find((d) => d.id === diaSelecionado) ?? diasOrdenados[0];
@@ -71,7 +72,7 @@ export function Presenca() {
   const ateProxima = Math.max(0, ultimaAtualizacao + INTERVALO_ATUALIZACAO - agora);
 
   if (!sessao) return null;
-  if (!podeAdministrar) {
+  if (!podeVer) {
     return (
       <div className="card">
         <div className="card-corpo">
@@ -346,9 +347,9 @@ export function Presenca() {
                       type="button"
                       className="btn btn-primario btn-pequeno"
                       onClick={handleGerar}
-                      disabled={ocupado}
+                      disabled={ocupado || !podeGerarLink}
                       aria-label="Gerar link"
-                      title="Gerar link"
+                      title={podeGerarLink ? "Gerar link" : "Sem permissão para gerar link"}
                     >
                       <Icone nome="link" />
                     </button>

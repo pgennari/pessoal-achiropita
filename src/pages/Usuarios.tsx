@@ -1,11 +1,12 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Acesso: qualquer perfil autenticado.
-// Gerir convites/usuarios: podeAdministrar (ADM/ORG). Acoes especificas: ADM.
+// Ver lista: usuario.lista. Enviar/editar convite: usuario.conviteEnviar.
+// Revogar convite: usuario.conviteRevogar. Editar usuario: usuario.editar.
+// Excluir usuario/convite: usuario.excluir.
 // ============================================================================
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useSessao, podeAdministrar } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import {
   useEquipes,
   useConvites,
@@ -140,9 +141,12 @@ export function Usuarios() {
   );
 
   if (!sessao) return null;
-  const ehAdm = sessao.perfil === "ADM";
-  const ehAdmOuOrg = podeAdministrar(sessao);
-  if (!ehAdmOuOrg) {
+  const podeListar = temPermissao(sessao, "usuario.lista");
+  const podeEditar = temPermissao(sessao, "usuario.editar");
+  const podeExcluir = temPermissao(sessao, "usuario.excluir");
+  const podeRevogar = temPermissao(sessao, "usuario.conviteRevogar");
+  const podeEditarConvite = temPermissao(sessao, "usuario.conviteEnviar");
+  if (!podeListar) {
     return (
       <div className="card">
         <div className="card-corpo">
@@ -239,7 +243,8 @@ export function Usuarios() {
     }
   }
 
-  const podeAbrirNovo = !criandoConvite && !editandoConviteId && !editandoUid;
+  const podeAbrirNovo =
+    podeEditarConvite && !criandoConvite && !editandoConviteId && !editandoUid;
 
   return (
     <div className="space-y-6">
@@ -434,6 +439,7 @@ export function Usuarios() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex justify-end gap-2">
+                            {podeEditar && (
                             <button
                               type="button"
                               className="btn btn-secundario btn-pequeno"
@@ -447,7 +453,8 @@ export function Usuarios() {
                             >
                               <Icone nome="lapis" />
                             </button>
-                            {ehAdm && (
+                            )}
+                            {podeExcluir && (
                               <button
                                 type="button"
                                 className="btn btn-texto btn-pequeno text-vermelho-escuro"
@@ -631,7 +638,7 @@ export function Usuarios() {
                                 <Icone nome="copiar" />
                               </button>
                             )}
-                            {c.status === "pendente" && (
+                            {c.status === "pendente" && podeEditarConvite && (
                               <button
                                 type="button"
                                 className="btn btn-secundario btn-pequeno"
@@ -646,7 +653,7 @@ export function Usuarios() {
                                 <Icone nome="lapis" />
                               </button>
                             )}
-                            {c.status === "pendente" && (
+                            {c.status === "pendente" && podeRevogar && (
                               <button
                                 type="button"
                                 className="btn btn-texto btn-pequeno text-vermelho-escuro"
@@ -660,7 +667,7 @@ export function Usuarios() {
                                 <Icone nome="proibido" />
                               </button>
                             )}
-                            {c.status !== "pendente" && ehAdm && (
+                            {c.status !== "pendente" && podeExcluir && (
                               <button
                                 type="button"
                                 className="btn btn-texto btn-pequeno text-vermelho-escuro"

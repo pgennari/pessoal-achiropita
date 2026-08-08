@@ -1,10 +1,19 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth, podeAdministrar } from "../auth.js";
+import { comAuth, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
 const app = new OpenAPIHono<Variaveis>();
+
+// Leitura de turmas: qualquer permissao de formacao que dependa da lista.
+function podeVerTurmas(sessao: Variaveis["Variables"]["sessao"]): boolean {
+  return (
+    temPermissao(sessao, "formacao.turmas") ||
+    temPermissao(sessao, "formacao.pendenciaListar") ||
+    temPermissao(sessao, "formacao.pendenciaEquipe")
+  );
+}
 
 function turmaDeRow(r: Record<string, unknown>) {
   const data = r.data instanceof Date ? r.data.toISOString().slice(0, 10) : String(r.data ?? "");
@@ -34,11 +43,16 @@ const getTurmasRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: { query: z.object({ edicaoId: z.string().optional() }) },
   responses: {
-    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de turmas" }
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de turmas" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
   }
 });
 
 app.openapi(getTurmasRoute, async (c) => {
+  const sessao = c.get("sessao");
+  if (!podeVerTurmas(sessao)) {
+    return c.json({ erro: "Acesso negado. Sem permissao de leitura de turmas." }, 403);
+  }
   const query = c.req.valid("query");
   const edicaoId = query.edicaoId;
   if (edicaoId) {
@@ -62,12 +76,17 @@ const getTurmaRoute = createRoute({
   request: { params: z.object({ id: z.string().uuid() }) },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Turma" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
     404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
   }
 });
 
 app.openapi(getTurmaRoute, async (c) => {
   const { id } = c.req.valid("param");
+  const sessao = c.get("sessao");
+  if (!podeVerTurmas(sessao)) {
+    return c.json({ erro: "Acesso negado. Sem permissao de leitura de turmas." }, 403);
+  }
   const [row] = await sql`SELECT * FROM turmas_formacao WHERE id = ${id}`;
   if (!row) return c.json({ erro: "Turma não encontrada." }, 404);
   return c.json(turmaDeRow(row) as any, 200);
@@ -89,8 +108,8 @@ const postTurmaRoute = createRoute({
 
 app.openapi(postTurmaRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "formacao.turmas")) {
+    return c.json({ erro: "Acesso negado. Requer permissao formacao.turmas." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
   const { edicaoId, data, horarioInicio, horarioFim, local, capacidadeMaxima, setorVinculo, equipeIdVinculo } = body;
@@ -131,8 +150,8 @@ const putTurmaRoute = createRoute({
 app.openapi(putTurmaRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "formacao.turmas")) {
+    return c.json({ erro: "Acesso negado. Requer permissao formacao.turmas." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
   const { data, horarioInicio, horarioFim, local, capacidadeMaxima, setorVinculo, equipeIdVinculo } = body;
@@ -173,8 +192,8 @@ const deleteTurmaRoute = createRoute({
 app.openapi(deleteTurmaRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "formacao.turmas")) {
+    return c.json({ erro: "Acesso negado. Requer permissao formacao.turmas." }, 403);
   }
   // Revoga links ativos antes de deletar (ON DELETE CASCADE remove os registros).
   await sql`UPDATE links_validacao SET status = 'revogado' WHERE turma_id = ${id} AND status = 'ativo'`;

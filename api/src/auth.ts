@@ -86,27 +86,39 @@ export function temPermissao(sessao: SessaoMinima, codigo: string): boolean {
   return pode(sessao, codigo);
 }
 
-export function podeAdministrar(sessao: SessaoMinima): boolean {
-  return pode(sessao, "administracao");
-}
-
-// Operacao de estacionamentos (veiculos e check-in): ADM ou permissao
-// "estacionamentos.operar" do catalogo.
-export function podeOperarEstacionamentos(sessao: SessaoMinima): boolean {
-  return pode(sessao, "estacionamentos.operar");
-}
-
-// Edicao de pessoas: ADM ou permissao "pessoas.editar".
-export function podeEditarPessoa(sessao: SessaoMinima): boolean {
-  return pode(sessao, "pessoas.editar");
-}
-
 // Zeramento de dados: ADM ou permissao "zeramento.executar".
 export function podeZerar(sessao: SessaoMinima): boolean {
   return pode(sessao, "zeramento.executar");
 }
 
-// Controle de perfil e permissoes: ADM ou permissao "perfis.gerenciar".
-export function podeGerirPerfis(sessao: SessaoMinima): boolean {
-  return pode(sessao, "perfis.gerenciar");
+// Escopo de dados: define o alcance de leitura de pessoas conforme as
+// permissoes do usuario. Precedencia: lista (todos) > equipe > proprio.
+export function escopoPessoas(
+  sessao: SessaoMinima
+): "todos" | "equipe" | "proprio" | null {
+  if (pode(sessao, "pessoas.lista")) return "todos";
+  if (pode(sessao, "pessoas.equipe")) return "equipe";
+  if (pode(sessao, "pessoas.proprio")) return "proprio";
+  return null;
+}
+
+// Escopo de dados de veiculos: lista (todos) > equipe > proprio.
+export function escopoVeiculos(
+  sessao: SessaoMinima
+): "todos" | "equipe" | "proprio" | null {
+  if (pode(sessao, "veiculos.lista")) return "todos";
+  if (pode(sessao, "veiculos.equipe")) return "equipe";
+  if (pode(sessao, "veiculos.proprio")) return "proprio";
+  return null;
+}
+
+// Leitura de perfis e do catalogo de permissoes: qualquer permissao do grupo
+// perfil.*. As telas de Perfis e Controle de Menus dependem dessas leituras.
+export function temPerfil(sessao: SessaoMinima): boolean {
+  return [
+    "perfil.lista",
+    "perfil.incluir",
+    "perfil.editar",
+    "perfil.excluir",
+  ].some((codigo) => pode(sessao, codigo));
 }

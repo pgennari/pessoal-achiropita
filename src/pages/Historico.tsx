@@ -1,6 +1,6 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Restrita: podeAdministrar (ADM/ORG ou permissao "administracao").
+// Restrita: permissao "edicao.historico".
 // Sem a permissao exibe bloco "Sem permissao".
 // ============================================================================
 import { useMemo, useState } from "react";
@@ -12,7 +12,7 @@ import {
   useTodasParticipacoes,
   useTodosHistoricosParticipacao,
 } from "../lib/hooks";
-import { useSessao, podeAdministrar } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
 import {
   FUNCOES,
@@ -183,14 +183,14 @@ export function Historico() {
   }, [edicoes, resultados]);
 
   if (!sessao) return null;
-  const podeVer = podeAdministrar(sessao);
+  const podeVer = temPermissao(sessao, "edicao.historico");
   if (!podeVer) {
     return (
       <div className="card">
         <div className="card-corpo">
           <h3 className="mb-2">Sem permissão</h3>
           <p className="text-ardesia">
-            Apenas Administração e Organização podem consultar o histórico.
+            Você não tem permissão para consultar o histórico.
           </p>
           <Link
             to="/"

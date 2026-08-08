@@ -1,6 +1,6 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Acesso: qualquer perfil autenticado. Criar: podeAdministrar (ADM/ORG).
+// Acesso: qualquer perfil autenticado. Criar: veiculos.incluir.
 // ============================================================================
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -11,7 +11,7 @@ import {
   useParticipacoes,
   useVeiculos,
 } from "../lib/hooks";
-import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import { normalizar } from "../lib/utilsDominio";
 import type { VeiculoComPessoas } from "../lib/tipos";
 import { Icone } from "../components/Icone";
@@ -154,7 +154,7 @@ export function Veiculos() {
     return m;
   }, [itens, equipesPorPessoa]);
 
-  const podeCriar = adminPode(sessao);
+  const podeCriar = temPermissao(sessao, "veiculos.incluir");
 
   const veiculosFiltrados = useMemo(() => {
     const t = normalizar(termo);

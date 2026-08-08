@@ -1,11 +1,12 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
 // Acesso: qualquer perfil autenticado (rota protegida). Sem permissao especial.
-// Filtro: perfil CRD ve somente suas equipes (sessao.equipesCRD).
+// Filtro: escopo "equipe" (perfil CRD, permissao "pessoas.equipe") ve somente
+// suas equipes (sessao.equipesCRD).
 // ============================================================================
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { useSessao } from "../lib/sessao";
+import { useSessao, escopoPessoas } from "../lib/sessao";
 import {
   useEdicaoAtiva,
   useEntregasCracha,
@@ -22,32 +23,33 @@ export function Painel() {
   const { itens: entregas } = useEntregasCracha(edicao?.id);
   const { itens: formacoes } = useFormacoes(edicao?.id);
 
-  // Para CRD, pessoas e equipes já chegam filtrados pela API.
+  // Para escopo "equipe" (CRD), pessoas e equipes já chegam filtrados pela API.
   // participacoes, entregas e formacoes cobrem toda a edição — filtrar aqui.
   const pessoaIds = useMemo(() => new Set(pessoas.map((p) => p.id)), [pessoas]);
+  const escopoEquipe = escopoPessoas(sessao) === "equipe";
 
   const participacoesFiltradas = useMemo(
     () =>
-      sessao?.perfil === "CRD"
-        ? participacoes.filter((p) => sessao.equipesCRD?.includes(p.equipeId))
+      escopoEquipe
+        ? participacoes.filter((p) => sessao?.equipesCRD?.includes(p.equipeId))
         : participacoes,
-    [sessao, participacoes]
+    [sessao, participacoes, escopoEquipe]
   );
 
   const entregasFiltradas = useMemo(
     () =>
-      sessao?.perfil === "CRD"
+      escopoEquipe
         ? entregas.filter((e) => pessoaIds.has(e.pessoaId))
         : entregas,
-    [sessao, entregas, pessoaIds]
+    [sessao, entregas, pessoaIds, escopoEquipe]
   );
 
   const formacoesFiltradas = useMemo(
     () =>
-      sessao?.perfil === "CRD"
+      escopoEquipe
         ? formacoes.filter((f) => pessoaIds.has(f.pessoaId))
         : formacoes,
-    [sessao, formacoes, pessoaIds]
+    [sessao, formacoes, pessoaIds, escopoEquipe]
   );
 
   if (!sessao) return null;

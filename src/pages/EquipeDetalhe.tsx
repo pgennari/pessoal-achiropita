@@ -1,6 +1,7 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Acesso: qualquer perfil autenticado. Alterar setor/equipe: podeAdministrar.
+// Acesso: qualquer perfil autenticado.
+// Editar equipe: edicao.equipeEditar. Alocar/desalocar: edicao.equipeAlocar.
 // ============================================================================
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -13,7 +14,7 @@ import {
   usePessoas,
   useSetores,
 } from "../lib/hooks";
-import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import {
   DadosEquipeForm,
   atualizarEquipe,
@@ -60,7 +61,8 @@ export function EquipeDetalhe() {
   const [equipeDestinoId, setEquipeDestinoId] = useState("");
   const [funcaoDestino, setFuncaoDestino] = useState<Funcao>("Equipista");
 
-  const podeAdministrar = adminPode(sessao);
+  const podeEditarEquipe = temPermissao(sessao, "edicao.equipeEditar");
+  const podeAlocar = temPermissao(sessao, "edicao.equipeAlocar");
 
   const linhasDaEquipe: Linha[] = useMemo(
     () =>
@@ -222,7 +224,7 @@ export function EquipeDetalhe() {
             {nomeSetor}
           </div>
         </div>
-        {podeAdministrar && (
+        {(podeEditarEquipe || podeAlocar) && (
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -312,7 +314,7 @@ export function EquipeDetalhe() {
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  {podeAdministrar ? (
+                  {podeAlocar ? (
                     <select
                       className="input min-h-[36px] py-1.5"
                       value={l.participacao.funcao}
@@ -331,7 +333,7 @@ export function EquipeDetalhe() {
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {podeAdministrar && (
+                  {podeAlocar && (
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"

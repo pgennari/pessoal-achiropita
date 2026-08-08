@@ -1,12 +1,13 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Acesso: qualquer perfil autenticado. Editar: podeAdministrar. Excluir: ADM.
+// Acesso: qualquer perfil autenticado.
+// Editar: estacionamento.editar. Excluir: estacionamento.excluir.
 // ============================================================================
 import { useState, FormEvent } from "react";
 import { useEffect } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useEstacionamento, useCheckinsEstacionamento } from "../lib/hooks";
-import { useSessao, podeAdministrar } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import {
   atualizarEstacionamento,
   excluirEstacionamento,
@@ -51,8 +52,8 @@ export function EstacionamentoDetalhe() {
   const diferencaVisualizando = (estacionamento?.vagasContratadas ?? 0) - (estacionamento?.vagasDistribuidas ?? 0);
 
   if (!sessao) return null;
-  const podeEditar = podeAdministrar(sessao);
-  const podeExcluir = sessao.perfil === "ADM";
+  const podeEditar = temPermissao(sessao, "estacionamento.editar");
+  const podeExcluir = temPermissao(sessao, "estacionamento.excluir");
 
   if (carregando) {
     return <p className="text-ardesia">Carregando...</p>;

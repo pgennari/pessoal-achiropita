@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth, podeAdministrar } from "../auth.js";
+import { comAuth, temPermissao } from "../auth.js";
 import type { Variaveis } from "../tipos.js";
 
 const app = new OpenAPIHono<Variaveis>();
@@ -35,8 +35,8 @@ const getAuditoriaRoute = createRoute({
 });
 app.openapi(getAuditoriaRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "auditoria.ver")) {
+    return c.json({ erro: "Acesso negado. Requer permissao auditoria.ver." }, 403);
   }
   const query = c.req.valid("query");
   const qtd = Math.min(Number(query.qtd ?? "100"), 500);

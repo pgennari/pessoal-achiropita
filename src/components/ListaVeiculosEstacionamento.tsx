@@ -8,7 +8,7 @@ import {
   useEquipes,
   useParticipacoes,
 } from "../lib/hooks";
-import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import {
   associarVeiculoEstacionamento,
   desassociarVeiculoEstacionamento,
@@ -78,7 +78,8 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
   const buscaDebounced = useDebounce(busca, 300);
   const buscaAssociacaoDebounced = useDebounce(buscaAssociacao, 300);
 
-  const podeEditar = adminPode(sessao);
+  const podeEditar = temPermissao(sessao, "estacionamento.associar");
+  const podeCheckinManual = temPermissao(sessao, "estacionamento.checkinManual");
 
   const checkinsPorVeiculo = useMemo(() => {
     const mapa = new Map<string, Set<string>>();
@@ -356,16 +357,18 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
               </div>
               {podeEditar && (
                 <div className="flex items-center gap-2 self-end sm:self-auto">
-                  <button
-                    type="button"
-                    className="btn btn-secundario btn-pequeno"
-                    onClick={() => abrirCheckinManual(v)}
-                    disabled={acaoOcupado}
-                    aria-label="Check-in manual"
-                    title="Check-in manual"
-                  >
-                    <Icone nome="scan" />
-                  </button>
+                  {podeCheckinManual && (
+                    <button
+                      type="button"
+                      className="btn btn-secundario btn-pequeno"
+                      onClick={() => abrirCheckinManual(v)}
+                      disabled={acaoOcupado}
+                      aria-label="Check-in manual"
+                      title="Check-in manual"
+                    >
+                      <Icone nome="scan" />
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="btn btn-perigo btn-pequeno"

@@ -1,12 +1,14 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Acesso: qualquer perfil autenticado. Editar/Excluir: podeAdministrar (ADM/ORG).
+// Acesso: qualquer perfil autenticado.
+// Editar: veiculos.editar. Associar estacionamento: estacionamento.associar.
+// Vincular pessoa: veiculos.vincular. Excluir: veiculos.excluir.
 // ============================================================================
 import { useState, useMemo } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useVeiculo, usePessoasVeiculo, useEstacionamentos, usePessoas, useHistoricoEstacionamentosVeiculo } from "../lib/hooks";
-import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import { VeiculoForm } from "../components/VeiculoForm";
 import { atualizarVeiculo, excluirVeiculo, associarVeiculoEstacionamento, desassociarVeiculoEstacionamento, vincularPessoaVeiculo, desvincularPessoaVeiculo, type DadosVeiculo } from "../lib/veiculos";
 import { VinculoPessoa } from "../components/VinculoPessoa";
@@ -31,7 +33,10 @@ export function VeiculoDetalhe() {
   const [observacaoTexto, setObservacaoTexto] = useState("");
   const [erroOperacao, setErroOperacao] = useState<string | null>(null);
 
-  const podeEditar = adminPode(sessao);
+  const podeEditar = temPermissao(sessao, "veiculos.editar");
+  const podeAssociar = temPermissao(sessao, "estacionamento.associar");
+  const podeVincular = temPermissao(sessao, "veiculos.vincular");
+  const podeExcluir = temPermissao(sessao, "veiculos.excluir");
 
   const estacionamentoAtual = useMemo(
     () => estacionamentos.find((e) => e.id === veiculo?.estacionamentoId),
@@ -303,7 +308,7 @@ export function VeiculoDetalhe() {
       <div className="border border-pietra-clara rounded-lg p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-carbone">Estacionamento</h3>
-          {podeEditar && !editando && !editandoEstacionamento && (
+          {podeAssociar && !editando && !editandoEstacionamento && (
             <button
               type="button"
               onClick={() => {
@@ -415,6 +420,7 @@ export function VeiculoDetalhe() {
             pessoasVinculadas={pessoas}
             aoVincular={handleVincularPessoa}
             aoDesvincular={handleDesvincularPessoa}
+            podeEditar={podeVincular}
           />
         </div>
       </section>
@@ -429,7 +435,7 @@ export function VeiculoDetalhe() {
         >
           <Icone nome="seta-esquerda" />
         </button>
-        {podeEditar && (
+        {podeExcluir && (
           <button
             onClick={handleExcluir}
             className="btn btn-perigo"

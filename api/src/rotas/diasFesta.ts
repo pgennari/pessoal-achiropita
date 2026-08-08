@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth, podeAdministrar } from "../auth.js";
+import { comAuth, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
@@ -64,8 +64,8 @@ const postDiaRoute = createRoute({
 
 app.openapi(postDiaRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "edicao.editar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.editar." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
   const { edicaoId, data } = body;
@@ -107,8 +107,8 @@ const deleteDiaRoute = createRoute({
 app.openapi(deleteDiaRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "edicao.editar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.editar." }, 403);
   }
   const [row] = await sql`
     DELETE FROM dias_festa WHERE id = ${id} RETURNING data

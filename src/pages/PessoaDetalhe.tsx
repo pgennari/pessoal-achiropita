@@ -1,7 +1,8 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Editar: podeEditarPessoa (ADM/ORG/OPC/CRD ou permissao "pessoas.editar").
-// Inativar: podeAdministrar. Excluir: perfil ADM. Dados sensiveis: perfil ADM.
+// Editar: permissao "pessoas.editar" (ou o proprio registro).
+// Inativar: permissao "pessoas.ativar". Excluir: permissao "pessoas.excluir".
+// Dados sensiveis: perfil ADM.
 // ============================================================================
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -12,7 +13,7 @@ import { HistoricoPessoa } from "../components/HistoricoPessoa";
 import { VinculoVeiculo } from "../components/VinculoVeiculo";
 import { Icone } from "../components/Icone";
 import { usePessoa, usePessoas, useVeiculos, useVeiculosPessoa } from "../lib/hooks";
-import { useSessao, podeAdministrar, podeEditarPessoa } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import {
   DadosPessoaForm,
   atualizarPessoa,
@@ -41,9 +42,9 @@ export function PessoaDetalhe() {
 
   if (!sessao) return null;
   const ehProprio = !!sessao.pessoaId && sessao.pessoaId === id;
-  const podeEditar = podeEditarPessoa(sessao) || ehProprio;
-  const podeInativar = podeAdministrar(sessao);
-  const podeExcluir = sessao.perfil === "ADM";
+  const podeEditar = temPermissao(sessao, "pessoas.editar") || ehProprio;
+  const podeInativar = temPermissao(sessao, "pessoas.ativar");
+  const podeExcluir = temPermissao(sessao, "pessoas.excluir");
   const bloquearSensivel = sessao.perfil !== "ADM";
 
   if (carregando) {

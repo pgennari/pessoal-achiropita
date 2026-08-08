@@ -1,10 +1,15 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth, podeAdministrar } from "../auth.js";
+import { comAuth, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
 const app = new OpenAPIHono<Variaveis>();
+
+// Leitura de presenca: acesso a tela (presenca.lista).
+function podeLerPresenca(sessao: Variaveis["Variables"]["sessao"]): boolean {
+  return temPermissao(sessao, "presenca.lista");
+}
 
 function linkPresencaDeRow(r: Record<string, unknown>) {
   const criadoEm = r.criado_em instanceof Date ? r.criado_em.toISOString() : String(r.criado_em ?? "");
@@ -45,11 +50,16 @@ const getLinksPresencaRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: { query: z.object({ edicaoId: z.string().optional() }) },
   responses: {
-    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de links" }
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de links" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
   }
 });
 
 app.openapi(getLinksPresencaRoute, async (c) => {
+  const sessao = c.get("sessao");
+  if (!podeLerPresenca(sessao)) {
+    return c.json({ erro: "Acesso negado. Requer permissao presenca.lista." }, 403);
+  }
   const query = c.req.valid("query");
   const edicaoId = query.edicaoId;
   const rows = edicaoId
@@ -90,8 +100,8 @@ const postLinkPresencaRoute = createRoute({
 
 app.openapi(postLinkPresencaRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "presenca.linkGerar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao presenca.linkGerar." }, 403);
   }
   const body = c.req.valid("json");
 
@@ -150,8 +160,8 @@ const getPresencasRoute = createRoute({
 
 app.openapi(getPresencasRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!podeLerPresenca(sessao)) {
+    return c.json({ erro: "Acesso negado. Requer permissao presenca.lista." }, 403);
   }
   const { diaFestaId } = c.req.valid("query");
   const rows = await sql`
@@ -186,8 +196,8 @@ const getResumoEquipesRoute = createRoute({
 
 app.openapi(getResumoEquipesRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!podeLerPresenca(sessao)) {
+    return c.json({ erro: "Acesso negado. Requer permissao presenca.lista." }, 403);
   }
   const { diaFestaId } = c.req.valid("query");
   const [dia] = await sql`

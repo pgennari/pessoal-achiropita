@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth, podeAdministrar, podeEditarPessoa } from "../auth.js";
+import { comAuth, escopoPessoas, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import { uploadFoto, deletarFoto } from "../r2.js";
 import type { Variaveis } from "../tipos.js";
@@ -93,13 +93,18 @@ const getPessoasRoute = createRoute({
       content: { "application/json": { schema: z.array(PessoaSchema) } },
       description: "Lista de pessoas cadastradas",
     },
+    403: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Acesso negado" },
   },
 });
 
 app.openapi(getPessoasRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (sessao.perfil === "CRD" && sessao.equipesCRD?.length) {
-    const equipes = sessao.equipesCRD;
+  const escopo = escopoPessoas(sessao);
+  if (!escopo) return c.json({ erro: "Acesso negado. Sem permissao de leitura de pessoas." }, 403);
+
+  if (escopo === "equipe") {
+    const equipes = sessao.equipesCRD ?? [];
+    if (!equipes.length) return c.json([], 200);
     const rows = await sql<Record<string, unknown>[]>`
       SELECT DISTINCT p.* FROM pessoas p
       JOIN participacoes part ON part.pessoa_id = p.id
@@ -108,6 +113,11 @@ app.openapi(getPessoasRoute, async (c) => {
       ORDER BY p.cracha
     `;
     return c.json(rows.map(pessoaDeRow) as any, 200);
+  }
+  if (escopo === "proprio") {
+    if (!sessao.pessoaId) return c.json([], 200);
+    const [row] = await sql`SELECT * FROM pessoas WHERE id = ${sessao.pessoaId}`;
+    return c.json(row ? [pessoaDeRow(row)] : [], 200);
   }
   const rows = await sql`SELECT * FROM pessoas ORDER BY cracha`;
   return c.json(rows.map(pessoaDeRow) as any, 200);
@@ -143,16 +153,33 @@ const getPessoaIdRoute = createRoute({
   },
   responses: {
     200: { content: { "application/json": { schema: PessoaSchema } }, description: "Pessoa encontrada" },
+    403: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Acesso negado" },
     404: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Pessoa não encontrada" }
   }
 });
 app.openapi(getPessoaIdRoute, async (c) => {
   const { id } = c.req.valid("param");
+  const sessao = c.get("sessao");
+  const escopo = escopoPessoas(sessao);
+  if (!escopo) return c.json({ erro: "Acesso negado. Sem permissao de leitura de pessoas." }, 403);
+
+  let filtro = sql`p.id = ${id}`;
+  if (escopo === "equipe") {
+    const equipes = sessao.equipesCRD ?? [];
+    filtro = sql`p.id = ${id} AND EXISTS (
+      SELECT 1 FROM participacoes part
+      JOIN edicoes e ON e.id = part.edicao_id AND e.status = 'ativa'
+      WHERE part.pessoa_id = p.id AND part.equipe_id = ANY(${equipes})
+    )`;
+  } else if (escopo === "proprio") {
+    if (!sessao.pessoaId || sessao.pessoaId !== id) return c.json({ erro: "Pessoa não encontrada." }, 404);
+  }
+
   const [row] = await sql`
     SELECT p.*, e.nome AS estacionamento_nome
     FROM pessoas p
     LEFT JOIN estacionamentos e ON e.id = p.estacionamento_id
-    WHERE p.id = ${id}
+    WHERE ${filtro}
   `;
   if (!row) return c.json({ erro: "Pessoa não encontrada." }, 404);
   return c.json(pessoaDeRow(row) as any, 200);
@@ -180,8 +207,8 @@ const postPessoaRoute = createRoute({
 });
 app.openapi(postPessoaRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "pessoas.incluir")) {
+    return c.json({ erro: "Acesso negado. Requer permissao pessoas.incluir." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
   const { cracha, nome, nascimento, telefone } = body;
@@ -248,8 +275,8 @@ const putPessoaRoute = createRoute({
 app.openapi(putPessoaRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeEditarPessoa(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM, ORG ou OPC." }, 403);
+  if (!temPermissao(sessao, "pessoas.editar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao pessoas.editar." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
   const [row] = await sql`
@@ -304,8 +331,8 @@ const putPessoaAtivacaoRoute = createRoute({
 app.openapi(putPessoaAtivacaoRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "pessoas.ativar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao pessoas.ativar." }, 403);
   }
   const { ativo } = c.req.valid("json");
   const [row] = await sql`
@@ -340,8 +367,8 @@ const postPessoaFotoRoute = createRoute({
 app.openapi(postPessoaFotoRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeEditarPessoa(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM, ORG ou OPC." }, 403);
+  if (!temPermissao(sessao, "pessoas.editar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao pessoas.editar." }, 403);
   }
   const body = await c.req.parseBody();
   const foto = body["foto"];
@@ -375,7 +402,7 @@ const deletePessoaFotoRoute = createRoute({
 app.openapi(deletePessoaFotoRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "pessoas.editar")) return c.json({ erro: "Acesso negado. Requer permissao pessoas.editar." }, 403);
   const [row] = await sql`UPDATE pessoas SET foto_url = NULL, atualizado_em = NOW() WHERE id = ${id} AND foto_url IS NOT NULL RETURNING id, nome, cracha`;
   if (!row) return c.json({ erro: "Pessoa sem foto ou não encontrada." }, 404);
   try { await deletarFoto(id); } catch { }
@@ -401,7 +428,7 @@ const deletePessoaRoute = createRoute({
 app.openapi(deletePessoaRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "pessoas.excluir")) return c.json({ erro: "Acesso negado. Requer permissao pessoas.excluir." }, 403);
   const [row] = await sql`DELETE FROM pessoas WHERE id = ${id} RETURNING id, nome, cracha`;
   if (!row) return c.json({ erro: "Pessoa não encontrada." }, 404);
   await registrarEvento(sessao, "pessoa.excluiu", `pessoas/${id}`, `${row.nome} (#${row.cracha})`);
@@ -459,7 +486,7 @@ const postVeiculoPessoaRoute = createRoute({
 app.openapi(postVeiculoPessoaRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "pessoas.associar")) return c.json({ erro: "Acesso negado. Requer permissao pessoas.associar." }, 403);
   const { veiculoId } = c.req.valid("json");
   const [pessoa] = await sql`SELECT id, nome FROM pessoas WHERE id = ${id}`;
   if (!pessoa) return c.json({ erro: "Pessoa nao encontrada." }, 404);
@@ -493,7 +520,7 @@ const deleteVeiculoPessoaRoute = createRoute({
 app.openapi(deleteVeiculoPessoaRoute, async (c) => {
   const { id, veiculoId } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "pessoas.associar")) return c.json({ erro: "Acesso negado. Requer permissao pessoas.associar." }, 403);
   const [existente] = await sql`SELECT veiculo_id FROM pessoa_veiculo WHERE pessoa_id = ${id} AND veiculo_id = ${veiculoId}`;
   if (!existente) return c.json({ erro: "Vinculo nao encontrado." }, 404);
   await sql`DELETE FROM pessoa_veiculo WHERE pessoa_id = ${id} AND veiculo_id = ${veiculoId}`;

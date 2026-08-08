@@ -1,10 +1,10 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Criar: podeAdministrar (ADM/ORG ou permissao "administracao").
+// Criar: estacionamento.incluir.
 // ============================================================================
 import { useState, FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useSessao, podeAdministrar } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import {
   criarEstacionamento,
   DadosEstacionamentoForm,
@@ -29,7 +29,7 @@ export function EstacionamentoNovo() {
   const diferenca = (parseInt(dados.vagasContratadas, 10) || 0) - (parseInt(dados.vagasDistribuidas, 10) || 0);
 
   if (!sessao) return null;
-  const podeCriar = podeAdministrar(sessao);
+  const podeCriar = temPermissao(sessao, "estacionamento.incluir");
 
   if (!podeCriar) {
     return (

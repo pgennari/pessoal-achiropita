@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth, podeAdministrar } from "../auth.js";
+import { comAuth, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
@@ -63,12 +63,16 @@ const postFormacaoRoute = createRoute({
   request: { body: { content: { "application/json": { schema: z.any() } } } },
   responses: {
     201: { content: { "application/json": { schema: z.any() } }, description: "Criada" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
     409: { content: { "application/json": { schema: z.any() } }, description: "Conflito" }
   }
 });
 
 app.openapi(postFormacaoRoute, async (c) => {
   const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "formacao.marcarManual")) {
+    return c.json({ erro: "Acesso negado. Requer permissao formacao.marcarManual." }, 403);
+  }
   const body = await c.req.json() as {
     edicaoId: string;
     pessoaId: string;
@@ -115,6 +119,7 @@ const putFormacaoConfirmarRoute = createRoute({
   },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Atualizada" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
     404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
   }
 });
@@ -122,6 +127,9 @@ const putFormacaoConfirmarRoute = createRoute({
 app.openapi(putFormacaoConfirmarRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "formacao.marcarManual")) {
+    return c.json({ erro: "Acesso negado. Requer permissao formacao.marcarManual." }, 403);
+  }
   const body = await c.req.json() as { pessoaNome: string; cracha: number };
   const [row] = await sql`
     UPDATE formacoes SET dados_validados = true, validado_em = NOW()
@@ -153,8 +161,8 @@ const deleteFormacaoRoute = createRoute({
 app.openapi(deleteFormacaoRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "formacao.marcarManual")) {
+    return c.json({ erro: "Acesso negado. Requer permissao formacao.marcarManual." }, 403);
   }
   const body = await c.req.json().catch(() => ({})) as { pessoaNome?: string; cracha?: number };
   const [row] = await sql`DELETE FROM formacoes WHERE id = ${id} RETURNING *`;

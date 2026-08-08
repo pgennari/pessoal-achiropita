@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth, podeAdministrar } from "../auth.js";
+import { comAuth, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
@@ -57,12 +57,16 @@ const postEntregaRoute = createRoute({
   request: { body: { content: { "application/json": { schema: z.any() } } } },
   responses: {
     201: { content: { "application/json": { schema: z.any() } }, description: "Criado" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
     409: { content: { "application/json": { schema: z.any() } }, description: "Conflito" }
   }
 });
 
 app.openapi(postEntregaRoute, async (c) => {
   const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "pessoas.crachas")) {
+    return c.json({ erro: "Acesso negado. Requer permissao pessoas.crachas." }, 403);
+  }
   const body = await c.req.json() as {
     edicaoId: string;
     pessoaId: string;
@@ -112,8 +116,8 @@ const deleteEntregaRoute = createRoute({
 app.openapi(deleteEntregaRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (sessao.perfil !== "ADM") {
+    return c.json({ erro: "Acesso negado. Apenas o perfil ADM pode desbloquear entregas." }, 403);
   }
   const body = await c.req.json().catch(() => ({})) as { pessoaNome?: string; cracha?: number };
   const [row] = await sql`DELETE FROM entregas_cracha WHERE id = ${id} RETURNING *`;

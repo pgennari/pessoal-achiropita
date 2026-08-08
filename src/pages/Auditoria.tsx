@@ -1,11 +1,11 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Restrita: podeAdministrar (ADM/ORG ou permissao "administracao").
+// Restrita: permissao "auditoria.ver".
 // Sem a permissao exibe bloco "Sem permissao".
 // ============================================================================
 import { Link, useNavigate } from "react-router-dom";
 import { useAuditoriaRecente } from "../lib/hooks";
-import { useSessao, podeAdministrar } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
 import { formatarData } from "../lib/utilsDominio";
 
@@ -27,7 +27,7 @@ export function Auditoria() {
   const { itens, carregando, erro } = useAuditoriaRecente(200);
 
   if (!sessao) return null;
-  const podeVer = podeAdministrar(sessao);
+  const podeVer = temPermissao(sessao, "auditoria.ver");
 
   if (!podeVer) {
     return (
@@ -35,7 +35,7 @@ export function Auditoria() {
         <div className="card-corpo">
           <h3 className="mb-2">Sem permissão</h3>
           <p className="text-ardesia">
-            Apenas Administração e Organização podem ver a auditoria.
+            Você não tem permissão para ver a auditoria.
           </p>
           <Link
             to="/"

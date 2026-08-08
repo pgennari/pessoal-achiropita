@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth, podeGerirPerfis, podeAdministrar } from "../auth.js";
+import { comAuth, temPerfil, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import { apenasPermissoesAtivas } from "../pbac.js";
 import type { Variaveis } from "../tipos.js";
@@ -60,8 +60,8 @@ const getRoute = createRoute({
 
 app.openapi(getRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPerfil(sessao)) {
+    return c.json({ erro: "Acesso negado. Requer permissao do grupo perfil." }, 403);
   }
   const rows = await sql`SELECT * FROM perfis ORDER BY fixo DESC, sigla`;
   return c.json(rows.map(perfilDeRow) as any, 200);
@@ -97,8 +97,8 @@ const postRoute = createRoute({
 
 app.openapi(postRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeGerirPerfis(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer perfil ADM." }, 403);
+  if (!temPermissao(sessao, "perfil.incluir")) {
+    return c.json({ erro: "Acesso negado. Requer permissao perfil.incluir." }, 403);
   }
   const body = await c.req.json() as { sigla: string; nome: string; permissoes?: string[] };
 
@@ -153,8 +153,8 @@ const putRoute = createRoute({
 app.openapi(putRoute, async (c) => {
   const { sigla } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeGerirPerfis(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer perfil ADM." }, 403);
+  if (!temPermissao(sessao, "perfil.editar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao perfil.editar." }, 403);
   }
   const body = await c.req.json() as { nome?: string; permissoes?: string[] };
 
@@ -200,8 +200,8 @@ const deleteRoute = createRoute({
 app.openapi(deleteRoute, async (c) => {
   const { sigla } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeGerirPerfis(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer perfil ADM." }, 403);
+  if (!temPermissao(sessao, "perfil.excluir")) {
+    return c.json({ erro: "Acesso negado. Requer permissao perfil.excluir." }, 403);
   }
 
   const [atual] = await sql`SELECT * FROM perfis WHERE sigla = ${sigla}`;

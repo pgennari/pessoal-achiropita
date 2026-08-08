@@ -1,11 +1,10 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Operar: podeAdministrar || perfil OPC || permissao "crachas.entregar".
-// Acesso: podeOperar || perfil CRD || "crachas.entregar". Desbloquear: ADM.
+// Acesso e operacao: permissao "pessoas.crachas". Desbloquear: perfil ADM.
 // ============================================================================
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useSessao, podeAdministrar, temPermissao } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
 import {
   useEquipes,
@@ -123,15 +122,9 @@ export function EntregaCrachas() {
   }, [participacoes, entregas, indiceEquipes, indicePessoas]);
 
   if (!sessao) return null;
-  const podeOperar =
-    podeAdministrar(sessao) ||
-    sessao.perfil === "OPC" ||
-    temPermissao(sessao, "crachas.entregar");
+  const podeOperar = temPermissao(sessao, "pessoas.crachas");
   const podeDesbloquear = sessao.perfil === "ADM";
-  const podeAcessar =
-    podeOperar ||
-    sessao.perfil === "CRD" ||
-    temPermissao(sessao, "crachas.entregar");
+  const podeAcessar = podeOperar;
 
   if (!podeAcessar) {
     return (

@@ -1,10 +1,11 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Acesso: qualquer perfil autenticado. Editar: podeAdministrar (ADM/ORG).
+// Acesso: qualquer perfil autenticado.
+// Incluir: setor.incluir. Editar: setor.editar.
 // ============================================================================
 import { useState } from "react";
 import { useSetores } from "../lib/hooks";
-import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import { api } from "../lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import type { SetorInfo } from "../lib/tipos";
@@ -48,7 +49,8 @@ export function Setores() {
   const [criando, setCriando] = useState(false);
   const [erroCriar, setErroCriar] = useState<string | null>(null);
 
-  const podeEditar = adminPode(sessao);
+  const podeIncluir = temPermissao(sessao, "setor.incluir");
+  const podeEditar = temPermissao(sessao, "setor.editar");
 
   function iniciarEdicao(s: SetorInfo) {
     setEditandoId(s.id);
@@ -129,7 +131,7 @@ export function Setores() {
             {carregando ? "Carregando..." : `${setores.length} setores`}
           </p>
         </div>
-        {podeEditar && !criandoNovo && (
+        {podeIncluir && !criandoNovo && (
           <button
             type="button"
             className="btn btn-primario"

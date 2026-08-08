@@ -1,6 +1,6 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Criar pessoa: podeAdministrar (ADM/ORG ou permissao "administracao").
+// Criar pessoa: permissao "pessoas.incluir".
 // ============================================================================
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
@@ -9,7 +9,7 @@ import { Icone } from "../components/Icone";
 import { criarPessoa, DadosPessoaForm, ErroValidacao } from "../lib/pessoas";
 import { proximoCracha } from "../lib/utilsDominio";
 import { usePessoas } from "../lib/hooks";
-import { useSessao, podeAdministrar } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 
 export function PessoaNova() {
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ export function PessoaNova() {
   const { itens, carregando } = usePessoas();
 
   if (!sessao) return null;
-  const podeCriar = podeAdministrar(sessao);
+  const podeCriar = temPermissao(sessao, "pessoas.incluir");
 
   if (!podeCriar) {
     return (

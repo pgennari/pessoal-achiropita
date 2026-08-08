@@ -3,7 +3,7 @@ import { createMiddleware } from "hono/factory";
 import { streamSSE } from "hono/streaming";
 import admin from "firebase-admin";
 import sql from "../db.js";
-import { comAuth, podeOperarEstacionamentos } from "../auth.js";
+import { comAuth, temPermissao } from "../auth.js";
 import eventos from "../eventos.js";
 import type { Variaveis, Sessao } from "../tipos.js";
 
@@ -26,8 +26,8 @@ const getDashboardRoute = createRoute({
 
 app.openapi(getDashboardRoute, async (c) => {
   const sessao = c.var.sessao;
-  if (!podeOperarEstacionamentos(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer permissao estacionamentos.operar." }, 403);
+  if (!temPermissao(sessao, "estacionamento.dashboard")) {
+    return c.json({ erro: "Acesso negado. Requer permissao estacionamento.dashboard." }, 403);
   }
 
   const [totalCheckins] = await sql`SELECT COUNT(*)::int AS total FROM checkins`;
@@ -118,8 +118,8 @@ const comAuthSSE = createMiddleware<{
   }
 
   const u = rows[0];
-  if (!podeOperarEstacionamentos({ perfil: u.perfil as string, permissoes: (u.permissoes as string[] | null) ?? [] })) {
-    return c.json({ erro: "Acesso negado. Requer permissao estacionamentos.operar." }, 403);
+  if (!temPermissao({ perfil: u.perfil as string, permissoes: (u.permissoes as string[] | null) ?? [] }, "estacionamento.dashboard")) {
+    return c.json({ erro: "Acesso negado. Requer permissao estacionamento.dashboard." }, 403);
   }
 
   c.set("sessao", {

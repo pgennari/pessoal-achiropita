@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth, podeAdministrar } from "../auth.js";
+import { comAuth, escopoVeiculos, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
@@ -61,10 +61,31 @@ const getRoute = createRoute({
       content: { "application/json": { schema: z.array(VeiculoSchema) } },
       description: "Lista de veiculos",
     },
+    403: { content: { "application/json": { schema: msgErro } }, description: "Acesso negado" },
   },
 });
 
 app.openapi(getRoute, async (c) => {
+  const sessao = c.get("sessao");
+  const escopo = escopoVeiculos(sessao);
+  if (!escopo) return c.json({ erro: "Acesso negado. Sem permissao de leitura de veiculos." }, 403);
+
+  let where = sql``;
+  if (escopo === "equipe") {
+    const equipes = sessao.equipesCRD ?? [];
+    where = sql`WHERE EXISTS (
+      SELECT 1 FROM pessoa_veiculo pv
+      JOIN participacoes part ON part.pessoa_id = pv.pessoa_id
+      JOIN edicoes e ON e.id = part.edicao_id AND e.status = 'ativa'
+      WHERE pv.veiculo_id = v.id AND part.equipe_id = ANY(${equipes})
+    )`;
+  } else if (escopo === "proprio") {
+    if (!sessao.pessoaId) return c.json([], 200);
+    where = sql`WHERE EXISTS (
+      SELECT 1 FROM pessoa_veiculo pv WHERE pv.veiculo_id = v.id AND pv.pessoa_id = ${sessao.pessoaId}
+    )`;
+  }
+
   const rows = await sql`
     SELECT v.*,
       COALESCE(
@@ -75,6 +96,7 @@ app.openapi(getRoute, async (c) => {
         '[]'::jsonb
       ) AS pessoas
     FROM veiculos v
+    ${where}
     ORDER BY v.placa
   `;
   const resultado = rows.map((r) => ({ ...veiculoDeRow(r), pessoas: r.pessoas }));
@@ -92,13 +114,34 @@ const getIdRoute = createRoute({
   request: { params: z.object({ id: z.string() }) },
   responses: {
     200: { content: { "application/json": { schema: VeiculoSchema } }, description: "Veiculo encontrado" },
+    403: { content: { "application/json": { schema: msgErro } }, description: "Acesso negado" },
     404: { content: { "application/json": { schema: msgErro } }, description: "Nao encontrado" },
   },
 });
 
 app.openapi(getIdRoute, async (c) => {
   const { id } = c.req.valid("param");
-  const [row] = await sql`SELECT * FROM veiculos WHERE id = ${id}`;
+  const sessao = c.get("sessao");
+  const escopo = escopoVeiculos(sessao);
+  if (!escopo) return c.json({ erro: "Acesso negado. Sem permissao de leitura de veiculos." }, 403);
+
+  let filtro = sql`v.id = ${id}`;
+  if (escopo === "equipe") {
+    const equipes = sessao.equipesCRD ?? [];
+    filtro = sql`v.id = ${id} AND EXISTS (
+      SELECT 1 FROM pessoa_veiculo pv
+      JOIN participacoes part ON part.pessoa_id = pv.pessoa_id
+      JOIN edicoes e ON e.id = part.edicao_id AND e.status = 'ativa'
+      WHERE pv.veiculo_id = v.id AND part.equipe_id = ANY(${equipes})
+    )`;
+  } else if (escopo === "proprio") {
+    if (!sessao.pessoaId) return c.json({ erro: "Veiculo nao encontrado." }, 404);
+    filtro = sql`v.id = ${id} AND EXISTS (
+      SELECT 1 FROM pessoa_veiculo pv WHERE pv.veiculo_id = v.id AND pv.pessoa_id = ${sessao.pessoaId}
+    )`;
+  }
+
+  const [row] = await sql`SELECT * FROM veiculos v WHERE ${filtro}`;
   if (!row) return c.json({ erro: "Veiculo nao encontrado." }, 404);
   return c.json(veiculoDeRow(row) as any, 200);
 });
@@ -137,8 +180,8 @@ const postRoute = createRoute({
 
 app.openapi(postRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "veiculos.incluir")) {
+    return c.json({ erro: "Acesso negado. Requer permissao veiculos.incluir." }, 403);
   }
   const body = c.req.valid("json");
   if (!body.placa.trim()) {
@@ -205,8 +248,8 @@ const putRoute = createRoute({
 app.openapi(putRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "veiculos.editar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao veiculos.editar." }, 403);
   }
   const body = c.req.valid("json");
   if (!body.placa.trim()) {
@@ -256,8 +299,8 @@ const deleteRoute = createRoute({
 app.openapi(deleteRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "veiculos.excluir")) {
+    return c.json({ erro: "Acesso negado. Requer permissao veiculos.excluir." }, 403);
   }
 
   const [existente] = await sql`SELECT id FROM checkins WHERE carro_id = ${id} LIMIT 1`;
@@ -323,8 +366,8 @@ const postPessoaRoute = createRoute({
 app.openapi(postPessoaRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "veiculos.vincular")) {
+    return c.json({ erro: "Acesso negado. Requer permissao veiculos.vincular." }, 403);
   }
   const { pessoaId } = c.req.valid("json");
   const [veiculo] = await sql`SELECT id FROM veiculos WHERE id = ${id}`;
@@ -361,8 +404,8 @@ const deletePessoaRoute = createRoute({
 app.openapi(deletePessoaRoute, async (c) => {
   const { id, pessoaId } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "veiculos.vincular")) {
+    return c.json({ erro: "Acesso negado. Requer permissao veiculos.vincular." }, 403);
   }
 
   const [existente] = await sql`SELECT veiculo_id FROM pessoa_veiculo WHERE pessoa_id = ${pessoaId} AND veiculo_id = ${id}`;

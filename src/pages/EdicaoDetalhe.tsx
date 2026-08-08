@@ -1,7 +1,8 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
 // Acesso: qualquer perfil autenticado.
-// Criar equipes/dias e alterar setores: podeAdministrar.
+// Criar equipes: edicao.equipeCriar. Alterar setores: setor.editar.
+// Editar edicao: edicao.editar. Ativar: edicao.ativar. Dias: edicao.editar.
 // ============================================================================
 import { FormEvent, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -12,7 +13,7 @@ import {
   useParticipacoes,
   useSetores,
 } from "../lib/hooks";
-import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import {
   DadosEdicaoForm,
   ativarEdicao,
@@ -78,7 +79,11 @@ export function EdicaoDetalhe() {
     return mapaSetor.get(id);
   }
 
-  const podeAdministrar = adminPode(sessao);
+  const podeEditarEdicao = temPermissao(sessao, "edicao.editar");
+  const podeAtivar = temPermissao(sessao, "edicao.ativar");
+  const podeCriarEquipe = temPermissao(sessao, "edicao.equipeCriar");
+  const podeRemoverEquipe = temPermissao(sessao, "edicao.equipeExcluir");
+  const podeAlterarSetor = temPermissao(sessao, "setor.editar");
 
   const alocadas = participacoes.length;
 
@@ -255,7 +260,7 @@ export function EdicaoDetalhe() {
             )}
           </div>
         </div>
-        {podeAdministrar && (
+        {(podeEditarEdicao || podeAtivar) && (
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -340,7 +345,7 @@ export function EdicaoDetalhe() {
                     ? "Carregando..."
                     : `${lista.length} de ${equipes.length}`}
                 </p>
-                {podeAdministrar && !criandoEquipe && (
+                {podeCriarEquipe && !criandoEquipe && (
                   <button
                     type="button"
                     className="btn btn-primario btn-pequeno lg:hidden"
@@ -383,7 +388,7 @@ export function EdicaoDetalhe() {
                     );
                   })}
                 </div>
-                {podeAdministrar && !criandoEquipe && (
+                {podeCriarEquipe && !criandoEquipe && (
                   <>
                     <div className="w-px self-stretch bg-pietra hidden lg:block" />
                     <button
@@ -441,7 +446,7 @@ export function EdicaoDetalhe() {
                             {e.nome}
                           </Link>
                         </div>
-                        {alterandoSetorId === e.id && podeAdministrar ? (
+                        {alterandoSetorId === e.id && podeAlterarSetor ? (
                           <select
                             className="input !min-h-0 !py-1 !px-2 text-sm w-40"
                             value={e.setor}
@@ -467,8 +472,8 @@ export function EdicaoDetalhe() {
                               backgroundColor: `${cor}1f`,
                               color: cor,
                             }}
-                            onClick={podeAdministrar ? (ev) => { ev.stopPropagation(); setAlterandoSetorId(e.id); } : undefined}
-                            title={podeAdministrar ? "Clique para alterar setor" : undefined}
+                            onClick={podeAlterarSetor ? (ev) => { ev.stopPropagation(); setAlterandoSetorId(e.id); } : undefined}
+                            title={podeAlterarSetor ? "Clique para alterar setor" : undefined}
                           >
                             {setorInfo?.nome ?? e.setor}
                           </span>
@@ -490,7 +495,7 @@ export function EdicaoDetalhe() {
                         </div>
                       </div>
 
-                      {podeAdministrar && (
+                      {podeRemoverEquipe && (
                         <div className="flex justify-end">
                           <button
                             type="button"
@@ -520,7 +525,7 @@ export function EdicaoDetalhe() {
                     ? "Carregando..."
                     : `${dias.length} dia(s) cadastrado(s)`}
                 </p>
-                {podeAdministrar && !criandoDia && (
+                {podeEditarEdicao && !criandoDia && (
                   <button
                     type="button"
                     className="btn btn-primario btn-pequeno"
@@ -613,7 +618,7 @@ export function EdicaoDetalhe() {
                             {formatarDiaFesta(d.data)}
                           </span>
                         </div>
-                        {podeAdministrar && (
+                        {podeEditarEdicao && (
                           <button
                             type="button"
                             className="btn btn-texto btn-pequeno text-vermelho-escuro"

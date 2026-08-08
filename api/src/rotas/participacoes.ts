@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth } from "../auth.js";
+import { comAuth, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
@@ -59,12 +59,16 @@ const postParticipacaoRoute = createRoute({
   request: { body: { content: { "application/json": { schema: z.any() } } } },
   responses: {
     201: { content: { "application/json": { schema: z.any() } }, description: "Criada" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
     409: { content: { "application/json": { schema: z.any() } }, description: "Conflito" }
   }
 });
 
 app.openapi(postParticipacaoRoute, async (c) => {
   const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "edicao.equipeAlocar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.equipeAlocar." }, 403);
+  }
   const body = await c.req.json() as {
     edicaoId: string;
     equipeId: string;
@@ -107,6 +111,7 @@ const putParticipacaoRoute = createRoute({
   },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Atualizada" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
     404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
   }
 });
@@ -114,6 +119,9 @@ const putParticipacaoRoute = createRoute({
 app.openapi(putParticipacaoRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "edicao.equipeAlocar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.equipeAlocar." }, 403);
+  }
   const body = await c.req.json() as {
     equipeId: string;
     funcao: string;
@@ -147,6 +155,7 @@ const deleteParticipacaoRoute = createRoute({
   request: { params: z.object({ id: z.string() }) },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Sucesso" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
     404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
   }
 });
@@ -154,6 +163,9 @@ const deleteParticipacaoRoute = createRoute({
 app.openapi(deleteParticipacaoRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "edicao.equipeAlocar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.equipeAlocar." }, 403);
+  }
   const body = await c.req.json().catch(() => ({})) as {
     pessoaNome?: string;
     equipeNome?: string;

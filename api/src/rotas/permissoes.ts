@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth, podeGerirPerfis } from "../auth.js";
+import { comAuth, temPerfil, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import { isErroDuplicado, permissaoDeRow } from "../pbac.js";
 import type { Variaveis } from "../tipos.js";
@@ -19,7 +19,7 @@ const PermissaoSchema = z.object({
 const msgErro = z.object({ erro: z.string() });
 
 const REGEX_CODIGO = /^[a-z0-9.]{1,40}$/;
-const CODIGO_GERENCIA = "perfis.gerenciar";
+const CODIGO_GERENCIA = "permissao.gerenciar";
 
 // Todas as rotas do catalogo exigem a permissao de gerencia (na pratica ADM).
 
@@ -46,10 +46,14 @@ const getRoute = createRoute({
 
 app.openapi(getRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeGerirPerfis(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer a permissão de gerir perfis." }, 403);
-  }
   const todos = c.req.query("todos") === "true";
+  if (todos) {
+    if (!temPermissao(sessao, "permissao.gerenciar")) {
+      return c.json({ erro: "Acesso negado. Requer permissao permissao.gerenciar." }, 403);
+    }
+  } else if (!temPerfil(sessao)) {
+    return c.json({ erro: "Acesso negado. Requer permissao do grupo perfil." }, 403);
+  }
   const rows = todos
     ? await sql`SELECT * FROM permissoes ORDER BY codigo`
     : await sql`SELECT * FROM permissoes WHERE ativo = TRUE ORDER BY codigo`;
@@ -86,8 +90,8 @@ const postRoute = createRoute({
 
 app.openapi(postRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeGerirPerfis(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer a permissão de gerir perfis." }, 403);
+  if (!temPermissao(sessao, "permissao.gerenciar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao permissao.gerenciar." }, 403);
   }
   const body = await c.req.json() as { codigo: string; rotulo: string; descricao?: string };
 
@@ -162,8 +166,8 @@ const putRoute = createRoute({
 app.openapi(putRoute, async (c) => {
   const { codigo } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeGerirPerfis(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer a permissão de gerir perfis." }, 403);
+  if (!temPermissao(sessao, "permissao.gerenciar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao permissao.gerenciar." }, 403);
   }
   const body = await c.req.json() as { rotulo?: string; descricao?: string; ativo?: boolean };
 

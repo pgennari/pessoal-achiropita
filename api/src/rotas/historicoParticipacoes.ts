@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth, podeAdministrar } from "../auth.js";
+import { comAuth, temPermissao } from "../auth.js";
 import type { Variaveis } from "../tipos.js";
 
 const app = new OpenAPIHono<Variaveis>();
@@ -49,8 +49,8 @@ app.openapi(getHistoricoRoute, async (c) => {
     return c.json(rows.map(historicoDeRow) as any, 200);
   }
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "edicao.historico")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.historico." }, 403);
   }
   const rows = await sql`
     SELECT * FROM participacoes_historicas

@@ -1,11 +1,12 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Operar: podeAdministrar || perfil OPC || permissao "formacao.operar".
-// Acesso: podeConfirmarDados || perfil CRD || "formacao.operar".
+// Acesso: "formacao.pendenciaListar" ou "formacao.pendenciaEquipe".
+// Confirmar dados / marcar manual / remover: "formacao.marcarManual".
+// Compartilhar link: "formacao.turmas".
 // ============================================================================
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useSessao, podeAdministrar as adminPode, temPermissao } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
 import {
   useEquipes,
@@ -144,17 +145,13 @@ export function PendenciasFormacao() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const podeAdministrar = adminPode(sessao);
-
-  const podeConfirmarDados =
-    podeAdministrar ||
-    sessao?.perfil === "OPC" ||
-    temPermissao(sessao, "formacao.operar");
+  const podeConfirmarDados = temPermissao(sessao, "formacao.marcarManual");
+  const podeRemover = temPermissao(sessao, "formacao.marcarManual");
+  const podeCompartilharLink = temPermissao(sessao, "formacao.turmas");
 
   const podeAcessar =
-    podeConfirmarDados ||
-    sessao?.perfil === "CRD" ||
-    temPermissao(sessao, "formacao.operar");
+    temPermissao(sessao, "formacao.pendenciaListar") ||
+    temPermissao(sessao, "formacao.pendenciaEquipe");
 
   // Índices derivados ---
 
@@ -628,7 +625,7 @@ export function PendenciasFormacao() {
                             <Icone nome="check" />
                           </button>
                         )}
-                        {podeAdministrar && (
+                        {podeCompartilharLink && (
                           <button
                             type="button"
                             className="btn btn-secundario btn-pequeno"
@@ -648,7 +645,7 @@ export function PendenciasFormacao() {
                             <Icone nome="link" />
                           </button>
                         )}
-                        {podeAdministrar && f && (
+                        {podeRemover && f && (
                           <button
                             type="button"
                             className="btn btn-texto btn-pequeno text-vermelho-escuro"
@@ -726,7 +723,7 @@ export function PendenciasFormacao() {
                             <span className="badge badge-verde">validado</span>
                           </td>
                           <td className="px-4 py-3 text-right">
-                            {podeAdministrar && f && (
+                            {podeRemover && f && (
                               <button
                                 type="button"
                                 className="btn btn-texto btn-pequeno text-vermelho-escuro"

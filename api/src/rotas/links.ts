@@ -1,10 +1,19 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth, podeAdministrar } from "../auth.js";
+import { comAuth, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
 const app = new OpenAPIHono<Variaveis>();
+
+// Leitura de links: usada pelas telas de formacao (turmas e pendencias).
+function podeVerLinks(sessao: Variaveis["Variables"]["sessao"]): boolean {
+  return (
+    temPermissao(sessao, "formacao.turmas") ||
+    temPermissao(sessao, "formacao.pendenciaListar") ||
+    temPermissao(sessao, "formacao.pendenciaEquipe")
+  );
+}
 
 const MINUTOS_APOS_INICIO = 15;
 
@@ -40,11 +49,16 @@ const getLinksRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: { query: z.object({ edicaoId: z.string().optional(), turmaId: z.string().optional() }) },
   responses: {
-    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de links" }
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de links" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
   }
 });
 
 app.openapi(getLinksRoute, async (c) => {
+  const sessao = c.get("sessao");
+  if (!podeVerLinks(sessao)) {
+    return c.json({ erro: "Acesso negado. Sem permissao de leitura de links." }, 403);
+  }
   const query = c.req.valid("query");
   const edicaoId = query.edicaoId;
   const turmaId = query.turmaId;
@@ -81,8 +95,8 @@ const postLinkRoute = createRoute({
 
 app.openapi(postLinkRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "formacao.turmas")) {
+    return c.json({ erro: "Acesso negado. Requer permissao formacao.turmas." }, 403);
   }
   const body = await c.req.json() as {
     turmaId: string;
@@ -137,8 +151,8 @@ const putLinkRevogarRoute = createRoute({
 app.openapi(putLinkRevogarRoute, async (c) => {
   const { token } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "formacao.turmas")) {
+    return c.json({ erro: "Acesso negado. Requer permissao formacao.turmas." }, 403);
   }
   const [row] = await sql`
     UPDATE links_validacao SET status = 'revogado' WHERE id = ${token} RETURNING turma_id
@@ -168,8 +182,8 @@ const putLinkAjustarRoute = createRoute({
 app.openapi(putLinkAjustarRoute, async (c) => {
   const { turmaId } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "formacao.turmas")) {
+    return c.json({ erro: "Acesso negado. Requer permissao formacao.turmas." }, 403);
   }
   const body = await c.req.json() as { turmaData: string; turmaHorarioInicio: string };
   const novoPrazo = calcularExpiracao(body.turmaData, body.turmaHorarioInicio);

@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth, podeAdministrar } from "../auth.js";
+import { comAuth, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
@@ -31,10 +31,15 @@ const getEdicoesRoute = createRoute({
   middleware: [comAuth as any] as const,
   security: [{ bearerAuth: [] }],
   responses: {
-    200: { content: { "application/json": { schema: z.any() } }, description: "Lista" }
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
   }
 });
 app.openapi(getEdicoesRoute, async (c) => {
+  const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "edicao.lista")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.lista." }, 403);
+  }
   const rows = await sql`SELECT * FROM edicoes ORDER BY ano DESC`;
   return c.json(rows.map(edicaoDeRow) as any, 200);
 });
@@ -65,11 +70,16 @@ const getEdicaoIdRoute = createRoute({
   request: { params: z.object({ id: z.string() }) },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Edição" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
     404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
   }
 });
 app.openapi(getEdicaoIdRoute, async (c) => {
   const { id } = c.req.valid("param");
+  const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "edicao.detalhe")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.detalhe." }, 403);
+  }
   const [row] = await sql`SELECT * FROM edicoes WHERE id = ${id}`;
   if (!row) return c.json({ erro: "Edição não encontrada." }, 404);
   return c.json(edicaoDeRow(row) as any, 200);
@@ -91,8 +101,8 @@ const postEdicaoRoute = createRoute({
 });
 app.openapi(postEdicaoRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "edicao.incluir")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.incluir." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
   const { numero, ano, inicio, fim, status } = body;
@@ -144,8 +154,8 @@ const putEdicaoRoute = createRoute({
 app.openapi(putEdicaoRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "edicao.editar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.editar." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
   const { numero, ano, inicio, fim, status } = body;
@@ -201,8 +211,8 @@ const postEdicaoAtivarRoute = createRoute({
 app.openapi(postEdicaoAtivarRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "edicao.ativar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.ativar." }, 403);
   }
   const [row] = await sql.begin(async (t) => {
     await t`UPDATE edicoes SET status = 'encerrada', atualizado_em = NOW() WHERE status = 'ativa'`;
@@ -230,8 +240,8 @@ const postEdicaoEncerrarRoute = createRoute({
 app.openapi(postEdicaoEncerrarRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "edicao.ativar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.ativar." }, 403);
   }
   const [row] = await sql`
     UPDATE edicoes SET status = 'encerrada', atualizado_em = NOW()

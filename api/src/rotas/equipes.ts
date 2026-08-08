@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth, podeAdministrar } from "../auth.js";
+import { comAuth, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
@@ -48,11 +48,15 @@ const getEquipesRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: { query: z.object({ edicaoId: z.string().optional() }) },
   responses: {
-    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de equipes" }
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de equipes" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
   }
 });
 app.openapi(getEquipesRoute, async (c) => {
   const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "edicao.detalhe")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.detalhe." }, 403);
+  }
   const query = c.req.valid("query");
   const edicaoId = query.edicaoId;
 
@@ -61,7 +65,7 @@ app.openapi(getEquipesRoute, async (c) => {
     return c.json(rows.map(equipeDeRow) as any, 200);
   }
 
-  if (sessao.perfil === "CRD" && sessao.equipesCRD?.length) {
+  if (sessao.equipesCRD?.length) {
     const rows = await sql`${SEL_EQUIPES} WHERE e.id = ANY(${sessao.equipesCRD}) GROUP BY e.id ORDER BY e.nome`;
     return c.json(rows.map(equipeDeRow) as any, 200);
   }
@@ -80,11 +84,16 @@ const getEquipeIdRoute = createRoute({
   request: { params: z.object({ id: z.string() }) },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Equipe" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
     404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
   }
 });
 app.openapi(getEquipeIdRoute, async (c) => {
   const { id } = c.req.valid("param");
+  const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "edicao.detalhe")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.detalhe." }, 403);
+  }
   const [row] = await sql`${SEL_EQUIPES} WHERE e.id = ${id} GROUP BY e.id`;
   if (!row) return c.json({ erro: "Equipe não encontrada." }, 404);
   return c.json(equipeDeRow(row) as any, 200);
@@ -105,8 +114,8 @@ const postEquipeRoute = createRoute({
 });
 app.openapi(postEquipeRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "edicao.equipeCriar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.equipeCriar." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
   const { edicaoId, nome, setor } = body;
@@ -137,8 +146,8 @@ const putEquipeRoute = createRoute({
 app.openapi(putEquipeRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "edicao.equipeEditar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.equipeEditar." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
   const { nome, setor } = body;
@@ -172,8 +181,8 @@ const deleteEquipeRoute = createRoute({
 app.openapi(deleteEquipeRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "edicao.equipeExcluir")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.equipeExcluir." }, 403);
   }
   const [row] = await sql`DELETE FROM equipes WHERE id = ${id} RETURNING nome`;
   if (!row) return c.json({ erro: "Equipe não encontrada." }, 404);
@@ -196,8 +205,8 @@ const postEquipeCopiarRoute = createRoute({
 });
 app.openapi(postEquipeCopiarRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "edicao.equipeCriar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.equipeCriar." }, 403);
   }
   const { edicaoOrigemId, edicaoDestinoId } = await c.req.json() as {
     edicaoOrigemId: string;

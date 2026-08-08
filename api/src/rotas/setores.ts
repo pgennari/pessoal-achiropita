@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth, podeAdministrar } from "../auth.js";
+import { comAuth, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
@@ -46,10 +46,15 @@ const getRoute = createRoute({
       content: { "application/json": { schema: z.array(SetorSchema) } },
       description: "Lista de setores",
     },
+    403: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Acesso negado" },
   },
 });
 
 app.openapi(getRoute, async (c) => {
+  const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "setor.lista")) {
+    return c.json({ erro: "Acesso negado. Requer permissao setor.lista." }, 403);
+  }
   const rows = await sql`SELECT * FROM setores ORDER BY id`;
   return c.json(rows.map(setorDeRow) as any, 200);
 });
@@ -85,8 +90,8 @@ const putRoute = createRoute({
 app.openapi(putRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "setor.editar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao setor.editar." }, 403);
   }
   const body = c.req.valid("json");
 
@@ -148,8 +153,8 @@ function gerarId(nome: string): string {
 
 app.openapi(postRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "setor.incluir")) {
+    return c.json({ erro: "Acesso negado. Requer permissao setor.incluir." }, 403);
   }
   const body = c.req.valid("json");
   if (!body.nome.trim()) {

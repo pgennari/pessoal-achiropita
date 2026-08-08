@@ -143,27 +143,48 @@ export function temPermissao(sessao: Sessao | null, codigo: string): boolean {
   return pode(sessao, codigo);
 }
 
-// Administracao = permissao "administracao" do catalogo (ADM via superuser).
-export function podeAdministrar(sessao: Sessao | null): boolean {
-  return pode(sessao, "administracao");
-}
-
 // Zeramento e exclusivo do ADM (ou de perfil com zeramento.executar).
 export function podeZerar(sessao: Sessao | null): boolean {
   return pode(sessao, "zeramento.executar");
 }
 
-// Operacao de estacionamentos = permissao "estacionamentos.operar".
-export function podeOperarEstacionamentos(sessao: Sessao | null): boolean {
-  return pode(sessao, "estacionamentos.operar");
-}
-
-// Edicao de pessoas = permissao "pessoas.editar".
-export function podeEditarPessoa(sessao: Sessao | null): boolean {
-  return pode(sessao, "pessoas.editar");
-}
-
-// Controle de perfil = permissao "perfis.gerenciar".
+// Gerencia de perfis e do catalogo de permissoes (paginas Perfis, Permissoes
+// e Controle de Menus): perfil ADM (superuser em pode()) ou permissao
+// "perfis.gerenciar".
 export function podeGerirPerfis(sessao: Sessao | null): boolean {
   return pode(sessao, "perfis.gerenciar");
+}
+
+// Escopo de dados: define o alcance de leitura de pessoas conforme as
+// permissoes do usuario. Precedencia: lista (todos) > equipe > proprio.
+export function escopoPessoas(
+  sessao: Sessao | null
+): "todos" | "equipe" | "proprio" | null {
+  if (!sessao) return null;
+  if (pode(sessao, "pessoas.lista")) return "todos";
+  if (pode(sessao, "pessoas.equipe")) return "equipe";
+  if (pode(sessao, "pessoas.proprio")) return "proprio";
+  return null;
+}
+
+// Escopo de dados de veiculos: lista (todos) > equipe > proprio.
+export function escopoVeiculos(
+  sessao: Sessao | null
+): "todos" | "equipe" | "proprio" | null {
+  if (!sessao) return null;
+  if (pode(sessao, "veiculos.lista")) return "todos";
+  if (pode(sessao, "veiculos.equipe")) return "equipe";
+  if (pode(sessao, "veiculos.proprio")) return "proprio";
+  return null;
+}
+
+// Leitura de perfis e do catalogo de permissoes: qualquer permissao do grupo
+// perfil.*. As telas de Perfis e Controle de Menus dependem dessas leituras.
+export function temPerfil(sessao: Sessao | null): boolean {
+  return [
+    "perfil.lista",
+    "perfil.incluir",
+    "perfil.editar",
+    "perfil.excluir",
+  ].some((codigo) => pode(sessao, codigo));
 }

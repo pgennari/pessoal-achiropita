@@ -1,11 +1,12 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Acesso: qualquer perfil autenticado. Criar/Alterar edicao: podeAdministrar.
+// Acesso: qualquer perfil autenticado. Criar edicao: edicao.incluir.
+// Ativar/alterar: edicao.editar / edicao.ativar.
 // ============================================================================
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useEdicoes } from "../lib/hooks";
-import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import { EdicaoForm } from "../components/EdicaoForm";
 import { Icone } from "../components/Icone";
 import {
@@ -33,7 +34,8 @@ export function Edicoes() {
   const [copiouEquipes, setCopiouEquipes] = useState<number | null>(null);
 
   if (!sessao) return null;
-  const podeAdministrar = adminPode(sessao);
+  const podeCriar = temPermissao(sessao, "edicao.incluir");
+  const podeAtivar = temPermissao(sessao, "edicao.ativar");
 
   async function handleCriar(dados: DadosEdicaoForm) {
     if (!sessao) return;
@@ -71,7 +73,7 @@ export function Edicoes() {
             {carregando ? "Carregando..." : `${itens.length} edições`}
           </p>
         </div>
-        {podeAdministrar && !criandoNova && (
+        {podeCriar && !criandoNova && (
           <button
             type="button"
             className="btn btn-primario"
@@ -196,7 +198,7 @@ export function Edicoes() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end items-center gap-2">
-                    {podeAdministrar && e.status !== "ativa" && (
+                    {podeAtivar && e.status !== "ativa" && (
                       <button
                         type="button"
                         className="btn btn-secundario btn-pequeno"

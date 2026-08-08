@@ -426,17 +426,83 @@ CREATE TABLE IF NOT EXISTS permissoes (
 -- Seed do catalogo (migracao do catalogo antes hardcoded na API e no
 -- frontend). Idempotente: nao duplica codigos existentes.
 INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
-  ('administracao', 'Administração', 'Acesso administrativo: usuários, auditoria, edições, setores, formação, presença, veículos, estacionamentos, crachás, dashboard e painel.'),
-  ('pessoas.ver', 'Ver pessoas', 'Ver listagem e detalhes das pessoas.'),
-  ('pessoas.editar', 'Editar pessoas', 'Cadastrar e editar dados e foto das pessoas.'),
-  ('crachas.entregar', 'Entregar crachás', 'Operar a entrega de crachás.'),
-  ('fotos.pendencias', 'Pendências de fotos', 'Consultar as pendências de fotos das pessoas.'),
-  ('formacao.operar', 'Operar formação', 'Gerenciar turmas e registrar presença de formação.'),
-  ('estacionamentos.operar', 'Operar estacionamento', 'Operar estacionamentos: veículos e check-in.'),
-  ('zeramento.executar', 'Zeramento', 'Executar o zeramento de dados.'),
-  ('perfis.gerenciar', 'Gerir perfis', 'Criar, editar e excluir perfis de acesso.'),
-  ('presenca.gerenciar', 'Gerenciar presença', 'Gerenciar registros de presença.')
+  ('veiculos.lista', 'Veículos: ver lista', 'Ver a listagem de veículos.'),
+  ('veiculos.detalhe', 'Veículos: ver detalhes', 'Ver os detalhes de um veículo.'),
+  ('veiculos.incluir', 'Veículos: incluir', 'Cadastrar novos veículos.'),
+  ('veiculos.editar', 'Veículos: editar', 'Editar os detalhes de veículos.'),
+  ('veiculos.excluir', 'Veículos: excluir', 'Excluir veículos.'),
+  ('veiculos.associar', 'Veículos: associar estacionamento', 'Associar ou desassociar veículo a estacionamento.'),
+  ('veiculos.vincular', 'Veículos: vincular pessoa', 'Vincular ou desvincular pessoa a veículo.'),
+  ('veiculos.equipe', 'Veículos: da equipe', 'Ver somente os veículos da própria equipe.'),
+  ('veiculos.proprio', 'Veículos: da pessoa', 'Ver somente os próprios veículos.'),
+  ('estacionamento.lista', 'Estacionamento: ver lista', 'Ver a listagem de estacionamentos.'),
+  ('estacionamento.detalhe', 'Estacionamento: ver detalhes', 'Ver os detalhes de um estacionamento.'),
+  ('estacionamento.incluir', 'Estacionamento: incluir', 'Cadastrar novos estacionamentos.'),
+  ('estacionamento.editar', 'Estacionamento: editar', 'Editar os detalhes de estacionamentos.'),
+  ('estacionamento.excluir', 'Estacionamento: excluir', 'Excluir estacionamentos.'),
+  ('estacionamento.associar', 'Estacionamento: associar veículo', 'Associar ou desassociar veículo a estacionamento.'),
+  ('estacionamento.checkinManual', 'Estacionamento: check-in manual', 'Realizar check-in manual em estacionamentos.'),
+  ('estacionamento.dashboard', 'Estacionamento: dashboard', 'Ver o dashboard de check-in.'),
+  ('estacionamento.relatorio', 'Estacionamento: relatório', 'Ver o relatório de estacionamento.'),
+  ('pessoas.lista', 'Pessoas: ver lista', 'Ver a listagem de pessoas.'),
+  ('pessoas.detalhe', 'Pessoas: ver detalhes', 'Ver os detalhes de uma pessoa.'),
+  ('pessoas.incluir', 'Pessoas: incluir', 'Cadastrar novas pessoas.'),
+  ('pessoas.editar', 'Pessoas: editar', 'Cadastrar e editar dados e foto das pessoas.'),
+  ('pessoas.excluir', 'Pessoas: excluir', 'Excluir pessoas.'),
+  ('pessoas.ativar', 'Pessoas: ativar/inativar', 'Ativar ou inativar pessoas.'),
+  ('pessoas.equipe', 'Pessoas: da equipe', 'Ver somente as pessoas da própria equipe.'),
+  ('pessoas.proprio', 'Pessoas: somente próprio', 'Ver somente os próprios dados.'),
+  ('pessoas.associar', 'Pessoas: associar veículo', 'Associar ou desassociar veículo à pessoa.'),
+  ('pessoas.crachas', 'Crachá: entrega', 'Acessar e operar a entrega de crachás.'),
+  ('pessoas.pendenciaFotos', 'Fotos: pendências', 'Consultar as pendências de fotos das pessoas.'),
+  ('formacao.turmas', 'Formação: turmas', 'Gerenciar turmas e links de formação.'),
+  ('formacao.pendenciaListar', 'Formação: listar pendências', 'Listar as pendências de formação.'),
+  ('formacao.pendenciaEquipe', 'Formação: pendências da equipe', 'Listar as pendências de formação da própria equipe.'),
+  ('formacao.marcarManual', 'Formação: marcar manual', 'Confirmar dados ou remover formação manualmente.'),
+  ('presenca.lista', 'Presença: acessar', 'Acessar a tela de presença.'),
+  ('presenca.linkGerar', 'Presença: gerar link', 'Gerar link de presença.'),
+  ('presenca.linkRevogar', 'Presença: revogar link', 'Revogar link de presença.'),
+  ('edicao.lista', 'Edição: ver lista', 'Ver a listagem de edições.'),
+  ('edicao.detalhe', 'Edição: ver detalhes', 'Ver os detalhes de uma edição.'),
+  ('edicao.incluir', 'Edição: incluir', 'Criar novas edições.'),
+  ('edicao.editar', 'Edição: editar', 'Editar os detalhes de edições.'),
+  ('edicao.excluir', 'Edição: excluir', 'Excluir edições.'),
+  ('edicao.ativar', 'Edição: ativar/inativar', 'Ativar, inativar ou encerrar edições.'),
+  ('edicao.equipeCriar', 'Edição: criar equipe', 'Criar equipes em uma edição.'),
+  ('edicao.equipeEditar', 'Edição: editar equipe', 'Editar os detalhes das equipes.'),
+  ('edicao.equipeExcluir', 'Edição: excluir equipe', 'Excluir equipes.'),
+  ('edicao.equipeAlocar', 'Edição: alocar pessoa', 'Alocar, mover ou desalocar pessoas nas equipes.'),
+  ('edicao.historico', 'Edição: histórico', 'Ver o histórico de participações.'),
+  ('setor.lista', 'Setores: ver lista', 'Ver a listagem de setores.'),
+  ('setor.incluir', 'Setores: incluir', 'Cadastrar novos setores.'),
+  ('setor.editar', 'Setores: editar', 'Editar os detalhes de setores.'),
+  ('setor.excluir', 'Setores: excluir', 'Excluir setores.'),
+  ('usuario.lista', 'Usuários: ver lista', 'Ver a listagem de usuários.'),
+  ('usuario.conviteEnviar', 'Usuários: enviar convite', 'Enviar convites para novos usuários.'),
+  ('usuario.conviteRevogar', 'Usuários: revogar convite', 'Revogar convites pendentes.'),
+  ('usuario.excluir', 'Usuários: excluir', 'Excluir usuários e revogar convites.'),
+  ('usuario.editar', 'Usuários: editar', 'Editar os dados de usuários.'),
+  ('auditoria.ver', 'Auditoria: ver', 'Consultar o registro de auditoria.'),
+  ('perfil.lista', 'Perfis: ver lista', 'Ver a listagem de perfis e permissões.'),
+  ('perfil.incluir', 'Perfis: incluir', 'Criar novos perfis de acesso.'),
+  ('perfil.editar', 'Perfis: editar', 'Editar os detalhes de perfis e o controle de menus.'),
+  ('perfil.excluir', 'Perfis: excluir', 'Excluir perfis de acesso.'),
+  ('permissao.gerenciar', 'Permissões: gerenciar', 'Criar, editar e excluir permissões do catálogo.'),
+  ('zeramento.executar', 'Zeramento', 'Executar o zeramento de dados.')
 ON CONFLICT (codigo) DO NOTHING;
+
+-- Desativa codigos antigos do catalogo substituidos pelos granulares acima.
+-- A validacao por permissoes considera somente codigos ativos (comAuth).
+UPDATE permissoes SET ativo = FALSE WHERE codigo IN (
+  'administracao',
+  'pessoas.ver',
+  'crachas.entregar',
+  'fotos.pendencias',
+  'formacao.operar',
+  'estacionamentos.operar',
+  'presenca.gerenciar',
+  'perfis.gerenciar'
+);
 
 -- perfis: catalogo de perfis de acesso (controle de perfil).
 -- Cada perfil guarda a sigla, o nome de exibicao, se e fixo (nao pode ser
@@ -454,11 +520,36 @@ CREATE TABLE IF NOT EXISTS perfis (
 -- Os codigos de permissao correspondem ao catalogo editavel da tabela
 -- `permissoes` (seed acima).
 INSERT INTO perfis (sigla, nome, fixo, permissoes) VALUES
-  ('ADM', 'Administrador', TRUE,  '{administracao,pessoas.ver,pessoas.editar,crachas.entregar,fotos.pendencias,formacao.operar,estacionamentos.operar,zeramento.executar,perfis.gerenciar}'),
-  ('ORG', 'Organizador geral', FALSE, '{administracao,pessoas.ver,pessoas.editar,crachas.entregar,fotos.pendencias,formacao.operar,estacionamentos.operar}'),
-  ('CRD', 'Coordenador de barraca', FALSE, '{pessoas.ver,crachas.entregar,fotos.pendencias,formacao.operar,estacionamentos.operar}'),
+  ('ADM', 'Administrador', TRUE,  '{}'),
+  ('ORG', 'Organizador geral', FALSE, '{
+    veiculos.lista,veiculos.detalhe,veiculos.incluir,veiculos.editar,veiculos.excluir,veiculos.associar,veiculos.vincular,
+    estacionamento.lista,estacionamento.detalhe,estacionamento.incluir,estacionamento.editar,estacionamento.associar,estacionamento.checkinManual,estacionamento.dashboard,estacionamento.relatorio,
+    pessoas.lista,pessoas.detalhe,pessoas.incluir,pessoas.editar,pessoas.ativar,pessoas.associar,pessoas.crachas,pessoas.pendenciaFotos,
+    formacao.turmas,formacao.pendenciaListar,formacao.marcarManual,
+    presenca.lista,presenca.linkGerar,presenca.linkRevogar,
+    edicao.lista,edicao.detalhe,edicao.incluir,edicao.editar,edicao.ativar,edicao.equipeCriar,edicao.equipeEditar,edicao.equipeExcluir,edicao.equipeAlocar,edicao.historico,
+    setor.lista,setor.incluir,setor.editar,
+    usuario.lista,usuario.conviteEnviar,usuario.conviteRevogar,usuario.editar,
+    auditoria.ver,
+    perfil.lista
+  }'),
+  ('CRD', 'Coordenador de barraca', FALSE, '{
+    veiculos.equipe,veiculos.detalhe,
+    estacionamento.lista,estacionamento.detalhe,estacionamento.dashboard,
+    pessoas.equipe,pessoas.detalhe,pessoas.editar,pessoas.crachas,pessoas.pendenciaFotos,
+    formacao.turmas,formacao.pendenciaEquipe,
+    edicao.lista,edicao.detalhe,
+    setor.lista
+  }'),
   ('EQP', 'Equipista', FALSE, '{}'),
-  ('OPC', 'Operador de campo', FALSE, '{pessoas.ver,pessoas.editar,crachas.entregar,formacao.operar,estacionamentos.operar}'),
+  ('OPC', 'Operador de campo', FALSE, '{
+    veiculos.lista,veiculos.detalhe,
+    estacionamento.lista,estacionamento.detalhe,estacionamento.checkinManual,estacionamento.dashboard,
+    pessoas.lista,pessoas.detalhe,pessoas.editar,pessoas.crachas,pessoas.pendenciaFotos,
+    formacao.turmas,formacao.pendenciaListar,formacao.marcarManual,
+    presenca.lista,
+    setor.lista
+  }'),
   ('REC', 'Coordenador da Recreação', FALSE, '{}')
 ON CONFLICT (sigla) DO NOTHING;
 

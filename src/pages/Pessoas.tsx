@@ -1,12 +1,14 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Acesso: qualquer perfil autenticado (API filtra por perfil; CRD ve so suas equipes).
-// Criar: podeAdministrar (ADM/ORG ou permissao "administracao").
+// Acesso: qualquer perfil autenticado (escopo de leitura via escopoPessoas;
+// perfis com "pessoas.equipe" veem somente suas equipes).
+// Criar: permissao "pessoas.incluir". Sincronizar crachas: sem permissao
+// especifica na matriz — mantido restrito ao perfil ADM (acao de manutencao).
 // ============================================================================
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { usePessoas } from "../lib/hooks";
-import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
+import { useSessao, temPermissao, escopoPessoas } from "../lib/sessao";
 import { normalizar, soDigitos } from "../lib/utilsDominio";
 import { Pessoa } from "../lib/tipos";
 import { sincronizarTodosOsCrachas } from "../lib/buscaCracha";
@@ -103,8 +105,8 @@ export function Pessoas() {
     );
   }
 
-  const podeCriar = adminPode(sessao);
-  const isAdm = sessao?.perfil === "ADM";
+  const podeCriar = temPermissao(sessao, "pessoas.incluir");
+  const escopoEquipe = escopoPessoas(sessao) === "equipe";
   const [sincronizando, setSincronizando] = useState(false);
   const [mensagemSync, setMensagemSync] = useState<string | null>(null);
 
@@ -155,14 +157,14 @@ export function Pessoas() {
               ? "Carregando..."
               : `${lista.length} de ${itens.length}`}
           </p>
-          {sessao?.perfil === "CRD" && (
+          {escopoEquipe && (
             <p className="text-ardesia text-sm mt-1">
               Exibindo apenas pessoas alocadas nas suas equipes.
             </p>
           )}
         </div>
         <div className="flex gap-2 flex-wrap">
-          {isAdm && (
+          {sessao?.perfil === "ADM" && (
             <button
               type="button"
               className="btn btn-secundario"

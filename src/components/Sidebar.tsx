@@ -22,15 +22,32 @@ interface Secao {
 const secoes: Secao[] = [
   {
     label: "Gestão de Estacionamento",
-    permissoes: ["administracao", "estacionamentos.operar"],
+    permissoes: [
+      "veiculos.lista",
+      "veiculos.equipe",
+      "veiculos.proprio",
+      "estacionamento.lista",
+      "estacionamento.detalhe",
+      "estacionamento.relatorio",
+      "estacionamento.dashboard",
+    ],
     itens: [
-      { to: "/veiculos", label: "Veículos" },
+      {
+        to: "/veiculos",
+        label: "Veículos",
+        permissoes: ["veiculos.lista", "veiculos.equipe", "veiculos.proprio"],
+      },
       {
         to: "/estacionamentos",
         label: "Estacionamentos",
+        permissoes: ["estacionamento.lista", "estacionamento.detalhe"],
         excluirAtivo: ["/estacionamentos/relatorio"],
       },
-      { to: "/estacionamentos/relatorio", label: "Relatório" },
+      {
+        to: "/estacionamentos/relatorio",
+        label: "Relatório",
+        permissoes: ["estacionamento.relatorio", "estacionamento.dashboard"],
+      },
     ],
   },
   {
@@ -39,68 +56,84 @@ const secoes: Secao[] = [
       {
         to: "/pessoas",
         label: "Pessoas",
-        permissoes: ["administracao", "pessoas.ver"],
+        permissoes: ["pessoas.lista", "pessoas.equipe", "pessoas.proprio"],
         filhos: [
           {
             to: "/entregas/crachas",
             label: "Entrega de Crachá",
-            permissoes: ["administracao", "crachas.entregar"],
+            permissoes: ["pessoas.crachas"],
           },
           {
             to: "/pendencias/fotos",
             label: "Pendências de Fotos",
-            permissoes: ["administracao", "fotos.pendencias"],
+            permissoes: ["pessoas.pendenciaFotos"],
           },
         ],
       },
       {
         to: "/formacao",
         label: "Formação",
-        permissoes: ["administracao", "formacao.operar"],
+        permissoes: [
+          "formacao.marcarManual",
+          "formacao.pendenciaListar",
+          "formacao.pendenciaEquipe",
+          "formacao.turmas",
+        ],
         filhos: [
           { to: "/formacao", label: "Turmas" },
-          { to: "/formacao/pendencias", label: "Pendências" },
+          {
+            to: "/formacao/pendencias",
+            label: "Pendências",
+            permissoes: ["formacao.pendenciaListar", "formacao.pendenciaEquipe"],
+          },
         ],
       },
       {
         to: "/presenca",
         label: "Presença",
-        permissoes: ["administracao"],
+        permissoes: ["presenca.lista", "presenca.linkGerar", "presenca.linkRevogar"],
       },
     ],
   },
   {
     label: "Festa",
-    permissoes: ["administracao"],
+    permissoes: [
+      "edicao.lista",
+      "edicao.detalhe",
+      "edicao.historico",
+      "setor.lista",
+      "setor.editar",
+    ],
     itens: [
       { to: "/", label: "Painel" },
       {
         to: "/edicoes",
         label: "Edição",
-        filhos: [{ to: "/historico", label: "Histórico" }],
+        permissoes: ["edicao.lista", "edicao.detalhe"],
+        filhos: [{ to: "/historico", label: "Histórico", permissoes: ["edicao.historico"] }],
       },
-      { to: "/setores", label: "Setores" },
+      { to: "/setores", label: "Setores", permissoes: ["setor.lista", "setor.editar"] },
     ],
   },
   {
     label: "Administração",
     itens: [
-      { to: "/usuarios", label: "Usuários", permissoes: ["administracao"] },
-      { to: "/auditoria", label: "Auditoria", permissoes: ["administracao"] },
+      { to: "/usuarios", label: "Usuários", permissoes: ["usuario.lista"] },
+      { to: "/auditoria", label: "Auditoria", permissoes: ["auditoria.ver"] },
       {
         to: "/perfis",
         label: "Perfis",
-        permissoes: ["perfis.gerenciar"],
+        permissoes: ["perfil.lista", "perfil.incluir", "perfil.editar", "perfil.excluir"],
       },
       {
         to: "/permissoes",
         label: "Permissões",
-        permissoes: ["perfis.gerenciar"],
+        permissoes: ["permissao.gerenciar"],
       },
       {
         to: "/controle-menu",
         label: "Controle de Menus",
-        permissoes: ["perfis.gerenciar"],
+        permissoes: ["perfil.editar"],
       },
       {
         to: "/zeramento",
@@ -218,7 +251,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
                   <span className="inline-block w-2 h-2 rounded-full bg-verde mr-2" />
                   {edicaoAtiva.numero}ª edição · {edicaoAtiva.ano}
                 </NavLink>
-                {itemVisivel({ permissoes: ["administracao", "estacionamentos.operar"] }, sessao) && (
+                {itemVisivel({ permissoes: ["estacionamento.dashboard"] }, sessao) && (
                   <NavLink
                     to="/dashboard/estacionamentos"
                     onClick={onFechar}

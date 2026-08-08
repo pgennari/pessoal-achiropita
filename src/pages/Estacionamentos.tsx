@@ -1,11 +1,11 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Acesso: qualquer perfil autenticado. Criar: podeAdministrar (ADM/ORG).
+// Acesso: qualquer perfil autenticado. Criar: estacionamento.incluir.
 // ============================================================================
 import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useEstacionamentos } from "../lib/hooks";
-import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";
+import { useSessao, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
 
 function BarraOcupacao({
@@ -56,7 +56,7 @@ export function Estacionamentos() {
     [itens]
   );
 
-  const podeCriar = adminPode(sessao);
+  const podeCriar = temPermissao(sessao, "estacionamento.incluir");
 
   return (
     <div className="space-y-6">

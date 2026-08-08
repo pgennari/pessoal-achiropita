@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
-import { comAuth, podeAdministrar } from "../auth.js";
+import { comAuth, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import type { Variaveis } from "../tipos.js";
 
@@ -37,8 +37,8 @@ const getUsuariosRoute = createRoute({
 
 app.openapi(getUsuariosRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "usuario.lista")) {
+    return c.json({ erro: "Acesso negado. Requer permissao usuario.lista." }, 403);
   }
   const rows = await sql`SELECT * FROM usuarios ORDER BY nome`;
   return c.json(rows.map(usuarioDeRow) as any, 200);
@@ -85,8 +85,8 @@ const putUsuarioRoute = createRoute({
 app.openapi(putUsuarioRoute, async (c) => {
   const { uid } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "usuario.editar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao usuario.editar." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
   const [row] = await sql`
@@ -123,8 +123,8 @@ const deleteUsuarioRoute = createRoute({
 app.openapi(deleteUsuarioRoute, async (c) => {
   const { uid } = c.req.valid("param");
   const sessao = c.get("sessao");
-  if (!podeAdministrar(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer ADM ou ORG." }, 403);
+  if (!temPermissao(sessao, "usuario.excluir")) {
+    return c.json({ erro: "Acesso negado. Requer permissao usuario.excluir." }, 403);
   }
   if (uid === sessao.uid) {
     return c.json({ erro: "Não é possível remover seu próprio usuário." }, 400);

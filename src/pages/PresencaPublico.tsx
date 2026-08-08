@@ -2,7 +2,7 @@
 // CONTROLE DE PERMISSAO
 // Acesso: publico (sem autenticacao) — presenca via token na URL.
 // ============================================================================
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
   confirmarPresenca,
@@ -141,6 +141,23 @@ export function PresencaPublico() {
     });
   }
 
+  function toggleSelecionarTodos() {
+    const naoRegistrados = equipistasFiltrados.filter(
+      (e) => !e.presencaRegistrada
+    );
+    const todosMarcados =
+      naoRegistrados.length > 0 &&
+      naoRegistrados.every((e) => selecionados.has(e.pessoaId));
+    setSelecionados((prev) => {
+      const novo = new Set(prev);
+      for (const e of naoRegistrados) {
+        if (todosMarcados) novo.delete(e.pessoaId);
+        else novo.add(e.pessoaId);
+      }
+      return novo;
+    });
+  }
+
   async function handleRemoverPresenca(pessoaId: string) {
     if (!sessaoJwt || removendoPresenca) return;
     setRemovendoPresenca(true);
@@ -196,6 +213,24 @@ export function PresencaPublico() {
   const selecionadosArray = equipistas.filter((e) =>
     selecionados.has(e.pessoaId)
   );
+
+  const naoRegistradosFiltrados = equipistasFiltrados.filter(
+    (e) => !e.presencaRegistrada
+  );
+  const todosSelecionados =
+    naoRegistradosFiltrados.length > 0 &&
+    naoRegistradosFiltrados.every((e) => selecionados.has(e.pessoaId));
+  const algunsSelecionados = naoRegistradosFiltrados.some((e) =>
+    selecionados.has(e.pessoaId)
+  );
+
+  const refSelecionarTodos = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (refSelecionarTodos.current) {
+      refSelecionarTodos.current.indeterminate =
+        !todosSelecionados && algunsSelecionados;
+    }
+  }, [todosSelecionados, algunsSelecionados]);
 
   return (
     <div className="min-h-screen flex items-start justify-center px-4 py-10">
@@ -336,6 +371,20 @@ export function PresencaPublico() {
                         <h4 className="m-0">
                           Equipistas ({equipistas.length})
                         </h4>
+                        {naoRegistradosFiltrados.length > 0 && (
+                          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              className="checkbox"
+                              ref={refSelecionarTodos}
+                              checked={todosSelecionados}
+                              onChange={toggleSelecionarTodos}
+                            />
+                            <span className="font-semibold">
+                              Selecionar todos
+                            </span>
+                          </label>
+                        )}
                         {equipistasFiltrados.length === 0 ? (
                           <p className="text-ardesia text-sm">
                             Nenhum equipista encontrado com este filtro.

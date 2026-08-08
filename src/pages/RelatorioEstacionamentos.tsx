@@ -50,6 +50,10 @@ export function RelatorioEstacionamentos() {
   const { itens: equipes } = useEquipes(edicao?.id);
   const { itens: participacoes } = useParticipacoes(edicao?.id);
   const [termo, setTermo] = useState("");
+  const [filtroBarraca, setFiltroBarraca] = useState("");
+  const [filtroNome, setFiltroNome] = useState("");
+  const [filtroPlaca, setFiltroPlaca] = useState("");
+  const [filtroEstacionamento, setFiltroEstacionamento] = useState("");
   const [filtroCheckin, setFiltroCheckin] = useState<"com" | "sem" | null>(null);
   const [filtroTotal, setFiltroTotal] = useState<number | null>(null);
 
@@ -109,57 +113,87 @@ export function RelatorioEstacionamentos() {
 
   const veiculosFiltrados = useMemo(() => {
     const t = normalizar(termo);
+    const b = normalizar(filtroBarraca);
+    const n = normalizar(filtroNome);
+    const p = normalizar(filtroPlaca);
+    const e = normalizar(filtroEstacionamento);
     const hoje = dataLocalISO(new Date());
-    const base = t
-      ? veiculosOrdenados.filter((v) => {
-          const estacionamento = v.estacionamentoId
-            ? mapaEstacionamento.get(v.estacionamentoId) ?? ""
-            : "";
-          const total = checkinsPorVeiculo.totais.get(v.id) ?? 0;
-          if (normalizar(v.placa ?? "").includes(t)) return true;
-          if (normalizar(estacionamento).includes(t)) return true;
-          if (String(total).includes(t)) return true;
-          if (
-            v.pessoas.some(
-              (p) =>
-                normalizar(p.nome ?? "").includes(t) ||
-                String(p.cracha ?? "").includes(t)
-            )
-          )
-            return true;
-          return (equipesPorVeiculo.get(v.id) ?? []).some((nome) =>
+
+    return veiculosOrdenados.filter((v) => {
+      if (t) {
+        const estacionamento = v.estacionamentoId
+          ? mapaEstacionamento.get(v.estacionamentoId) ?? ""
+          : "";
+        const total = checkinsPorVeiculo.totais.get(v.id) ?? 0;
+        const combina =
+          normalizar(v.placa ?? "").includes(t) ||
+          normalizar(estacionamento).includes(t) ||
+          String(total).includes(t) ||
+          v.pessoas.some(
+            (pp) =>
+              normalizar(pp.nome ?? "").includes(t) ||
+              String(pp.cracha ?? "").includes(t)
+          ) ||
+          (equipesPorVeiculo.get(v.id) ?? []).some((nome) =>
             normalizar(nome).includes(t)
           );
-        })
-      : veiculosOrdenados;
-
-    let resultado = base;
-    if (filtroTotal !== null) {
-      resultado = resultado.filter((v) => {
+        if (!combina) return false;
+      }
+      if (b) {
+        const equipes = equipesPorVeiculo.get(v.id) ?? [];
+        if (!equipes.some((nome) => normalizar(nome).includes(b))) return false;
+      }
+      if (n) {
+        if (!v.pessoas.some((pp) => normalizar(pp.nome ?? "").includes(n)))
+          return false;
+      }
+      if (p) {
+        if (!normalizar(v.placa ?? "").includes(p)) return false;
+      }
+      if (e) {
+        const estac = v.estacionamentoId
+          ? mapaEstacionamento.get(v.estacionamentoId) ?? ""
+          : "";
+        if (!normalizar(estac).includes(e)) return false;
+      }
+      if (filtroTotal !== null) {
         const total = checkinsPorVeiculo.totais.get(v.id) ?? 0;
-        return total === filtroTotal;
-      });
-    }
-    if (filtroCheckin) {
-      resultado = resultado.filter((v) => {
+        if (total !== filtroTotal) return false;
+      }
+      if (filtroCheckin) {
         const diasComCheckin =
           checkinsPorVeiculo.dias.get(v.id) ?? new Set<string>();
         if (filtroCheckin === "com") {
-          return DIAS.some((d) => diasComCheckin.has(d.data));
+          if (!DIAS.some((d) => diasComCheckin.has(d.data))) return false;
+        } else {
+          if (!DIAS.some((d) => d.data <= hoje && !diasComCheckin.has(d.data)))
+            return false;
         }
-        return DIAS.some((d) => d.data <= hoje && !diasComCheckin.has(d.data));
-      });
-    }
-    return resultado;
+      }
+      return true;
+    });
   }, [
     veiculosOrdenados,
     termo,
+    filtroBarraca,
+    filtroNome,
+    filtroPlaca,
+    filtroEstacionamento,
     mapaEstacionamento,
     equipesPorVeiculo,
     checkinsPorVeiculo,
     filtroCheckin,
     filtroTotal,
   ]);
+
+  const filtrosAtivos =
+    termo.trim() !== "" ||
+    filtroBarraca !== "" ||
+    filtroNome !== "" ||
+    filtroPlaca !== "" ||
+    filtroEstacionamento !== "" ||
+    filtroCheckin !== null ||
+    filtroTotal !== null;
 
   if (!sessao) return null;
 
@@ -185,69 +219,14 @@ export function RelatorioEstacionamentos() {
             aria-label="Filtrar relatorio"
           />
           <div className="flex flex-wrap items-center gap-2 text-xs text-ardesia">
-            <span className="inline-flex items-center gap-1.5 font-semibold">
-              Total check-ins:
-              <span className="inline-flex items-center">
-                <button
-                  type="button"
-                  aria-label="Diminuir filtro de total de check-ins"
-                  className="w-7 h-7 inline-flex items-center justify-center rounded-sm border-[1.5px] border-pietra bg-bianco text-carbone font-semibold leading-none transition hover:border-verde hover:text-verde disabled:opacity-45 disabled:pointer-events-none"
-                  onClick={() =>
-                    setFiltroTotal((v) => (v === null ? v : v === 0 ? null : v - 1))
-                  }
-                  disabled={filtroTotal === null}
-                >
-                  −
-                </button>
-                <span
-                  className={`w-9 h-7 inline-flex items-center justify-center font-mono text-xs font-semibold ${
-                    filtroTotal !== null ? "text-verde-escuro" : "text-ardesia"
-                  }`}
-                >
-                  {filtroTotal ?? ""}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Aumentar filtro de total de check-ins"
-                  className="w-7 h-7 inline-flex items-center justify-center rounded-sm border-[1.5px] border-pietra bg-bianco text-carbone font-semibold leading-none transition hover:border-verde hover:text-verde disabled:opacity-45 disabled:pointer-events-none"
-                  onClick={() =>
-                    setFiltroTotal((v) => (v === null ? 0 : Math.min(10, v + 1)))
-                  }
-                  disabled={filtroTotal !== null && filtroTotal >= 10}
-                >
-                  +
-                </button>
-              </span>
-            </span>
-            <span className="inline-block w-px h-5 bg-pietra" />
-            <button
-              type="button"
-              className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-semibold transition ${
-                filtroCheckin === "com"
-                  ? "bg-verde/15 text-verde-escuro ring-1 ring-verde/40"
-                  : "hover:bg-pietra-clara/60"
-              }`}
-              onClick={() =>
-                setFiltroCheckin(filtroCheckin === "com" ? null : "com")
-              }
-            >
+            <span className="inline-flex items-center gap-1.5 px-2 py-1">
               <span className="inline-block w-3 h-3 rounded-sm bg-verde" />
               checkin
-            </button>
-            <button
-              type="button"
-              className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-semibold transition ${
-                filtroCheckin === "sem"
-                  ? "bg-vermelho/15 text-vermelho-escuro ring-1 ring-vermelho/40"
-                  : "hover:bg-pietra-clara/60"
-              }`}
-              onClick={() =>
-                setFiltroCheckin(filtroCheckin === "sem" ? null : "sem")
-              }
-            >
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2 py-1">
               <span className="inline-block w-3 h-3 rounded-sm bg-vermelho" />
               sem checkin
-            </button>
+            </span>
             <span className="inline-flex items-center gap-1.5 px-2 py-1">
               <span className="inline-block w-3 h-3 rounded-sm bg-pietra-clara" />
               data futura
@@ -262,22 +241,7 @@ export function RelatorioEstacionamentos() {
         </div>
       )}
 
-      {!carregando && veiculosFiltrados.length === 0 && !erro && (
-        <div className="card">
-          <div className="card-corpo">
-            <p className="text-ardesia text-sm text-right mb-4">
-              {veiculosFiltrados.length} de {veiculos.length} registros
-            </p>
-            <p className="text-center text-ardesia">
-              {termo.trim() || filtroCheckin || filtroTotal !== null
-                ? "Nenhum veiculo encontrado com os filtros atuais."
-                : "Nenhum veiculo cadastrado."}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {veiculosFiltrados.length > 0 && (
+      {!erro && (
         <div className="card">
           <div className="card-corpo">
             <p className="text-ardesia text-sm text-right mb-4">
@@ -306,9 +270,113 @@ export function RelatorioEstacionamentos() {
                     Check-ins
                   </th>
                 </tr>
+                <tr className="border-b border-pietra align-top">
+                  <th className="py-1 px-1">
+                    <input
+                      type="text"
+                      className="filtro-coluna"
+                      placeholder="Filtrar barraca..."
+                      aria-label="Filtrar por barraca"
+                      value={filtroBarraca}
+                      onChange={(e) => setFiltroBarraca(e.target.value)}
+                    />
+                  </th>
+                  <th className="py-1 px-1">
+                    <input
+                      type="text"
+                      className="filtro-coluna"
+                      placeholder="Filtrar nome..."
+                      aria-label="Filtrar por nome"
+                      value={filtroNome}
+                      onChange={(e) => setFiltroNome(e.target.value)}
+                    />
+                  </th>
+                  <th className="py-1 px-1">
+                    <input
+                      type="text"
+                      className="filtro-coluna font-mono"
+                      placeholder="Filtrar placa..."
+                      aria-label="Filtrar por placa"
+                      value={filtroPlaca}
+                      onChange={(e) => setFiltroPlaca(e.target.value)}
+                    />
+                  </th>
+                  <th className="py-1 px-1">
+                    <input
+                      type="text"
+                      className="filtro-coluna"
+                      placeholder="Filtrar estac..."
+                      aria-label="Filtrar por estacionamento"
+                      value={filtroEstacionamento}
+                      onChange={(e) => setFiltroEstacionamento(e.target.value)}
+                    />
+                  </th>
+                  <th className="py-1 px-1">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      className="filtro-coluna text-center font-mono"
+                      placeholder="Todos"
+                      aria-label="Filtrar por total de check-ins"
+                      value={filtroTotal === null ? "" : filtroTotal}
+                      onChange={(e) => {
+                        const digitos = e.target.value.replace(/\D+/g, "");
+                        setFiltroTotal(digitos === "" ? null : Number(digitos));
+                      }}
+                    />
+                  </th>
+                  <th className="py-1 px-1">
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        className={`inline-flex items-center gap-1 rounded-sm px-1.5 py-1 font-semibold text-xs transition ${
+                          filtroCheckin === "com"
+                            ? "bg-verde/15 text-verde-escuro ring-1 ring-verde/40"
+                            : "hover:bg-pietra-clara/60"
+                        }`}
+                        aria-pressed={filtroCheckin === "com"}
+                        onClick={() =>
+                          setFiltroCheckin(filtroCheckin === "com" ? null : "com")
+                        }
+                      >
+                        <span className="inline-block w-2.5 h-2.5 rounded-sm bg-verde" />
+                        com
+                      </button>
+                      <button
+                        type="button"
+                        className={`inline-flex items-center gap-1 rounded-sm px-1.5 py-1 font-semibold text-xs transition ${
+                          filtroCheckin === "sem"
+                            ? "bg-vermelho/15 text-vermelho-escuro ring-1 ring-vermelho/40"
+                            : "hover:bg-pietra-clara/60"
+                        }`}
+                        aria-pressed={filtroCheckin === "sem"}
+                        onClick={() =>
+                          setFiltroCheckin(filtroCheckin === "sem" ? null : "sem")
+                        }
+                      >
+                        <span className="inline-block w-2.5 h-2.5 rounded-sm bg-vermelho" />
+                        sem
+                      </button>
+                    </div>
+                  </th>
+                </tr>
               </thead>
               <tbody>
-                {veiculosFiltrados.map((v) => {
+                {veiculosFiltrados.length === 0 ? (
+                  <tr className="border-b border-pietra-clara">
+                    <td
+                      colSpan={6}
+                      className="py-6 text-center text-ardesia text-sm"
+                    >
+                      {carregando
+                        ? "Carregando..."
+                        : filtrosAtivos
+                          ? "Nenhum veiculo encontrado com os filtros atuais."
+                          : "Nenhum veiculo cadastrado."}
+                    </td>
+                  </tr>
+                ) : (
+                  veiculosFiltrados.map((v) => {
                   const equipesVeiculo = equipesPorVeiculo.get(v.id) ?? [];
                   const estacionamentoNome = v.estacionamentoId
                     ? mapaEstacionamento.get(v.estacionamentoId) ?? ""
@@ -366,7 +434,8 @@ export function RelatorioEstacionamentos() {
                       </td>
                     </tr>
                   );
-                })}
+                })
+                )}
               </tbody>
             </table>
             </div>

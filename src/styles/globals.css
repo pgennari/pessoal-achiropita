@@ -245,6 +245,18 @@
     font-size: 0.85rem;
   }
 
+  /* Filtro por coluna — input compacto no cabecalho de tabelas */
+  .filtro-coluna {
+    @apply w-full min-w-0 font-sans bg-bianco text-carbone rounded-sm border-[1.5px] border-pietra transition placeholder:text-ardesia/60;
+    padding: 3px 7px;
+    font-size: 0.75rem;
+    min-height: 26px;
+  }
+  .filtro-coluna:focus {
+    @apply outline-none border-verde;
+    box-shadow: 0 0 0 3px rgba(22, 117, 58, 0.15);
+  }
+
   /* Cards */
   .card {
     @apply bg-bianco border border-pietra rounded-md;
@@ -364,6 +376,11 @@
     .input {
       padding: 11px 14px;
       font-size: 1rem;
+      min-height: 44px;
+    }
+    .filtro-coluna {
+      padding: 8px 10px;
+      font-size: 0.85rem;
       min-height: 44px;
     }
   }

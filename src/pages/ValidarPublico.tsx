@@ -1,3 +1,7 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: publico (sem autenticacao) — validacao de dados via token na URL.
+// ============================================================================
 import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { LinkValidacao, Pessoa, ESTADOS_CIVIS, Filho } from "../lib/tipos";

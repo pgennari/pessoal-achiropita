@@ -1,3 +1,8 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Editar: podeEditarPessoa (ADM/ORG/OPC/CRD ou permissao "pessoas.editar").
+// Inativar: podeAdministrar. Excluir: perfil ADM. Dados sensiveis: perfil ADM.
+// ============================================================================
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";

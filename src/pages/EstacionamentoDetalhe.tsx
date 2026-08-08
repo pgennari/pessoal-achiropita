@@ -1,3 +1,7 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: qualquer perfil autenticado. Editar: podeAdministrar. Excluir: ADM.
+// ============================================================================
 import { useState, FormEvent } from "react";
 import { useEffect } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";

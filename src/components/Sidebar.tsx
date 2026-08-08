@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Sessao } from "../lib/sessao";
+import { Sessao, pode } from "../lib/sessao";
 import { useEdicaoAtiva } from "../lib/hooks";
 
 // A navegacao e controlada pelas permissoes do catalogo de perfis
@@ -93,6 +93,11 @@ const secoes: Secao[] = [
         permissoes: ["perfis.gerenciar"],
       },
       {
+        to: "/permissoes",
+        label: "Permissões",
+        permissoes: ["perfis.gerenciar"],
+      },
+      {
         to: "/controle-menu",
         label: "Controle de Menus",
         permissoes: ["perfis.gerenciar"],
@@ -107,7 +112,7 @@ const secoes: Secao[] = [
 ];
 
 function temPermissao(sessao: Sessao, codigo: string): boolean {
-  return (sessao.permissoes ?? []).includes(codigo);
+  return pode(sessao, codigo);
 }
 
 function itemVisivel(item: { permissoes?: string[] }, sessao: Sessao): boolean {

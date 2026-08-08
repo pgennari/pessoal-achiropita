@@ -2,61 +2,6 @@ import { api } from "./api";
 import { queryClient } from "./queryClient";
 import { MenuCatalogo, PerfilInfo, Permissao } from "./tipos";
 import { Sessao } from "./sessao";
-
-// Catalogo de permissoes (espelho de api/src/perfis.ts).
-export const CATALOGO_PERMISSOES: Permissao[] = [
-  {
-    codigo: "administracao",
-    rotulo: "Administração",
-    descricao:
-      "Acesso administrativo: usuários, auditoria, edições, setores, formação, presença, veículos, estacionamentos, crachás, dashboard e painel.",
-  },
-  {
-    codigo: "pessoas.ver",
-    rotulo: "Ver pessoas",
-    descricao: "Ver listagem e detalhes das pessoas.",
-  },
-  {
-    codigo: "pessoas.editar",
-    rotulo: "Editar pessoas",
-    descricao: "Cadastrar e editar dados e foto das pessoas.",
-  },
-  {
-    codigo: "crachas.entregar",
-    rotulo: "Entregar crachás",
-    descricao: "Operar a entrega de crachás.",
-  },
-  {
-    codigo: "fotos.pendencias",
-    rotulo: "Pendências de fotos",
-    descricao: "Consultar as pendências de fotos das pessoas.",
-  },
-  {
-    codigo: "formacao.operar",
-    rotulo: "Operar formação",
-    descricao: "Gerenciar turmas e registrar presença de formação.",
-  },
-  {
-    codigo: "estacionamentos.operar",
-    rotulo: "Operar estacionamento",
-    descricao: "Operar estacionamentos: veículos e check-in.",
-  },
-  {
-    codigo: "zeramento.executar",
-    rotulo: "Zeramento",
-    descricao: "Executar o zeramento de dados.",
-  },
-  {
-    codigo: "perfis.gerenciar",
-    rotulo: "Gerir perfis",
-    descricao: "Criar, editar e excluir perfis de acesso.",
-  },
-];
-
-export function rotuloPermissao(codigo: string): string {
-  return CATALOGO_PERMISSOES.find((p) => p.codigo === codigo)?.rotulo ?? codigo;
-}
-
 // Catalogo de menus controlaveis pela tela /controle-menu. Cada menu
 // referencia as permissoes do catalogo acima que liberam o acesso na
 // navegacao (os mesmos codigos usados pela Sidebar e pelas paginas).
@@ -104,6 +49,13 @@ export const CATALOGO_MENUS: MenuCatalogo[] = [
     secao: "Pessoal",
     descricao: "Turmas de formação e registro de presença.",
     permissoes: ["formacao.operar"],
+  },
+  {
+    id: "presenca",
+    rotulo: "Presença",
+    secao: "Pessoal",
+    descricao: "Registro de presença.",
+    permissoes: ["presenca.gerenciar"],
   },
   {
     id: "perfis",
@@ -175,4 +127,40 @@ export async function atualizarPermissoesPerfil(
   });
   await queryClient.invalidateQueries({ queryKey: ["perfis"] });
   return atualizado;
+}
+
+export interface DadosPermissaoForm {
+  codigo: string;
+  rotulo: string;
+  descricao: string;
+}
+
+// Cria uma permissao no catalogo (POST /api/permissoes). O codigo e imutavel
+// apos a criacao; novas permissoes sao associadas automaticamente ao ADM.
+export async function criarPermissao(
+  _sessao: Sessao,
+  dados: DadosPermissaoForm
+): Promise<Permissao> {
+  const criada = await api.post<Permissao>("/api/permissoes", {
+    codigo: dados.codigo.trim().toLowerCase(),
+    rotulo: dados.rotulo.trim(),
+    descricao: dados.descricao.trim(),
+  });
+  await queryClient.invalidateQueries({ queryKey: ["permissoes"] });
+  return criada;
+}
+
+// Atualiza rotulo/descricao/ativo de uma permissao (PUT /api/permissoes/:codigo).
+export async function atualizarPermissao(
+  _sessao: Sessao,
+  codigo: string,
+  dados: { rotulo?: string; descricao?: string; ativo?: boolean }
+): Promise<Permissao> {
+  const atualizada = await api.put<Permissao>(`/api/permissoes/${codigo}`, {
+    rotulo: dados.rotulo?.trim(),
+    descricao: dados.descricao?.trim(),
+    ativo: dados.ativo,
+  });
+  await queryClient.invalidateQueries({ queryKey: ["permissoes"] });
+  return atualizada;
 }

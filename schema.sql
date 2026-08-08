@@ -411,6 +411,33 @@ CREATE INDEX IF NOT EXISTS idx_presencas_edicao ON presencas(edicao_id);
 CREATE INDEX IF NOT EXISTS idx_presencas_dia    ON presencas(dia_festa_id);
 CREATE INDEX IF NOT EXISTS idx_presencas_pessoa ON presencas(pessoa_id);
 
+-- permissoes: catalogo editavel de permissoes (controle de acesso PBAC).
+-- Fonte unica da verdade do que cada codigo significa. O codigo e imutavel
+-- apos a criacao; permissoes nunca sao excluidas, apenas desativadas (ativo).
+CREATE TABLE IF NOT EXISTS permissoes (
+  codigo         TEXT PRIMARY KEY,
+  rotulo         TEXT NOT NULL,
+  descricao      TEXT NOT NULL DEFAULT '',
+  ativo          BOOLEAN NOT NULL DEFAULT TRUE,
+  criado_em      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Seed do catalogo (migracao do catalogo antes hardcoded na API e no
+-- frontend). Idempotente: nao duplica codigos existentes.
+INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
+  ('administracao', 'Administração', 'Acesso administrativo: usuários, auditoria, edições, setores, formação, presença, veículos, estacionamentos, crachás, dashboard e painel.'),
+  ('pessoas.ver', 'Ver pessoas', 'Ver listagem e detalhes das pessoas.'),
+  ('pessoas.editar', 'Editar pessoas', 'Cadastrar e editar dados e foto das pessoas.'),
+  ('crachas.entregar', 'Entregar crachás', 'Operar a entrega de crachás.'),
+  ('fotos.pendencias', 'Pendências de fotos', 'Consultar as pendências de fotos das pessoas.'),
+  ('formacao.operar', 'Operar formação', 'Gerenciar turmas e registrar presença de formação.'),
+  ('estacionamentos.operar', 'Operar estacionamento', 'Operar estacionamentos: veículos e check-in.'),
+  ('zeramento.executar', 'Zeramento', 'Executar o zeramento de dados.'),
+  ('perfis.gerenciar', 'Gerir perfis', 'Criar, editar e excluir perfis de acesso.'),
+  ('presenca.gerenciar', 'Gerenciar presença', 'Gerenciar registros de presença.')
+ON CONFLICT (codigo) DO NOTHING;
+
 -- perfis: catalogo de perfis de acesso (controle de perfil).
 -- Cada perfil guarda a sigla, o nome de exibicao, se e fixo (nao pode ser
 -- excluido) e a lista estruturada de permissoes que concedera ao usuario.
@@ -424,7 +451,8 @@ CREATE TABLE IF NOT EXISTS perfis (
 );
 
 -- Seed dos perfis padrao (executar na primeira migracao). O ADM e fixo.
--- Os codigos de permissao correspondem ao catalogo em api/src/perfis.ts.
+-- Os codigos de permissao correspondem ao catalogo editavel da tabela
+-- `permissoes` (seed acima).
 INSERT INTO perfis (sigla, nome, fixo, permissoes) VALUES
   ('ADM', 'Administrador', TRUE,  '{administracao,pessoas.ver,pessoas.editar,crachas.entregar,fotos.pendencias,formacao.operar,estacionamentos.operar,zeramento.executar,perfis.gerenciar}'),
   ('ORG', 'Organizador geral', FALSE, '{administracao,pessoas.ver,pessoas.editar,crachas.entregar,fotos.pendencias,formacao.operar,estacionamentos.operar}'),
@@ -433,6 +461,24 @@ INSERT INTO perfis (sigla, nome, fixo, permissoes) VALUES
   ('OPC', 'Operador de campo', FALSE, '{pessoas.ver,pessoas.editar,crachas.entregar,formacao.operar,estacionamentos.operar}'),
   ('REC', 'Coordenador da Recreação', FALSE, '{}')
 ON CONFLICT (sigla) DO NOTHING;
+
+-- Migracao PBAC: preserva o acesso atual dos perfis padrao agora que a
+-- validacao passa a ser por permissoes (e nao mais por letra do perfil).
+-- ADM e superuser e sempre possui todas as permissoes ativas do catalogo.
+UPDATE perfis SET
+  permissoes = COALESCE((
+    SELECT ARRAY(SELECT codigo FROM permissoes WHERE ativo ORDER BY codigo)
+  ), '{}')
+WHERE sigla = 'ADM';
+
+-- CRD editava pessoas pela regra legada de perfil; recebe a permissao
+-- equivalente para nao perder o acesso.
+UPDATE perfis SET
+  permissoes = CASE
+    WHEN 'pessoas.editar' = ANY(permissoes) THEN permissoes
+    ELSE permissoes || ARRAY['pessoas.editar']
+  END
+WHERE sigla = 'CRD';
 
 -- Controle de perfil: perfis deixam de ser um ENUM fixo e passam a ser um
 -- catalogo editavel. Colunas que guardam a sigla viram TEXT (nao e preciso

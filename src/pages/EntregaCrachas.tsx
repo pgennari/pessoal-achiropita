@@ -1,3 +1,8 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Operar: podeAdministrar || perfil OPC || permissao "crachas.entregar".
+// Acesso: podeOperar || perfil CRD || "crachas.entregar". Desbloquear: ADM.
+// ============================================================================
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSessao, podeAdministrar, temPermissao } from "../lib/sessao";

@@ -1,3 +1,8 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Restrita: podeZerar (perfil ADM ou permissao "zeramento.executar").
+// Redireciona para "/" sem a permissao.
+// ============================================================================
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useSessao, podeZerar } from "../lib/sessao";

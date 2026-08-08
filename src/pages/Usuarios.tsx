@@ -1,3 +1,8 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: qualquer perfil autenticado.
+// Gerir convites/usuarios: podeAdministrar (ADM/ORG). Acoes especificas: ADM.
+// ============================================================================
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSessao, podeAdministrar } from "../lib/sessao";

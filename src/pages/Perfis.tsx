@@ -1,17 +1,22 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Restrita: podeGerirPerfis (perfil ADM ou permissao "perfis.gerenciar").
+// Redireciona para "/" sem a permissao.
+// ============================================================================
 import { FormEvent, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useSessao, podeGerirPerfis } from "../lib/sessao";
-import { usePerfis } from "../lib/hooks";
+import { usePerfis, usePermissoes } from "../lib/hooks";
+import { api } from "../lib/api";
 import { Icone } from "../components/Icone";
 import {
-  CATALOGO_PERMISSOES,
   DadosPerfilForm,
   atualizarPerfil,
   criarPerfil,
   removerPerfil,
-  rotuloPermissao,
 } from "../lib/perfis";
-import { PerfilInfo } from "../lib/tipos";
+import { PerfilInfo, Permissao } from "../lib/tipos";
 
 const REGEX_SIGLA = /^[A-Z0-9]{2,6}$/;
 
@@ -25,11 +30,12 @@ function classeBadgeSigla(sigla: string): string {
 
 interface FormularioPerfilProps {
   inicial: PerfilInfo | null;
+  catalogo: Permissao[];
   onSalvar: (dados: DadosPerfilForm) => Promise<void>;
   onCancelar: () => void;
 }
 
-function FormularioPerfil({ inicial, onSalvar, onCancelar }: FormularioPerfilProps) {
+function FormularioPerfil({ inicial, catalogo, onSalvar, onCancelar }: FormularioPerfilProps) {
   const [sigla, setSigla] = useState(inicial?.sigla ?? "");
   const [nome, setNome] = useState(inicial?.nome ?? "");
   const [permissoes, setPermissoes] = useState<string[]>(inicial?.permissoes ?? []);
@@ -136,7 +142,7 @@ function FormularioPerfil({ inicial, onSalvar, onCancelar }: FormularioPerfilPro
               Funções que o perfil tem acesso
             </legend>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-              {CATALOGO_PERMISSOES.map((p) => (
+              {catalogo.map((p) => (
                 <label
                   key={p.codigo}
                   className="flex items-start gap-3 text-sm rounded-sm px-2 py-2 hover:bg-pietra-clara/40 cursor-pointer"
@@ -188,9 +194,23 @@ function FormularioPerfil({ inicial, onSalvar, onCancelar }: FormularioPerfilPro
 export function Perfis() {
   const { sessao } = useSessao();
   const { itens: perfis, carregando } = usePerfis();
+  const { itens: catalogo } = usePermissoes();
+  const { data: catalogoTodos } = useQuery({
+    queryKey: ["permissoes", "todos"],
+    queryFn: () => api.get<Permissao[]>("/api/permissoes?todos=true"),
+  });
   const [editando, setEditando] = useState<PerfilInfo | null>(null);
   const [criando, setCriando] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
+
+  const catalogoAtivo = catalogo.filter((p) => p.ativo);
+  const catalogoCompleto = catalogoTodos ?? [];
+
+  function rotuloBadge(codigo: string): { rotulo: string; inativa: boolean } {
+    const p = catalogoCompleto.find((x) => x.codigo === codigo);
+    if (p) return { rotulo: p.rotulo, inativa: !p.ativo };
+    return { rotulo: codigo, inativa: true };
+  }
 
   const porSigla = useMemo(() => {
     const m = new Map<string, PerfilInfo>();
@@ -260,7 +280,7 @@ export function Perfis() {
           <p className="text-ardesia text-sm">
             {carregando
               ? "Carregando..."
-              : `${perfis.length} perfil(ais) · ${CATALOGO_PERMISSOES.length} permissões no catálogo`}
+              : `${perfis.length} perfil(ais) · ${catalogoCompleto.length} permissões no catálogo`}
           </p>
         </div>
         {podeAbrirForm && (
@@ -297,6 +317,7 @@ export function Perfis() {
       {(criando || perfilEditando) && (
         <FormularioPerfil
           inicial={criando ? null : perfilEditando}
+          catalogo={catalogoAtivo}
           onSalvar={handleSalvar}
           onCancelar={() => {
             setCriando(false);
@@ -350,11 +371,18 @@ export function Perfis() {
                       <span className="text-ardesia text-sm">—</span>
                     ) : (
                       <div className="flex flex-wrap gap-1">
-                        {p.permissoes.map((codigo) => (
-                          <span key={codigo} className="badge badge-cinza">
-                            {rotuloPermissao(codigo)}
-                          </span>
-                        ))}
+                        {p.permissoes.map((codigo) => {
+                          const { rotulo, inativa } = rotuloBadge(codigo);
+                          return (
+                            <span
+                              key={codigo}
+                              className={inativa ? "badge badge-cinza line-through" : "badge badge-cinza"}
+                              title={inativa ? "Permissão desativada no catálogo" : undefined}
+                            >
+                              {inativa ? `${rotulo} (inativa)` : rotulo}
+                            </span>
+                          );
+                        })}
                       </div>
                     )}
                   </td>

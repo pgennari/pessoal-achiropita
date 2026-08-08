@@ -1,3 +1,7 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: qualquer perfil autenticado. Alterar setor/equipe: podeAdministrar.
+// ============================================================================
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {

@@ -1,3 +1,7 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Criar: podeAdministrar (ADM/ORG ou permissao "administracao").
+// ============================================================================
 import { useState, FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useSessao, podeAdministrar } from "../lib/sessao";

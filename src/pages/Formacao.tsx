@@ -1,3 +1,8 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Operar: podeAdministrar || perfil CRD || permissao "formacao.operar".
+// Secao de administracao (cadastrar turmas): podeAdministrar.
+// ============================================================================
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSessao, podeAdministrar as adminPode, temPermissao } from "../lib/sessao";

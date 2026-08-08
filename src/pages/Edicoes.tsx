@@ -1,3 +1,7 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: qualquer perfil autenticado. Criar/Alterar edicao: podeAdministrar.
+// ============================================================================
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useEdicoes } from "../lib/hooks";

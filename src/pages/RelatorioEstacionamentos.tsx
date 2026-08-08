@@ -1,3 +1,7 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: qualquer perfil autenticado (rota protegida). Sem permissao especial.
+// ============================================================================
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {

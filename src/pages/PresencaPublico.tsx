@@ -1,3 +1,7 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: publico (sem autenticacao) — presenca via token na URL.
+// ============================================================================
 import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {

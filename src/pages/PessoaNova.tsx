@@ -1,3 +1,7 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Criar pessoa: podeAdministrar (ADM/ORG ou permissao "administracao").
+// ============================================================================
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { PessoaForm } from "../components/PessoaForm";

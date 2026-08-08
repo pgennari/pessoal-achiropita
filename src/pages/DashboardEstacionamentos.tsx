@@ -1,3 +1,7 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: qualquer perfil autenticado (rota protegida). Sem permissao especial.
+// ============================================================================
 import { useEffect, useState } from "react";
 import { useDashboardEstacionamentos } from "../lib/hooks";
 import { conectarDashboardSSE } from "../lib/dashboard";

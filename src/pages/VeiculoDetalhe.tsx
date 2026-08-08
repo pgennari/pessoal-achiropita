@@ -1,3 +1,7 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: qualquer perfil autenticado. Editar/Excluir: podeAdministrar (ADM/ORG).
+// ============================================================================
 import { useState, useMemo } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";

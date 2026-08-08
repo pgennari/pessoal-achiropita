@@ -1,3 +1,7 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: publico (sem autenticacao) — upload de foto via token na URL.
+// ============================================================================
 // TODO(US-07-01): upload de foto via link público não implementado no MVP.
 
 export function UploadFotoPublico() {

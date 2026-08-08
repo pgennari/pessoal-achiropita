@@ -1,5 +1,23 @@
 // Tipos compartilhados entre os módulos da API.
 
+// Item do catalogo editavel de permissoes (tabela `permissoes`).
+// O codigo e imutavel apos a criacao; `ativo = false` nunca concede acesso.
+export interface Permissao {
+  codigo: string;
+  rotulo: string;
+  descricao: string;
+  ativo: boolean;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+// Payload de criacao de uma permissao (POST /api/permissoes).
+export interface PermissaoInput {
+  codigo: string;
+  rotulo: string;
+  descricao?: string;
+}
+
 export interface Sessao {
   uid: string;
   email: string;

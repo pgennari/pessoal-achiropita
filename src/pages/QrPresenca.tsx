@@ -1,3 +1,7 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: publico (sem autenticacao) — QR de presenca via token na URL.
+// ============================================================================
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import QRCode from "qrcode";

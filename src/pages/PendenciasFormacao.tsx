@@ -1,3 +1,8 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Operar: podeAdministrar || perfil OPC || permissao "formacao.operar".
+// Acesso: podeConfirmarDados || perfil CRD || "formacao.operar".
+// ============================================================================
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSessao, podeAdministrar as adminPode, temPermissao } from "../lib/sessao";

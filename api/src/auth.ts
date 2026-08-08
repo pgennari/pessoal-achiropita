@@ -2,6 +2,7 @@ import { createMiddleware } from "hono/factory";
 import admin from "firebase-admin";
 import type { Variaveis, VariaveisFirebase } from "./tipos.js";
 import sql from "./db.js";
+import { pode, type SessaoMinima } from "./pbac.js";
 
 // Inicializa Firebase Admin uma única vez.
 // Em Cloud Run, as credenciais vêm automaticamente via ADC (Application
@@ -30,7 +31,12 @@ export const comAuth = createMiddleware<Variaveis>(async (c, next) => {
 
   const rows = await sql`
     SELECT u.uid, u.email, u.nome, u.perfil, u.pessoa_id, u.equipes_crd,
-           COALESCE(p.permissoes, '{}') AS permissoes
+           COALESCE((
+             SELECT ARRAY(
+               SELECT codigo FROM permissoes
+               WHERE ativo = TRUE AND codigo = ANY(p.permissoes)
+             )
+           ), '{}') AS permissoes
     FROM usuarios u
     LEFT JOIN perfis p ON p.sigla = u.perfil
     WHERE u.uid = ${decoded.uid}
@@ -71,52 +77,36 @@ export const comAuthFirebase = createMiddleware<VariaveisFirebase>(
   }
 );
 
-// Guards de autorizacao. Os perfis legados (ADM/ORG/OPC) continuam valendo
-// para nao quebrar o comportamento dos seis perfis padrao; alem disso, um
-// perfil criado na tela de controle de perfil ganha acesso conforme as
-// permissoes cadastradas em perfis.permissoes.
+// Guards de autorizacao. Todas delegam a funcao unica pode() (api/src/pbac.ts):
+// ADM e superuser; os demais perfis concedem acesso apenas pelas permissoes
+// ativas associadas ao perfil (carregadas pelo comAuth). Nenhuma regra de
+// autorizacao depende mais da letra do perfil.
 
-export function temPermissao(sessao: { permissoes?: string[] }, codigo: string): boolean {
-  return (sessao.permissoes ?? []).includes(codigo);
+export function temPermissao(sessao: SessaoMinima, codigo: string): boolean {
+  return pode(sessao, codigo);
 }
 
-export function podeAdministrar(sessao: {
-  perfil: string;
-  permissoes?: string[];
-}): boolean {
-  return sessao.perfil === "ADM" || sessao.perfil === "ORG" || temPermissao(sessao, "administracao");
+export function podeAdministrar(sessao: SessaoMinima): boolean {
+  return pode(sessao, "administracao");
 }
 
-// Operacao de estacionamentos (veiculos e check-in): ADM/ORG ou permissao
-// "estacionamentos.operar" do catalogo de perfis.
-export function podeOperarEstacionamentos(sessao: {
-  perfil: string;
-  permissoes?: string[];
-}): boolean {
-  return podeAdministrar(sessao) || temPermissao(sessao, "estacionamentos.operar");
+// Operacao de estacionamentos (veiculos e check-in): ADM ou permissao
+// "estacionamentos.operar" do catalogo.
+export function podeOperarEstacionamentos(sessao: SessaoMinima): boolean {
+  return pode(sessao, "estacionamentos.operar");
 }
 
-// OPC opera a formação presencial: edita dados e troca foto das pessoas,
-// além de ADM e ORG.
-export function podeEditarPessoa(sessao: {
-  perfil: string;
-  permissoes?: string[];
-}): boolean {
-  return podeAdministrar(sessao) || sessao.perfil === "OPC" || temPermissao(sessao, "pessoas.editar");
+// Edicao de pessoas: ADM ou permissao "pessoas.editar".
+export function podeEditarPessoa(sessao: SessaoMinima): boolean {
+  return pode(sessao, "pessoas.editar");
 }
 
-// Zeramento de dados é exclusivo do ADM (ou de perfil com zeramento.executar).
-export function podeZerar(sessao: {
-  perfil: string;
-  permissoes?: string[];
-}): boolean {
-  return sessao.perfil === "ADM" || temPermissao(sessao, "zeramento.executar");
+// Zeramento de dados: ADM ou permissao "zeramento.executar".
+export function podeZerar(sessao: SessaoMinima): boolean {
+  return pode(sessao, "zeramento.executar");
 }
 
-// Controle de perfil é exclusivo do ADM (ou de perfil com perfis.gerenciar).
-export function podeGerirPerfis(sessao: {
-  perfil: string;
-  permissoes?: string[];
-}): boolean {
-  return sessao.perfil === "ADM" || temPermissao(sessao, "perfis.gerenciar");
+// Controle de perfil e permissoes: ADM ou permissao "perfis.gerenciar".
+export function podeGerirPerfis(sessao: SessaoMinima): boolean {
+  return pode(sessao, "perfis.gerenciar");
 }

@@ -1,3 +1,7 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: publico (sem autenticacao) — QR de turma via token na URL.
+// ============================================================================
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import QRCode from "qrcode";

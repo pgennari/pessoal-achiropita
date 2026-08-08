@@ -1,3 +1,7 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: qualquer perfil autenticado. Criar: podeAdministrar (ADM/ORG).
+// ============================================================================
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {

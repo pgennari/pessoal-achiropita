@@ -1,3 +1,8 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: qualquer perfil autenticado (API filtra por perfil; CRD ve so suas equipes).
+// Criar: podeAdministrar (ADM/ORG ou permissao "administracao").
+// ============================================================================
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { usePessoas } from "../lib/hooks";

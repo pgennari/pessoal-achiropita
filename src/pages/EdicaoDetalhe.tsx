@@ -1,3 +1,8 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: qualquer perfil autenticado.
+// Criar equipes/dias e alterar setores: podeAdministrar.
+// ============================================================================
 import { FormEvent, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {

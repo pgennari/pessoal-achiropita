@@ -1,3 +1,8 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: qualquer perfil autenticado (rota protegida). Sem permissao especial.
+// Filtro: perfil CRD ve somente suas equipes (sessao.equipesCRD).
+// ============================================================================
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useSessao } from "../lib/sessao";

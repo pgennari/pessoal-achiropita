@@ -128,40 +128,42 @@ export async function sair(): Promise<void> {
   await signOut(auth());
 }
 
-export function temPermissao(sessao: Sessao | null, codigo: string): boolean {
-  return !!sessao && (sessao.permissoes ?? []).includes(codigo);
+// Funcao unica de validacao de acesso (mesmo contrato do backend).
+// ADM e superuser; demais perfis dependem das permissoes ativas da sessao.
+export function pode(sessao: Sessao | null, codigo: string): boolean {
+  if (!sessao) return false;
+  if (sessao.perfil === "ADM") return true;
+  return (sessao.permissoes ?? []).includes(codigo);
 }
 
-// Admistracao = perfil ADM/ORG legado OU permissao "administracao" do catalogo.
+// As guards abaixo delegam a funcao unica pode(). Os perfis padrao continuam
+// tendo os mesmos acessos de antes por causa das permissoes semeadas no banco.
+
+export function temPermissao(sessao: Sessao | null, codigo: string): boolean {
+  return pode(sessao, codigo);
+}
+
+// Administracao = permissao "administracao" do catalogo (ADM via superuser).
 export function podeAdministrar(sessao: Sessao | null): boolean {
-  return (
-    !!sessao &&
-    (sessao.perfil === "ADM" || sessao.perfil === "ORG" || temPermissao(sessao, "administracao"))
-  );
+  return pode(sessao, "administracao");
 }
 
 // Zeramento e exclusivo do ADM (ou de perfil com zeramento.executar).
 export function podeZerar(sessao: Sessao | null): boolean {
-  return !!sessao && (sessao.perfil === "ADM" || temPermissao(sessao, "zeramento.executar"));
+  return pode(sessao, "zeramento.executar");
 }
 
-// Operacao de estacionamentos = ADM/ORG legado OU permissao "estacionamentos.operar".
+// Operacao de estacionamentos = permissao "estacionamentos.operar".
 export function podeOperarEstacionamentos(sessao: Sessao | null): boolean {
-  return !!sessao && (podeAdministrar(sessao) || temPermissao(sessao, "estacionamentos.operar"));
+  return pode(sessao, "estacionamentos.operar");
 }
 
-// Edicao de pessoas = ADM/ORG/OPC/CRD legado OU permissao "pessoas.editar".
+// Edicao de pessoas = permissao "pessoas.editar".
 export function podeEditarPessoa(sessao: Sessao | null): boolean {
-  return (
-    !!sessao &&
-    (podeAdministrar(sessao) ||
-      sessao.perfil === "OPC" ||
-      sessao.perfil === "CRD" ||
-      temPermissao(sessao, "pessoas.editar"))
-  );
+  return pode(sessao, "pessoas.editar");
 }
 
-// Controle de perfil e exclusivo do ADM (ou de perfil com perfis.gerenciar).
+// Controle de perfil = permissao "perfis.gerenciar".
 export function podeGerirPerfis(sessao: Sessao | null): boolean {
-  return !!sessao && (sessao.perfil === "ADM" || temPermissao(sessao, "perfis.gerenciar"));
+  return pode(sessao, "perfis.gerenciar");
 }

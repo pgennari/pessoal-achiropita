@@ -1,3 +1,7 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: qualquer perfil autenticado. Editar: podeAdministrar (ADM/ORG).
+// ============================================================================
 import { useState } from "react";
 import { useSetores } from "../lib/hooks";
 import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";

@@ -18,6 +18,7 @@ import {
   LinkValidacao,
   Participacao,
   ParticipacaoHistorica,
+  Permissao,
   Pessoa,
   PessoaComVeiculos,
   PessoaEstacionamento,
@@ -228,6 +229,16 @@ export function usePerfis(): EstadoLista<PerfilInfo> {
   const { data, isLoading, error } = useQuery({
     queryKey: ["perfis"],
     queryFn: () => api.get<PerfilInfo[]>("/api/perfis"),
+  });
+  return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
+}
+
+// ─── Permissoes ────────────────────────────────────────────────────────────────
+
+export function usePermissoes(): EstadoLista<Permissao> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["permissoes"],
+    queryFn: () => api.get<Permissao[]>("/api/permissoes"),
   });
   return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
 }

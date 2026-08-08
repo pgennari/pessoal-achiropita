@@ -1,3 +1,8 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Ver: podeAdministrar || perfil CRD || permissao "fotos.pendencias".
+// Marcar foto: podeAdministrar.
+// ============================================================================
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSessao, podeAdministrar, temPermissao } from "../lib/sessao";

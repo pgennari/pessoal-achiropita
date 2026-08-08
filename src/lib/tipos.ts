@@ -13,11 +13,16 @@ export interface PerfilInfo {
   atualizadoEm?: string;
 }
 
-// Item do catalogo de permissoes (fonte da verdade em api/src/perfis.ts).
+// Item do catalogo editavel de permissoes (GET/POST/PUT /api/permissoes).
+// O codigo e imutavel apos a criacao; uma permissao desativada nao concede
+// acesso e nao aparece como opcao de associacao aos perfis.
 export interface Permissao {
   codigo: string;
   rotulo: string;
   descricao: string;
+  ativo: boolean;
+  criadoEm?: string;
+  atualizadoEm?: string;
 }
 
 // Item do catalogo de menus controlaveis pela tela de controle de menus

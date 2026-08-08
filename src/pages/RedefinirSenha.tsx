@@ -1,3 +1,7 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Acesso: publico (sem autenticacao) — redefinicao de senha via codigo.
+// ============================================================================
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";

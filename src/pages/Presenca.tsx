@@ -1,3 +1,8 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Restrita: podeAdministrar (ADM/ORG ou permissao "administracao").
+// Sem a permissao exibe bloco "Sem permissao".
+// ============================================================================
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSessao, podeAdministrar as adminPode } from "../lib/sessao";

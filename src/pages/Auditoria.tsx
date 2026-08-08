@@ -1,3 +1,8 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Restrita: podeAdministrar (ADM/ORG ou permissao "administracao").
+// Sem a permissao exibe bloco "Sem permissao".
+// ============================================================================
 import { Link, useNavigate } from "react-router-dom";
 import { useAuditoriaRecente } from "../lib/hooks";
 import { useSessao, podeAdministrar } from "../lib/sessao";

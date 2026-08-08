@@ -2,7 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { comAuth, podeGerirPerfis, podeAdministrar } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
-import { apenasPermissoesValidas } from "../perfis.js";
+import { apenasPermissoesAtivas } from "../pbac.js";
 import type { Variaveis } from "../tipos.js";
 
 const app = new OpenAPIHono<Variaveis>();
@@ -108,7 +108,7 @@ app.openapi(postRoute, async (c) => {
   }
   const nome = String(body.nome ?? "").trim();
   if (!nome) return c.json({ erro: "Nome do perfil é obrigatório." }, 400);
-  const permissoes = apenasPermissoesValidas(body.permissoes);
+  const permissoes = await apenasPermissoesAtivas(sql, Array.isArray(body.permissoes) ? body.permissoes : []);
 
   const [existente] = await sql`SELECT sigla FROM perfis WHERE sigla = ${sigla}`;
   if (existente) return c.json({ erro: `Já existe um perfil com a sigla "${sigla}".` }, 409);
@@ -167,7 +167,7 @@ app.openapi(putRoute, async (c) => {
   const nome = body.nome !== undefined ? String(body.nome).trim() : String(atual.nome);
   if (!nome) return c.json({ erro: "Nome do perfil é obrigatório." }, 400);
   const permissoes = body.permissoes !== undefined
-    ? apenasPermissoesValidas(body.permissoes)
+    ? await apenasPermissoesAtivas(sql, body.permissoes)
     : (atual.permissoes as string[] | null) ?? [];
 
   const [row] = await sql`

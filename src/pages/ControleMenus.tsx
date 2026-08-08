@@ -1,3 +1,8 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Restrita: podeGerirPerfis (perfil ADM ou permissao "perfis.gerenciar").
+// Redireciona para "/" sem a permissao.
+// ============================================================================
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSessao, podeGerirPerfis } from "../lib/sessao";

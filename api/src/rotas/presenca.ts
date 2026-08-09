@@ -144,6 +144,41 @@ app.openapi(postLinkPresencaRoute, async (c) => {
   return c.json(linkPresencaDeRow(row) as any, 201);
 });
 
+const putLinkRevogarRoute = createRoute({
+  method: "put",
+  path: "/links/{token}/revogar",
+  tags: ["Presenca"],
+  summary: "Revoga o link ativo de presenca de um dia",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ token: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Revogado" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Nao encontrado ou ja inativo" }
+  }
+});
+
+app.openapi(putLinkRevogarRoute, async (c) => {
+  const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "presenca.linkRevogar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao presenca.linkRevogar." }, 403);
+  }
+  const { token } = c.req.valid("param");
+  const [row] = await sql`
+    UPDATE links_presenca lp SET status = 'revogado'
+    FROM dias_festa d
+    WHERE lp.id = ${token} AND lp.status = 'ativo' AND d.id = lp.dia_festa_id
+    RETURNING d.data
+  `;
+  if (!row) {
+    return c.json({ erro: "Link não encontrado ou já inativo." }, 404);
+  }
+  const dataDia = row.data instanceof Date ? row.data.toISOString().slice(0, 10) : String(row.data ?? "");
+  await registrarEvento(sessao, "presenca.link.revogou", `linksPresenca/${token}`, `dia ${dataDia}`);
+  return c.json({ ok: true }, 200);
+});
+
 const getPresencasRoute = createRoute({
   method: "get",
   path: "/presencas",

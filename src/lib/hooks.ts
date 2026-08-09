@@ -1,7 +1,7 @@
 // Hooks de leitura de dados — substituem o padrão onSnapshot do Firestore.
 // Usa @tanstack/react-query: cache, loading state e refetch após mutações.
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { api } from "./api";
 import {
   Checkin,
@@ -323,6 +323,28 @@ export function useResumoEquipesDoDia(diaFestaId: string | undefined): EstadoLis
     refetchInterval: 60_000,
   });
   return { itens: data ?? [], carregando: isLoading && !!diaFestaId, erro: erroMsg(error), atualizadoEm: dataUpdatedAt };
+}
+
+// Presencas de todos os dias de festa de uma edicao, em uma unica lista.
+// Usa useQueries com a mesma queryKey de usePresencasDoDia para reaproveitar
+// o cache das telas de presenca.
+export function usePresencasDaEdicao(
+  edicaoId: string | undefined,
+  dias: DiaFesta[]
+): EstadoLista<PresencaRegistrada> {
+  const resultados = useQueries({
+    queries: dias.map((dia) => ({
+      queryKey: ["presencas", "dia", dia.id],
+      queryFn: () => listarPresencasDoDia(dia.id),
+      enabled: !!edicaoId,
+      refetchInterval: 60_000,
+    })),
+  });
+  const itens = resultados.flatMap((r) => r.data ?? []);
+  const carregando = resultados.some((r) => r.isLoading);
+  const erro =
+    resultados.map((r) => erroMsg(r.error)).find((e) => e !== null) ?? null;
+  return { itens, carregando, erro };
 }
 
 // ─── Convites ─────────────────────────────────────────────────────────────────

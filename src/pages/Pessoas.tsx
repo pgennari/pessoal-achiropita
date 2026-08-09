@@ -7,7 +7,12 @@
 // ============================================================================
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { usePessoas } from "../lib/hooks";
+import {
+  useEdicaoAtiva,
+  useEquipes,
+  useParticipacoes,
+  usePessoas,
+} from "../lib/hooks";
 import { useSessao, temPermissao, escopoPessoas } from "../lib/sessao";
 import { normalizar, soDigitos } from "../lib/utilsDominio";
 import { Pessoa } from "../lib/tipos";
@@ -22,20 +27,22 @@ function aplicarFiltro(p: Pessoa, filtro: Filtro): boolean {
   return true;
 }
 
-type ColunaOrdenacao = "cracha" | "nome" | "telefone" | "email" | "ativo";
+type ColunaOrdenacao = "cracha" | "nome" | "equipe" | "ativo";
 
 type Ordenacao = { coluna: ColunaOrdenacao; direcao: "asc" | "desc" };
 
-function valorOrdenacao(p: Pessoa, coluna: ColunaOrdenacao): string {
+function valorOrdenacao(
+  p: Pessoa,
+  coluna: ColunaOrdenacao,
+  equipe?: string
+): string {
   switch (coluna) {
     case "cracha":
       return String(p.cracha).padStart(8, "0");
     case "nome":
       return p.nome;
-    case "telefone":
-      return p.telefone || "";
-    case "email":
-      return p.email || "";
+    case "equipe":
+      return equipe || "";
     case "ativo":
       return p.ativo ? "1" : "0";
   }
@@ -90,6 +97,9 @@ export function Pessoas() {
   const navigate = useNavigate();
   const { sessao } = useSessao();
   const { itens, carregando, erro } = usePessoas();
+  const { edicao } = useEdicaoAtiva();
+  const { itens: equipes } = useEquipes(edicao?.id);
+  const { itens: participacoes } = useParticipacoes(edicao?.id);
   const [termo, setTermo] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("ativos");
   const [ordenacao, setOrdenacao] = useState<Ordenacao | null>({
@@ -126,14 +136,23 @@ export function Pessoas() {
     }
   }
 
+  const equipesPorPessoa = useMemo(() => {
+    const equipesPorId = new Map(equipes.map((e) => [e.id, e.nome]));
+    const m = new Map<string, string>();
+    for (const part of participacoes) {
+      m.set(part.pessoaId, equipesPorId.get(part.equipeId) ?? "");
+    }
+    return m;
+  }, [participacoes, equipes]);
+
   const lista = useMemo(() => {
     const base = itens.filter((p) => aplicarFiltro(p, filtro) && combina(p, termo));
     if (!ordenacao) return base;
     const listaOrdenada = [...base];
     const { coluna, direcao } = ordenacao;
     listaOrdenada.sort((a, b) => {
-      const va = valorOrdenacao(a, coluna);
-      const vb = valorOrdenacao(b, coluna);
+      const va = valorOrdenacao(a, coluna, equipesPorPessoa.get(a.id));
+      const vb = valorOrdenacao(b, coluna, equipesPorPessoa.get(b.id));
       if (!va && !vb) return 0;
       if (!va) return 1;
       if (!vb) return -1;
@@ -144,7 +163,7 @@ export function Pessoas() {
       return direcao === "asc" ? cmp : -cmp;
     });
     return listaOrdenada;
-  }, [itens, filtro, termo, ordenacao]);
+  }, [itens, filtro, termo, ordenacao, equipesPorPessoa]);
 
   return (
     <div className="space-y-6">
@@ -249,18 +268,10 @@ export function Pessoas() {
                 aoOrdenar={alternarOrdenacao}
               />
               <CabecalhoOrdenavel
-                titulo="Telefone"
-                coluna="telefone"
+                titulo="Equipe"
+                coluna="equipe"
                 ordenacao={ordenacao}
                 aoOrdenar={alternarOrdenacao}
-                className="hidden sm:table-cell"
-              />
-              <CabecalhoOrdenavel
-                titulo="E-mail"
-                coluna="email"
-                ordenacao={ordenacao}
-                aoOrdenar={alternarOrdenacao}
-                className="hidden md:table-cell"
               />
               <CabecalhoOrdenavel
                 titulo="Ativo"
@@ -274,7 +285,7 @@ export function Pessoas() {
           <tbody>
             {lista.length === 0 && !carregando && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-ardesia">
+                <td colSpan={4} className="px-4 py-8 text-center text-ardesia">
                   Nenhuma pessoa encontrada.
                 </td>
               </tr>
@@ -294,11 +305,8 @@ export function Pessoas() {
                     {p.nome}
                   </Link>
                 </td>
-                <td className="px-4 py-3 hidden sm:table-cell text-ardesia">
-                  {p.telefone || "—"}
-                </td>
-                <td className="px-4 py-3 hidden md:table-cell text-ardesia">
-                  {p.email || "—"}
+                <td className="px-4 py-3 text-ardesia">
+                  {equipesPorPessoa.get(p.id) || "—"}
                 </td>
                 <td className="px-4 py-3 text-right">
                   {p.ativo ? (

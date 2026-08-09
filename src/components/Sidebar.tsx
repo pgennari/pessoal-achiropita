@@ -67,19 +67,28 @@ const secoes: Secao[] = [
           "formacao.pendenciaEquipe",
           "formacao.turmas",
         ],
-        filhos: [
-          { to: "/formacao", label: "Turmas" },
-          {
-            to: "/formacao/pendencias",
-            label: "Pendências",
-            permissoes: ["formacao.pendenciaListar", "formacao.pendenciaEquipe"],
-          },
-        ],
+        excluirAtivo: ["/formacao/pendencias"],
+      },
+      {
+        to: "/formacao/pendencias",
+        label: "Pendências de formação",
+        permissoes: ["formacao.pendenciaListar", "formacao.pendenciaEquipe"],
       },
       {
         to: "/presenca",
         label: "Presença",
-        permissoes: ["presenca.lista", "presenca.linkGerar", "presenca.linkRevogar"],
+        permissoes: [
+          "presenca.lista",
+          "presenca.linkGerar",
+          "presenca.linkRevogar",
+          "presenca.relatorio",
+        ],
+        excluirAtivo: ["/presenca/relatorio"],
+      },
+      {
+        to: "/presenca/relatorio",
+        label: "Relatório",
+        permissoes: ["presenca.relatorio"],
       },
     ],
   },
@@ -98,9 +107,19 @@ const secoes: Secao[] = [
         to: "/edicoes",
         label: "Edição",
         permissoes: ["edicao.lista", "edicao.detalhe"],
-        filhos: [{ to: "/historico", label: "Histórico", permissoes: ["edicao.historico"] }],
+        filhos: [
+          {
+            to: "/historico",
+            label: "Histórico",
+            permissoes: ["edicao.historico"],
+          },
+        ],
       },
-      { to: "/setores", label: "Setores", permissoes: ["setor.lista", "setor.editar"] },
+      {
+        to: "/setores",
+        label: "Setores",
+        permissoes: ["setor.lista", "setor.editar"],
+      },
     ],
   },
   {
@@ -111,7 +130,12 @@ const secoes: Secao[] = [
       {
         to: "/perfis",
         label: "Perfis",
-        permissoes: ["perfil.lista", "perfil.incluir", "perfil.editar", "perfil.excluir"],
+        permissoes: [
+          "perfil.lista",
+          "perfil.incluir",
+          "perfil.editar",
+          "perfil.excluir",
+        ],
       },
       {
         to: "/permissoes",
@@ -234,26 +258,33 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
                   to={`/edicoes/${edicaoAtiva.id}`}
                   end={false}
                   onClick={onFechar}
-                  className={({ isActive }) => [
-                    "flex items-center px-3 py-2.5 rounded-sm text-sm font-semibold transition",
-                    isActive
-                      ? "bg-verde/10 text-verde-escuro border-l-2 border-verde"
-                      : "text-carbone hover:bg-verde/5 border-l-2 border-transparent",
-                  ].join(" ")}
-                >
-                  <span className="inline-block w-2 h-2 rounded-full bg-verde mr-2" />
-                  {edicaoAtiva.numero}ª edição · {edicaoAtiva.ano}
-                </NavLink>
-                {itemVisivel({ permissoes: ["estacionamento.dashboard"] }, sessao) && (
-                  <NavLink
-                    to="/dashboard/estacionamentos"
-                    onClick={onFechar}
-                    className={({ isActive }) => [
+                  className={({ isActive }) =>
+                    [
                       "flex items-center px-3 py-2.5 rounded-sm text-sm font-semibold transition",
                       isActive
                         ? "bg-verde/10 text-verde-escuro border-l-2 border-verde"
                         : "text-carbone hover:bg-verde/5 border-l-2 border-transparent",
-                    ].join(" ")}
+                    ].join(" ")
+                  }
+                >
+                  <span className="inline-block w-2 h-2 rounded-full bg-verde mr-2" />
+                  {edicaoAtiva.numero}ª edição · {edicaoAtiva.ano}
+                </NavLink>
+                {itemVisivel(
+                  { permissoes: ["estacionamento.dashboard"] },
+                  sessao,
+                ) && (
+                  <NavLink
+                    to="/dashboard/estacionamentos"
+                    onClick={onFechar}
+                    className={({ isActive }) =>
+                      [
+                        "flex items-center px-3 py-2.5 rounded-sm text-sm font-semibold transition",
+                        isActive
+                          ? "bg-verde/10 text-verde-escuro border-l-2 border-verde"
+                          : "text-carbone hover:bg-verde/5 border-l-2 border-transparent",
+                      ].join(" ")
+                    }
                   >
                     <span className="inline-block w-2 h-2 rounded-full bg-verde mr-2" />
                     Check-ins
@@ -264,10 +295,9 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
           )}
 
           {secoes.map((secao, si) => {
-            if (secao.permissoes && !itemVisivel(secao, sessao))
-              return null;
+            if (secao.permissoes && !itemVisivel(secao, sessao)) return null;
             const itensVisiveis = secao.itens.filter((item) =>
-              itemVisivel(item, sessao)
+              itemVisivel(item, sessao),
             );
             if (itensVisiveis.length === 0) return null;
 
@@ -281,7 +311,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
                 <div className="space-y-0.5">
                   {itensVisiveis.map((item) => {
                     const filhosVisiveis = item.filhos?.filter((f) =>
-                      itemVisivel(f, sessao)
+                      itemVisivel(f, sessao),
                     );
 
                     return (
@@ -290,7 +320,9 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
                           to={item.to}
                           end={item.to === "/"}
                           onClick={onFechar}
-                          className={() => classeLink(itemAtivo(item, location.pathname))}
+                          className={() =>
+                            classeLink(itemAtivo(item, location.pathname))
+                          }
                         >
                           {item.label}
                         </NavLink>
@@ -319,7 +351,10 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
           })}
         </nav>
 
-        <div className="p-4 border-t border-pietra-clara text-xs text-ardesia font-mono" title="Versão do build">
+        <div
+          className="p-4 border-t border-pietra-clara text-xs text-ardesia font-mono"
+          title="Versão do build"
+        >
           {VERSAO_APP}
         </div>
       </aside>

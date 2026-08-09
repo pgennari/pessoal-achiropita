@@ -19,6 +19,8 @@ const ACOES: Record<string, string> = {
   "pessoa.foto.removeu": "removeu foto",
   "presenca.confirmou": "confirmou presença",
   "presenca.removeu": "removeu presença",
+  "presenca.link.gerou": "gerou link de presença",
+  "presenca.link.revogou": "revogou link de presença",
   "sincronizacao.pessoa.criou": "criou pessoa (sincronização)",
   "sincronizacao.pessoa.atualizou": "atualizou pessoa (sincronização)",
   "sincronizacao.equipe.criou": "criou equipe (sincronização)",

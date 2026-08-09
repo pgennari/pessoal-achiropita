@@ -7,6 +7,7 @@ import {
   Camera,
   Car,
   Check,
+  ChevronDown,
   Copy,
   Crop,
   Download,
@@ -73,6 +74,7 @@ const icones: Record<string, LucideIcon> = {
   busca: Search,
   trocar: Repeat,
   topo: ArrowUp,
+  "seta-baixo": ChevronDown,
   chat: MessageCircle,
   email: Mail,
 };

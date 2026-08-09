@@ -1,6 +1,7 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
 // Ver: permissao "presenca.lista". Gerar link: permissao "presenca.linkGerar".
+// Revogar link: permissao "presenca.linkRevogar".
 // Sem a permissao exibe bloco "Sem permissao".
 // ============================================================================
 import { useEffect, useState } from "react";
@@ -15,6 +16,7 @@ import {
 } from "../lib/hooks";
 import {
   gerarLinkPresenca,
+  revogarLinkPresenca,
   urlPresenca,
 } from "../lib/presenca";
 import { Icone } from "../components/Icone";
@@ -34,12 +36,15 @@ export function Presenca() {
   } = useLinksPresenca(edicao?.id);
   const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [erroRevogar, setErroRevogar] = useState<string | null>(null);
+  const [modalRevogarAberto, setModalRevogarAberto] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [pagina, setPagina] = useState(1);
   const [agora, setAgora] = useState(() => Date.now());
 
   const podeVer = temPermissao(sessao, "presenca.lista");
   const podeGerarLink = temPermissao(sessao, "presenca.linkGerar");
+  const podeRevogarLink = temPermissao(sessao, "presenca.linkRevogar");
 
   const diasOrdenados = [...dias].sort((a, b) => a.data.localeCompare(b.data));
   const diaAtivo = diasOrdenados.find((d) => d.id === diaSelecionado) ?? diasOrdenados[0];
@@ -131,6 +136,22 @@ export function Presenca() {
       await gerarLinkPresenca(diaAtivo.id, edicao.id);
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Falha ao gerar o link.");
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  async function handleRevogar() {
+    if (!edicao || !linkAtivo) return;
+    setErroRevogar(null);
+    setOcupado(true);
+    try {
+      await revogarLinkPresenca(linkAtivo.id, edicao.id);
+      setModalRevogarAberto(false);
+    } catch (e) {
+      setErroRevogar(
+        e instanceof Error ? e.message : "Falha ao revogar o link."
+      );
     } finally {
       setOcupado(false);
     }
@@ -343,16 +364,39 @@ export function Presenca() {
                           : "Sem link ativo para este dia."}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn-primario btn-pequeno"
-                      onClick={handleGerar}
-                      disabled={ocupado || !podeGerarLink}
-                      aria-label="Gerar link"
-                      title={podeGerarLink ? "Gerar link" : "Sem permissão para gerar link"}
-                    >
-                      <Icone nome="link" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-primario btn-pequeno"
+                        onClick={handleGerar}
+                        disabled={ocupado || !podeGerarLink || !!linkAtivo}
+                        aria-label="Gerar link"
+                        title={
+                          linkAtivo
+                            ? "Já existe um link ativo para este dia"
+                            : podeGerarLink
+                              ? "Gerar link"
+                              : "Sem permissão para gerar link"
+                        }
+                      >
+                        <Icone nome="link" />
+                      </button>
+                      {linkAtivo && podeRevogarLink && (
+                        <button
+                          type="button"
+                          className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                          onClick={() => {
+                            setErroRevogar(null);
+                            setModalRevogarAberto(true);
+                          }}
+                          disabled={ocupado}
+                          aria-label="Revogar link"
+                          title="Revogar link"
+                        >
+                          <Icone nome="proibido" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {linkAtivo && (
@@ -397,6 +441,63 @@ export function Presenca() {
               </div>
             )}
           </section>
+        </div>
+      )}
+
+      {modalRevogarAberto && linkAtivo && diaAtivo && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] px-4 bg-carbone/40"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Revogar link de presença"
+          onClick={() => !ocupado && setModalRevogarAberto(false)}
+        >
+          <div
+            className="card w-full max-w-md shadow-media"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="card-corpo space-y-4">
+              <div>
+                <div className="eyebrow">Revogar link</div>
+                <h3 className="mt-1">Revogar link de presença</h3>
+                <p className="text-ardesia text-sm mt-2">
+                  O link ativo para o dia {formatarData(diaAtivo.data)} deixará
+                  de funcionar imediatamente. O coordenador não conseguirá
+                  confirmar presenças até que um novo link seja gerado. Confirma
+                  a revogação?
+                </p>
+              </div>
+
+              {erroRevogar && (
+                <div className="rounded-sm bg-vermelho/10 border border-vermelho/30 p-3 text-sm text-vermelho-escuro">
+                  {erroRevogar}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2 border-t border-pietra-clara">
+                <button
+                  type="button"
+                  className="btn btn-primario flex-1"
+                  onClick={handleRevogar}
+                  disabled={ocupado}
+                  aria-label="Confirmar revogação"
+                  title="Confirmar revogação"
+                >
+                  <Icone nome="check" />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secundario flex-1"
+                  onClick={() => setModalRevogarAberto(false)}
+                  disabled={ocupado}
+                  aria-label="Cancelar"
+                  title="Cancelar"
+                >
+                  <Icone nome="fechar" />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

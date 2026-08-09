@@ -1,0 +1,609 @@
+// ============================================================================
+// CONTROLE DE PERMISSAO
+// Ver: permissao "presenca.relatorio". Sem a permissao exibe bloco "Sem permissao".
+// Dados montados no cliente a partir dos hooks existentes (pessoas, equipes,
+// participacoes, dias de festa e presencas por dia) — sem chamada nova na API.
+// ============================================================================
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { useSessao, temPermissao } from "../lib/sessao";
+import {
+  useDiasFesta,
+  useEdicaoAtiva,
+  useEquipes,
+  useParticipacoes,
+  usePessoas,
+  usePresencasDaEdicao,
+} from "../lib/hooks";
+import { Icone } from "../components/Icone";
+import { formatarData, normalizar } from "../lib/utilsDominio";
+import type { Funcao } from "../lib/tipos";
+
+interface LinhaRelatorio {
+  pessoaId: string;
+  equipeNome: string;
+  cracha: number;
+  pessoaNome: string;
+  funcao: Funcao;
+  total: number;
+  diasPresentes: Set<string>;
+}
+
+type ColunaOrdenacao = "equipe" | "nome" | "funcao" | "total";
+
+function dataLocalISO(d: Date): string {
+  const ano = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+export function RelatorioPresenca() {
+  const { sessao } = useSessao();
+  const { edicao, carregando: carregandoEdicao } = useEdicaoAtiva();
+  const { itens: dias } = useDiasFesta(edicao?.id);
+  const { itens: pessoas, carregando: carregandoPessoas, erro: erroPessoas } = usePessoas();
+  const { itens: equipes } = useEquipes(edicao?.id);
+  const { itens: participacoes } = useParticipacoes(edicao?.id);
+
+  const [filtroEquipe, setFiltroEquipe] = useState("");
+  const [filtroNome, setFiltroNome] = useState("");
+  const [filtroFuncao, setFiltroFuncao] = useState("");
+  const [filtroTotal, setFiltroTotal] = useState<number | null>(null);
+  const [diasSelecionados, setDiasSelecionados] = useState<Set<string>>(new Set());
+  const [filtroDiasAberto, setFiltroDiasAberto] = useState(false);
+  const [colunaOrdenada, setColunaOrdenada] = useState<ColunaOrdenacao>("equipe");
+  const [ordemAsc, setOrdemAsc] = useState(true);
+
+  const diasOrdenados = useMemo(
+    () => [...dias].sort((a, b) => a.data.localeCompare(b.data)),
+    [dias]
+  );
+  const { itens: presencas, carregando: carregandoPresencas } =
+    usePresencasDaEdicao(edicao?.id, diasOrdenados);
+
+  const podeVer = temPermissao(sessao, "presenca.relatorio");
+
+  const pessoasPorId = useMemo(
+    () =>
+      new Map(
+        pessoas
+          .filter((p) => p.ativo)
+          .map((p) => [p.id, p] as const)
+      ),
+    [pessoas]
+  );
+  const equipesPorId = useMemo(
+    () => new Map(equipes.map((e) => [e.id, e.nome] as const)),
+    [equipes]
+  );
+
+  const diasPresentesPorPessoa = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    for (const pr of presencas) {
+      let conjunto = m.get(pr.pessoaId);
+      if (!conjunto) {
+        conjunto = new Set<string>();
+        m.set(pr.pessoaId, conjunto);
+      }
+      conjunto.add(pr.diaFestaId);
+    }
+    return m;
+  }, [presencas]);
+
+  const linhas = useMemo<LinhaRelatorio[]>(() => {
+    return participacoes
+      .filter((part) => pessoasPorId.has(part.pessoaId))
+      .map((part) => {
+        const pessoa = pessoasPorId.get(part.pessoaId)!;
+        const diasPresentes =
+          diasPresentesPorPessoa.get(part.pessoaId) ?? new Set<string>();
+        return {
+          pessoaId: part.pessoaId,
+          equipeNome: equipesPorId.get(part.equipeId) ?? "—",
+          cracha: pessoa.cracha,
+          pessoaNome: pessoa.nome,
+          funcao: part.funcao,
+          total: diasPresentes.size,
+          diasPresentes,
+        };
+      });
+  }, [participacoes, pessoasPorId, equipesPorId, diasPresentesPorPessoa]);
+
+  const linhasFiltradas = useMemo(() => {
+    const e = normalizar(filtroEquipe);
+    const n = normalizar(filtroNome);
+    const f = normalizar(filtroFuncao);
+    const crachaDigitado = filtroNome.trim();
+
+    const resultado = linhas.filter((linha) => {
+      if (e && !normalizar(linha.equipeNome).includes(e)) return false;
+      if (n) {
+        if (
+          !normalizar(linha.pessoaNome).includes(n) &&
+          !String(linha.cracha).includes(crachaDigitado)
+        )
+          return false;
+      }
+      if (f && !normalizar(linha.funcao).includes(f)) return false;
+      if (filtroTotal !== null && linha.total !== filtroTotal) return false;
+      if (diasSelecionados.size > 0) {
+        const presenteEmAlgum = Array.from(diasSelecionados).some((diaId) =>
+          linha.diasPresentes.has(diaId)
+        );
+        if (!presenteEmAlgum) return false;
+      }
+      return true;
+    });
+
+    const multiplicador = ordemAsc ? 1 : -1;
+    return resultado.sort((a, b) => {
+      let cmp = 0;
+      switch (colunaOrdenada) {
+        case "equipe":
+          cmp = a.equipeNome.localeCompare(b.equipeNome, "pt-BR");
+          if (cmp === 0)
+            cmp = a.pessoaNome.localeCompare(b.pessoaNome, "pt-BR");
+          break;
+        case "nome":
+          cmp = a.pessoaNome.localeCompare(b.pessoaNome, "pt-BR");
+          if (cmp === 0) cmp = a.cracha - b.cracha;
+          break;
+        case "funcao":
+          cmp = a.funcao.localeCompare(b.funcao, "pt-BR");
+          if (cmp === 0)
+            cmp = a.pessoaNome.localeCompare(b.pessoaNome, "pt-BR");
+          break;
+        case "total":
+          cmp = a.total - b.total;
+          if (cmp === 0)
+            cmp = a.pessoaNome.localeCompare(b.pessoaNome, "pt-BR");
+          break;
+      }
+      return cmp * multiplicador;
+    });
+  }, [
+    linhas,
+    filtroEquipe,
+    filtroNome,
+    filtroFuncao,
+    filtroTotal,
+    diasSelecionados,
+    colunaOrdenada,
+    ordemAsc,
+  ]);
+
+  function toggleOrdenacao(coluna: ColunaOrdenacao) {
+    if (colunaOrdenada === coluna) {
+      setOrdemAsc((atual) => !atual);
+    } else {
+      setColunaOrdenada(coluna);
+      setOrdemAsc(true);
+    }
+  }
+
+  const filtrosAtivos =
+    filtroEquipe !== "" ||
+    filtroNome !== "" ||
+    filtroFuncao !== "" ||
+    filtroTotal !== null ||
+    diasSelecionados.size > 0;
+
+  function toggleDia(diaId: string) {
+    setDiasSelecionados((atual) => {
+      const novo = new Set(atual);
+      if (novo.has(diaId)) novo.delete(diaId);
+      else novo.add(diaId);
+      return novo;
+    });
+  }
+
+  function selecionarTodosDias() {
+    setDiasSelecionados(new Set(diasOrdenados.map((d) => d.id)));
+  }
+
+  function limparDias() {
+    setDiasSelecionados(new Set());
+  }
+
+  const rotuloFiltroDias =
+    diasSelecionados.size === 0
+      ? "Todos os dias"
+      : `${diasSelecionados.size} dia${diasSelecionados.size === 1 ? "" : "s"}`;
+
+  if (!sessao) return null;
+  if (!podeVer) {
+    return (
+      <div className="card">
+        <div className="card-corpo">
+          <h3 className="mb-2">Sem permissão</h3>
+          <p className="text-ardesia">Sem acesso a esta seção.</p>
+          <Link
+            to="/"
+            className="btn btn-secundario mt-4"
+            aria-label="Voltar"
+            title="Voltar"
+          >
+            <Icone nome="seta-esquerda" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  if (carregandoEdicao) return <p className="text-ardesia">Carregando...</p>;
+  if (!edicao) {
+    return (
+      <div className="card">
+        <div className="card-corpo">
+          <h3 className="mb-2">Sem edição ativa</h3>
+          <p className="text-ardesia">
+            Marque uma edição como ativa para gerar o relatório de presença.
+          </p>
+          <Link
+            to="/edicoes"
+            className="btn btn-primario mt-4"
+            aria-label="Abrir edições"
+            title="Abrir edições"
+          >
+            <Icone nome="calendario" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const hoje = dataLocalISO(new Date());
+
+  return (
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="eyebrow">Operação</div>
+          <h2 className="mt-1">Relatório de presença</h2>
+          <p className="text-ardesia text-sm">
+            {edicao.numero}ª edição ({edicao.ano}) · todas as pessoas alocadas,
+            com o total de presenças e o quadro por dia de festa
+          </p>
+        </div>
+      </header>
+
+      <div className="card">
+        <div className="card-corpo space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-ardesia">
+              <span className="inline-flex items-center gap-1.5 px-2 py-1">
+                <span className="inline-block w-3 h-3 rounded-sm bg-verde" />
+                presente
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2 py-1">
+                <span className="inline-block w-3 h-3 rounded-sm bg-vermelho" />
+                ausente
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2 py-1">
+                <span className="inline-block w-3 h-3 rounded-sm bg-pietra-clara" />
+                data futura
+              </span>
+            </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                className={`filtro-chip ${diasSelecionados.size > 0 ? "filtro-chip-ativo" : "filtro-chip-inativo"}`}
+                onClick={() => setFiltroDiasAberto((a) => !a)}
+                aria-haspopup="listbox"
+                aria-expanded={filtroDiasAberto}
+                aria-label="Filtrar por dias de festa"
+                title="Filtrar por dias de festa"
+              >
+                <Icone nome="calendario" tamanho={16} />
+                <span>{rotuloFiltroDias}</span>
+                <Icone nome="seta-baixo" tamanho={14} />
+              </button>
+
+              {filtroDiasAberto && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setFiltroDiasAberto(false)}
+                    aria-hidden="true"
+                  />
+                  <div className="absolute right-0 mt-1 z-50 w-72 bg-bianco border border-pietra rounded-md shadow-suave">
+                    <div className="max-h-64 overflow-y-auto py-1">
+                      {diasOrdenados.map((dia) => {
+                        const marcado = diasSelecionados.has(dia.id);
+                        return (
+                          <label
+                            key={dia.id}
+                            className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-pietra-clara/60"
+                          >
+                            <input
+                              type="checkbox"
+                              className="checkbox"
+                              checked={marcado}
+                              onChange={() => toggleDia(dia.id)}
+                            />
+                            <span className="font-mono">
+                              {formatarData(dia.data)}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center justify-between gap-2 border-t border-pietra-clara px-3 py-2">
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-verde hover:underline"
+                        onClick={selecionarTodosDias}
+                        disabled={diasSelecionados.size === diasOrdenados.length}
+                      >
+                        Selecionar todos
+                      </button>
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-vermelho-escuro hover:underline"
+                        onClick={limparDias}
+                        disabled={diasSelecionados.size === 0}
+                      >
+                        Limpar
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="input-grupo m-0">
+              <label className="input-label" htmlFor="filtro-equipe">
+                Equipe
+              </label>
+              <input
+                id="filtro-equipe"
+                type="text"
+                className="input"
+                placeholder="Filtrar equipe..."
+                aria-label="Filtrar por equipe"
+                value={filtroEquipe}
+                onChange={(e) => setFiltroEquipe(e.target.value)}
+              />
+            </div>
+            <div className="input-grupo m-0">
+              <label className="input-label" htmlFor="filtro-nome">
+                Nome ou crachá
+              </label>
+              <input
+                id="filtro-nome"
+                type="text"
+                className="input"
+                placeholder="Filtrar por nome ou crachá..."
+                aria-label="Filtrar por nome ou crachá"
+                value={filtroNome}
+                onChange={(e) => setFiltroNome(e.target.value)}
+              />
+            </div>
+            <div className="input-grupo m-0">
+              <label className="input-label" htmlFor="filtro-funcao">
+                Função
+              </label>
+              <input
+                id="filtro-funcao"
+                type="text"
+                className="input"
+                placeholder="Filtrar por função..."
+                aria-label="Filtrar por função"
+                value={filtroFuncao}
+                onChange={(e) => setFiltroFuncao(e.target.value)}
+              />
+            </div>
+            <div className="input-grupo m-0">
+              <label className="input-label" htmlFor="filtro-total">
+                Total
+              </label>
+              <input
+                id="filtro-total"
+                type="text"
+                inputMode="numeric"
+                className="input text-center font-mono"
+                placeholder="Todos"
+                aria-label="Filtrar por total de presenças"
+                value={filtroTotal === null ? "" : filtroTotal}
+                onChange={(e) => {
+                  const digitos = e.target.value.replace(/\D+/g, "");
+                  setFiltroTotal(digitos === "" ? null : Number(digitos));
+                }}
+              />
+            </div>
+          </div>
+
+          <p className="text-ardesia text-sm">
+            Selecione os dias no dropdown para ver apenas quem esteve presente
+            em pelo menos um dos dias escolhidos.
+          </p>
+        </div>
+      </div>
+
+      {erroPessoas && (
+        <div className="card border-vermelho/40">
+          <div className="card-corpo text-vermelho-escuro">{erroPessoas}</div>
+        </div>
+      )}
+
+      {!erroPessoas && diasOrdenados.length === 0 && (
+        <div className="card">
+          <div className="card-corpo">
+            <p className="text-ardesia">
+              Nenhum dia de festa cadastrado nesta edição.
+            </p>
+          </div>
+        </div>
+      )}
+      
+      <p className="text-ardesia text-sm text-right mb-4">
+        {carregandoPessoas
+          ? "Carregando..."
+          : `${linhasFiltradas.length} de ${linhas.length} registros`}
+      </p>
+
+      {!erroPessoas && diasOrdenados.length > 0 && (
+        <div className="card overflow-hidden">
+            <div className="tabela-rolavel">
+              <table className="tabela-larga">
+                <thead className="bg-pietra-clara/60 text-left">
+                  <tr>
+                    <th className="px-4 py-2 font-semibold">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 font-semibold hover:text-verde-escuro"
+                        onClick={() => toggleOrdenacao("equipe")}
+                        aria-label="Ordenar por equipe"
+                        title="Ordenar por equipe"
+                      >
+                        Equipe
+                        {colunaOrdenada === "equipe" && (
+                          <Icone
+                            nome={ordemAsc ? "topo" : "seta-baixo"}
+                            tamanho={14}
+                          />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-4 py-2 font-semibold">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 font-semibold hover:text-verde-escuro"
+                        onClick={() => toggleOrdenacao("nome")}
+                        aria-label="Ordenar por nome"
+                        title="Ordenar por nome"
+                      >
+                        Crachá · Nome
+                        {colunaOrdenada === "nome" && (
+                          <Icone
+                            nome={ordemAsc ? "topo" : "seta-baixo"}
+                            tamanho={14}
+                          />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-4 py-2 font-semibold">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 font-semibold hover:text-verde-escuro"
+                        onClick={() => toggleOrdenacao("funcao")}
+                        aria-label="Ordenar por função"
+                        title="Ordenar por função"
+                      >
+                        Função
+                        {colunaOrdenada === "funcao" && (
+                          <Icone
+                            nome={ordemAsc ? "topo" : "seta-baixo"}
+                            tamanho={14}
+                          />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-4 py-2 font-semibold">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 font-semibold hover:text-verde-escuro"
+                        onClick={() => toggleOrdenacao("total")}
+                        aria-label="Ordenar por total de presenças"
+                        title="Ordenar por total de presenças"
+                      >
+                        Total
+                        {colunaOrdenada === "total" && (
+                          <Icone
+                            nome={ordemAsc ? "topo" : "seta-baixo"}
+                            tamanho={14}
+                          />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-4 py-2 font-semibold">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 font-semibold hover:text-verde-escuro"
+                        onClick={() => toggleOrdenacao("total")}
+                        aria-label="Ordenar por número de dias presentes"
+                        title="Ordenar por número de dias presentes"
+                      >
+                        Dias
+                        {colunaOrdenada === "total" && (
+                          <Icone
+                            nome={ordemAsc ? "topo" : "seta-baixo"}
+                            tamanho={14}
+                          />
+                        )}
+                      </button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {linhasFiltradas.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-4 py-6 text-center text-ardesia text-sm"
+                      >
+                        {filtrosAtivos
+                          ? "Nenhum registro encontrado com os filtros atuais."
+                          : "Nenhuma pessoa alocada nesta edição."}
+                      </td>
+                    </tr>
+                  ) : (
+                    linhasFiltradas.map((linha) => (
+                      <tr
+                        key={linha.pessoaId}
+                        className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                      >
+                        <td className="px-4 py-2 text-ardesia whitespace-nowrap truncate max-w-[12rem]">
+                          {linha.equipeNome}
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap truncate max-w-[22rem]">
+                          <span className="font-mono text-ardesia">
+                            #{linha.cracha}
+                          </span>{" "}
+                          <span className="font-semibold">
+                            {linha.pessoaNome}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-ardesia">
+                          {linha.funcao}
+                        </td>
+                        <td className="px-4 py-2 font-mono font-semibold">
+                          {carregandoPresencas ? "—" : linha.total}
+                        </td>
+                        <td className="px-4 py-2">
+                          <div className="flex items-center gap-0.5 whitespace-nowrap">
+                            {diasOrdenados.map((dia, indice) => {
+                              const presente = linha.diasPresentes.has(dia.id);
+                              const futuro = dia.data > hoje;
+                              const classe =
+                                carregandoPresencas || futuro
+                                  ? "bg-pietra-clara text-ardesia"
+                                  : presente
+                                    ? "bg-verde text-white"
+                                    : "bg-vermelho text-white";
+                              return (
+                                <div
+                                  key={dia.id}
+                                  title={`Dia ${indice + 1} · ${formatarData(dia.data)}`}
+                                  className={`w-6 h-6 rounded-sm flex items-center justify-center font-mono text-xs font-semibold select-none ${classe}`}
+                                >
+                                  {indice + 1}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+        </div>
+      )}
+    </div>
+  );
+}

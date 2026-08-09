@@ -468,6 +468,7 @@ INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
   ('presenca.lista', 'Presença: acessar', 'Acessar a tela de presença.'),
   ('presenca.linkGerar', 'Presença: gerar link', 'Gerar link de presença.'),
   ('presenca.linkRevogar', 'Presença: revogar link', 'Revogar link de presença.'),
+  ('presenca.relatorio', 'Presença: relatório', 'Ver o relatório de presença.'),
   ('edicao.lista', 'Edição: ver lista', 'Ver a listagem de edições.'),
   ('edicao.detalhe', 'Edição: ver detalhes', 'Ver os detalhes de uma edição.'),
   ('edicao.incluir', 'Edição: incluir', 'Criar novas edições.'),
@@ -535,7 +536,7 @@ INSERT INTO perfis (sigla, nome, fixo, permissoes) VALUES
     estacionamento.lista,estacionamento.detalhe,estacionamento.incluir,estacionamento.editar,estacionamento.associar,estacionamento.checkinManual,estacionamento.dashboard,estacionamento.relatorio,
     pessoas.lista,pessoas.detalhe,pessoas.incluir,pessoas.editar,pessoas.ativar,pessoas.associar,
     formacao.turmas,formacao.pendenciaListar,formacao.marcarManual,
-    presenca.lista,presenca.linkGerar,presenca.linkRevogar,
+    presenca.lista,presenca.linkGerar,presenca.linkRevogar,presenca.relatorio,
     edicao.lista,edicao.detalhe,edicao.incluir,edicao.editar,edicao.ativar,edicao.equipeCriar,edicao.equipeEditar,edicao.equipeExcluir,edicao.equipeAlocar,edicao.historico,
     setor.lista,setor.incluir,setor.editar,
     usuario.lista,usuario.conviteEnviar,usuario.conviteRevogar,usuario.editar,
@@ -556,11 +557,21 @@ INSERT INTO perfis (sigla, nome, fixo, permissoes) VALUES
     estacionamento.lista,estacionamento.detalhe,estacionamento.checkinManual,estacionamento.dashboard,
     pessoas.lista,pessoas.detalhe,pessoas.editar,
     formacao.turmas,formacao.pendenciaListar,formacao.marcarManual,
-    presenca.lista,
+    presenca.lista,presenca.relatorio,
     setor.lista
   }'),
   ('REC', 'Coordenador da Recreação', FALSE, '{}')
 ON CONFLICT (sigla) DO NOTHING;
+
+-- Migracao do relatorio de presenca (presenca.relatorio). Executar no banco
+-- existente (Neon -> SQL Editor) em uma unica transacao:
+-- INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
+--   ('presenca.relatorio', 'Presença: relatório', 'Ver o relatório de presença.')
+-- ON CONFLICT (codigo) DO NOTHING;
+-- UPDATE perfis SET permissoes = permissoes || ARRAY['presenca.relatorio']
+-- WHERE sigla IN ('ORG', 'OPC')
+--   AND NOT 'presenca.relatorio' = ANY(permissoes);
+-- O ADM nao precisa da permissao no array: pode() concede por ser ADM.
 
 -- Migracao PBAC: preserva o acesso atual dos perfis padrao agora que a
 -- validacao passa a ser por permissoes (e nao mais por letra do perfil).

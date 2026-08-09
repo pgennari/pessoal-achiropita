@@ -45,9 +45,13 @@ Gera o link ativo de presenca de um dia. Se o dia ja possui um link ativo, revog
 - **Resposta 201**: `LinkPresenca` (mesmo shape do GET).
 - **Erros**: 400 dados invalidos / dia nao encontrado; 403 acesso negado.
 
-### (Opcional, fora do MVP) PUT `/api/presenca/links/{token}/revogar`
+### PUT `/api/presenca/links/{token}/revogar`
 
-Revoga o link ativo de um dia. Fora do escopo da spec; nao implementar nesta versao.
+Revoga o link ativo de presenca de um dia (historico mantido). Se o token nao existir ou ja estiver inativo, retorna 404.
+
+- **Auth**: `comAuth` + ADM/ORG.
+- **Resposta 200**: `{ "ok": true }`.
+- **Erros**: 403 acesso negado; 404 `{ "erro": "Link não encontrado ou já inativo." }`.
 
 ## Endpoints Publicos (anonimos)
 

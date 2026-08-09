@@ -82,6 +82,14 @@ export async function gerarLinkPresenca(
   return token;
 }
 
+export async function revogarLinkPresenca(
+  token: string,
+  edicaoId: string
+): Promise<void> {
+  await api.put<{ ok: boolean }>(`/api/presenca/links/${token}/revogar`);
+  queryClient.invalidateQueries({ queryKey: ["links-presenca", edicaoId] });
+}
+
 export async function verificarLinkPresenca(
   token: string
 ): Promise<RespostaVerificarLink> {

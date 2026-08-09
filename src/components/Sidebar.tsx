@@ -102,7 +102,6 @@ const secoes: Secao[] = [
       "setor.editar",
     ],
     itens: [
-      { to: "/", label: "Painel" },
       {
         to: "/edicoes",
         label: "Edição",

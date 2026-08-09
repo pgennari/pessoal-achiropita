@@ -11,7 +11,7 @@ export const CATALOGO_MENUS: MenuCatalogo[] = [
     rotulo: "Acesso administrativo",
     secao: "Administração",
     descricao:
-      "Painel, Edição, Histórico, Setores, Usuários, Auditoria, Presença e Check-ins.",
+      "Edição, Histórico, Setores, Usuários, Auditoria, Presença e Check-ins.",
     permissoes: ["administracao"],
   },
   {

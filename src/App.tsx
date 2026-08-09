@@ -2,7 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { ProtegerRota } from "./components/ProtegerRota";
 import { Login } from "./pages/Login";
-import { Painel } from "./pages/Painel";
+import { RedirecionarEdicaoAtiva } from "./pages/RedirecionarEdicaoAtiva";
 import { Pessoas } from "./pages/Pessoas";
 import { PessoaNova } from "./pages/PessoaNova";
 import { PessoaDetalhe } from "./pages/PessoaDetalhe";
@@ -60,7 +60,7 @@ export function App() {
           </ProtegerRota>
         }
       >
-        <Route index element={<Painel />} />
+        <Route index element={<RedirecionarEdicaoAtiva />} />
         <Route path="pessoas" element={<Pessoas />} />
         <Route path="pessoas/nova" element={<PessoaNova />} />
         <Route path="pessoas/:id" element={<PessoaDetalhe />} />

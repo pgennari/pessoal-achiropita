@@ -55,6 +55,15 @@ export async function listarPresencasDoDia(diaFestaId: string): Promise<Presenca
   return api.get<PresencaRegistrada[]>(`/api/presenca/presencas?diaFestaId=${diaFestaId}`);
 }
 
+export async function listarPresencasDePessoa(
+  pessoaId: string,
+  edicaoId: string
+): Promise<PresencaRegistrada[]> {
+  return api.get<PresencaRegistrada[]>(
+    `/api/presenca/pessoa?pessoaId=${pessoaId}&edicaoId=${edicaoId}`
+  );
+}
+
 export async function listarResumoEquipesDoDia(diaFestaId: string): Promise<ResumoEquipePresenca[]> {
   return api.get<ResumoEquipePresenca[]>(`/api/presenca/resumo-equipes?diaFestaId=${diaFestaId}`);
 }

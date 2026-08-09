@@ -77,9 +77,15 @@ export async function trocarFuncao(
 export async function desalocar(
   _sessao: Sessao,
   participacao: Participacao,
-  _pessoaNome: string,
-  _equipeNome: string
+  pessoaNome: string,
+  equipeNome: string
 ): Promise<void> {
-  await api.delete(`/api/participacoes/${participacao.id}`);
+  await api.delete(`/api/participacoes/${participacao.id}`, {
+    pessoaNome,
+    equipeNome,
+  });
   invalidarParticipacoes();
+  await queryClient.invalidateQueries({
+    queryKey: ["pessoas", participacao.pessoaId, "historico-equipes"],
+  });
 }

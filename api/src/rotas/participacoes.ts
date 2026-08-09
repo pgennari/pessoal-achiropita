@@ -88,6 +88,21 @@ app.openapi(postParticipacaoRoute, async (c) => {
       sessao, "participacao.alocou", `participacoes/${row.id}`,
       `${body.pessoaNome} → ${body.equipeNome} (${body.funcao})`
     );
+    // Alocacao: registra no historico de movimentacoes (append-only), sem
+    // equipe origem (equipe_origem_nome vazio identifica a alocacao nova).
+    await sql`
+      INSERT INTO pessoa_equipe_historico (
+        pessoa_id, edicao_id,
+        equipe_origem_id, equipe_origem_nome,
+        equipe_destino_id, equipe_destino_nome,
+        funcao, autor, autor_nome
+      ) VALUES (
+        ${body.pessoaId}, ${body.edicaoId},
+        NULL, '',
+        ${body.equipeId}, ${body.equipeNome ?? ""},
+        ${body.funcao}, ${sessao.uid}, ${sessao.nome}
+      )
+    `;
     return c.json(participacaoDeRow(row) as any, 201);
   } catch (err: unknown) {
     const e = err as { code?: string };
@@ -191,12 +206,34 @@ app.openapi(deleteParticipacaoRoute, async (c) => {
     pessoaNome?: string;
     equipeNome?: string;
   };
-  const [row] = await sql`DELETE FROM participacoes WHERE id = ${id} RETURNING *`;
-  if (!row) return c.json({ erro: "Participação não encontrada." }, 404);
+  const [antes] = await sql`
+    SELECT part.id, part.edicao_id, part.equipe_id, part.pessoa_id, part.funcao,
+           eq.nome AS equipe_nome
+    FROM participacoes part
+    LEFT JOIN equipes eq ON eq.id = part.equipe_id
+    WHERE part.id = ${id}
+  `;
+  if (!antes) return c.json({ erro: "Participação não encontrada." }, 404);
+  await sql`DELETE FROM participacoes WHERE id = ${id}`;
   await registrarEvento(
     sessao, "participacao.desalocou", `participacoes/${id}`,
     body.pessoaNome ? `${body.pessoaNome} de ${body.equipeNome ?? ""}` : id
   );
+  // Remocao da equipe: registra no historico de movimentacoes (append-only),
+  // sem equipe destino (equipe_destino_nome vazio identifica a remocao).
+  await sql`
+    INSERT INTO pessoa_equipe_historico (
+      pessoa_id, edicao_id,
+      equipe_origem_id, equipe_origem_nome,
+      equipe_destino_id, equipe_destino_nome,
+      funcao, autor, autor_nome
+    ) VALUES (
+      ${antes.pessoa_id}, ${antes.edicao_id},
+      ${antes.equipe_id}, ${antes.equipe_nome ?? body.equipeNome ?? ""},
+      NULL, '',
+      ${antes.funcao}, ${sessao.uid}, ${sessao.nome}
+    )
+  `;
   return c.json({ ok: true }, 200);
 });
 

@@ -11,6 +11,7 @@ import { PessoaForm } from "../components/PessoaForm";
 import { UploadFoto } from "../components/UploadFoto";
 import { HistoricoPessoa } from "../components/HistoricoPessoa";
 import { HistoricoEquipesPessoa } from "../components/HistoricoEquipesPessoa";
+import { HistoricoPresencaPessoa } from "../components/HistoricoPresencaPessoa";
 import { EditarFilhos } from "../components/EditarFilhos";
 import { VinculoVeiculo } from "../components/VinculoVeiculo";
 import { Icone } from "../components/Icone";
@@ -43,7 +44,9 @@ export function PessoaDetalhe() {
   const [acaoOcupado, setAcaoOcupado] = useState(false);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [abaCadastro, setAbaCadastro] = useState<"foto" | "dados" | "filhos" | "veiculos">("dados");
-  const [abaHistorico, setAbaHistorico] = useState<"movimentacao" | "participacoes">("movimentacao");
+  const [abaHistorico, setAbaHistorico] = useState<
+    "movimentacao" | "participacoes" | "presenca"
+  >("presenca");
 
   if (!sessao) return null;
   const ehProprio = !!sessao.pessoaId && sessao.pessoaId === id;
@@ -377,6 +380,15 @@ export function PessoaDetalhe() {
           >
             Histórico participações
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={abaHistorico === "presenca"}
+            className={`aba ${abaHistorico === "presenca" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaHistorico("presenca")}
+          >
+            Histórico de presença
+          </button>
         </div>
 
         {abaHistorico === "movimentacao" && (
@@ -388,6 +400,12 @@ export function PessoaDetalhe() {
         {abaHistorico === "participacoes" && (
           <div className="tabs-painel" role="tabpanel" tabIndex={0}>
             <HistoricoPessoa pessoa={pessoa} />
+          </div>
+        )}
+
+        {abaHistorico === "presenca" && (
+          <div className="tabs-painel" role="tabpanel" tabIndex={0}>
+            <HistoricoPresencaPessoa pessoaId={pessoa.id} sessao={sessao} />
           </div>
         )}
       </div>

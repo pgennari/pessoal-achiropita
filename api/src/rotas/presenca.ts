@@ -179,6 +179,43 @@ app.openapi(getPresencasRoute, async (c) => {
   return c.json(rows.map(presencaDeRow) as any, 200);
 });
 
+const getPresencasPessoaRoute = createRoute({
+  method: "get",
+  path: "/pessoa",
+  tags: ["Presenca"],
+  summary: "Lista presencas confirmadas de uma pessoa em uma edicao",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { query: z.object({ pessoaId: z.string(), edicaoId: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de presencas da pessoa" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
+  }
+});
+
+app.openapi(getPresencasPessoaRoute, async (c) => {
+  const sessao = c.get("sessao");
+  const { pessoaId, edicaoId } = c.req.valid("query");
+  // Presenca da propria pessoa ou com permissao presenca.lista (ADM/ORG/OPC).
+  const podeVer = podeLerPresenca(sessao) || sessao.pessoaId === pessoaId;
+  if (!podeVer) {
+    return c.json({ erro: "Acesso negado. Requer permissao presenca.lista." }, 403);
+  }
+  const rows = await sql`
+    SELECT
+      pr.id, pr.dia_festa_id, pr.edicao_id, pr.equipe_id, pr.pessoa_id,
+      pr.pessoa_nome, pr.cracha, pr.confirmado_por_nome, pr.registrado_em,
+      eq.nome AS equipe_nome, part.funcao
+    FROM presencas pr
+    JOIN equipes eq ON eq.id = pr.equipe_id
+    LEFT JOIN participacoes part
+      ON part.edicao_id = pr.edicao_id AND part.pessoa_id = pr.pessoa_id
+    WHERE pr.pessoa_id = ${pessoaId} AND pr.edicao_id = ${edicaoId}
+    ORDER BY pr.registrado_em DESC
+  `;
+  return c.json(rows.map(presencaDeRow) as any, 200);
+});
+
 const getResumoEquipesRoute = createRoute({
   method: "get",
   path: "/resumo-equipes",

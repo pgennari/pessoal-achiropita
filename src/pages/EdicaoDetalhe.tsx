@@ -61,6 +61,7 @@ export function EdicaoDetalhe() {
   const [editandoEdicao, setEditandoEdicao] = useState(false);
   const [criandoEquipe, setCriandoEquipe] = useState(false);
   const [filtroSetor, setFiltroSetor] = useState<string | "todos">("todos");
+  const [filtroBusca, setFiltroBusca] = useState("");
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [alterandoSetorId, setAlterandoSetorId] = useState<string | null>(null);
   const [criandoDia, setCriandoDia] = useState(false);
@@ -87,13 +88,14 @@ export function EdicaoDetalhe() {
 
   const alocadas = participacoes.length;
 
-  const lista = useMemo(
-    () =>
-      equipes.filter(
-        (e) => filtroSetor === "todos" || e.setor === filtroSetor
-      ),
-    [equipes, filtroSetor]
-  );
+  const lista = useMemo(() => {
+    const termo = filtroBusca.trim().toLowerCase();
+    return equipes.filter(
+      (e) =>
+        (filtroSetor === "todos" || e.setor === filtroSetor) &&
+        (termo === "" || e.nome.toLowerCase().includes(termo))
+    );
+  }, [equipes, filtroSetor, filtroBusca]);
 
   if (!sessao) return null;
   if (carregando || carregandoEquipes || carregandoParticipacoes || carregandoSetores || carregandoDias)
@@ -359,6 +361,14 @@ export function EdicaoDetalhe() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3 mt-3">
+                <input
+                  type="search"
+                  className="input !w-auto min-w-52"
+                  placeholder="Buscar equipe por nome..."
+                  value={filtroBusca}
+                  onChange={(e) => setFiltroBusca(e.target.value)}
+                  aria-label="Buscar equipe por nome"
+                />
                 <div className="flex gap-1 flex-wrap">
                   <button
                     className={`filtro-chip ${

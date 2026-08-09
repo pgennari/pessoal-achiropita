@@ -28,6 +28,7 @@ import {
 import { EquipeForm } from "../components/EquipeForm";
 import { AlocarPessoaDialog } from "../components/AlocarPessoaDialog";
 import { Icone } from "../components/Icone";
+import { DadosToast, Toast } from "../components/Toast";
 import {
   FUNCOES,
   Funcao,
@@ -57,6 +58,7 @@ export function EquipeDetalhe() {
   const [alocando, setAlocando] = useState(false);
   const [funcaoInicial, setFuncaoInicial] = useState<Funcao>("Equipista");
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
+  const [toast, setToast] = useState<DadosToast | null>(null);
   const [movendoLinha, setMovendoLinha] = useState<Linha | null>(null);
   const [equipeDestinoId, setEquipeDestinoId] = useState("");
   const [funcaoDestino, setFuncaoDestino] = useState<Funcao>("Equipista");
@@ -129,14 +131,25 @@ export function EquipeDetalhe() {
 
   async function handleAlocar(args: { pessoa: Pessoa; funcao: Funcao }) {
     if (!sessao || !equipe || !edicao) return;
-    await alocar(sessao, {
-      edicaoId: edicao.id,
-      equipeId: equipe.id,
-      pessoaId: args.pessoa.id,
-      funcao: args.funcao,
-      pessoaNome: args.pessoa.nome,
-      equipeNome: equipe.nome,
-    });
+    try {
+      await alocar(sessao, {
+        edicaoId: edicao.id,
+        equipeId: equipe.id,
+        pessoaId: args.pessoa.id,
+        funcao: args.funcao,
+        pessoaNome: args.pessoa.nome,
+        equipeNome: equipe.nome,
+      });
+      setToast({
+        tipo: "sucesso",
+        mensagem: `${args.pessoa.nome} alocado(a) em ${equipe.nome}.`,
+      });
+    } catch (e) {
+      setToast({
+        tipo: "erro",
+        mensagem: e instanceof Error ? e.message : "Falha ao alocar.",
+      });
+    }
   }
 
   async function handleDesalocar(linha: Linha) {
@@ -146,11 +159,17 @@ export function EquipeDetalhe() {
       !confirm(`Remover ${linha.pessoa.nome} de ${equipe.nome}?`)
     )
       return;
-    setAcaoErro(null);
     try {
       await desalocar(sessao, linha.participacao, linha.pessoa.nome, equipe.nome);
+      setToast({
+        tipo: "sucesso",
+        mensagem: `${linha.pessoa.nome} removido(a) de ${equipe.nome}.`,
+      });
     } catch (e) {
-      setAcaoErro(e instanceof Error ? e.message : "Falha ao desalocar.");
+      setToast({
+        tipo: "erro",
+        mensagem: e instanceof Error ? e.message : "Falha ao desalocar.",
+      });
     }
   }
 
@@ -464,6 +483,8 @@ export function EquipeDetalhe() {
         participacoesDaEdicao={participacoes}
         funcaoInicial={funcaoInicial}
       />
+
+      <Toast dados={toast} onFechar={() => setToast(null)} />
     </div>
   );
 }

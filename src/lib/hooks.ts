@@ -35,7 +35,11 @@ import {
   buscarEstacionamentoPublico,
   buscarHistoricoPublico,
 } from "./checkin";
-import { listarPresencasDoDia, listarResumoEquipesDoDia } from "./presenca";
+import {
+  listarPresencasDePessoa,
+  listarPresencasDoDia,
+  listarResumoEquipesDoDia,
+} from "./presenca";
 import type { DashboardInicial } from "./dashboard";
 import { PerfilInfo } from "./tipos";
 
@@ -308,6 +312,19 @@ export function usePresencasDoDia(diaFestaId: string | undefined): EstadoLista<P
     refetchInterval: 60_000,
   });
   return { itens: data ?? [], carregando: isLoading && !!diaFestaId, erro: erroMsg(error), atualizadoEm: dataUpdatedAt };
+}
+
+export function usePresencasDePessoaNaEdicao(
+  pessoaId: string | undefined,
+  edicaoId: string | undefined
+): EstadoLista<PresencaRegistrada> {
+  const { data, isLoading, error, dataUpdatedAt } = useQuery({
+    queryKey: ["presencas", "pessoa", pessoaId, "edicao", edicaoId],
+    queryFn: () => listarPresencasDePessoa(pessoaId as string, edicaoId as string),
+    enabled: !!pessoaId && !!edicaoId,
+    refetchInterval: 60_000,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!pessoaId && !!edicaoId, erro: erroMsg(error), atualizadoEm: dataUpdatedAt };
 }
 
 export function useResumoEquipesDoDia(diaFestaId: string | undefined): EstadoLista<ResumoEquipePresenca> {

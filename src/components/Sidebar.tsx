@@ -57,18 +57,6 @@ const secoes: Secao[] = [
         to: "/pessoas",
         label: "Pessoas",
         permissoes: ["pessoas.lista", "pessoas.equipe", "pessoas.proprio"],
-        filhos: [
-          {
-            to: "/entregas/crachas",
-            label: "Entrega de Crachá",
-            permissoes: ["pessoas.crachas"],
-          },
-          {
-            to: "/pendencias/fotos",
-            label: "Pendências de Fotos",
-            permissoes: ["pessoas.pendenciaFotos"],
-          },
-        ],
       },
       {
         to: "/formacao",

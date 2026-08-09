@@ -23,7 +23,6 @@ app.openapi(postZerarRoute, async (c) => {
   const sessao = c.get("sessao");
   if (!podeZerar(sessao)) return c.json({ erro: "Acesso negado. Requer perfil ADM." }, 403);
   await sql.begin(async (t) => {
-    await t`TRUNCATE TABLE entregas_cracha CASCADE`;
     await t`TRUNCATE TABLE formacoes CASCADE`;
     await t`TRUNCATE TABLE links_validacao CASCADE`;
     await t`TRUNCATE TABLE links_foto CASCADE`;

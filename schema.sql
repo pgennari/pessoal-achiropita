@@ -189,18 +189,6 @@ CREATE TABLE formacoes (
 CREATE INDEX idx_formacoes_edicao ON formacoes(edicao_id);
 CREATE INDEX idx_formacoes_pessoa ON formacoes(pessoa_id);
 
--- entregas_cracha: id = "${edicao_id}__${pessoa_id}"
-CREATE TABLE entregas_cracha (
-  id            TEXT PRIMARY KEY,
-  edicao_id     TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
-  pessoa_id     TEXT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
-  entregue_em   TIMESTAMPTZ NOT NULL DEFAULT now(),
-  operador_uid  TEXT NOT NULL,
-  operador_nome TEXT NOT NULL,
-  observacao    TEXT
-);
-CREATE INDEX idx_entregas_edicao ON entregas_cracha(edicao_id);
-
 -- links_foto: id = token de URL pública
 -- TODO(US-07-01): implementar após MVP
 CREATE TABLE links_foto (
@@ -473,8 +461,6 @@ INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
   ('pessoas.equipe', 'Pessoas: da equipe', 'Ver somente as pessoas da própria equipe.'),
   ('pessoas.proprio', 'Pessoas: somente próprio', 'Ver somente os próprios dados.'),
   ('pessoas.associar', 'Pessoas: associar veículo', 'Associar ou desassociar veículo à pessoa.'),
-  ('pessoas.crachas', 'Crachá: entrega', 'Acessar e operar a entrega de crachás.'),
-  ('pessoas.pendenciaFotos', 'Fotos: pendências', 'Consultar as pendências de fotos das pessoas.'),
   ('formacao.turmas', 'Formação: turmas', 'Gerenciar turmas e links de formação.'),
   ('formacao.pendenciaListar', 'Formação: listar pendências', 'Listar as pendências de formação.'),
   ('formacao.pendenciaEquipe', 'Formação: pendências da equipe', 'Listar as pendências de formação da própria equipe.'),
@@ -518,6 +504,8 @@ UPDATE permissoes SET ativo = FALSE WHERE codigo IN (
   'administracao',
   'pessoas.ver',
   'crachas.entregar',
+  'pessoas.crachas',
+  'pessoas.pendenciaFotos',
   'fotos.pendencias',
   'formacao.operar',
   'estacionamentos.operar',
@@ -545,7 +533,7 @@ INSERT INTO perfis (sigla, nome, fixo, permissoes) VALUES
   ('ORG', 'Organizador geral', FALSE, '{
     veiculos.lista,veiculos.detalhe,veiculos.incluir,veiculos.editar,veiculos.excluir,veiculos.associar,veiculos.vincular,
     estacionamento.lista,estacionamento.detalhe,estacionamento.incluir,estacionamento.editar,estacionamento.associar,estacionamento.checkinManual,estacionamento.dashboard,estacionamento.relatorio,
-    pessoas.lista,pessoas.detalhe,pessoas.incluir,pessoas.editar,pessoas.ativar,pessoas.associar,pessoas.crachas,pessoas.pendenciaFotos,
+    pessoas.lista,pessoas.detalhe,pessoas.incluir,pessoas.editar,pessoas.ativar,pessoas.associar,
     formacao.turmas,formacao.pendenciaListar,formacao.marcarManual,
     presenca.lista,presenca.linkGerar,presenca.linkRevogar,
     edicao.lista,edicao.detalhe,edicao.incluir,edicao.editar,edicao.ativar,edicao.equipeCriar,edicao.equipeEditar,edicao.equipeExcluir,edicao.equipeAlocar,edicao.historico,
@@ -557,7 +545,7 @@ INSERT INTO perfis (sigla, nome, fixo, permissoes) VALUES
   ('CRD', 'Coordenador de barraca', FALSE, '{
     veiculos.equipe,veiculos.detalhe,
     estacionamento.lista,estacionamento.detalhe,estacionamento.dashboard,
-    pessoas.equipe,pessoas.detalhe,pessoas.editar,pessoas.crachas,pessoas.pendenciaFotos,
+    pessoas.equipe,pessoas.detalhe,pessoas.editar,
     formacao.turmas,formacao.pendenciaEquipe,
     edicao.lista,edicao.detalhe,
     setor.lista
@@ -566,7 +554,7 @@ INSERT INTO perfis (sigla, nome, fixo, permissoes) VALUES
   ('OPC', 'Operador de campo', FALSE, '{
     veiculos.lista,veiculos.detalhe,
     estacionamento.lista,estacionamento.detalhe,estacionamento.checkinManual,estacionamento.dashboard,
-    pessoas.lista,pessoas.detalhe,pessoas.editar,pessoas.crachas,pessoas.pendenciaFotos,
+    pessoas.lista,pessoas.detalhe,pessoas.editar,
     formacao.turmas,formacao.pendenciaListar,formacao.marcarManual,
     presenca.lista,
     setor.lista

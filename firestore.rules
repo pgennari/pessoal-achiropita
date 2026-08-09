@@ -25,10 +25,6 @@ service cloud.firestore {
       return temPerfilDoc() && perfil() in ["ADM", "ORG"];
     }
 
-    function podeOperarEntregas() {
-      return temPerfilDoc() && perfil() in ["ADM", "ORG", "OPC"];
-    }
-
     function ehAdm() {
       return temPerfilDoc() && perfil() == "ADM";
     }
@@ -143,15 +139,6 @@ service cloud.firestore {
     function participacaoValida(d) {
       return d.keys().hasAll(["edicaoId", "barracaId", "pessoaId", "funcao"])
         && d.funcao in ["Coordenador", "Equipista", "Apoio"];
-    }
-
-    function entregaValida(d) {
-      return d.keys().hasAll([
-          "edicaoId", "pessoaId", "operadorUid", "operadorNome", "entregueEm"
-        ])
-        && d.edicaoId is string
-        && d.pessoaId is string
-        && d.operadorUid == request.auth.uid;
     }
 
     function turmaValida(d) {
@@ -300,13 +287,6 @@ service cloud.firestore {
       allow delete: if ehAdmOuOrg();
     }
 
-    match /entregasCracha/{id} {
-      allow read: if temPerfilDoc();
-      allow create: if podeOperarEntregas() && entregaValida(request.resource.data);
-      allow update: if false;
-      allow delete: if ehAdm();
-    }
-
     match /turmasFormacao/{id} {
       allow read: if temPerfilDoc();
       allow create, update: if ehAdmOuOrg() && turmaValida(request.resource.data);
@@ -330,7 +310,7 @@ service cloud.firestore {
             && request.resource.data.presencaTipo == "validacao"
             && request.resource.data.dadosValidados == true);
       allow update: if (ehAdmOuOrg() && formacaoShape(request.resource.data))
-        || (podeOperarEntregas()
+        || (temPerfilDoc() && perfil() in ["ADM", "ORG", "OPC"]
             && request.resource.data.diff(resource.data).affectedKeys()
                 .hasOnly(["dadosValidados", "validadoEm"])
             && request.resource.data.dadosValidados == true)

@@ -14,8 +14,6 @@ import { Edicoes } from "./pages/Edicoes";
 import { EdicaoDetalhe } from "./pages/EdicaoDetalhe";
 import { EquipeDetalhe } from "./pages/EquipeDetalhe";
 import { Historico } from "./pages/Historico";
-import { EntregaCrachas } from "./pages/EntregaCrachas";
-import { PendenciasFoto } from "./pages/PendenciasFoto";
 import { Usuarios } from "./pages/Usuarios";
 import { Perfis } from "./pages/Perfis";
 import { Permissoes } from "./pages/Permissoes";
@@ -72,8 +70,6 @@ export function App() {
           element={<EquipeDetalhe />}
         />
         <Route path="historico" element={<Historico />} />
-        <Route path="entregas/crachas" element={<EntregaCrachas />} />
-        <Route path="pendencias/fotos" element={<PendenciasFoto />} />
         <Route path="formacao" element={<PaginaFormacao />} />
         <Route path="formacao/pendencias" element={<PendenciasFormacao />} />
         <Route path="presenca" element={<Presenca />} />

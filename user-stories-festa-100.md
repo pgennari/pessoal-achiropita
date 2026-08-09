@@ -474,7 +474,10 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 
 > O crachá é **produzido externamente** pela organização. O app trata exclusivamente do **controle de entrega** dos materiais já produzidos (crachá, camiseta).
 
-### US-07-02 — Marcar crachá entregue
+### US-07-02 — Marcar crachá entregue _(REMOVIDA — spec 016/remover-entregas-crachas)_
+
+> Esta funcionalidade foi **removida do sistema** em `specs/016-remover-entregas-crachas`. A seguir fica o registro original para histórico.
+
 **Como** OPC ou ORG,
 **quero** registrar a entrega do crachá ao equipista,
 **para** controlar quem já recebeu.
@@ -501,7 +504,10 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 
 🟡 Média · v2
 
-### US-07-04 — Lista de pendências de fotos
+### US-07-04 — Lista de pendências de fotos _(REMOVIDA — spec 017/remover-pendencias-fotos)_
+
+> Esta funcionalidade foi **removida do sistema** em `specs/017-remover-pendencias-fotos`. A seguir fica o registro original para histórico.
+
 **Como** ORG,
 **quero** ver quem ainda não tem foto cadastrada,
 **para** cobrar antes da impressão externa dos crachás.
@@ -510,7 +516,7 @@ Aplicativo web responsivo (desktop e mobile, PWA) para gerenciar o cadastro e a 
 - Substitui a aba "FALTA FOTO" da planilha
 - Filtros por barraca, setor
 
-🔴 Alta · MVP
+🔴 Alta · MVP _(histórico — funcionalidade removida)_
 
 ---
 

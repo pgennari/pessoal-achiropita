@@ -8,7 +8,6 @@ import {
   Convite,
   DiaFesta,
   Edicao,
-  EntregaCracha,
   Equipe,
   Estacionamento,
   EventoAuditoria,
@@ -205,17 +204,6 @@ export function useIndicePessoas(pessoas: Pessoa[]) {
     for (const p of pessoas) porId.set(p.id, p);
     return porId;
   }, [pessoas]);
-}
-
-// ─── Entregas de crachá ───────────────────────────────────────────────────────
-
-export function useEntregasCracha(edicaoId: string | undefined): EstadoLista<EntregaCracha> {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["entregas", edicaoId],
-    queryFn: () => api.get<EntregaCracha[]>(`/api/entregas?edicaoId=${edicaoId}`),
-    enabled: !!edicaoId,
-  });
-  return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
 }
 
 // ─── Usuários ─────────────────────────────────────────────────────────────────

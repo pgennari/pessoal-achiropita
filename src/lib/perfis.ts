@@ -30,20 +30,6 @@ export const CATALOGO_MENUS: MenuCatalogo[] = [
     permissoes: ["pessoas.ver"],
   },
   {
-    id: "entrega-crachas",
-    rotulo: "Entrega de Crachá",
-    secao: "Pessoal",
-    descricao: "Marcar a entrega dos crachás.",
-    permissoes: ["crachas.entregar"],
-  },
-  {
-    id: "pendencias-fotos",
-    rotulo: "Pendências de Fotos",
-    secao: "Pessoal",
-    descricao: "Consultar as pendências de fotos das pessoas.",
-    permissoes: ["fotos.pendencias"],
-  },
-  {
     id: "formacao",
     rotulo: "Formação",
     secao: "Pessoal",

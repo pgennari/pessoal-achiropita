@@ -9,7 +9,6 @@ import { Link } from "react-router-dom";
 import { useSessao, escopoPessoas } from "../lib/sessao";
 import {
   useEdicaoAtiva,
-  useEntregasCracha,
   useFormacoes,
   useParticipacoes,
   usePessoas,
@@ -20,11 +19,10 @@ export function Painel() {
   const { itens: pessoas, carregando: carregandoPessoas } = usePessoas();
   const { edicao, carregando: carregandoEdicao } = useEdicaoAtiva();
   const { itens: participacoes } = useParticipacoes(edicao?.id);
-  const { itens: entregas } = useEntregasCracha(edicao?.id);
   const { itens: formacoes } = useFormacoes(edicao?.id);
 
   // Para escopo "equipe" (CRD), pessoas e equipes já chegam filtrados pela API.
-  // participacoes, entregas e formacoes cobrem toda a edição — filtrar aqui.
+  // participacoes e formacoes cobrem toda a edição — filtrar aqui.
   const pessoaIds = useMemo(() => new Set(pessoas.map((p) => p.id)), [pessoas]);
   const escopoEquipe = escopoPessoas(sessao) === "equipe";
 
@@ -34,14 +32,6 @@ export function Painel() {
         ? participacoes.filter((p) => sessao?.equipesCRD?.includes(p.equipeId))
         : participacoes,
     [sessao, participacoes, escopoEquipe]
-  );
-
-  const entregasFiltradas = useMemo(
-    () =>
-      escopoEquipe
-        ? entregas.filter((e) => pessoaIds.has(e.pessoaId))
-        : entregas,
-    [sessao, entregas, pessoaIds, escopoEquipe]
   );
 
   const formacoesFiltradas = useMemo(
@@ -57,10 +47,6 @@ export function Painel() {
   const ativas = pessoas.filter((p) => p.ativo).length;
   const total = pessoas.length;
   const alocadas = participacoesFiltradas.length;
-  const entregues = entregasFiltradas.length;
-  const pctEntregues =
-    alocadas > 0 ? Math.round((entregues / alocadas) * 100) : 0;
-  const semFoto = pessoas.filter((p) => p.ativo && !p.fotoUrl).length;
   const totalFormacoes = formacoesFiltradas.length;
   const pctFormacao =
     alocadas > 0 ? Math.round((totalFormacoes / alocadas) * 100) : 0;
@@ -119,17 +105,6 @@ export function Painel() {
           )}
         </div>
         <div className="kpi">
-          <div className="kpi-label">Crachás entregues</div>
-          <div className="kpi-valor">
-            {edicao ? pctEntregues : "—"} <span className="unidade">%</span>
-          </div>
-          {edicao && (
-            <Link to="/entregas/crachas" className="kpi-delta positivo">
-              {entregues} de {alocadas} alocados →
-            </Link>
-          )}
-        </div>
-        <div className="kpi">
           <div className="kpi-label">Dados validados</div>
           <div className="kpi-valor">
             {edicao ? pctValidados : "—"} <span className="unidade">%</span>
@@ -139,15 +114,6 @@ export function Painel() {
               {dadosValidados} de {alocadas} alocados →
             </Link>
           )}
-        </div>
-        <div className="kpi">
-          <div className="kpi-label">Sem foto</div>
-          <div className="kpi-valor">
-            {semFoto} <span className="unidade">pessoa(s)</span>
-          </div>
-          <Link to="/pendencias/fotos" className="kpi-delta negativo">
-            Abrir lista →
-          </Link>
         </div>
       </div>
     </>

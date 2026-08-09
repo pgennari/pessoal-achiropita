@@ -29,8 +29,6 @@
 |  | Ver somente equipe | pessoas.equipe |
 |  | Ver somente proprio | pessoas.proprio |
 |  | Associar/Desassociar veículo | pessoas.associar |
-| Entrega de Crachá | Acessar  | pessoas.crachas |
-| Pendencia de Fotos | Acessar | pessoas.pendenciaFotos |
 | Formação - Turmas | Acessar | formacao.turmas |
 | Formação - Pendencias | Listar | formacao.pendenciaListar |
 |  | Listar equipe | formacao.pendenciaEquipe |

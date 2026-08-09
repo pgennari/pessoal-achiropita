@@ -269,16 +269,6 @@ export interface HistoricoEquipePessoa {
   criadoEm: string;
 }
 
-export interface EntregaCracha {
-  id: string; // formato: `${edicaoId}__${pessoaId}`
-  edicaoId: string;
-  pessoaId: string;
-  entregueEm: string;
-  operadorUid: string;
-  operadorNome: string;
-  observacao?: string;
-}
-
 export interface TurmaFormacao {
   id: string;
   edicaoId: string;

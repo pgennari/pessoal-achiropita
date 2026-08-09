@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TYPE perfil_usuario        AS ENUM ('ADM','ORG','CRD','EQP','OPC','REC');
 CREATE TYPE status_convite        AS ENUM ('pendente','usado','revogado');
 CREATE TYPE status_edicao         AS ENUM ('planejamento','ativa','encerrada');
-CREATE TYPE funcao_participacao   AS ENUM ('Coordenador','Equipista','Apoio');
+CREATE TYPE funcao_participacao   AS ENUM ('Coordenador','Equipista');
 CREATE TYPE tipo_presenca         AS ENUM ('manual','validacao');
 CREATE TYPE status_link           AS ENUM ('ativo','revogado','usado');
 
@@ -102,7 +102,6 @@ CREATE TABLE equipes (
   setor               TEXT NOT NULL,
   vagas_coordenador   INTEGER NOT NULL DEFAULT 0,
   vagas_equipista     INTEGER NOT NULL DEFAULT 0,
-  vagas_apoio         INTEGER NOT NULL DEFAULT 0,
   criado_em           TIMESTAMPTZ NOT NULL DEFAULT now(),
   atualizado_em       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -617,3 +616,18 @@ CREATE TABLE IF NOT EXISTS planilhas_acessadas (
 
 CREATE INDEX IF NOT EXISTS idx_planilhas_acessadas_atualizado
 ON planilhas_acessadas(atualizado_em DESC);
+
+-- Migração: remoção da função 'Apoio' das participações.
+-- Todas as participações com funcao 'Apoio' passam a 'Coordenador'.
+-- Executar no banco existente (Neon → SQL Editor) em uma única transação.
+BEGIN;
+UPDATE participacoes            SET funcao = 'Coordenador' WHERE funcao = 'Apoio';
+UPDATE pessoa_equipe_historico  SET funcao = 'Coordenador' WHERE funcao = 'Apoio';
+UPDATE participacoes_historicas SET funcao = 'Coordenador' WHERE funcao = 'Apoio';
+ALTER TYPE funcao_participacao RENAME TO funcao_participacao_legado;
+CREATE TYPE funcao_participacao AS ENUM ('Coordenador','Equipista');
+ALTER TABLE participacoes           ALTER COLUMN funcao TYPE funcao_participacao USING funcao::text::funcao_participacao;
+ALTER TABLE pessoa_equipe_historico ALTER COLUMN funcao TYPE funcao_participacao USING funcao::text::funcao_participacao;
+DROP TYPE funcao_participacao_legado;
+ALTER TABLE equipes DROP COLUMN IF EXISTS vagas_apoio;
+COMMIT;

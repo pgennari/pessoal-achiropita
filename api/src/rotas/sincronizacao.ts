@@ -87,7 +87,6 @@ const FUNCOES: Record<string, string> = {
   coord: "Coordenador",
   equipista: "Equipista",
   equip: "Equipista",
-  apoio: "Apoio",
 };
 
 function normalizarFuncao(valor: string | null | undefined): string | null {

@@ -30,7 +30,6 @@ const ROTULO_SETOR = Object.fromEntries(
 function corDaFuncao(f: Funcao | null): string {
   if (f === "Coordenador") return "badge badge-ouro";
   if (f === "Equipista") return "badge badge-verde";
-  if (f === "Apoio") return "badge badge-azul";
   return "badge badge-azul";
 }
 

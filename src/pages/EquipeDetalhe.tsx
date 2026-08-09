@@ -86,8 +86,6 @@ export function EquipeDetalhe() {
       Equipista: linhasDaEquipe.filter(
         (l) => l.participacao.funcao === "Equipista"
       ).length,
-      Apoio: linhasDaEquipe.filter((l) => l.participacao.funcao === "Apoio")
-        .length,
     };
     return {
       alocadas: linhasDaEquipe.length,
@@ -262,10 +260,6 @@ export function EquipeDetalhe() {
         <div className="kpi">
           <div className="kpi-label">Equipistas</div>
           <div className="kpi-valor">{totais.porFuncao.Equipista}</div>
-        </div>
-        <div className="kpi">
-          <div className="kpi-label">Apoio</div>
-          <div className="kpi-valor">{totais.porFuncao.Apoio}</div>
         </div>
         <div className="kpi">
           <div className="kpi-label">Pessoas alocadas</div>

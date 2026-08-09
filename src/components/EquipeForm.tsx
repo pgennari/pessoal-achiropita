@@ -20,7 +20,6 @@ function inicialDados(e?: Equipe | null): DadosEquipeForm {
 const CAMPOS_VAGAS = [
   { chave: "vagasCoordenador", rotulo: "Vagas Coordenador" },
   { chave: "vagasEquipista", rotulo: "Vagas Equipista" },
-  { chave: "vagasApoio", rotulo: "Vagas Apoio" },
 ] as const;
 
 export function EquipeForm({
@@ -108,7 +107,7 @@ export function EquipeForm({
 
         <div className="hidden sm:block" />
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:col-span-2">
           {CAMPOS_VAGAS.map((campo) => (
             <div className="input-grupo" key={campo.chave}>
               <label className="input-label" htmlFor={campo.chave}>

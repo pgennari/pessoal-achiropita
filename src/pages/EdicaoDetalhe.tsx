@@ -489,10 +489,6 @@ export function EdicaoDetalhe() {
                           <span className="text-ardesia">Equip.: </span>
                           <span className="font-mono font-semibold">{e.vagasEquipista}</span>
                         </div>
-                        <div>
-                          <span className="text-ardesia">Apoio: </span>
-                          <span className="font-mono font-semibold">{e.vagasApoio}</span>
-                        </div>
                       </div>
 
                       {podeRemoverEquipe && (

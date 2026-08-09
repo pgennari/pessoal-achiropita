@@ -25,7 +25,6 @@ export function equipeDeSnap(id: string, data: Record<string, unknown>): Equipe 
     setor: (data.setor as Setor) ?? "Interna",
     vagasCoordenador: (data.vagasCoordenador as number) ?? 0,
     vagasEquipista: (data.vagasEquipista as number) ?? 0,
-    vagasApoio: (data.vagasApoio as number) ?? 0,
     criadoEm: (data.criadoEm as string) || "",
     atualizadoEm: (data.atualizadoEm as string) || "",
   };

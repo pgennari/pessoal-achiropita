@@ -16,7 +16,6 @@ function equipeDeRow(r: Record<string, unknown>) {
     setor: r.setor,
     vagasCoordenador: r.vagas_coordenador,
     vagasEquipista: r.vagas_equipista,
-    vagasApoio: r.vagas_apoio,
     criadoEm,
     atualizadoEm,
   };
@@ -33,8 +32,7 @@ const SEL_EQUIPES = sql`
     e.criado_em,
     e.atualizado_em,
     COALESCE(COUNT(*) FILTER (WHERE p.funcao = 'Coordenador'), 0)::int AS vagas_coordenador,
-    COALESCE(COUNT(*) FILTER (WHERE p.funcao = 'Equipista'), 0)::int  AS vagas_equipista,
-    COALESCE(COUNT(*) FILTER (WHERE p.funcao = 'Apoio'), 0)::int      AS vagas_apoio
+    COALESCE(COUNT(*) FILTER (WHERE p.funcao = 'Equipista'), 0)::int  AS vagas_equipista
   FROM equipes e
   LEFT JOIN participacoes p ON p.equipe_id = e.id
 `;

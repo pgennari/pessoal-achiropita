@@ -222,14 +222,13 @@ export interface Equipe {
   setor: Setor;
   vagasCoordenador: number;
   vagasEquipista: number;
-  vagasApoio: number;
   criadoEm: string;
   atualizadoEm: string;
 }
 
-export type Funcao = "Coordenador" | "Equipista" | "Apoio";
+export type Funcao = "Coordenador" | "Equipista";
 
-export const FUNCOES: Funcao[] = ["Coordenador", "Equipista", "Apoio"];
+export const FUNCOES: Funcao[] = ["Coordenador", "Equipista"];
 
 export interface Participacao {
   id: string;

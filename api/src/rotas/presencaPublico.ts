@@ -45,7 +45,7 @@ app.openapi(getEquipistasRoute, async (c) => {
         AND part.equipe_id = ANY(${equipeIdsArray}::text[])
         AND p.ativo = true
       ORDER BY p.id, CASE part.funcao
-        WHEN 'Equipista' THEN 0 WHEN 'Apoio' THEN 1 ELSE 2 END
+        WHEN 'Equipista' THEN 0 ELSE 1 END
     ) sub
     ORDER BY nome
   `;

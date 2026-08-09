@@ -11,6 +11,7 @@ import { PessoaForm } from "../components/PessoaForm";
 import { UploadFoto } from "../components/UploadFoto";
 import { HistoricoPessoa } from "../components/HistoricoPessoa";
 import { HistoricoEquipesPessoa } from "../components/HistoricoEquipesPessoa";
+import { EditarFilhos } from "../components/EditarFilhos";
 import { VinculoVeiculo } from "../components/VinculoVeiculo";
 import { Icone } from "../components/Icone";
 import { usePessoa, usePessoas, useVeiculos, useVeiculosPessoa } from "../lib/hooks";
@@ -24,6 +25,7 @@ import {
 import {
   vincularVeiculoPessoa,
   desvincularVeiculoPessoa,
+  criarVeiculo,
 } from "../lib/veiculos";
 import { calcularIdade, formatarCPF, formatarData } from "../lib/utilsDominio";
 
@@ -41,7 +43,7 @@ export function PessoaDetalhe() {
   const [acaoOcupado, setAcaoOcupado] = useState(false);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [abaCadastro, setAbaCadastro] = useState<"foto" | "dados" | "filhos" | "veiculos">("dados");
-  const [abaHistorico, setAbaHistorico] = useState<"movimentacao" | "participacoes">("participacoes");
+  const [abaHistorico, setAbaHistorico] = useState<"movimentacao" | "participacoes">("movimentacao");
 
   if (!sessao) return null;
   const ehProprio = !!sessao.pessoaId && sessao.pessoaId === id;
@@ -318,32 +320,12 @@ export function PessoaDetalhe() {
 
         {abaCadastro === "filhos" && (
           <div className="tabs-painel" role="tabpanel" tabIndex={0}>
-            {pessoa.filhos.length === 0 ? (
-              <p className="text-ardesia text-sm">Nenhum filho cadastrado.</p>
-            ) : (
-              <ul className="divide-y divide-pietra-clara">
-                {pessoa.filhos.map((f) => (
-                  <li
-                    key={f.id}
-                    className="py-3 flex items-center justify-between gap-3"
-                  >
-                    <div>
-                      <div className="font-semibold text-carbone">{f.nome}</div>
-                      <div className="text-xs text-ardesia">
-                        {formatarData(f.nascimento)}
-                        {(() => {
-                          const i = calcularIdade(f.nascimento);
-                          return i !== null ? ` · ${i} anos` : "";
-                        })()}
-                      </div>
-                    </div>
-                    {f.frequentaRecreacao && (
-                      <span className="badge badge-azul">recreação</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
+            <EditarFilhos
+              pessoa={pessoa}
+              sessao={sessao}
+              pessoas={itens}
+              podeEditar={podeEditar}
+            />
           </div>
         )}
 
@@ -363,6 +345,13 @@ export function PessoaDetalhe() {
                 await desvincularVeiculoPessoa(id!, veiculoId);
                 await queryClient.invalidateQueries({ queryKey: ["pessoas", id, "veiculos"] });
               }}
+              aoCriar={async (dados) => {
+                const veiculo = await criarVeiculo(dados);
+                await vincularVeiculoPessoa(id!, veiculo.id);
+                await queryClient.invalidateQueries({ queryKey: ["pessoas", id, "veiculos"] });
+                await queryClient.invalidateQueries({ queryKey: ["veiculos"] });
+              }}
+              podeCriar={temPermissao(sessao, "veiculos.incluir")}
             />
           </div>
         )}

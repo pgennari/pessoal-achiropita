@@ -15,7 +15,7 @@ import {
 } from "../lib/hooks";
 import { useSessao, temPermissao, escopoPessoas } from "../lib/sessao";
 import { normalizar, soDigitos } from "../lib/utilsDominio";
-import { Pessoa } from "../lib/tipos";
+import { Funcao, FUNCOES, Pessoa } from "../lib/tipos";
 import { sincronizarTodosOsCrachas } from "../lib/buscaCracha";
 import { Icone } from "../components/Icone";
 
@@ -27,14 +27,15 @@ function aplicarFiltro(p: Pessoa, filtro: Filtro): boolean {
   return true;
 }
 
-type ColunaOrdenacao = "cracha" | "nome" | "equipe" | "ativo";
+type ColunaOrdenacao = "cracha" | "nome" | "equipe" | "funcao" | "ativo";
 
 type Ordenacao = { coluna: ColunaOrdenacao; direcao: "asc" | "desc" };
 
 function valorOrdenacao(
   p: Pessoa,
   coluna: ColunaOrdenacao,
-  equipe?: string
+  equipe?: string,
+  funcao?: string
 ): string {
   switch (coluna) {
     case "cracha":
@@ -43,9 +44,15 @@ function valorOrdenacao(
       return p.nome;
     case "equipe":
       return equipe || "";
+    case "funcao":
+      return funcao || "";
     case "ativo":
       return p.ativo ? "1" : "0";
   }
+}
+
+function corDaFuncao(funcao: Funcao): string {
+  return funcao === "Coordenador" ? "badge badge-ouro" : "badge badge-verde";
 }
 
 function CabecalhoOrdenavel({
@@ -102,6 +109,8 @@ export function Pessoas() {
   const { itens: participacoes } = useParticipacoes(edicao?.id);
   const [termo, setTermo] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("ativos");
+  const [filtroEquipe, setFiltroEquipe] = useState("");
+  const [filtroFuncao, setFiltroFuncao] = useState<Funcao | "">("");
   const [ordenacao, setOrdenacao] = useState<Ordenacao | null>({
     coluna: "nome",
     direcao: "asc",
@@ -136,23 +145,39 @@ export function Pessoas() {
     }
   }
 
-  const equipesPorPessoa = useMemo(() => {
+  const participacoesDaEdicao = useMemo(() => {
     const equipesPorId = new Map(equipes.map((e) => [e.id, e.nome]));
-    const m = new Map<string, string>();
+    const m = new Map<
+      string,
+      { equipeId: string; equipeNome: string; funcao: Funcao }
+    >();
     for (const part of participacoes) {
-      m.set(part.pessoaId, equipesPorId.get(part.equipeId) ?? "");
+      m.set(part.pessoaId, {
+        equipeId: part.equipeId,
+        equipeNome: equipesPorId.get(part.equipeId) ?? "",
+        funcao: part.funcao,
+      });
     }
     return m;
   }, [participacoes, equipes]);
 
   const lista = useMemo(() => {
-    const base = itens.filter((p) => aplicarFiltro(p, filtro) && combina(p, termo));
+    const base = itens.filter((p) => {
+      if (!aplicarFiltro(p, filtro)) return false;
+      if (!combina(p, termo)) return false;
+      const aloc = participacoesDaEdicao.get(p.id);
+      if (filtroEquipe && aloc?.equipeId !== filtroEquipe) return false;
+      if (filtroFuncao && aloc?.funcao !== filtroFuncao) return false;
+      return true;
+    });
     if (!ordenacao) return base;
     const listaOrdenada = [...base];
     const { coluna, direcao } = ordenacao;
     listaOrdenada.sort((a, b) => {
-      const va = valorOrdenacao(a, coluna, equipesPorPessoa.get(a.id));
-      const vb = valorOrdenacao(b, coluna, equipesPorPessoa.get(b.id));
+      const alocA = participacoesDaEdicao.get(a.id);
+      const alocB = participacoesDaEdicao.get(b.id);
+      const va = valorOrdenacao(a, coluna, alocA?.equipeNome, alocA?.funcao);
+      const vb = valorOrdenacao(b, coluna, alocB?.equipeNome, alocB?.funcao);
       if (!va && !vb) return 0;
       if (!va) return 1;
       if (!vb) return -1;
@@ -163,7 +188,7 @@ export function Pessoas() {
       return direcao === "asc" ? cmp : -cmp;
     });
     return listaOrdenada;
-  }, [itens, filtro, termo, ordenacao, equipesPorPessoa]);
+  }, [itens, filtro, termo, filtroEquipe, filtroFuncao, ordenacao, participacoesDaEdicao]);
 
   return (
     <div className="space-y-6">
@@ -223,6 +248,32 @@ export function Pessoas() {
             onChange={(e) => setTermo(e.target.value)}
             autoFocus
           />
+          <select
+            className="input w-auto"
+            value={filtroEquipe}
+            onChange={(e) => setFiltroEquipe(e.target.value)}
+            aria-label="Filtrar por equipe"
+          >
+            <option value="">Todas as equipes</option>
+            {equipes.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.nome}
+              </option>
+            ))}
+          </select>
+          <select
+            className="input w-auto"
+            value={filtroFuncao}
+            onChange={(e) => setFiltroFuncao(e.target.value as Funcao | "")}
+            aria-label="Filtrar por função"
+          >
+            <option value="">Todas as funções</option>
+            {FUNCOES.map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
+          </select>
           <div className="flex gap-1">
             {(["ativos", "todos", "inativos"] as Filtro[]).map((f) => (
               <button
@@ -274,6 +325,13 @@ export function Pessoas() {
                 aoOrdenar={alternarOrdenacao}
               />
               <CabecalhoOrdenavel
+                titulo="Função"
+                coluna="funcao"
+                ordenacao={ordenacao}
+                aoOrdenar={alternarOrdenacao}
+                className="w-44"
+              />
+              <CabecalhoOrdenavel
                 titulo="Ativo"
                 coluna="ativo"
                 ordenacao={ordenacao}
@@ -285,38 +343,50 @@ export function Pessoas() {
           <tbody>
             {lista.length === 0 && !carregando && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-ardesia">
+                <td colSpan={5} className="px-4 py-8 text-center text-ardesia">
                   Nenhuma pessoa encontrada.
                 </td>
               </tr>
             )}
-            {lista.map((p) => (
-              <tr
-                key={p.id}
-                className="border-t border-pietra-clara hover:bg-pietra-clara/40 cursor-pointer"
-                onClick={() => navigate(`/pessoas/${p.id}`)}
-              >
-                <td className="px-4 py-3 font-mono text-ardesia">#{p.cracha}</td>
-                <td className="px-4 py-3">
-                  <Link
-                    to={`/pessoas/${p.id}`}
-                    className="font-semibold text-carbone hover:text-verde"
-                  >
-                    {p.nome}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 text-ardesia">
-                  {equipesPorPessoa.get(p.id) || "—"}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {p.ativo ? (
-                    <span className="badge badge-verde">ativo</span>
-                  ) : (
-                    <span className="badge badge-cinza">inativo</span>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {lista.map((p) => {
+              const aloc = participacoesDaEdicao.get(p.id);
+              return (
+                <tr
+                  key={p.id}
+                  className="border-t border-pietra-clara hover:bg-pietra-clara/40 cursor-pointer"
+                  onClick={() => navigate(`/pessoas/${p.id}`)}
+                >
+                  <td className="px-4 py-3 font-mono text-ardesia">#{p.cracha}</td>
+                  <td className="px-4 py-3">
+                    <Link
+                      to={`/pessoas/${p.id}`}
+                      className="font-semibold text-carbone hover:text-verde"
+                    >
+                      {p.nome}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-ardesia">
+                    {aloc?.equipeNome || "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {aloc?.funcao ? (
+                      <span className={corDaFuncao(aloc.funcao)}>
+                        {aloc.funcao}
+                      </span>
+                    ) : (
+                      <span className="text-ardesia">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {p.ativo ? (
+                      <span className="badge badge-verde">ativo</span>
+                    ) : (
+                      <span className="badge badge-cinza">inativo</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table></div>
       </div>

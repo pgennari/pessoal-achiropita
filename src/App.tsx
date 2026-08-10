@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
+import { ScrollParaTopo } from "./components/ScrollParaTopo";
 import { ProtegerRota } from "./components/ProtegerRota";
 import { Login } from "./pages/Login";
 import { RedirecionarEdicaoAtiva } from "./pages/RedirecionarEdicaoAtiva";
@@ -42,7 +43,9 @@ import { Sincronizacao } from "./pages/Sincronizacao";
 
 export function App() {
   return (
-    <Routes>
+    <>
+      <ScrollParaTopo />
+      <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/redefinir-senha" element={<RedefinirSenha />} />
       <Route path="/convite/:token" element={<PaginaConvite />} />
@@ -93,6 +96,7 @@ export function App() {
         <Route path="dashboard/estacionamentos" element={<DashboardEstacionamentos />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }

@@ -13,9 +13,10 @@ import { HistoricoPessoa } from "../components/HistoricoPessoa";
 import { HistoricoEquipesPessoa } from "../components/HistoricoEquipesPessoa";
 import { HistoricoPresencaPessoa } from "../components/HistoricoPresencaPessoa";
 import { EditarFilhos } from "../components/EditarFilhos";
+import { EditarParentes } from "../components/EditarParentes";
 import { VinculoVeiculo } from "../components/VinculoVeiculo";
 import { Icone } from "../components/Icone";
-import { usePessoa, usePessoas, useVeiculos, useVeiculosPessoa } from "../lib/hooks";
+import { usePessoa, usePessoas, useVeiculos, useVeiculosPessoa, useParentes } from "../lib/hooks";
 import { useSessao, temPermissao } from "../lib/sessao";
 import {
   DadosPessoaForm,
@@ -23,6 +24,7 @@ import {
   definirAtivacao,
   excluirPessoa,
 } from "../lib/pessoas";
+import { adicionarParente, removerParente } from "../lib/parentes";
 import {
   vincularVeiculoPessoa,
   desvincularVeiculoPessoa,
@@ -39,11 +41,12 @@ export function PessoaDetalhe() {
   const { itens } = usePessoas();
   const { itens: veiculos } = useVeiculos();
   const { itens: veiculosPessoa } = useVeiculosPessoa(id);
+  const { itens: parentes } = useParentes(id);
   const [editando, setEditando] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [acaoOcupado, setAcaoOcupado] = useState(false);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
-  const [abaCadastro, setAbaCadastro] = useState<"foto" | "dados" | "filhos" | "veiculos">("dados");
+  const [abaCadastro, setAbaCadastro] = useState<"foto" | "dados" | "filhos" | "veiculos" | "parentes">("dados");
   const [abaHistorico, setAbaHistorico] = useState<
     "movimentacao" | "participacoes" | "presenca"
   >("presenca");
@@ -291,6 +294,15 @@ export function PessoaDetalhe() {
           >
             Veículos
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={abaCadastro === "parentes"}
+            className={`aba ${abaCadastro === "parentes" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaCadastro("parentes")}
+          >
+            Parentes
+          </button>
         </div>
 
         {abaCadastro === "foto" && (
@@ -363,11 +375,37 @@ export function PessoaDetalhe() {
             />
           </div>
         )}
+
+        {abaCadastro === "parentes" && (
+          <div className="tabs-painel" role="tabpanel" tabIndex={0}>
+            <EditarParentes
+              pessoa={pessoa}
+              pessoas={itens}
+              parentes={parentes}
+              podeEditar={temPermissao(sessao, "pessoas.parentes")}
+              aoAdicionar={async (parenteId, parentesco) => {
+                await adicionarParente(id!, parenteId, parentesco);
+              }}
+              aoRemover={async (parenteId) => {
+                await removerParente(id!, parenteId);
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {podeVerExclusivo && (
             <div className="tabs" role="tablist" aria-label="Históricos da pessoa">
               <div className="tabs-lista">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={abaHistorico === "presenca"}
+                  className={`aba ${abaHistorico === "presenca" ? "aba-ativa" : ""}`}
+                  onClick={() => setAbaHistorico("presenca")}
+                >
+                  Histórico de presença
+                </button>
                 <button
                   type="button"
                   role="tab"
@@ -386,16 +424,13 @@ export function PessoaDetalhe() {
                 >
                   Histórico participações
                 </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={abaHistorico === "presenca"}
-                  className={`aba ${abaHistorico === "presenca" ? "aba-ativa" : ""}`}
-                  onClick={() => setAbaHistorico("presenca")}
-                >
-                  Histórico de presença
-                </button>
               </div>
+
+              {abaHistorico === "presenca" && (
+                <div className="tabs-painel" role="tabpanel" tabIndex={0}>
+                  <HistoricoPresencaPessoa pessoaId={pessoa.id} sessao={sessao} />
+                </div>
+              )}
 
               {abaHistorico === "movimentacao" && (
                 <div className="tabs-painel" role="tabpanel" tabIndex={0}>
@@ -409,11 +444,6 @@ export function PessoaDetalhe() {
                 </div>
               )}
 
-              {abaHistorico === "presenca" && (
-                <div className="tabs-painel" role="tabpanel" tabIndex={0}>
-                  <HistoricoPresencaPessoa pessoaId={pessoa.id} sessao={sessao} />
-                </div>
-              )}
             </div>
       )}
 

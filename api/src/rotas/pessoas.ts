@@ -82,6 +82,54 @@ function pessoaDeRow(r: Record<string, unknown>) {
   };
 }
 
+// Pares de parentesco usados quando o parametro `parentesco` esta inativo ou
+// ausente. Espelhado no frontend (src/lib/tipos.ts). A seed do banco define a
+// lista oficial; este fallback so evita vazio antes de configurar o parametro.
+const PARENTESCOS_PADRAO: { ida: string; volta: string }[] = [
+  { ida: "Esposo", volta: "Esposa" },
+  { ida: "Esposa", volta: "Esposo" },
+  { ida: "Pai", volta: "Filho(a)" },
+  { ida: "Mãe", volta: "Filho(a)" },
+  { ida: "Filho(a)", volta: "Pai/Mãe" },
+  { ida: "Irmão", volta: "Irmão(ã)" },
+  { ida: "Irmã", volta: "Irmão(ã)" },
+  { ida: "Avô", volta: "Neto(a)" },
+  { ida: "Avó", volta: "Neto(a)" },
+  { ida: "Neto(a)", volta: "Avô/Avó" },
+  { ida: "Tio", volta: "Sobrinho(a)" },
+  { ida: "Tia", volta: "Sobrinho(a)" },
+  { ida: "Sobrinho(a)", volta: "Tio/Tia" },
+  { ida: "Primo(a)", volta: "Primo(a)" },
+  { ida: "Sogro(a)", volta: "Genro/Nora" },
+  { ida: "Genro", volta: "Sogro(a)" },
+  { ida: "Nora", volta: "Sogro(a)" },
+  { ida: "Cunhado(a)", volta: "Cunhado(a)" },
+];
+
+// Le o par de parentesco valido a partir do parametro ativo `parentesco`
+// (JSON array de {parentesco-ida, parentesco-volta}). Sem parametro ativo ou
+// com JSON invalido/vazio, usa o fallback em codigo.
+async function paresParentesco(): Promise<{ ida: string; volta: string }[]> {
+  const [param] = await sql`
+    SELECT valor FROM parametros WHERE chave = 'parentesco' AND ativo = TRUE
+  `;
+  if (!param || !param.valor) return PARENTESCOS_PADRAO;
+  try {
+    const dado = JSON.parse(String(param.valor));
+    if (!Array.isArray(dado)) return PARENTESCOS_PADRAO;
+    const pares = dado
+      .filter((i): i is Record<string, unknown> => !!i && typeof i === "object")
+      .map((obj) => ({
+        ida: String(obj["parentesco-ida"] ?? "").trim(),
+        volta: String(obj["parentesco-volta"] ?? "").trim(),
+      }))
+      .filter((p) => p.ida && p.volta);
+    return pares.length > 0 ? pares : PARENTESCOS_PADRAO;
+  } catch {
+    return PARENTESCOS_PADRAO;
+  }
+}
+
 // GET /api/pessoas
 const getPessoasRoute = createRoute({
   method: "get",
@@ -588,6 +636,184 @@ app.openapi(getHistoricoEquipesPessoaRoute, async (c) => {
     criadoEm: r.criado_em instanceof Date ? r.criado_em.toISOString() : String(r.criado_em ?? ""),
   }));
   return c.json(resultado as any, 200);
+});
+
+// GET /api/pessoas/:id/parentes
+const getParentesPessoaRoute = createRoute({
+  method: "get",
+  path: "/{id}/parentes",
+  tags: ["Pessoas"],
+  summary: "Lista os parentes de uma pessoa",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.array(z.any()) } }, description: "Lista de parentes" },
+    403: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Pessoa nao encontrada" },
+  },
+});
+
+app.openapi(getParentesPessoaRoute, async (c) => {
+  const { id } = c.req.valid("param");
+  const sessao = c.get("sessao");
+  const escopo = escopoPessoas(sessao);
+  if (!escopo) return c.json({ erro: "Acesso negado. Sem permissao de leitura de pessoas." }, 403);
+
+  let filtro = sql`p.id = ${id}`;
+  if (escopo === "equipe") {
+    const equipes = sessao.equipesCRD ?? [];
+    filtro = sql`p.id = ${id} AND EXISTS (
+      SELECT 1 FROM participacoes part
+      JOIN edicoes e ON e.id = part.edicao_id AND e.status = 'ativa'
+      WHERE part.pessoa_id = p.id AND part.equipe_id = ANY(${equipes})
+    )`;
+  } else if (escopo === "proprio") {
+    if (!sessao.pessoaId || sessao.pessoaId !== id) return c.json({ erro: "Pessoa não encontrada." }, 404);
+  }
+
+  const [pessoa] = await sql`SELECT p.id FROM pessoas p WHERE ${filtro}`;
+  if (!pessoa) return c.json({ erro: "Pessoa nao encontrada." }, 404);
+
+  const rows = await sql`
+    SELECT pr.parente_id, pr.parentesco, pr.criado_em, pe.nome, pe.cracha
+    FROM parentes pr
+    JOIN pessoas pe ON pe.id = pr.parente_id
+    WHERE pr.pessoa_id = ${id}
+    ORDER BY pe.nome
+  `;
+  const resultado = rows.map((r) => ({
+    pessoaId: id,
+    parenteId: r.parente_id,
+    parenteNome: r.nome,
+    parenteCracha: r.cracha,
+    parentesco: r.parentesco,
+    criadoEm: r.criado_em instanceof Date ? r.criado_em.toISOString() : String(r.criado_em ?? ""),
+  }));
+  return c.json(resultado as any, 200);
+});
+
+// POST /api/pessoas/:id/parentes
+const postParentePessoaRoute = createRoute({
+  method: "post",
+  path: "/{id}/parentes",
+  tags: ["Pessoas"],
+  summary: "Vincula um parente a uma pessoa (vínculo bidirecional)",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string() }),
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({ parenteId: z.string(), parentesco: z.string() }),
+        },
+      },
+    },
+  },
+  responses: {
+    201: { content: { "application/json": { schema: z.object({ ok: z.boolean() }) } }, description: "Criado" },
+    400: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Dados invalidos" },
+    403: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Nao encontrado" },
+    409: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Ja vinculado" },
+  },
+});
+
+app.openapi(postParentePessoaRoute, async (c) => {
+  const { id } = c.req.valid("param");
+  const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "pessoas.parentes")) {
+    return c.json({ erro: "Acesso negado. Requer permissao pessoas.parentes." }, 403);
+  }
+  const { parenteId, parentesco } = c.req.valid("json");
+  if (parenteId === id) {
+    return c.json({ erro: "Nao e possivel vincular a pessoa a si mesma." }, 400);
+  }
+
+  const [pessoa] = await sql`SELECT id, nome, cracha FROM pessoas WHERE id = ${id}`;
+  if (!pessoa) return c.json({ erro: "Pessoa nao encontrada." }, 404);
+  const [parente] = await sql`SELECT id, nome, cracha FROM pessoas WHERE id = ${parenteId}`;
+  if (!parente) return c.json({ erro: "Parente nao encontrado." }, 404);
+
+  const pares = await paresParentesco();
+  const par = pares.find((p) => p.ida === parentesco);
+  if (!par) {
+    return c.json(
+      { erro: "Parentesco inválido. Selecione uma opção do parâmetro 'parentesco'." },
+      400
+    );
+  }
+
+  const [existente] = await sql`
+    SELECT 1 FROM parentes
+    WHERE (pessoa_id = ${id} AND parente_id = ${parenteId})
+       OR (pessoa_id = ${parenteId} AND parente_id = ${id})
+  `;
+  if (existente) return c.json({ erro: "Parentesco já vinculado." }, 409);
+
+  await sql.begin(async (tx) => {
+    await tx`
+      INSERT INTO parentes (pessoa_id, parente_id, parentesco)
+      VALUES (${id}, ${parenteId}, ${par.ida})
+    `;
+    await tx`
+      INSERT INTO parentes (pessoa_id, parente_id, parentesco)
+      VALUES (${parenteId}, ${id}, ${par.volta})
+    `;
+  });
+
+  await registrarEvento(
+    sessao,
+    "pessoa.parente.vincular",
+    `pessoas/${id}`,
+    `${parente.nome} (#${parente.cracha}) como ${par.ida}`
+  );
+  return c.json({ ok: true }, 201);
+});
+
+// DELETE /api/pessoas/:id/parentes/:parenteId
+const deleteParentePessoaRoute = createRoute({
+  method: "delete",
+  path: "/{id}/parentes/{parenteId}",
+  tags: ["Pessoas"],
+  summary: "Desvincula um parente de uma pessoa (remove os dois lados)",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string(), parenteId: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.object({ ok: z.boolean() }) } }, description: "Sucesso" },
+    403: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Vinculo nao encontrado" },
+  },
+});
+
+app.openapi(deleteParentePessoaRoute, async (c) => {
+  const { id, parenteId } = c.req.valid("param");
+  const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "pessoas.parentes")) {
+    return c.json({ erro: "Acesso negado. Requer permissao pessoas.parentes." }, 403);
+  }
+
+  const [vinculo] = await sql`
+    SELECT pe.nome, pe.cracha FROM parentes pr
+    JOIN pessoas pe ON pe.id = pr.parente_id
+    WHERE pr.pessoa_id = ${id} AND pr.parente_id = ${parenteId}
+  `;
+  if (!vinculo) return c.json({ erro: "Vínculo não encontrado." }, 404);
+
+  await sql`
+    DELETE FROM parentes
+    WHERE (pessoa_id = ${id} AND parente_id = ${parenteId})
+       OR (pessoa_id = ${parenteId} AND parente_id = ${id})
+  `;
+  await registrarEvento(
+    sessao,
+    "pessoa.parente.desvincular",
+    `pessoas/${id}`,
+    `${vinculo.nome} (#${vinculo.cracha})`
+  );
+  return c.json({ ok: true }, 200);
 });
 
 export default app;

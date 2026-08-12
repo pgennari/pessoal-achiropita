@@ -110,6 +110,52 @@ export const TAMANHOS_CAMISETA_ADULTO_PADRAO: string[] = [
   "EG",
 ];
 
+// Parâmetro que define os pares de parentesco do vínculo bidirecional entre
+// pessoas (aba "Parentes" do cadastro). O valor é um JSON array de objetos
+// { "parentesco-ida", "parentesco-volta" }.
+export const CHAVE_PARAMETRO_PARENTESCO = "parentesco";
+
+// Par de parentesco: o rótulo "ida" é o que o usuário seleciona; o "volta" é
+// gravado automaticamente no cadastro do outro lado.
+export interface ParParentesco {
+  ida: string;
+  volta: string;
+}
+
+// Pares padrão usados quando o parâmetro não existe, está inativo ou vazio.
+// Espelhado na API (api/src/rotas/pessoas.ts).
+export const PARENTESCOS_PADRAO: ParParentesco[] = [
+  { ida: "Esposo", volta: "Esposa" },
+  { ida: "Esposa", volta: "Esposo" },
+  { ida: "Pai", volta: "Filho(a)" },
+  { ida: "Mãe", volta: "Filho(a)" },
+  { ida: "Filho(a)", volta: "Pai/Mãe" },
+  { ida: "Irmão", volta: "Irmão(ã)" },
+  { ida: "Irmã", volta: "Irmão(ã)" },
+  { ida: "Avô", volta: "Neto(a)" },
+  { ida: "Avó", volta: "Neto(a)" },
+  { ida: "Neto(a)", volta: "Avô/Avó" },
+  { ida: "Tio", volta: "Sobrinho(a)" },
+  { ida: "Tia", volta: "Sobrinho(a)" },
+  { ida: "Sobrinho(a)", volta: "Tio/Tia" },
+  { ida: "Primo(a)", volta: "Primo(a)" },
+  { ida: "Sogro(a)", volta: "Genro/Nora" },
+  { ida: "Genro", volta: "Sogro(a)" },
+  { ida: "Nora", volta: "Sogro(a)" },
+  { ida: "Cunhado(a)", volta: "Cunhado(a)" },
+];
+
+// Parentesco no ponto de vista da pessoa consultada (ex.: "Filho(a)" quando o
+// vínculo foi criado como Pai no cadastro do genitor).
+export interface Parentesco {
+  pessoaId: string;
+  parenteId: string;
+  parenteNome: string;
+  parenteCracha: number;
+  parentesco: string;
+  criadoEm: string;
+}
+
 export interface Filho {
   id: string;
   nome: string;

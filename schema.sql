@@ -617,8 +617,34 @@ CREATE TABLE IF NOT EXISTS parametros (
 -- Seed inicial dos parametros padrao (idempotente).
 INSERT INTO parametros (chave, valor, descricao) VALUES
   ('edicao.obrigarConfirmacaoDados', 'true', 'Obrigar a confirmação de dados na validação pública.'),
-  ('tamanho-camiseta-adulto', '["PP","P","M","G","GG","XG","EG"]', 'Opções de tamanho de camiseta adulto (lista única no cadastro da pessoa).')
+  ('tamanho-camiseta-adulto', '["PP","P","M","G","GG","XG","EG"]', 'Opções de tamanho de camiseta adulto (lista única no cadastro da pessoa).'),
+  ('parentesco', '[{"parentesco-ida":"Esposo","parentesco-volta":"Esposa"},{"parentesco-ida":"Esposa","parentesco-volta":"Esposo"},{"parentesco-ida":"Pai","parentesco-volta":"Filho(a)"},{"parentesco-ida":"Mãe","parentesco-volta":"Filho(a)"},{"parentesco-ida":"Filho(a)","parentesco-volta":"Pai/Mãe"},{"parentesco-ida":"Irmão","parentesco-volta":"Irmão(ã)"},{"parentesco-ida":"Irmã","parentesco-volta":"Irmão(ã)"},{"parentesco-ida":"Avô","parentesco-volta":"Neto(a)"},{"parentesco-ida":"Avó","parentesco-volta":"Neto(a)"},{"parentesco-ida":"Neto(a)","parentesco-volta":"Avô/Avó"},{"parentesco-ida":"Tio","parentesco-volta":"Sobrinho(a)"},{"parentesco-ida":"Tia","parentesco-volta":"Sobrinho(a)"},{"parentesco-ida":"Sobrinho(a)","parentesco-volta":"Tio/Tia"},{"parentesco-ida":"Primo(a)","parentesco-volta":"Primo(a)"},{"parentesco-ida":"Sogro(a)","parentesco-volta":"Genro/Nora"},{"parentesco-ida":"Genro","parentesco-volta":"Sogro(a)"},{"parentesco-ida":"Nora","parentesco-volta":"Sogro(a)"},{"parentesco-ida":"Cunhado(a)","parentesco-volta":"Cunhado(a)"}]', 'Opções de parentesco (pares ida/volta; lista única no cadastro da pessoa).')
 ON CONFLICT (chave) DO NOTHING;
+
+-- parentes: vínculo bidirecional entre duas pessoas. Cada linha guarda o
+-- rótulo na perspectiva de pessoa_id (ex.: (A, B, 'Pai') e (B, A, 'Filho(a)')).
+-- O inverso é gerado pelo backend a partir do parâmetro `parentesco`.
+CREATE TABLE IF NOT EXISTS parentes (
+  pessoa_id  TEXT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+  parente_id TEXT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+  parentesco TEXT NOT NULL,
+  criado_em  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (pessoa_id, parente_id),
+  CHECK (pessoa_id <> parente_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_parentes_parente ON parentes(parente_id);
+
+-- Permissao dedicada para gerenciar parentes (PBAC). Concedida ao ORG; o ADM
+-- e superuser e sempre possui todas as permissoes ativas.
+INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
+  ('pessoas.parentes', 'Pessoas: gerenciar parentes', 'Associar ou desassociar parentes à pessoa.')
+ON CONFLICT (codigo) DO NOTHING;
+
+UPDATE perfis SET
+  permissoes = permissoes || ARRAY['pessoas.parentes']
+WHERE sigla = 'ORG'
+  AND NOT 'pessoas.parentes' = ANY(permissoes);
 
 -- Controle de perfil: perfis deixam de ser um ENUM fixo e passam a ser um
 -- catalogo editavel. Colunas que guardam a sigla viram TEXT (nao e preciso

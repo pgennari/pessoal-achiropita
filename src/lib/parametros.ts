@@ -1,6 +1,11 @@
 import { api } from "./api";
 import { queryClient } from "./queryClient";
-import { Parametro } from "./tipos";
+import {
+  CHAVE_PARAMETRO_PARENTESCO,
+  Parametro,
+  PARENTESCOS_PADRAO,
+  ParParentesco,
+} from "./tipos";
 import { Sessao } from "./sessao";
 
 export interface DadosParametroForm {
@@ -40,6 +45,34 @@ export function opcoesDoParametro(
   }
 
   return opcoes.length > 0 ? opcoes : padrao;
+}
+
+// Lê os pares de parentesco do parâmetro `parentesco` (JSON array de
+// { parentesco-ida, parentesco-volta }). Retorna o fallback em código quando o
+// parâmetro não existe, está inativo ou o valor não vira uma lista útil.
+export function opcoesParentescoDoParametro(
+  parametros: Parametro[]
+): ParParentesco[] {
+  const parametro = parametros.find(
+    (p) => p.chave === CHAVE_PARAMETRO_PARENTESCO && p.ativo
+  );
+  if (!parametro || !parametro.valor.trim()) return PARENTESCOS_PADRAO;
+
+  try {
+    const dado: unknown = JSON.parse(parametro.valor);
+    if (!Array.isArray(dado)) return PARENTESCOS_PADRAO;
+    const pares: ParParentesco[] = [];
+    for (const item of dado) {
+      if (!item || typeof item !== "object") continue;
+      const obj = item as Record<string, unknown>;
+      const ida = String(obj["parentesco-ida"] ?? "").trim();
+      const volta = String(obj["parentesco-volta"] ?? "").trim();
+      if (ida && volta) pares.push({ ida, volta });
+    }
+    return pares.length > 0 ? pares : PARENTESCOS_PADRAO;
+  } catch {
+    return PARENTESCOS_PADRAO;
+  }
 }
 
 export async function criarParametro(

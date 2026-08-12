@@ -19,6 +19,7 @@ import {
   Participacao,
   ParticipacaoHistorica,
   Parametro,
+  Parentesco,
   Permissao,
   Pessoa,
   PessoaComVeiculos,
@@ -35,6 +36,7 @@ import {
   buscarEstacionamentoPublico,
   buscarHistoricoPublico,
 } from "./checkin";
+import { listarParentes } from "./parentes";
 import {
   listarPresencasDePessoa,
   listarPresencasDoDia,
@@ -400,6 +402,15 @@ export function useHistoricoEquipesPessoa(pessoaId: string | undefined): EstadoL
   const { data, isLoading, error } = useQuery({
     queryKey: ["pessoas", pessoaId, "historico-equipes"],
     queryFn: () => api.get<HistoricoEquipePessoa[]>(`/api/pessoas/${pessoaId}/historico-equipes`),
+    enabled: !!pessoaId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!pessoaId, erro: erroMsg(error) };
+}
+
+export function useParentes(pessoaId: string | undefined): EstadoLista<Parentesco> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["pessoas", pessoaId, "parentes"],
+    queryFn: () => listarParentes(pessoaId as string),
     enabled: !!pessoaId,
   });
   return { itens: data ?? [], carregando: isLoading && !!pessoaId, erro: erroMsg(error) };

@@ -18,6 +18,7 @@ import {
   LinkValidacao,
   Participacao,
   ParticipacaoHistorica,
+  Parametro,
   Permissao,
   Pessoa,
   PessoaComVeiculos,
@@ -232,6 +233,16 @@ export function usePermissoes(): EstadoLista<Permissao> {
   const { data, isLoading, error } = useQuery({
     queryKey: ["permissoes"],
     queryFn: () => api.get<Permissao[]>("/api/permissoes"),
+  });
+  return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
+}
+
+// ─── Parametros ───────────────────────────────────────────────────────────────
+
+export function useParametros(): EstadoLista<Parametro> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["parametros"],
+    queryFn: () => api.get<Parametro[]>("/api/parametros?todos=true"),
   });
   return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
 }

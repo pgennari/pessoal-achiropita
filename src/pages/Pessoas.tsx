@@ -16,7 +16,6 @@ import {
 import { useSessao, temPermissao, escopoPessoas } from "../lib/sessao";
 import { normalizar, soDigitos } from "../lib/utilsDominio";
 import { Funcao, FUNCOES, Pessoa } from "../lib/tipos";
-import { sincronizarTodosOsCrachas } from "../lib/buscaCracha";
 import { Icone } from "../components/Icone";
 
 type Filtro = "todos" | "ativos" | "inativos";
@@ -126,24 +125,6 @@ export function Pessoas() {
 
   const podeCriar = temPermissao(sessao, "pessoas.incluir");
   const escopoEquipe = escopoPessoas(sessao) === "equipe";
-  const [sincronizando, setSincronizando] = useState(false);
-  const [mensagemSync, setMensagemSync] = useState<string | null>(null);
-
-  async function handleSincronizarLookup() {
-    setSincronizando(true);
-    setMensagemSync(null);
-    try {
-      await sincronizarTodosOsCrachas(itens);
-      setMensagemSync(`${itens.length} registros sincronizados.`);
-    } catch (e) {
-      setMensagemSync(
-        "Falha na sincronização: " +
-        (e instanceof Error ? e.message : "erro desconhecido")
-      );
-    } finally {
-      setSincronizando(false);
-    }
-  }
 
   const participacoesDaEdicao = useMemo(() => {
     const equipesPorId = new Map(equipes.map((e) => [e.id, e.nome]));
@@ -208,18 +189,6 @@ export function Pessoas() {
           )}
         </div>
         <div className="flex gap-2 flex-wrap">
-          {sessao?.perfil === "ADM" && (
-            <button
-              type="button"
-              className="btn btn-secundario"
-              onClick={handleSincronizarLookup}
-              disabled={sincronizando || carregando}
-              aria-label="Recriar lookup"
-              title="Recria os documentos de lookup de crachá usados na validação pública"
-            >
-              <Icone nome="recarregar" />
-            </button>
-          )}
           {podeCriar && (
             <Link
               to="/pessoas/nova"
@@ -232,12 +201,6 @@ export function Pessoas() {
           )}
         </div>
       </header>
-
-      {mensagemSync && (
-        <div className="card border-verde/40">
-          <div className="card-corpo text-sm text-ardesia">{mensagemSync}</div>
-        </div>
-      )}
 
       <div className="card">
         <div className="card-corpo flex flex-wrap gap-3 items-center">

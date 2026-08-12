@@ -8,6 +8,4 @@ import { Pessoa } from "./tipos";
 
 export async function sincronizarBuscaCracha(_pessoa: Pessoa): Promise<void> {}
 
-export async function sincronizarTodosOsCrachas(_pessoas: Pessoa[]): Promise<void> {}
-
 export async function removerBuscaCracha(_cracha: number): Promise<void> {}

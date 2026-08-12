@@ -1,12 +1,15 @@
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   ArrowUp,
   Ban,
+  Braces,
   Calendar,
   Camera,
   Car,
   Check,
+  CheckCircle2,
   ChevronDown,
   Copy,
   Crop,
@@ -35,6 +38,7 @@ import {
   User,
   UserX,
   Users,
+  Wand2,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -77,6 +81,10 @@ const icones: Record<string, LucideIcon> = {
   "seta-baixo": ChevronDown,
   chat: MessageCircle,
   email: Mail,
+  chaves: Braces,
+  varinha: Wand2,
+  alerta: AlertTriangle,
+  "check-circular": CheckCircle2,
 };
 
 interface IconeProps {

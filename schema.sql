@@ -63,6 +63,10 @@ ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS foto_url TEXT;
 -- CREATE INDEX IF NOT EXISTS idx_pessoas_estacionamento ON pessoas(estacionamento_id);
 ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS estacionamento_id TEXT REFERENCES estacionamentos(id) ON DELETE SET NULL;
 
+-- Coluna adicionada na iteracao tamanho-camiseta-adulto (tamanho de camiseta no
+-- cadastro da pessoa). As opcoes sao definidas pelo parametro `tamanho-camiseta-adulto`.
+ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS tamanho_camiseta TEXT;
+
 CREATE INDEX idx_pessoas_cracha ON pessoas(cracha);
 CREATE INDEX idx_pessoas_ativo  ON pessoas(ativo);
 CREATE INDEX IF NOT EXISTS idx_pessoas_estacionamento ON pessoas(estacionamento_id);
@@ -495,6 +499,7 @@ INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
   ('perfil.editar', 'Perfis: editar', 'Editar os detalhes de perfis e o controle de menus.'),
   ('perfil.excluir', 'Perfis: excluir', 'Excluir perfis de acesso.'),
   ('permissao.gerenciar', 'Permissões: gerenciar', 'Criar, editar e excluir permissões do catálogo.'),
+  ('parametros.acessar', 'Parâmetros: acessar', 'Ver e editar os parâmetros do sistema.'),
   ('zeramento.executar', 'Zeramento', 'Executar o zeramento de dados.'),
   ('sincronizacao.executar', 'Sincronização: executar', 'Comparar e aplicar a sincronização com a planilha Google Sheets.')
 ON CONFLICT (codigo) DO NOTHING;
@@ -541,7 +546,8 @@ INSERT INTO perfis (sigla, nome, fixo, permissoes) VALUES
     setor.lista,setor.incluir,setor.editar,
     usuario.lista,usuario.conviteEnviar,usuario.conviteRevogar,usuario.editar,
     auditoria.ver,
-    perfil.lista
+    perfil.lista,
+    parametros.acessar
   }'),
   ('CRD', 'Coordenador de barraca', FALSE, '{
     veiculos.equipe,veiculos.detalhe,
@@ -590,6 +596,29 @@ UPDATE perfis SET
     ELSE permissoes || ARRAY['pessoas.editar']
   END
 WHERE sigla = 'CRD';
+
+-- Migracao dos parametros: ORG passa a acessar a tela de parametros.
+-- O ADM nao precisa da permissao no array: pode() concede por ser ADM.
+UPDATE perfis SET
+  permissoes = permissoes || ARRAY['parametros.acessar']
+WHERE sigla = 'ORG'
+  AND NOT 'parametros.acessar' = ANY(permissoes);
+
+-- parametros: chave-valor do sistema com texto livre (valor pode guardar JSON).
+CREATE TABLE IF NOT EXISTS parametros (
+  chave          TEXT PRIMARY KEY,
+  valor          TEXT NOT NULL DEFAULT '',
+  descricao      TEXT NOT NULL DEFAULT '',
+  ativo          BOOLEAN NOT NULL DEFAULT TRUE,
+  criado_em      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Seed inicial dos parametros padrao (idempotente).
+INSERT INTO parametros (chave, valor, descricao) VALUES
+  ('edicao.obrigarConfirmacaoDados', 'true', 'Obrigar a confirmação de dados na validação pública.'),
+  ('tamanho-camiseta-adulto', '["PP","P","M","G","GG","XG","EG"]', 'Opções de tamanho de camiseta adulto (lista única no cadastro da pessoa).')
+ON CONFLICT (chave) DO NOTHING;
 
 -- Controle de perfil: perfis deixam de ser um ENUM fixo e passam a ser um
 -- catalogo editavel. Colunas que guardam a sigla viram TEXT (nao e preciso

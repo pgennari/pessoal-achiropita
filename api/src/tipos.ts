@@ -18,6 +18,25 @@ export interface PermissaoInput {
   descricao?: string;
 }
 
+// Item do catalogo de parametros do sistema (tabela `parametros`).
+// O valor e texto livre e pode guardar JSON. A chave e imutavel apos a
+// criacao; `ativo = false` oculta o parametro das leituras padrao.
+export interface Parametro {
+  chave: string;
+  valor: string;
+  descricao: string;
+  ativo: boolean;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+// Payload de criacao de um parametro (POST /api/parametros).
+export interface ParametroInput {
+  chave: string;
+  valor: string;
+  descricao?: string;
+}
+
 export interface Sessao {
   uid: string;
   email: string;

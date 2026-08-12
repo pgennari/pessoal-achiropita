@@ -25,6 +25,18 @@ export interface Permissao {
   atualizadoEm?: string;
 }
 
+// Item do catalogo de parametros do sistema (GET/POST/PUT /api/parametros).
+// O valor e texto livre e pode guardar JSON. A chave e imutavel apos a
+// criacao; um parametro desativado some das leituras padrao.
+export interface Parametro {
+  chave: string;
+  valor: string;
+  descricao: string;
+  ativo: boolean;
+  criadoEm?: string;
+  atualizadoEm?: string;
+}
+
 // Item do catalogo de menus controlaveis pela tela de controle de menus
 // (/controle-menu). Os codigos em `permissoes` sao os do catalogo de
 // permissoes que liberam o menu na navegacao.
@@ -81,6 +93,21 @@ export const ESTADOS_CIVIS: EstadoCivil[] = [
   "Divorciado(a)",
   "Viúvo(a)",
   "Separado(a)",
+];
+
+// Parâmetro que define as opções de tamanho de camiseta adulto (lista única no
+// cadastro da pessoa). O valor do parâmetro é um JSON array de strings.
+export const CHAVE_PARAMETRO_TAMANHO_CAMISETA = "tamanho-camiseta-adulto";
+
+// Opções padrão usadas quando o parâmetro não existe, está inativo ou vazio.
+export const TAMANHOS_CAMISETA_ADULTO_PADRAO: string[] = [
+  "PP",
+  "P",
+  "M",
+  "G",
+  "GG",
+  "XG",
+  "EG",
 ];
 
 export interface Filho {
@@ -144,6 +171,7 @@ export interface Pessoa {
   cep?: string;
   estadoCivil?: EstadoCivil;
   nomeConjuge?: string;
+  tamanhoCamiseta?: string;
   temEstacionamento?: boolean;
   estacionamentoId?: string;
   estacionamentoNome?: string;

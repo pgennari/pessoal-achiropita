@@ -41,6 +41,7 @@ export function Presenca() {
   const [ocupado, setOcupado] = useState(false);
   const [pagina, setPagina] = useState(1);
   const [agora, setAgora] = useState(() => Date.now());
+  const [mostrarTodas, setMostrarTodas] = useState(false);
 
   const podeVer = temPermissao(sessao, "presenca.lista");
   const podeGerarLink = temPermissao(sessao, "presenca.linkGerar");
@@ -59,6 +60,10 @@ export function Presenca() {
     carregando: carregandoResumo,
     atualizadoEm: resumoAtualizadoEm,
   } = useResumoEquipesDoDia(diaAtivo?.id);
+
+  const equipesVisiveis = mostrarTodas
+    ? resumoEquipes
+    : resumoEquipes.filter((e) => !estaVerde(e.confirmados, e.total));
 
   useEffect(() => {
     setPagina(1);
@@ -179,6 +184,16 @@ export function Presenca() {
         </div>
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ardesia">
+          <label className="inline-flex items-center gap-2 text-carbone cursor-pointer">
+            <input
+              type="checkbox"
+              className="checkbox"
+              checked={mostrarTodas}
+              onChange={(e) => setMostrarTodas(e.target.checked)}
+            />
+            Mostrar todas as equipes
+          </label>
+          <span aria-hidden="true">·</span>
           <span className="inline-flex items-center gap-1.5">
             <span
               className="w-2 h-2 rounded-full bg-verde"
@@ -226,9 +241,9 @@ export function Presenca() {
             {diaAtivo && (
               <section className="mb-6">
 
-                {!carregandoResumo && resumoEquipes.length > 0 && (
+                {!carregandoResumo && equipesVisiveis.length > 0 && (
                   <div className="grid grid-cols-1 sm:grid-cols-5 gap-1 mb-4">
-                    {resumoEquipes.map((e) => (
+                    {equipesVisiveis.map((e) => (
                       <div
                         key={e.equipeId}
                         className={`flex items-center justify-between gap-0 px-4 py-1 ${corFundoConfirmados(e.confirmados, e.total)}`}
@@ -248,6 +263,15 @@ export function Presenca() {
                     ))}
                   </div>
                 )}
+
+                {!carregandoResumo &&
+                  resumoEquipes.length > 0 &&
+                  equipesVisiveis.length === 0 && (
+                    <div className="mb-4 rounded-sm bg-verde/10 border border-verde/30 px-4 py-3 text-sm text-verde-escuro">
+                      Todas as equipes já alcançaram 75% de presença confirmada
+                      para este dia.
+                    </div>
+                  )}
                 <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
                   <h3 className="font-display text-lg">Presenças confirmadas</h3>
                   <p className="text-ardesia text-sm">
@@ -533,18 +557,31 @@ function formatarContagem(ms: number): string {
   return `${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}`;
 }
 
+function porcentagemConfirmados(
+  confirmados: number,
+  total: number
+): number | null {
+  if (total <= 0) return null;
+  return (confirmados / total) * 100;
+}
+
+function estaVerde(confirmados: number, total: number): boolean {
+  const pct = porcentagemConfirmados(confirmados, total);
+  return pct !== null && pct >= 75;
+}
+
 function corConfirmados(confirmados: number, total: number): string {
-  if (total <= 0) return "text-ardesia";
-  const pct = (confirmados / total) * 100;
-  if (pct < 75) return "text-vermelho-escuro";
-  if (pct < 90) return "text-ouro-texto";
+  const pct = porcentagemConfirmados(confirmados, total);
+  if (pct === null) return "text-ardesia";
+  if (pct < 50) return "text-vermelho-escuro";
+  if (pct < 75) return "text-ouro-texto";
   return "text-verde-escuro";
 }
 
 function corFundoConfirmados(confirmados: number, total: number): string {
-  if (total <= 0) return "bg-pietra-clara";
-  const pct = (confirmados / total) * 100;
-  if (pct < 75) return "bg-vermelho/10";
-  if (pct < 90) return "bg-ouro/15";
+  const pct = porcentagemConfirmados(confirmados, total);
+  if (pct === null) return "bg-pietra-clara";
+  if (pct < 50) return "bg-vermelho/10";
+  if (pct < 75) return "bg-ouro/15";
   return "bg-verde/10";
 }

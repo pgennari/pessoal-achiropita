@@ -23,6 +23,7 @@ export interface DadosPessoaForm {
   endereco?: string;
   bairro?: string;
   estadoCivil?: Pessoa["estadoCivil"];
+  tamanhoCamiseta?: string;
   observacoes?: string;
   filhos: Filho[];
   carros: Carro[];
@@ -44,6 +45,7 @@ export function pessoaDeSnap(id: string, data: Record<string, unknown>): Pessoa 
     endereco: (data.endereco as string) || undefined,
     bairro: (data.bairro as string) || undefined,
     estadoCivil: (data.estadoCivil as Pessoa["estadoCivil"]) || undefined,
+    tamanhoCamiseta: (data.tamanhoCamiseta as string) || undefined,
     ativo: data.ativo === undefined ? true : (data.ativo as boolean),
     filhos: Array.isArray(data.filhos) ? (data.filhos as Filho[]) : [],
     carros: Array.isArray(data.carros) ? (data.carros as Carro[]) : [],
@@ -118,6 +120,7 @@ function payloadDeForm(dados: DadosPessoaForm) {
     endereco: dados.endereco?.trim() || null,
     bairro: dados.bairro?.trim() || null,
     estadoCivil: dados.estadoCivil || null,
+    tamanhoCamiseta: dados.tamanhoCamiseta?.trim() || null,
     observacoes: dados.observacoes?.trim() || null,
     ativo: dados.ativo,
     motivoInativacao: dados.motivoInativacao?.trim() || null,

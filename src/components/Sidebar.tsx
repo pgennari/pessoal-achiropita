@@ -142,6 +142,11 @@ const secoes: Secao[] = [
         permissoes: ["permissao.gerenciar"],
       },
       {
+        to: "/parametros",
+        label: "Parâmetros",
+        permissoes: ["parametros.acessar"],
+      },
+      {
         to: "/controle-menu",
         label: "Controle de Menus",
         permissoes: ["perfil.editar"],

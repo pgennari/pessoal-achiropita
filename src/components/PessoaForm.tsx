@@ -1,7 +1,14 @@
 import { FormEvent, useMemo, useState } from "react";
-import { ESTADOS_CIVIS, Pessoa } from "../lib/tipos";
+import {
+  CHAVE_PARAMETRO_TAMANHO_CAMISETA,
+  ESTADOS_CIVIS,
+  Pessoa,
+  TAMANHOS_CAMISETA_ADULTO_PADRAO,
+} from "../lib/tipos";
 import { DadosPessoaForm } from "../lib/pessoas";
 import { mascararCPF, mascararTelefone } from "../lib/utilsDominio";
+import { opcoesDoParametro } from "../lib/parametros";
+import { useParametros } from "../lib/hooks";
 import { Icone } from "./Icone";
 
 interface Props {
@@ -23,6 +30,7 @@ function dadosIniciais(p?: Pessoa | null): DadosPessoaForm {
     endereco: p?.endereco ?? "",
     bairro: p?.bairro ?? "",
     estadoCivil: p?.estadoCivil,
+    tamanhoCamiseta: p?.tamanhoCamiseta,
     observacoes: p?.observacoes,
     filhos: p?.filhos ?? [],
     carros: p?.carros ?? [],
@@ -43,6 +51,12 @@ export function PessoaForm({
   );
   const [enviando, setEnviando] = useState(false);
   const [errosLocal, setErrosLocal] = useState<Record<string, string>>({});
+  const { itens: parametros } = useParametros();
+  const tamanhosCamiseta = opcoesDoParametro(
+    parametros,
+    CHAVE_PARAMETRO_TAMANHO_CAMISETA,
+    TAMANHOS_CAMISETA_ADULTO_PADRAO
+  );
 
   const erros = useMemo(
     () => ({ ...errosLocal, ...(errosServidor ?? {}) }),
@@ -141,6 +155,28 @@ export function PessoaForm({
               {ESTADOS_CIVIS.map((ec) => (
                 <option key={ec} value={ec}>
                   {ec}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="input-grupo">
+            <label className="input-label" htmlFor="tamanhoCamiseta">
+              Tamanho de camiseta{" "}
+              <span className="opcional">(opcional)</span>
+            </label>
+            <select
+              id="tamanhoCamiseta"
+              className="input"
+              value={dados.tamanhoCamiseta ?? ""}
+              onChange={(e) =>
+                set("tamanhoCamiseta", e.target.value || undefined)
+              }
+            >
+              <option value="">—</option>
+              {tamanhosCamiseta.map((t) => (
+                <option key={t} value={t}>
+                  {t}
                 </option>
               ))}
             </select>

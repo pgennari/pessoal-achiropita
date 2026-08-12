@@ -54,6 +54,7 @@ export function PessoaDetalhe() {
   const podeInativar = temPermissao(sessao, "pessoas.ativar");
   const podeExcluir = temPermissao(sessao, "pessoas.excluir");
   const bloquearSensivel = sessao.perfil !== "ADM";
+  const podeVerExclusivo = temPermissao(sessao, "exclusivoPessoal");
 
   if (carregando) {
     return <p className="text-ardesia">Carregando...</p>;
@@ -308,6 +309,10 @@ export function PessoaDetalhe() {
                 }`}
               />
               <Linha rotulo="Estado civil" valor={pessoa.estadoCivil ?? "—"} />
+              <Linha
+                rotulo="Tamanho de camiseta"
+                valor={pessoa.tamanhoCamiseta ?? "—"}
+              />
               <Linha rotulo="Telefone" valor={pessoa.telefone || "—"} />
               <Linha rotulo="E-mail" valor={pessoa.email ?? "—"} />
               <Linha
@@ -360,55 +365,57 @@ export function PessoaDetalhe() {
         )}
       </div>
 
-      <div className="tabs" role="tablist" aria-label="Históricos da pessoa">
-        <div className="tabs-lista">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={abaHistorico === "movimentacao"}
-            className={`aba ${abaHistorico === "movimentacao" ? "aba-ativa" : ""}`}
-            onClick={() => setAbaHistorico("movimentacao")}
-          >
-            Histórico movimentação
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={abaHistorico === "participacoes"}
-            className={`aba ${abaHistorico === "participacoes" ? "aba-ativa" : ""}`}
-            onClick={() => setAbaHistorico("participacoes")}
-          >
-            Histórico participações
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={abaHistorico === "presenca"}
-            className={`aba ${abaHistorico === "presenca" ? "aba-ativa" : ""}`}
-            onClick={() => setAbaHistorico("presenca")}
-          >
-            Histórico de presença
-          </button>
-        </div>
+      {podeVerExclusivo && (
+            <div className="tabs" role="tablist" aria-label="Históricos da pessoa">
+              <div className="tabs-lista">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={abaHistorico === "movimentacao"}
+                  className={`aba ${abaHistorico === "movimentacao" ? "aba-ativa" : ""}`}
+                  onClick={() => setAbaHistorico("movimentacao")}
+                >
+                  Histórico movimentação
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={abaHistorico === "participacoes"}
+                  className={`aba ${abaHistorico === "participacoes" ? "aba-ativa" : ""}`}
+                  onClick={() => setAbaHistorico("participacoes")}
+                >
+                  Histórico participações
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={abaHistorico === "presenca"}
+                  className={`aba ${abaHistorico === "presenca" ? "aba-ativa" : ""}`}
+                  onClick={() => setAbaHistorico("presenca")}
+                >
+                  Histórico de presença
+                </button>
+              </div>
 
-        {abaHistorico === "movimentacao" && (
-          <div className="tabs-painel" role="tabpanel" tabIndex={0}>
-            <HistoricoEquipesPessoa pessoaId={pessoa.id} />
-          </div>
-        )}
+              {abaHistorico === "movimentacao" && (
+                <div className="tabs-painel" role="tabpanel" tabIndex={0}>
+                  <HistoricoEquipesPessoa pessoaId={pessoa.id} />
+                </div>
+              )}
 
-        {abaHistorico === "participacoes" && (
-          <div className="tabs-painel" role="tabpanel" tabIndex={0}>
-            <HistoricoPessoa pessoa={pessoa} />
-          </div>
-        )}
+              {abaHistorico === "participacoes" && (
+                <div className="tabs-painel" role="tabpanel" tabIndex={0}>
+                  <HistoricoPessoa pessoa={pessoa} />
+                </div>
+              )}
 
-        {abaHistorico === "presenca" && (
-          <div className="tabs-painel" role="tabpanel" tabIndex={0}>
-            <HistoricoPresencaPessoa pessoaId={pessoa.id} sessao={sessao} />
-          </div>
-        )}
-      </div>
+              {abaHistorico === "presenca" && (
+                <div className="tabs-painel" role="tabpanel" tabIndex={0}>
+                  <HistoricoPresencaPessoa pessoaId={pessoa.id} sessao={sessao} />
+                </div>
+              )}
+            </div>
+      )}
 
       {pessoa.atualizadoEm && (
         <p className="text-xs text-ardesia font-mono">

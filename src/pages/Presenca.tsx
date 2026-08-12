@@ -63,7 +63,7 @@ export function Presenca() {
 
   const equipesVisiveis = mostrarTodas
     ? resumoEquipes
-    : resumoEquipes.filter((e) => !estaVerde(e.confirmados, e.total));
+    : resumoEquipes.filter((e) => e.confirmados === 0);
 
   useEffect(() => {
     setPagina(1);
@@ -268,8 +268,8 @@ export function Presenca() {
                   resumoEquipes.length > 0 &&
                   equipesVisiveis.length === 0 && (
                     <div className="mb-4 rounded-sm bg-verde/10 border border-verde/30 px-4 py-3 text-sm text-verde-escuro">
-                      Todas as equipes já alcançaram 75% de presença confirmada
-                      para este dia.
+                      Todas as equipes já têm pelo menos uma presença
+                      confirmada para este dia.
                     </div>
                   )}
                 <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
@@ -563,11 +563,6 @@ function porcentagemConfirmados(
 ): number | null {
   if (total <= 0) return null;
   return (confirmados / total) * 100;
-}
-
-function estaVerde(confirmados: number, total: number): boolean {
-  const pct = porcentagemConfirmados(confirmados, total);
-  return pct !== null && pct >= 75;
 }
 
 function corConfirmados(confirmados: number, total: number): string {

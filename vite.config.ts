@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
@@ -15,9 +16,25 @@ function versaoDoBuild(): string {
   return `v0.1-${sha} ${data}Z`;
 }
 
+// Publica /versao.json junto do app (dist/). O cliente compara a versão do
+// arquivo com a versão embutida no build (VERSAO_APP) a cada chamada da API
+// e avisa quando houver um build mais novo no Hosting.
+function pluginVersaoJson(versao: string): Plugin {
+  return {
+    name: "versao-json",
+    apply: "build",
+    closeBundle() {
+      const destino = path.resolve(process.cwd(), "dist", "versao.json");
+      fs.writeFileSync(destino, JSON.stringify({ versao }));
+    },
+  };
+}
+
+const VERSAO = versaoDoBuild();
+
 export default defineConfig({
   define: {
-    VERSAO_APP: JSON.stringify(versaoDoBuild()),
+    VERSAO_APP: JSON.stringify(VERSAO),
   },
   plugins: [
     react(),
@@ -79,6 +96,7 @@ export default defineConfig({
         enabled: false,
       },
     }),
+    pluginVersaoJson(VERSAO),
   ],
   resolve: {
     alias: { "@": path.resolve(__dirname, "src") },

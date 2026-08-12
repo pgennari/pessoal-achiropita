@@ -2,6 +2,7 @@
 // Todas as rotas autenticadas adicionam o Firebase ID Token do usuário atual.
 // Rotas públicas (fluxo de validação) usam sessaoJwt.
 import { auth } from "./firebase";
+import { verificarVersao } from "./versao";
 
 const BASE = ((import.meta.env.VITE_API_URL as string | undefined) ?? "").replace(/\/+$/, "");
 
@@ -30,6 +31,8 @@ async function requisicao<T>(
     headers,
     body: corpo !== undefined ? JSON.stringify(corpo) : undefined,
   });
+
+  verificarVersao();
 
   if (!res.ok) {
     const payload = await res.json().catch(() => ({})) as { erro?: string };
@@ -61,6 +64,7 @@ export async function apiPublica<T>(
     headers: { "Content-Type": "application/json" },
     body: corpo !== undefined ? JSON.stringify(corpo) : undefined,
   });
+  verificarVersao();
   if (!res.ok) {
     const payload = await res.json().catch(() => ({})) as { erro?: string };
     throw new Error(payload.erro ?? `Erro ${res.status}`);

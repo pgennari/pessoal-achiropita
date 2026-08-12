@@ -9,7 +9,7 @@ import {
   useVeiculos,
 } from "../lib/hooks";
 import { normalizar, soDigitos } from "../lib/utilsDominio";
-import { Funcao, Pessoa, VeiculoComPessoas } from "../lib/tipos";
+import { Equipe, Funcao, Pessoa, SETORES, VeiculoComPessoas } from "../lib/tipos";
 
 interface Props {
   aberto: boolean;
@@ -23,7 +23,8 @@ interface ContextoEdicao {
 
 type Resultado =
   | { tipo: "pessoa"; pessoa: Pessoa }
-  | { tipo: "veiculo"; veiculo: VeiculoComPessoas };
+  | { tipo: "veiculo"; veiculo: VeiculoComPessoas }
+  | { tipo: "equipe"; equipe: Equipe };
 
 type ResultadoComPontos = Resultado & { pontos: number };
 
@@ -69,6 +70,15 @@ function pontuarVeiculo(
     return 35;
   if ((t === "sim" || t === "impresso") && v.crachaCarroImpresso) return 45;
   if (t === "nao" && !v.crachaCarroImpresso) return 45;
+  return 0;
+}
+
+function pontuarEquipe(e: Equipe, termo: string): number {
+  const t = normalizar(termo);
+  if (!t) return 0;
+  if (normalizar(e.nome).startsWith(t)) return 100;
+  if (normalizar(e.nome).includes(t)) return 50;
+  if (normalizar(e.setor).includes(t)) return 20;
   return 0;
 }
 
@@ -142,7 +152,7 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
     return m;
   }, [veiculos, participacoes, equipes]);
 
-  const total = itens.length + veiculos.length;
+  const total = itens.length + veiculos.length + equipes.length;
 
   const resultados = useMemo(() => {
     let lista: ResultadoComPontos[];
@@ -150,6 +160,7 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
       lista = [
         ...itens.map((p): ResultadoComPontos => ({ tipo: "pessoa", pessoa: p, pontos: 0 })),
         ...veiculos.map((v): ResultadoComPontos => ({ tipo: "veiculo", veiculo: v, pontos: 0 })),
+        ...equipes.map((e): ResultadoComPontos => ({ tipo: "equipe", equipe: e, pontos: 0 })),
       ];
     } else {
       lista = [
@@ -163,10 +174,17 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
             pontos: pontuarVeiculo(v, termo, mapaEstacionamento, equipesPorVeiculo),
           }))
           .filter((r) => r.pontos > 0),
+        ...equipes
+          .map((e): ResultadoComPontos => ({
+            tipo: "equipe",
+            equipe: e,
+            pontos: pontuarEquipe(e, termo),
+          }))
+          .filter((r) => r.pontos > 0),
       ].sort((a, b) => b.pontos - a.pontos);
     }
     return lista;
-  }, [itens, veiculos, termo, mapaEstacionamento, equipesPorVeiculo]);
+  }, [itens, veiculos, equipes, termo, mapaEstacionamento, equipesPorVeiculo]);
 
   useEffect(() => {
     setDestaque((d) => Math.min(d, Math.max(resultados.length - 1, 0)));
@@ -174,6 +192,10 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
 
   function abrir(r: Resultado) {
     onFechar();
+    if (r.tipo === "equipe") {
+      navigate(`/edicoes/${r.equipe.edicaoId}/equipes/${r.equipe.id}`);
+      return;
+    }
     navigate(r.tipo === "veiculo" ? `/veiculos/${r.veiculo.id}` : `/pessoas/${r.pessoa.id}`);
   }
 
@@ -277,6 +299,51 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
                         {equipesDoVeiculo.length > 0
                           ? ` · ${equipesDoVeiculo.join(", ")}`
                           : ""}
+                      </div>
+                    </div>
+                  </button>
+                </li>
+              );
+            }
+            if (r.tipo === "equipe") {
+              const e = r.equipe;
+              const rotuloSetor =
+                SETORES.find((s) => s.valor === e.setor)?.rotulo ?? e.setor;
+              return (
+                <li key={`equipe-${e.id}`}>
+                  <button
+                    type="button"
+                    className={baseClasse}
+                    onMouseEnter={() => setDestaque(idx)}
+                    onClick={() => abrir(r)}
+                  >
+                    <div
+                      aria-hidden
+                      className="h-9 w-9 shrink-0 rounded-full bg-pietra-clara flex items-center justify-center text-ardesia"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-carbone truncate">
+                        {e.nome}
+                      </div>
+                      <div className="text-xs text-ardesia font-mono truncate">
+                        Equipe · {rotuloSetor}
                       </div>
                     </div>
                   </button>

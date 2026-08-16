@@ -435,13 +435,6 @@ export function EstacionamentoDetalhe() {
           </button>
           <button
             type="button"
-            className={`aba ${abaAtiva === "vagas" ? "aba-ativa" : ""}`}
-            onClick={() => setAbaAtiva("vagas")}
-          >
-            Vagas
-          </button>
-          <button
-            type="button"
             className={`aba ${abaAtiva === "checkins" ? "aba-ativa" : ""}`}
             onClick={() => setAbaAtiva("checkins")}
           >

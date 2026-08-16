@@ -7,7 +7,12 @@ import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Vaga, VagaVeiculo } from "../lib/tipos";
 import { useSessao, temPermissao } from "../lib/sessao";
-import { useTodosCheckins, useCheckinsEstacionamento } from "../lib/hooks";
+import {
+  useEdicaoAtiva,
+  useDiasFesta,
+  useTodosCheckins,
+  useCheckinsEstacionamento,
+} from "../lib/hooks";
 import { registrarCheckinsManuais } from "../lib/veiculos";
 import { Icone } from "./Icone";
 
@@ -17,19 +22,10 @@ interface Props {
   carregando?: boolean;
 }
 
-// Dias de festa (fins de semana de agosto/2026), numerados de 1 a 10.
-const DIAS = [
-  { numero: 1, data: "2026-08-01" },
-  { numero: 2, data: "2026-08-02" },
-  { numero: 3, data: "2026-08-08" },
-  { numero: 4, data: "2026-08-09" },
-  { numero: 5, data: "2026-08-15" },
-  { numero: 6, data: "2026-08-16" },
-  { numero: 7, data: "2026-08-22" },
-  { numero: 8, data: "2026-08-23" },
-  { numero: 9, data: "2026-08-29" },
-  { numero: 10, data: "2026-08-30" },
-];
+interface DiaInfo {
+  numero: number;
+  data: string;
+}
 
 function useDebounce(valor: string, atraso: number) {
   const [debounced, setDebounced] = useState(valor);
@@ -54,8 +50,16 @@ function formatarDataISO(data: string): string {
 
 export function ListaVagas({ estacionamentoId, vagas, carregando }: Props) {
   const { sessao } = useSessao();
+  const { edicao } = useEdicaoAtiva();
+  const { itens: diasFesta } = useDiasFesta(edicao?.id);
   const { itens: checkins, carregando: carregandoCheckins } = useTodosCheckins();
   const { itens: checkinsEstacionamento } = useCheckinsEstacionamento(estacionamentoId);
+
+  const dias: DiaInfo[] = useMemo(() => {
+    return [...diasFesta]
+      .sort((a, b) => a.data.localeCompare(b.data))
+      .map((d, i) => ({ numero: i + 1, data: d.data }));
+  }, [diasFesta]);
   const [vagaCheckinManual, setVagaCheckinManual] = useState<Vaga | null>(null);
   const [veiculoCheckinManual, setVeiculoCheckinManual] = useState<VagaVeiculo | null>(null);
   const [diasCheckinSelecionados, setDiasCheckinSelecionados] = useState<Set<string>>(new Set());
@@ -73,9 +77,9 @@ export function ListaVagas({ estacionamentoId, vagas, carregando }: Props) {
     for (const ck of checkins) {
       if (!ck.carroId) continue;
       const data = dataLocalISO(new Date(ck.timestamp));
-      const dias = m.get(ck.carroId) ?? new Set<string>();
-      dias.add(data);
-      m.set(ck.carroId, dias);
+      const conjunto = m.get(ck.carroId) ?? new Set<string>();
+      conjunto.add(data);
+      m.set(ck.carroId, conjunto);
     }
     return m;
   }, [checkins]);
@@ -85,14 +89,14 @@ export function ListaVagas({ estacionamentoId, vagas, carregando }: Props) {
   const checkinsPorVaga = useMemo(() => {
     const m = new Map<string, Set<string>>();
     for (const v of vagas) {
-      const dias = new Set<string>();
+      const conjunto = new Set<string>();
       for (const veiculo of v.veiculos) {
         const diasVeiculo = diasPorCarro.get(veiculo.id);
         if (diasVeiculo) {
-          for (const d of diasVeiculo) dias.add(d);
+          for (const d of diasVeiculo) conjunto.add(d);
         }
       }
-      m.set(v.id, dias);
+      m.set(v.id, conjunto);
     }
     return m;
   }, [vagas, diasPorCarro]);
@@ -103,9 +107,9 @@ export function ListaVagas({ estacionamentoId, vagas, carregando }: Props) {
     for (const ck of checkinsEstacionamento) {
       if (!ck.carroId) continue;
       const data = dataLocalISO(new Date(ck.timestamp));
-      const dias = m.get(ck.carroId) ?? new Set<string>();
-      dias.add(data);
-      m.set(ck.carroId, dias);
+      const conjunto = m.get(ck.carroId) ?? new Set<string>();
+      conjunto.add(data);
+      m.set(ck.carroId, conjunto);
     }
     return m;
   }, [checkinsEstacionamento]);
@@ -137,11 +141,11 @@ export function ListaVagas({ estacionamentoId, vagas, carregando }: Props) {
     return vagasFiltradas.filter((v) => {
       const diasComCheckin = checkinsPorVaga.get(v.id) ?? new Set<string>();
       if (filtroCheckin === "com") {
-        return DIAS.some((d) => diasComCheckin.has(d.data));
+        return dias.some((d) => diasComCheckin.has(d.data));
       }
-      return DIAS.some((d) => d.data <= hoje && !diasComCheckin.has(d.data));
+      return dias.some((d) => d.data <= hoje && !diasComCheckin.has(d.data));
     });
-  }, [vagasFiltradas, filtroCheckin, checkinsPorVaga]);
+  }, [vagasFiltradas, filtroCheckin, checkinsPorVaga, dias]);
 
   if (carregando) {
     return <p className="text-ardesia text-sm">Carregando vagas...</p>;
@@ -270,7 +274,7 @@ export function ListaVagas({ estacionamentoId, vagas, carregando }: Props) {
                     </div>
                   )}
                   <div className="flex flex-wrap items-center gap-1 mt-2">
-                    {DIAS.map((d) => {
+                    {dias.map((d) => {
                       const temCheckin = checkinsPorVaga.get(v.id)?.has(d.data) ?? false;
                       const futuro = d.data > dataLocalISO(new Date());
                       const classe = carregandoCheckins || futuro
@@ -371,7 +375,7 @@ export function ListaVagas({ estacionamentoId, vagas, carregando }: Props) {
                     Selecione um ou mais dias para registrar o check-in às 23:59.
                   </p>
                   <div className="grid grid-cols-5 gap-2">
-                    {DIAS.map((d) => {
+                    {dias.map((d) => {
                       const jaTemCheckin = diasJaComCheckin.has(d.data);
                       const selecionado = diasCheckinSelecionados.has(d.data);
                       const classe = jaTemCheckin

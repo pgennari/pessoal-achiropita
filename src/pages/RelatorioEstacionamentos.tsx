@@ -5,6 +5,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  useDiasFesta,
   useEdicaoAtiva,
   useEquipes,
   useParticipacoes,
@@ -14,19 +15,10 @@ import {
 import { useSessao } from "../lib/sessao";
 import { normalizar } from "../lib/utilsDominio";
 
-// Dias de festa (fins de semana de agosto/2026), numerados de 1 a 10.
-const DIAS = [
-  { numero: 1, data: "2026-08-01" },
-  { numero: 2, data: "2026-08-02" },
-  { numero: 3, data: "2026-08-08" },
-  { numero: 4, data: "2026-08-09" },
-  { numero: 5, data: "2026-08-15" },
-  { numero: 6, data: "2026-08-16" },
-  { numero: 7, data: "2026-08-22" },
-  { numero: 8, data: "2026-08-23" },
-  { numero: 9, data: "2026-08-29" },
-  { numero: 10, data: "2026-08-30" },
-];
+interface DiaRelatorio {
+  numero: number;
+  data: string;
+}
 
 function dataLocalISO(d: Date): string {
   const ano = d.getFullYear();
@@ -45,6 +37,7 @@ export function RelatorioEstacionamentos() {
   const { itens: veiculos, carregando, erro } = useVeiculos();
   const { itens: checkins, carregando: carregandoCheckins } = useTodosCheckins();
   const { edicao } = useEdicaoAtiva();
+  const { itens: diasFesta } = useDiasFesta(edicao?.id);
   const { itens: equipes } = useEquipes(edicao?.id);
   const { itens: participacoes } = useParticipacoes(edicao?.id);
   const [termo, setTermo] = useState("");
@@ -81,6 +74,14 @@ export function RelatorioEstacionamentos() {
     }
     return m;
   }, [veiculos, equipesPorPessoa]);
+
+  const dias = useMemo<DiaRelatorio[]>(
+    () =>
+      [...diasFesta]
+        .sort((a, b) => a.data.localeCompare(b.data))
+        .map((d, i) => ({ numero: i + 1, data: d.data })),
+    [diasFesta]
+  );
 
   const checkinsPorVeiculo = useMemo(() => {
     const dias = new Map<string, Set<string>>();
@@ -153,9 +154,9 @@ export function RelatorioEstacionamentos() {
         const diasComCheckin =
           checkinsPorVeiculo.dias.get(v.id) ?? new Set<string>();
         if (filtroCheckin === "com") {
-          if (!DIAS.some((d) => diasComCheckin.has(d.data))) return false;
+          if (!dias.some((d) => diasComCheckin.has(d.data))) return false;
         } else {
-          if (!DIAS.some((d) => d.data <= hoje && !diasComCheckin.has(d.data)))
+          if (!dias.some((d) => d.data <= hoje && !diasComCheckin.has(d.data)))
             return false;
         }
       }
@@ -235,26 +236,26 @@ export function RelatorioEstacionamentos() {
             <p className="text-ardesia text-sm text-right mb-4">
               {carregando ? "Carregando..." : `${veiculosFiltrados.length} de ${veiculos.length} registros`}
             </p>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="tabela-rolavel">
+              <table className="tabela-larga">
               <thead>
                 <tr className="border-b border-pietra">
-                  <th className="text-left py-0.5 px-1 font-medium text-ardesia">
+                  <th className="text-left py-0.5 px-1 font-medium text-ardesia whitespace-nowrap">
                     Barraca
                   </th>
-                  <th className="text-left py-0.5 px-1 font-medium text-ardesia">
+                  <th className="text-left py-0.5 px-1 font-medium text-ardesia whitespace-nowrap">
                     Nome
                   </th>
-                  <th className="text-left py-0.5 px-1 font-medium text-ardesia">
+                  <th className="text-left py-0.5 px-1 font-medium text-ardesia whitespace-nowrap">
                     Placa
                   </th>
-                  <th className="text-left py-0.5 px-1 font-medium text-ardesia">
+                  <th className="text-left py-0.5 px-1 font-medium text-ardesia whitespace-nowrap">
                     Estacionamento
                   </th>
-                  <th className="text-left py-0.5 px-1 font-medium text-ardesia">
+                  <th className="text-left py-0.5 px-1 font-medium text-ardesia whitespace-nowrap">
                     Total
                   </th>
-                  <th className="text-left py-0.5 px-1 font-medium text-ardesia">
+                  <th className="text-left py-0.5 px-1 font-medium text-ardesia whitespace-nowrap">
                     Check-ins
                   </th>
                 </tr>
@@ -373,30 +374,30 @@ export function RelatorioEstacionamentos() {
                   return (
                     <tr
                       key={v.id}
-                      className="border-b border-pietra-clara hover:bg-pietra-clara/50 align-top"
+                      className="border-b border-pietra-clara hover:bg-pietra-clara/50"
                     >
-                      <td className="py-0.5 px-0.5">
+                      <td className="py-0.5 px-0.5 whitespace-nowrap">
                         {equipesVeiculo.length > 0
                           ? equipesVeiculo.join(" · ")
                           : "-"}
                       </td>
-                      <td className="py-0.5 px-0.5">
+                      <td className="py-0.5 px-0.5 whitespace-nowrap">
                         {v.pessoas.length > 0
                           ? v.pessoas.map((p) => p.nome).join(", ")
                           : "-"}
                       </td>
-                      <td className="py-0.5 px-0.5 font-mono font-medium">
+                      <td className="py-0.5 px-0.5 font-mono font-medium whitespace-nowrap">
                         {v.placa}
                       </td>
-                      <td className="py-0.5 px-0.5">
+                      <td className="py-0.5 px-0.5 whitespace-nowrap">
                         {estacionamentoNome || "-"}
                       </td>
-                      <td className="py-0.5 px-0.5 font-mono font-semibold">
+                      <td className="py-0.5 px-0.5 font-mono font-semibold whitespace-nowrap">
                         {carregandoCheckins ? "-" : total}
                       </td>
                       <td className="py-0.5 px-0.5">
-                        <div className="flex flex-wrap items-center gap-0.5">
-                          {DIAS.map((d) => {
+                        <div className="flex flex-nowrap items-center gap-0.5">
+                          {dias.map((d) => {
                             const temCheckin =
                               checkinsPorVeiculo.dias
                                 .get(v.id)

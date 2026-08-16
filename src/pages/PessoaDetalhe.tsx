@@ -368,10 +368,12 @@ export function PessoaDetalhe() {
               aoVincular={async (veiculoId) => {
                 await vincularVeiculoPessoa(id!, veiculoId);
                 await queryClient.invalidateQueries({ queryKey: ["pessoas", id, "veiculos"] });
+                await queryClient.invalidateQueries({ queryKey: ["veiculos"] });
               }}
               aoDesvincular={async (veiculoId) => {
                 await desvincularVeiculoPessoa(id!, veiculoId);
                 await queryClient.invalidateQueries({ queryKey: ["pessoas", id, "veiculos"] });
+                await queryClient.invalidateQueries({ queryKey: ["veiculos"] });
               }}
               aoCriar={async (dados) => {
                 const veiculo = await criarVeiculo(dados);

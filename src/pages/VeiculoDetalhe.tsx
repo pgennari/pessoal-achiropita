@@ -6,13 +6,22 @@
 // ============================================================================
 import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useVeiculo, usePessoasVeiculo, usePessoas } from "../lib/hooks";
 import { useSessao, temPermissao } from "../lib/sessao";
 import { VeiculoForm } from "../components/VeiculoForm";
 import { atualizarVeiculo, excluirVeiculo, vincularPessoaVeiculo, desvincularPessoaVeiculo, type DadosVeiculo } from "../lib/veiculos";
 import { VinculoPessoa } from "../components/VinculoPessoa";
 import { Icone } from "../components/Icone";
+
+function invalidarDadosVeiculo(queryClient: QueryClient, id: string) {
+  queryClient.invalidateQueries({ queryKey: ["veiculos"] });
+  queryClient.invalidateQueries({ queryKey: ["veiculos", id] });
+  queryClient.invalidateQueries({ queryKey: ["veiculos", id, "pessoas"] });
+  queryClient.invalidateQueries({
+    predicate: (q) => q.queryKey[0] === "pessoas" && q.queryKey[2] === "veiculos",
+  });
+}
 
 export function VeiculoDetalhe() {
   const { id } = useParams<{ id: string }>();
@@ -37,13 +46,13 @@ export function VeiculoDetalhe() {
   const handleVincularPessoa = async (pessoaId: string) => {
     if (!id) return;
     await vincularPessoaVeiculo(id, pessoaId);
-    await queryClient.invalidateQueries({ queryKey: ["veiculos", id, "pessoas"] });
+    await invalidarDadosVeiculo(queryClient, id);
   };
 
   const handleDesvincularPessoa = async (pessoaId: string) => {
     if (!id) return;
     await desvincularPessoaVeiculo(id, pessoaId);
-    await queryClient.invalidateQueries({ queryKey: ["veiculos", id, "pessoas"] });
+    await invalidarDadosVeiculo(queryClient, id);
   };
 
   const handleSalvar = async (dados: DadosVeiculo) => {
@@ -52,7 +61,7 @@ export function VeiculoDetalhe() {
     setErroOperacao(null);
     try {
       await atualizarVeiculo(id, dados);
-      await queryClient.invalidateQueries({ queryKey: ["veiculos"] });
+      await invalidarDadosVeiculo(queryClient, id);
       setEditando(false);
     } catch (e) {
       setErroOperacao((e as Error).message ?? "Erro ao salvar veiculo.");
@@ -73,8 +82,7 @@ export function VeiculoDetalhe() {
         observacao: veiculo.observacao ?? "",
         crachaCarroImpresso: !veiculo.crachaCarroImpresso,
       });
-      await queryClient.invalidateQueries({ queryKey: ["veiculos"] });
-      await queryClient.invalidateQueries({ queryKey: ["veiculos", id] });
+      await invalidarDadosVeiculo(queryClient, id);
     } catch (e) {
       setErroOperacao((e as Error).message ?? "Erro ao atualizar cracha do carro.");
     }
@@ -93,8 +101,7 @@ export function VeiculoDetalhe() {
         observacao: observacaoTexto.trim(),
         crachaCarroImpresso: !!veiculo.crachaCarroImpresso,
       });
-      await queryClient.invalidateQueries({ queryKey: ["veiculos"] });
-      await queryClient.invalidateQueries({ queryKey: ["veiculos", id] });
+      await invalidarDadosVeiculo(queryClient, id);
       setEditandoObservacao(false);
     } catch (e) {
       setErroOperacao((e as Error).message ?? "Erro ao salvar observacao.");
@@ -108,7 +115,7 @@ export function VeiculoDetalhe() {
     setErroOperacao(null);
     try {
       await excluirVeiculo(id);
-      await queryClient.invalidateQueries({ queryKey: ["veiculos"] });
+      await invalidarDadosVeiculo(queryClient, id);
       navigate("/veiculos");
     } catch (e) {
       setErroOperacao((e as Error).message ?? "Erro ao excluir veiculo.");

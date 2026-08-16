@@ -82,7 +82,7 @@ function CabecalhoOrdenavel({
 }) {
   const ativa = ordenacao?.coluna === coluna;
   return (
-    <th className="text-left py-2 px-3 font-medium text-ardesia">
+    <th className="text-left py-2 px-3 font-medium text-ardesia whitespace-nowrap">
       <button
         type="button"
         onClick={() => aoOrdenar(coluna)}
@@ -252,7 +252,7 @@ export function Veiculos() {
       {veiculosFiltrados.length > 0 && (
         <div className="card">
           <div className="card-corpo overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="min-w-max text-sm">
               <thead>
                 <tr className="border-b border-cinza-200">
                   <CabecalhoOrdenavel titulo="Placa" coluna="placa" ordenacao={ordenacao} aoOrdenar={alternarOrdenacao} />
@@ -273,8 +273,8 @@ export function Veiculos() {
                     className="border-b border-cinza-100 hover:bg-cinza-50 cursor-pointer"
                     onClick={() => navigate(`/veiculos/${v.id}`)}
                   >
-                    <td className="py-2 px-3 font-mono font-medium">{v.placa}</td>
-                    <td className="py-2 px-3">
+                    <td className="py-2 px-3 font-mono font-medium whitespace-nowrap">{v.placa}</td>
+                    <td className="py-2 px-3 align-top whitespace-nowrap">
                       {v.estacionamentos && v.estacionamentos.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {v.estacionamentos.map((e) => {
@@ -294,7 +294,7 @@ export function Veiculos() {
                         <span className="text-ardesia">-</span>
                       )}
                     </td>
-                    <td className="py-2 px-3">
+                    <td className="py-2 px-3 align-top whitespace-nowrap">
                       {v.pessoas.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {v.pessoas.map((p) => (
@@ -310,7 +310,7 @@ export function Veiculos() {
                         <span className="text-ardesia">-</span>
                       )}
                     </td>
-                    <td className="py-2 px-3">
+                    <td className="py-2 px-3 align-top whitespace-nowrap">
                       {(equipesPorVeiculo.get(v.id) ?? []).length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {equipesPorVeiculo.get(v.id)!.map((nome) => (
@@ -326,10 +326,10 @@ export function Veiculos() {
                         <span className="text-ardesia">-</span>
                       )}
                     </td>
-                    <td className="py-2 px-3">{v.fabricante}</td>
-                    <td className="py-2 px-3">{v.modelo}</td>
-                    <td className="py-2 px-3">{v.cor}</td>
-                    <td className="py-2 px-3 max-w-[200px]">
+                    <td className="py-2 px-3 whitespace-nowrap">{v.fabricante}</td>
+                    <td className="py-2 px-3 whitespace-nowrap">{v.modelo}</td>
+                    <td className="py-2 px-3 whitespace-nowrap">{v.cor}</td>
+                    <td className="py-2 px-3 whitespace-nowrap max-w-[200px]">
                       {v.observacao ? (
                         <span className="block truncate" title={v.observacao}>
                           {v.observacao}
@@ -338,7 +338,7 @@ export function Veiculos() {
                         <span className="text-ardesia">-</span>
                       )}
                     </td>
-                    <td className="py-2 px-3">
+                    <td className="py-2 px-3 whitespace-nowrap">
                       {v.crachaCarroImpresso ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-verde/10 text-verde-escuro">
                           Sim

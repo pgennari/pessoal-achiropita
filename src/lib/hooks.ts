@@ -13,7 +13,7 @@ import {
   EventoAuditoria,
   Formacao,
   HistoricoEquipePessoa,
-  HistoricoEstacionamentoVeiculo,
+  HistoricoEstacionamentoVaga,
   LinkPresenca,
   LinkValidacao,
   Participacao,
@@ -23,12 +23,12 @@ import {
   Permissao,
   Pessoa,
   PessoaComVeiculos,
-  PessoaEstacionamento,
   PresencaRegistrada,
   ResumoEquipePresenca,
   SetorInfo,
   TurmaFormacao,
   Usuario,
+  Vaga,
   Veiculo,
   VeiculoComPessoas,
 } from "./tipos";
@@ -434,15 +434,6 @@ export function useVeiculosEstacionamento(estacionamentoId: string | undefined):
   return { itens: data ?? [], carregando: isLoading && !!estacionamentoId, erro: erroMsg(error) };
 }
 
-export function useHistoricoEstacionamentosVeiculo(veiculoId: string | undefined): EstadoLista<HistoricoEstacionamentoVeiculo> {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["veiculos", veiculoId, "historico-estacionamentos"],
-    queryFn: () => api.get<HistoricoEstacionamentoVeiculo[]>(`/api/veiculos/${veiculoId}/historico-estacionamentos`),
-    enabled: !!veiculoId,
-  });
-  return { itens: data ?? [], carregando: isLoading && !!veiculoId, erro: erroMsg(error) };
-}
-
 // ─── Estacionamentos ──────────────────────────────────────────────────────────
 
 export function useEstacionamentos(): EstadoLista<Estacionamento> {
@@ -462,13 +453,41 @@ export function useEstacionamento(id: string | undefined): EstadoItem<Estacionam
   return { item: data ?? null, carregando: isLoading && !!id, erro: erroMsg(error) };
 }
 
-export function usePessoasEstacionamento(estacionamentoId: string | undefined): EstadoLista<PessoaEstacionamento> {
+// ─── Vagas ─────────────────────────────────────────────────────────────────────
+
+export function useVagas(): EstadoLista<Vaga> {
   const { data, isLoading, error } = useQuery({
-    queryKey: ["estacionamentos", estacionamentoId, "pessoas"],
-    queryFn: () => api.get<PessoaEstacionamento[]>(`/api/estacionamentos/${estacionamentoId}/pessoas`),
+    queryKey: ["vagas"],
+    queryFn: () => api.get<Vaga[]>("/api/vagas"),
+  });
+  return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
+}
+
+export function useVaga(id: string | undefined): EstadoItem<Vaga> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["vagas", id],
+    queryFn: () => api.get<Vaga>(`/api/vagas/${id}`),
+    enabled: !!id,
+  });
+  return { item: data ?? null, carregando: isLoading && !!id, erro: erroMsg(error) };
+}
+
+export function useVagasEstacionamento(estacionamentoId: string | undefined): EstadoLista<Vaga> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["vagas", "estacionamento", estacionamentoId],
+    queryFn: () => api.get<Vaga[]>(`/api/vagas?estacionamentoId=${estacionamentoId}`),
     enabled: !!estacionamentoId,
   });
   return { itens: data ?? [], carregando: isLoading && !!estacionamentoId, erro: erroMsg(error) };
+}
+
+export function useHistoricoVaga(vagaId: string | undefined): EstadoLista<HistoricoEstacionamentoVaga> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["vagas", vagaId, "historico"],
+    queryFn: () => api.get<HistoricoEstacionamentoVaga[]>(`/api/vagas/${vagaId}/historico`),
+    enabled: !!vagaId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!vagaId, erro: erroMsg(error) };
 }
 
 // ─── Setores ──────────────────────────────────────────────────────────────────

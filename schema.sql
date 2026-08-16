@@ -57,19 +57,17 @@ CREATE TABLE pessoas (
 -- Executar no banco existente: ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS foto_url TEXT;
 ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS foto_url TEXT;
 
--- Coluna adicionada na iteracao 005-estacionamento-pessoa (vinculo N:1 com estacionamentos).
--- Executar no banco existente:
--- ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS estacionamento_id TEXT REFERENCES estacionamentos(id) ON DELETE SET NULL;
--- CREATE INDEX IF NOT EXISTS idx_pessoas_estacionamento ON pessoas(estacionamento_id);
-ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS estacionamento_id TEXT REFERENCES estacionamentos(id) ON DELETE SET NULL;
-
 -- Coluna adicionada na iteracao tamanho-camiseta-adulto (tamanho de camiseta no
 -- cadastro da pessoa). As opcoes sao definidas pelo parametro `tamanho-camiseta-adulto`.
 ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS tamanho_camiseta TEXT;
 
+-- Migracao 018-vagas-estacionamento: fim do vinculo direto pessoa<->estacionamento
+-- (FR-007). O estacionamento da pessoa passa a ser derivado das vagas
+-- (pessoa_vaga -> vagas -> estacionamentos). Idempotente para bancos existentes.
+ALTER TABLE pessoas DROP COLUMN IF EXISTS estacionamento_id;
+
 CREATE INDEX idx_pessoas_cracha ON pessoas(cracha);
 CREATE INDEX idx_pessoas_ativo  ON pessoas(ativo);
-CREATE INDEX IF NOT EXISTS idx_pessoas_estacionamento ON pessoas(estacionamento_id);
 
 -- estacionamentos
 CREATE TABLE estacionamentos (
@@ -77,12 +75,15 @@ CREATE TABLE estacionamentos (
   nome                TEXT NOT NULL,
   endereco            TEXT NOT NULL,
   vagas_contratadas   INTEGER NOT NULL DEFAULT 0,
-  vagas_distribuidas  INTEGER NOT NULL DEFAULT 0,
   dentro_perimetro    BOOLEAN NOT NULL DEFAULT FALSE,
   horarios            TEXT NOT NULL,
   criado_em           TIMESTAMPTZ NOT NULL DEFAULT now(),
   atualizado_em       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Migracao 018-vagas-estacionamento: vagas_distribuidas deixa de ser manual e
+-- passa a ser calculada (COUNT de vagas associadas, FR-016). Idempotente.
+ALTER TABLE estacionamentos DROP COLUMN IF EXISTS vagas_distribuidas;
 
 -- edicoes
 CREATE TABLE edicoes (
@@ -300,15 +301,18 @@ CREATE TABLE IF NOT EXISTS veiculos (
   modelo                TEXT NOT NULL,
   placa                 TEXT NOT NULL UNIQUE,
   cor                   TEXT NOT NULL,
-  estacionamento_id     TEXT REFERENCES estacionamentos(id) ON DELETE SET NULL,
   observacao            TEXT,
   cracha_carro_impresso BOOLEAN NOT NULL DEFAULT FALSE,
   criado_em             TIMESTAMPTZ NOT NULL DEFAULT now(),
   atualizado_em         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Migracao 018-vagas-estacionamento: fim do vinculo direto veiculo<->estacionamento
+-- (FR-011). O estacionamento do veiculo passa a ser derivado das vagas das
+-- pessoas vinculadas. Idempotente para bancos existentes.
+ALTER TABLE veiculos DROP COLUMN IF EXISTS estacionamento_id;
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_veiculos_placa ON veiculos(placa);
-CREATE INDEX IF NOT EXISTS idx_veiculos_estacionamento ON veiculos(estacionamento_id);
 
 -- Colunas adicionadas na iteracao veiculos (observacao + cracha do carro impresso).
 -- Executar no banco existente:
@@ -344,6 +348,48 @@ CREATE TABLE IF NOT EXISTS veiculo_estacionamento_historico (
 
 CREATE INDEX IF NOT EXISTS idx_veiculo_est_hist_veiculo
 ON veiculo_estacionamento_historico(veiculo_id, criado_em DESC);
+
+-- vagas: vaga de estacionamento disponibilizada pela festa. Uma vaga esta
+-- associada a no maximo um estacionamento (0..1, FR-003); a exclusao do
+-- estacionamento mantem a vaga sem estacionamento (FR-020, ON DELETE SET NULL).
+-- Capacidade estourada nao bloqueia associacao (FR-019) — sem validacao aqui.
+CREATE TABLE IF NOT EXISTS vagas (
+  id                TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  identificacao     TEXT NOT NULL,
+  estacionamento_id TEXT REFERENCES estacionamentos(id) ON DELETE SET NULL,
+  criado_em         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- pessoa_vaga: vinculo pessoa <-> vaga. Uma pessoa em no maximo uma vaga
+-- (FR-006, PK em pessoa_id); uma vaga com varias pessoas (FR-002).
+CREATE TABLE IF NOT EXISTS pessoa_vaga (
+  pessoa_id   TEXT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+  vaga_id     TEXT NOT NULL REFERENCES vagas(id) ON DELETE CASCADE,
+  criado_em   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (pessoa_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pessoa_vaga_vaga_id ON pessoa_vaga (vaga_id);
+CREATE INDEX IF NOT EXISTS idx_vagas_estacionamento_id ON vagas (estacionamento_id);
+
+-- vaga_estacionamento_historico: append-only (sem UPDATE/DELETE via API).
+-- Registra cada mudanca de estacionamento da vaga (FR-012): associar (inclusive
+-- a associacao inicial na criacao), transferir e desassociar. Mesmo padrao da
+-- tabela legada veiculo_estacionamento_historico; estacionamento_nome e snapshot.
+CREATE TABLE IF NOT EXISTS vaga_estacionamento_historico (
+  id                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  vaga_id             TEXT NOT NULL REFERENCES vagas(id) ON DELETE CASCADE,
+  estacionamento_id   TEXT REFERENCES estacionamentos(id) ON DELETE SET NULL,
+  estacionamento_nome TEXT NOT NULL,
+  operacao            TEXT NOT NULL, -- 'associar' | 'transferir' | 'desassociar'
+  autor               TEXT NOT NULL,
+  autor_nome          TEXT NOT NULL,
+  criado_em           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_vaga_est_hist_vaga
+ON vaga_estacionamento_historico(vaga_id, criado_em DESC);
 
 -- checkins: registro de entrada no estacionamento
 CREATE TABLE IF NOT EXISTS checkins (
@@ -501,7 +547,11 @@ INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
   ('permissao.gerenciar', 'Permissões: gerenciar', 'Criar, editar e excluir permissões do catálogo.'),
   ('parametros.acessar', 'Parâmetros: acessar', 'Ver e editar os parâmetros do sistema.'),
   ('zeramento.executar', 'Zeramento', 'Executar o zeramento de dados.'),
-  ('sincronizacao.executar', 'Sincronização: executar', 'Comparar e aplicar a sincronização com a planilha Google Sheets.')
+  ('sincronizacao.executar', 'Sincronização: executar', 'Comparar e aplicar a sincronização com a planilha Google Sheets.'),
+  ('vaga.lista', 'Vagas: ver lista', 'Ver a listagem de vagas de estacionamento.'),
+  ('vaga.detalhe', 'Vagas: ver detalhes', 'Ver os detalhes de uma vaga de estacionamento.'),
+  ('vaga.incluir', 'Vagas: incluir', 'Cadastrar novas vagas de estacionamento.'),
+  ('vaga.editar', 'Vagas: editar', 'Editar vagas (identificacao, pessoas e estacionamento).')
 ON CONFLICT (codigo) DO NOTHING;
 
 -- Desativa codigos antigos do catalogo substituidos pelos granulares acima.
@@ -518,6 +568,11 @@ UPDATE permissoes SET ativo = FALSE WHERE codigo IN (
   'presenca.gerenciar',
   'perfis.gerenciar'
 );
+
+-- Migracao 018-vagas-estacionamento: os conceitos de associar veiculo/pessoa a
+-- estacionamento diretamente deixaram de existir (FR-007/FR-011); os codigos que
+-- os descreviam sao desativados no catalogo. O ADM continua superuser via pode().
+UPDATE permissoes SET ativo = FALSE WHERE codigo IN ('estacionamento.associar', 'veiculos.associar');
 
 -- perfis: catalogo de perfis de acesso (controle de perfil).
 -- Cada perfil guarda a sigla, o nome de exibicao, se e fixo (nao pode ser
@@ -537,8 +592,9 @@ CREATE TABLE IF NOT EXISTS perfis (
 INSERT INTO perfis (sigla, nome, fixo, permissoes) VALUES
   ('ADM', 'Administrador', TRUE,  '{}'),
   ('ORG', 'Organizador geral', FALSE, '{
-    veiculos.lista,veiculos.detalhe,veiculos.incluir,veiculos.editar,veiculos.excluir,veiculos.associar,veiculos.vincular,
-    estacionamento.lista,estacionamento.detalhe,estacionamento.incluir,estacionamento.editar,estacionamento.associar,estacionamento.checkinManual,estacionamento.dashboard,estacionamento.relatorio,
+    veiculos.lista,veiculos.detalhe,veiculos.incluir,veiculos.editar,veiculos.excluir,veiculos.vincular,
+    estacionamento.lista,estacionamento.detalhe,estacionamento.incluir,estacionamento.editar,estacionamento.checkinManual,estacionamento.dashboard,estacionamento.relatorio,
+    vaga.lista,vaga.detalhe,vaga.incluir,vaga.editar,
     pessoas.lista,pessoas.detalhe,pessoas.incluir,pessoas.editar,pessoas.ativar,pessoas.associar,
     formacao.turmas,formacao.pendenciaListar,formacao.marcarManual,
     presenca.lista,presenca.linkGerar,presenca.linkRevogar,presenca.relatorio,
@@ -552,6 +608,7 @@ INSERT INTO perfis (sigla, nome, fixo, permissoes) VALUES
   ('CRD', 'Coordenador de barraca', FALSE, '{
     veiculos.equipe,veiculos.detalhe,
     estacionamento.lista,estacionamento.detalhe,estacionamento.dashboard,
+    vaga.lista,vaga.detalhe,
     pessoas.equipe,pessoas.detalhe,pessoas.editar,
     formacao.turmas,formacao.pendenciaEquipe,
     edicao.lista,edicao.detalhe,
@@ -561,6 +618,7 @@ INSERT INTO perfis (sigla, nome, fixo, permissoes) VALUES
   ('OPC', 'Operador de campo', FALSE, '{
     veiculos.lista,veiculos.detalhe,
     estacionamento.lista,estacionamento.detalhe,estacionamento.checkinManual,estacionamento.dashboard,
+    vaga.lista,vaga.detalhe,
     pessoas.lista,pessoas.detalhe,pessoas.editar,
     formacao.turmas,formacao.pendenciaListar,formacao.marcarManual,
     presenca.lista,presenca.relatorio,
@@ -603,6 +661,17 @@ UPDATE perfis SET
   permissoes = permissoes || ARRAY['parametros.acessar']
 WHERE sigla = 'ORG'
   AND NOT 'parametros.acessar' = ANY(permissoes);
+
+-- Migracao 018-vagas-estacionamento: seed das permissoes de vaga nos perfis
+-- padrao (idempotente). ORG gerencia (vaga.*); CRD/OPC visualizam.
+-- O ADM nao precisa da permissao no array: pode() concede por ser ADM.
+UPDATE perfis SET permissoes = ARRAY(
+  SELECT DISTINCT unnest(permissoes || ARRAY['vaga.lista', 'vaga.detalhe', 'vaga.incluir', 'vaga.editar']::text[]) ORDER BY 1
+) WHERE sigla = 'ORG';
+
+UPDATE perfis SET permissoes = ARRAY(
+  SELECT DISTINCT unnest(permissoes || ARRAY['vaga.lista', 'vaga.detalhe']::text[]) ORDER BY 1
+) WHERE sigla IN ('CRD', 'OPC');
 
 -- parametros: chave-valor do sistema com texto livre (valor pode guardar JSON).
 CREATE TABLE IF NOT EXISTS parametros (

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import type { Veiculo } from "../lib/tipos";
 import type { DadosVeiculo } from "../lib/veiculos";
 import { Icone } from "./Icone";
@@ -102,12 +103,18 @@ export function VinculoVeiculo({
         <ul className="divide-y divide-pietra-clara">
           {veiculosVinculados.map((v) => (
             <li key={v.id} className="py-2 flex items-center justify-between">
-              <div>
-                <span className="font-semibold text-carbone font-mono">{v.placa}</span>
-                <span className="text-ardesia ml-2 text-sm">
+              <Link
+                to={`/veiculos/${v.id}`}
+                className="group min-w-0 flex-1"
+                onClick={(ev) => ev.stopPropagation()}
+              >
+                <span className="font-semibold text-carbone font-mono group-hover:text-verde group-hover:underline">
+                  {v.placa}
+                </span>
+                <span className="text-ardesia ml-2 text-sm group-hover:text-carbone">
                   {v.fabricante} {v.modelo} - {v.cor}
                 </span>
-              </div>
+              </Link>
               <button
                 onClick={() => handleDesvincular(v.id)}
                 disabled={processando === v.id}

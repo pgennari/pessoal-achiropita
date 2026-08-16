@@ -18,12 +18,6 @@ const EstacionamentoSchema = z.object({
   atualizadoEm: z.string(),
 });
 
-const PessoaEstacionamentoSchema = z.object({
-  id: z.string(),
-  nome: z.string(),
-  cracha: z.number().int(),
-});
-
 function estacionamentoDeRow(r: Record<string, unknown>) {
   const criadoEm = r.criado_em instanceof Date
     ? r.criado_em.toISOString()
@@ -45,25 +39,18 @@ function estacionamentoDeRow(r: Record<string, unknown>) {
   };
 }
 
-async function registrarHistoricoEstacionamento(
-  sessao: { uid: string; nome: string },
-  veiculoId: string,
-  estacionamentoId: string,
-  estacionamentoNome: string,
-  operacao: "associou" | "transferiu" | "desassociou"
-): Promise<void> {
-  await sql`
-    INSERT INTO veiculo_estacionamento_historico
-      (id, veiculo_id, estacionamento_id, estacionamento_nome, operacao, autor, autor_nome, criado_em)
-    VALUES (
-      gen_random_uuid()::text,
-      ${veiculoId}, ${estacionamentoId}, ${estacionamentoNome}, ${operacao},
-      ${sessao.uid}, ${sessao.nome}, NOW()
-    )
+const msgErro = z.object({ erro: z.string() });
+
+// Vaga distribuida contada por vagas associadas (FR-016): a contagem manual
+// estacionamentos.vagas_distribuidas foi removida.
+function selectEstacionamentoCompleto(where: ReturnType<typeof sql>) {
+  return sql`
+    SELECT e.*,
+      (SELECT COUNT(*)::int FROM vagas v WHERE v.estacionamento_id = e.id) AS vagas_distribuidas
+    FROM estacionamentos e
+    ${where}
   `;
 }
-
-const msgErro = z.object({ erro: z.string() });
 
 const getRoute = createRoute({
   method: "get",
@@ -86,7 +73,7 @@ app.openapi(getRoute, async (c) => {
   if (!temPermissao(sessao, "estacionamento.lista")) {
     return c.json({ erro: "Acesso negado. Sem permissao de leitura de estacionamentos." }, 403);
   }
-  const rows = await sql`SELECT * FROM estacionamentos ORDER BY endereco`;
+  const rows = await selectEstacionamentoCompleto(sql`ORDER BY e.endereco`);
   return c.json(rows.map(estacionamentoDeRow) as any, 200);
 });
 
@@ -111,7 +98,7 @@ app.openapi(getIdRoute, async (c) => {
   if (!temPermissao(sessao, "estacionamento.detalhe")) {
     return c.json({ erro: "Acesso negado. Sem permissao de leitura de estacionamentos." }, 403);
   }
-  const [row] = await sql`SELECT * FROM estacionamentos WHERE id = ${id}`;
+  const [row] = await selectEstacionamentoCompleto(sql`WHERE e.id = ${id}`);
   if (!row) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
   return c.json(estacionamentoDeRow(row) as any, 200);
 });
@@ -131,7 +118,6 @@ const postRoute = createRoute({
             nome: z.string(),
             endereco: z.string(),
             vagasContratadas: z.number().int(),
-            vagasDistribuidas: z.number().int(),
             dentroPerimetro: z.boolean(),
             horarios: z.string(),
           })
@@ -152,12 +138,12 @@ app.openapi(postRoute, async (c) => {
     return c.json({ erro: "Acesso negado. Requer permissao estacionamento.incluir." }, 403);
   }
   const body = c.req.valid("json");
-  if (!body.nome.trim() || !body.endereco.trim() || body.vagasContratadas === undefined || body.vagasDistribuidas === undefined || !body.horarios.trim()) {
-    return c.json({ erro: "nome, endereco, vagasContratadas, vagasDistribuidas e horarios sao obrigatorios." }, 400);
+  if (!body.nome.trim() || !body.endereco.trim() || body.vagasContratadas === undefined || !body.horarios.trim()) {
+    return c.json({ erro: "nome, endereco, vagasContratadas e horarios sao obrigatorios." }, 400);
   }
   const [row] = await sql`
-    INSERT INTO estacionamentos (nome, endereco, vagas_contratadas, vagas_distribuidas, dentro_perimetro, horarios, token_checkin)
-    VALUES (${body.nome.trim()}, ${body.endereco.trim()}, ${body.vagasContratadas}, ${body.vagasDistribuidas}, ${body.dentroPerimetro}, ${body.horarios.trim()}, REPLACE(gen_random_uuid()::text, '-', ''))
+    INSERT INTO estacionamentos (nome, endereco, vagas_contratadas, dentro_perimetro, horarios, token_checkin)
+    VALUES (${body.nome.trim()}, ${body.endereco.trim()}, ${body.vagasContratadas}, ${body.dentroPerimetro}, ${body.horarios.trim()}, REPLACE(gen_random_uuid()::text, '-', ''))
     RETURNING *
   `;
   await registrarEvento(sessao, "estacionamento.criou", `estacionamentos/${row.id}`, body.endereco);
@@ -180,7 +166,6 @@ const putRoute = createRoute({
             nome: z.string(),
             endereco: z.string(),
             vagasContratadas: z.number().int(),
-            vagasDistribuidas: z.number().int(),
             dentroPerimetro: z.boolean(),
             horarios: z.string(),
           })
@@ -207,7 +192,6 @@ app.openapi(putRoute, async (c) => {
       nome = ${body.nome.trim()},
       endereco = ${body.endereco.trim()},
       vagas_contratadas = ${body.vagasContratadas},
-      vagas_distribuidas = ${body.vagasDistribuidas},
       dentro_perimetro = ${body.dentroPerimetro},
       horarios = ${body.horarios.trim()},
       atualizado_em = NOW()
@@ -242,117 +226,6 @@ app.openapi(deleteRoute, async (c) => {
   const [row] = await sql`DELETE FROM estacionamentos WHERE id = ${id} RETURNING id, endereco`;
   if (!row) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
   await registrarEvento(sessao, "estacionamento.excluiu", `estacionamentos/${id}`, String(row.endereco ?? ""));
-  return c.json({ ok: true }, 200);
-});
-
-// GET /api/estacionamentos/:id/pessoas
-const getPessoasEstacionamentoRoute = createRoute({
-  method: "get",
-  path: "/{id}/pessoas",
-  tags: ["Estacionamentos"],
-  summary: "Lista pessoas associadas ao estacionamento",
-  middleware: [comAuth as any] as const,
-  security: [{ bearerAuth: [] }],
-  request: { params: z.object({ id: z.string().uuid() }) },
-  responses: {
-    200: { content: { "application/json": { schema: z.array(PessoaEstacionamentoSchema) } }, description: "Lista de pessoas" },
-    404: { content: { "application/json": { schema: msgErro } }, description: "Estacionamento nao encontrado" },
-  },
-});
-
-app.openapi(getPessoasEstacionamentoRoute, async (c) => {
-  const { id } = c.req.valid("param");
-  const [est] = await sql`SELECT id FROM estacionamentos WHERE id = ${id}`;
-  if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
-  const rows = await sql`
-    SELECT id, nome, cracha FROM pessoas
-    WHERE estacionamento_id = ${id}
-    ORDER BY nome
-  `;
-  return c.json(rows as any, 200);
-});
-
-// POST /api/estacionamentos/:id/pessoas
-const postPessoaEstacionamentoRoute = createRoute({
-  method: "post",
-  path: "/{id}/pessoas",
-  tags: ["Estacionamentos"],
-  summary: "Associa pessoa ao estacionamento",
-  middleware: [comAuth as any] as const,
-  security: [{ bearerAuth: [] }],
-  request: {
-    params: z.object({ id: z.string().uuid() }),
-    body: { content: { "application/json": { schema: z.object({ pessoaId: z.string() }) } } },
-  },
-  responses: {
-    200: { content: { "application/json": { schema: z.object({ ok: z.boolean() }) } }, description: "Sucesso" },
-    400: { content: { "application/json": { schema: msgErro } }, description: "Dados invalidos" },
-    403: { content: { "application/json": { schema: msgErro } }, description: "Acesso negado" },
-    404: { content: { "application/json": { schema: msgErro } }, description: "Nao encontrado" },
-  },
-});
-
-app.openapi(postPessoaEstacionamentoRoute, async (c) => {
-  const { id } = c.req.valid("param");
-  const sessao = c.get("sessao");
-  if (!temPermissao(sessao, "estacionamento.associar")) {
-    return c.json({ erro: "Acesso negado. Requer permissao estacionamento.associar." }, 403);
-  }
-  const { pessoaId } = c.req.valid("json");
-  const [est] = await sql`SELECT id FROM estacionamentos WHERE id = ${id}`;
-  if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
-  const [pessoa] = await sql`SELECT id, nome FROM pessoas WHERE id = ${pessoaId}`;
-  if (!pessoa) return c.json({ erro: "Pessoa nao encontrada." }, 404);
-  await sql`
-    UPDATE pessoas
-    SET estacionamento_id = ${id}, atualizado_em = NOW()
-    WHERE id = ${pessoaId}
-  `;
-  await sql`
-    UPDATE estacionamentos
-    SET vagas_distribuidas = vagas_distribuidas + 1, atualizado_em = NOW()
-    WHERE id = ${id}
-  `;
-  await registrarEvento(sessao, "estacionamento.pessoa.associou", `estacionamentos/${id}`, `${pessoa.nome} (#${pessoaId})`);
-  return c.json({ ok: true }, 200);
-});
-
-// DELETE /api/estacionamentos/:id/pessoas/:pessoaId
-const deletePessoaEstacionamentoRoute = createRoute({
-  method: "delete",
-  path: "/{id}/pessoas/{pessoaId}",
-  tags: ["Estacionamentos"],
-  summary: "Remove pessoa do estacionamento",
-  middleware: [comAuth as any] as const,
-  security: [{ bearerAuth: [] }],
-  request: { params: z.object({ id: z.string().uuid(), pessoaId: z.string() }) },
-  responses: {
-    200: { content: { "application/json": { schema: z.object({ ok: z.boolean() }) } }, description: "Sucesso" },
-    403: { content: { "application/json": { schema: msgErro } }, description: "Acesso negado" },
-    404: { content: { "application/json": { schema: msgErro } }, description: "Nao encontrado" },
-  },
-});
-
-app.openapi(deletePessoaEstacionamentoRoute, async (c) => {
-  const { id, pessoaId } = c.req.valid("param");
-  const sessao = c.get("sessao");
-  if (!temPermissao(sessao, "estacionamento.associar")) {
-    return c.json({ erro: "Acesso negado. Requer permissao estacionamento.associar." }, 403);
-  }
-  const [pessoa] = await sql`SELECT id, nome, estacionamento_id FROM pessoas WHERE id = ${pessoaId}`;
-  if (!pessoa) return c.json({ erro: "Pessoa nao encontrada." }, 404);
-  if (pessoa.estacionamento_id !== id) return c.json({ erro: "Pessoa nao esta associada a este estacionamento." }, 404);
-  await sql`
-    UPDATE pessoas
-    SET estacionamento_id = NULL, atualizado_em = NOW()
-    WHERE id = ${pessoaId}
-  `;
-  await sql`
-    UPDATE estacionamentos
-    SET vagas_distribuidas = GREATEST(vagas_distribuidas - 1, 0), atualizado_em = NOW()
-    WHERE id = ${id}
-  `;
-  await registrarEvento(sessao, "estacionamento.pessoa.desassociou", `estacionamentos/${id}`, `${pessoa.nome} (#${pessoaId})`);
   return c.json({ ok: true }, 200);
 });
 
@@ -423,110 +296,34 @@ app.openapi(getVeiculosEstacionamentoRoute, async (c) => {
   const [est] = await sql`SELECT id FROM estacionamentos WHERE id = ${id}`;
   if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
   const rows = await sql`
-    SELECT v.id, v.fabricante, v.modelo, v.placa, v.cor,
+    SELECT DISTINCT v.id, v.fabricante, v.modelo, v.placa, v.cor,
       COALESCE(
         (SELECT jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'cracha', p.cracha))
          FROM pessoa_veiculo pv
          JOIN pessoas p ON p.id = pv.pessoa_id
          WHERE pv.veiculo_id = v.id),
         '[]'::jsonb
-      ) AS pessoas
+      ) AS pessoas,
+      COALESCE(
+        (SELECT jsonb_agg(est) FROM (
+          SELECT DISTINCT jsonb_build_object('id', e.id, 'nome', e.nome) AS est
+          FROM pessoa_veiculo pv
+          JOIN pessoas p ON p.id = pv.pessoa_id AND p.ativo
+          JOIN pessoa_vaga pvg ON pvg.pessoa_id = p.id
+          JOIN vagas va ON va.id = pvg.vaga_id AND va.estacionamento_id IS NOT NULL
+          JOIN estacionamentos e ON e.id = va.estacionamento_id
+          WHERE pv.veiculo_id = v.id
+        ) sub),
+        '[]'::jsonb
+      ) AS estacionamentos
     FROM veiculos v
-    WHERE v.estacionamento_id = ${id}
+    JOIN pessoa_veiculo pv ON pv.veiculo_id = v.id
+    JOIN pessoas p ON p.id = pv.pessoa_id AND p.ativo
+    JOIN pessoa_vaga pvg ON pvg.pessoa_id = p.id
+    JOIN vagas va ON va.id = pvg.vaga_id AND va.estacionamento_id = ${id}
     ORDER BY v.placa
   `;
   return c.json(rows as any, 200);
-});
-
-// POST /api/estacionamentos/:id/veiculos
-const postVeiculoEstacionamentoRoute = createRoute({
-  method: "post",
-  path: "/{id}/veiculos",
-  tags: ["Estacionamentos", "Veiculos"],
-  summary: "Associa ou transfere veiculo ao estacionamento",
-  middleware: [comAuth as any] as const,
-  security: [{ bearerAuth: [] }],
-  request: {
-    params: z.object({ id: z.string().uuid() }),
-    body: { content: { "application/json": { schema: z.object({ veiculoId: z.string() }) } } },
-  },
-  responses: {
-    200: { content: { "application/json": { schema: z.object({ ok: z.boolean() }) } }, description: "Sucesso" },
-    400: { content: { "application/json": { schema: msgErro } }, description: "Dados invalidos" },
-    403: { content: { "application/json": { schema: msgErro } }, description: "Acesso negado" },
-    404: { content: { "application/json": { schema: msgErro } }, description: "Nao encontrado" },
-  },
-});
-
-app.openapi(postVeiculoEstacionamentoRoute, async (c) => {
-  const { id } = c.req.valid("param");
-  const sessao = c.get("sessao");
-  if (!temPermissao(sessao, "estacionamento.associar")) return c.json({ erro: "Acesso negado. Requer permissao estacionamento.associar." }, 403);
-  const { veiculoId } = c.req.valid("json");
-  const [est] = await sql`SELECT id, nome FROM estacionamentos WHERE id = ${id}`;
-  if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
-  const [veiculo] = await sql`SELECT id, estacionamento_id FROM veiculos WHERE id = ${veiculoId}`;
-  if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
-
-  const antigoEstacionamentoId = veiculo.estacionamento_id as string | null;
-  const operacao = antigoEstacionamentoId && antigoEstacionamentoId !== id ? "transferiu" : "associou";
-
-  if (antigoEstacionamentoId && antigoEstacionamentoId !== id) {
-    await sql`
-      UPDATE estacionamentos
-      SET vagas_distribuidas = vagas_distribuidas - 1, atualizado_em = NOW()
-      WHERE id = ${antigoEstacionamentoId}
-    `;
-  }
-
-  await sql`UPDATE veiculos SET estacionamento_id = ${id}, atualizado_em = NOW() WHERE id = ${veiculoId}`;
-
-  if (!antigoEstacionamentoId || antigoEstacionamentoId !== id) {
-    await sql`
-      UPDATE estacionamentos
-      SET vagas_distribuidas = vagas_distribuidas + 1, atualizado_em = NOW()
-      WHERE id = ${id}
-    `;
-  }
-
-  await registrarHistoricoEstacionamento(sessao, veiculoId, id, String(est.nome ?? ""), operacao);
-  await registrarEvento(sessao, "estacionamento.veiculo.associou", `estacionamentos/${id}`, `veiculo ${veiculoId}`);
-  return c.json({ ok: true }, 200);
-});
-
-// DELETE /api/estacionamentos/:id/veiculos/:veiculoId
-const deleteVeiculoEstacionamentoRoute = createRoute({
-  method: "delete",
-  path: "/{id}/veiculos/{veiculoId}",
-  tags: ["Estacionamentos", "Veiculos"],
-  summary: "Desassocia veiculo do estacionamento",
-  middleware: [comAuth as any] as const,
-  security: [{ bearerAuth: [] }],
-  request: { params: z.object({ id: z.string().uuid(), veiculoId: z.string() }) },
-  responses: {
-    200: { content: { "application/json": { schema: z.object({ ok: z.boolean() }) } }, description: "Sucesso" },
-    403: { content: { "application/json": { schema: msgErro } }, description: "Acesso negado" },
-    404: { content: { "application/json": { schema: msgErro } }, description: "Nao encontrado" },
-  },
-});
-
-app.openapi(deleteVeiculoEstacionamentoRoute, async (c) => {
-  const { id, veiculoId } = c.req.valid("param");
-  const sessao = c.get("sessao");
-  if (!temPermissao(sessao, "estacionamento.associar")) return c.json({ erro: "Acesso negado. Requer permissao estacionamento.associar." }, 403);
-  const [veiculo] = await sql`SELECT id, estacionamento_id FROM veiculos WHERE id = ${veiculoId}`;
-  if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
-  if (veiculo.estacionamento_id !== id) return c.json({ erro: "Veiculo nao esta associado a este estacionamento." }, 404);
-  const [est] = await sql`SELECT nome FROM estacionamentos WHERE id = ${id}`;
-  await sql`UPDATE veiculos SET estacionamento_id = NULL, atualizado_em = NOW() WHERE id = ${veiculoId}`;
-  await sql`
-    UPDATE estacionamentos
-    SET vagas_distribuidas = GREATEST(vagas_distribuidas - 1, 0), atualizado_em = NOW()
-    WHERE id = ${id}
-  `;
-  await registrarHistoricoEstacionamento(sessao, veiculoId, id, String(est?.nome ?? ""), "desassociou");
-  await registrarEvento(sessao, "estacionamento.veiculo.desassociou", `estacionamentos/${id}`, `veiculo ${veiculoId}`);
-  return c.json({ ok: true }, 200);
 });
 
 // POST /api/estacionamentos/:id/veiculos/:veiculoId/checkins-manuais
@@ -579,12 +376,22 @@ app.openapi(postCheckinsManuaisRoute, async (c) => {
   if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
 
   const [veiculo] = await sql`
-    SELECT id, fabricante, modelo, placa, cor, estacionamento_id
+    SELECT id, fabricante, modelo, placa, cor
     FROM veiculos WHERE id = ${veiculoId}
   `;
   if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
-  if (veiculo.estacionamento_id !== id) {
-    return c.json({ erro: "Veiculo nao esta associado a este estacionamento." }, 404);
+
+  const [temVaga] = await sql`
+    SELECT 1
+    FROM pessoa_veiculo pv
+    JOIN pessoas p ON p.id = pv.pessoa_id AND p.ativo
+    JOIN pessoa_vaga pvg ON pvg.pessoa_id = p.id
+    JOIN vagas va ON va.id = pvg.vaga_id AND va.estacionamento_id = ${id}
+    WHERE pv.veiculo_id = ${veiculoId}
+    LIMIT 1
+  `;
+  if (!temVaga) {
+    return c.json({ erro: "Veiculo sem vaga neste estacionamento." }, 404);
   }
 
   const [pessoa] = await sql`

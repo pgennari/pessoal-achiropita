@@ -1,18 +1,17 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
 // Acesso: qualquer perfil autenticado.
-// Editar: veiculos.editar. Associar estacionamento: estacionamento.associar.
-// Vincular pessoa: veiculos.vincular. Excluir: veiculos.excluir.
+// Editar: veiculos.editar. Vincular pessoa: veiculos.vincular. Excluir: veiculos.excluir.
+// Estacionamentos exibidos sao derivados das vagas das pessoas vinculadas (FR-010).
 // ============================================================================
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { useVeiculo, usePessoasVeiculo, useEstacionamentos, usePessoas, useHistoricoEstacionamentosVeiculo } from "../lib/hooks";
+import { useVeiculo, usePessoasVeiculo, usePessoas } from "../lib/hooks";
 import { useSessao, temPermissao } from "../lib/sessao";
 import { VeiculoForm } from "../components/VeiculoForm";
-import { atualizarVeiculo, excluirVeiculo, associarVeiculoEstacionamento, desassociarVeiculoEstacionamento, vincularPessoaVeiculo, desvincularPessoaVeiculo, type DadosVeiculo } from "../lib/veiculos";
+import { atualizarVeiculo, excluirVeiculo, vincularPessoaVeiculo, desvincularPessoaVeiculo, type DadosVeiculo } from "../lib/veiculos";
 import { VinculoPessoa } from "../components/VinculoPessoa";
-import type { HistoricoEstacionamentoVeiculo } from "../lib/tipos";
 import { Icone } from "../components/Icone";
 
 export function VeiculoDetalhe() {
@@ -22,42 +21,18 @@ export function VeiculoDetalhe() {
   const { sessao } = useSessao();
   const { item: veiculo, carregando, erro } = useVeiculo(id);
   const { itens: pessoas } = usePessoasVeiculo(id);
-  const { itens: estacionamentos } = useEstacionamentos();
   const { itens: todasPessoas } = usePessoas();
-  const { itens: historico, carregando: historicoCarregando } = useHistoricoEstacionamentosVeiculo(id);
   const [editando, setEditando] = useState(false);
   const [salvando, setSalvando] = useState(false);
-  const [editandoEstacionamento, setEditandoEstacionamento] = useState(false);
-  const [estacionamentoSelecionado, setEstacionamentoSelecionado] = useState("");
   const [editandoObservacao, setEditandoObservacao] = useState(false);
   const [observacaoTexto, setObservacaoTexto] = useState("");
   const [erroOperacao, setErroOperacao] = useState<string | null>(null);
 
   const podeEditar = temPermissao(sessao, "veiculos.editar");
-  const podeAssociar = temPermissao(sessao, "estacionamento.associar");
   const podeVincular = temPermissao(sessao, "veiculos.vincular");
   const podeExcluir = temPermissao(sessao, "veiculos.excluir");
 
-  const estacionamentoAtual = useMemo(
-    () => estacionamentos.find((e) => e.id === veiculo?.estacionamentoId),
-    [estacionamentos, veiculo?.estacionamentoId]
-  );
-
-  const estacionamentosOrdenados = useMemo(
-    () => [...estacionamentos].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
-    [estacionamentos]
-  );
-
-  const estacionamentosPorId = useMemo(() => {
-    const m = new Map<string, { nome: string }>();
-    for (const e of estacionamentos) m.set(e.id, { nome: e.nome });
-    return m;
-  }, [estacionamentos]);
-
-  const pessoasDisponiveis = useMemo(
-    () => todasPessoas.filter((p) => !pessoas.some((vp) => vp.id === p.id)),
-    [todasPessoas, pessoas]
-  );
+  const pessoasDisponiveis = todasPessoas.filter((p) => !pessoas.some((vp) => vp.id === p.id));
 
   const handleVincularPessoa = async (pessoaId: string) => {
     if (!id) return;
@@ -137,24 +112,6 @@ export function VeiculoDetalhe() {
       navigate("/veiculos");
     } catch (e) {
       setErroOperacao((e as Error).message ?? "Erro ao excluir veiculo.");
-    }
-  };
-
-  const handleSalvarEstacionamento = async () => {
-    if (!id || !veiculo) return;
-    setErroOperacao(null);
-    try {
-      if (estacionamentoSelecionado && estacionamentoSelecionado !== veiculo.estacionamentoId) {
-        if (veiculo.estacionamentoId) {
-          await desassociarVeiculoEstacionamento(veiculo.estacionamentoId, id);
-        }
-        await associarVeiculoEstacionamento(estacionamentoSelecionado, id);
-      } else if (!estacionamentoSelecionado && veiculo.estacionamentoId) {
-        await desassociarVeiculoEstacionamento(veiculo.estacionamentoId, id);
-      }
-      setEditandoEstacionamento(false);
-    } catch (e) {
-      setErroOperacao((e as Error).message ?? "Erro ao salvar estacionamento.");
     }
   };
 
@@ -306,109 +263,23 @@ export function VeiculoDetalhe() {
       )}
 
       <div className="border border-pietra-clara rounded-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-carbone">Estacionamento</h3>
-          {podeAssociar && !editando && !editandoEstacionamento && (
-            <button
-              type="button"
-              onClick={() => {
-                setEstacionamentoSelecionado(veiculo.estacionamentoId ?? "");
-                setEditandoEstacionamento(true);
-              }}
-              className="btn btn-secundario btn-pequeno"
-              aria-label="Alterar estacionamento"
-              title="Alterar estacionamento"
-            >
-              <Icone nome="mais" />
-            </button>
-          )}
-        </div>
-
-        {editandoEstacionamento ? (
-          <div className="space-y-3">
-            <select
-              className="input"
-              value={estacionamentoSelecionado}
-              onChange={(e) => setEstacionamentoSelecionado(e.target.value)}
-            >
-              <option value="">Nenhum</option>
-              {estacionamentosOrdenados.map((est) => (
-                <option key={est.id} value={est.id}>
-                  {est.nome}
-                </option>
-              ))}
-            </select>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className="btn btn-primario"
-                onClick={handleSalvarEstacionamento}
-                aria-label="Salvar"
-                title="Salvar"
-              >
-                <Icone nome="check" />
-              </button>
-              <button
-                type="button"
-                className="btn btn-secundario"
-                onClick={() => {
-                  setEditandoEstacionamento(false);
-                  setEstacionamentoSelecionado(veiculo.estacionamentoId ?? "");
-                }}
-                aria-label="Cancelar"
-                title="Cancelar"
-              >
-                <Icone nome="fechar" />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div>
-            {estacionamentoAtual ? (
+        <h3 className="text-lg font-semibold text-carbone mb-3">Estacionamento</h3>
+        {veiculo.estacionamentos && veiculo.estacionamentos.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {veiculo.estacionamentos.map((e) => (
               <Link
-                to={`/estacionamentos/${estacionamentoAtual.id}`}
-                className="font-semibold text-carbone hover:text-verde-escuro"
+                key={e.id}
+                to={`/estacionamentos/${e.id}`}
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-verde/10 text-verde-escuro hover:bg-verde/20"
               >
-                {estacionamentoAtual.nome}
+                {e.nome}
               </Link>
-            ) : (
-              <p className="text-sm text-ardesia">Nenhum estacionamento associado.</p>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="border border-pietra-clara rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-carbone mb-3">
-          Historico de associação
-        </h3>
-        {historicoCarregando ? (
-          <p className="text-sm text-ardesia">Carregando...</p>
-        ) : historico.length === 0 ? (
-          <p className="text-sm text-ardesia">
-            Nenhuma alteracao de estacionamento registrada.
-          </p>
-        ) : (
-          <ul className="divide-y divide-pietra-clara">
-            {historico.map((h) => (
-              <li key={h.id} className="py-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-semibold text-carbone">
-                    {rotuloOperacao(h.operacao)}
-                  </span>
-                  <span className="text-xs text-ardesia">
-                    {formatarDataHora(h.criadoEm)}
-                  </span>
-                </div>
-                <div className="text-sm text-ardesia mt-0.5">
-                  <EstacionamentoHistorico nome={h.estacionamentoNome} estacionamentoId={h.estacionamentoId} estacionamentosPorId={estacionamentosPorId} />
-                </div>
-                <div className="text-xs text-ardesia mt-0.5">
-                  por {h.autorNome}
-                </div>
-              </li>
             ))}
-          </ul>
+          </div>
+        ) : (
+          <p className="text-sm text-ardesia">
+            Nenhum estacionamento derivado das vagas das pessoas vinculadas.
+          </p>
         )}
       </div>
 
@@ -448,45 +319,4 @@ export function VeiculoDetalhe() {
       </div>
     </div>
   );
-}
-
-function rotuloOperacao(operacao: HistoricoEstacionamentoVeiculo["operacao"]): string {
-  switch (operacao) {
-    case "associou":
-      return "Associado a";
-    case "transferiu":
-      return "Transferido para";
-    case "desassociou":
-      return "Desassociado de";
-    default:
-      return operacao;
-  }
-}
-
-function formatarDataHora(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString("pt-BR");
-}
-
-function EstacionamentoHistorico({
-  nome,
-  estacionamentoId,
-  estacionamentosPorId,
-}: {
-  nome: string;
-  estacionamentoId?: string;
-  estacionamentosPorId: Map<string, { nome: string }>;
-}) {
-  if (estacionamentoId && estacionamentosPorId.has(estacionamentoId)) {
-    return (
-      <Link
-        to={`/estacionamentos/${estacionamentoId}`}
-        className="font-medium text-carbone hover:text-verde-escuro"
-      >
-        {nome}
-      </Link>
-    );
-  }
-  return <span className="font-medium text-carbone">{nome}</span>;
 }

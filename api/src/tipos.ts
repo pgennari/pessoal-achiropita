@@ -110,3 +110,36 @@ export type VariaveisPresenca = {
 export type VariaveisFirebase = {
   Variables: { uid: string; email: string };
 };
+
+// Vaga de estacionamento (018-vagas-estacionamento). Uma vaga esta associada a
+// no maximo um estacionamento (0..1) e a uma ou mais pessoas (via pessoa_vaga).
+// O estacionamento do veiculo/pessoa e derivado das vagas das pessoas vinculadas.
+export interface Vaga {
+  id: string;
+  identificacao: string;
+  estacionamentoId: string | null;
+  estacionamentoNome: string | null;
+  pessoas: { id: string; nome: string; cracha: number }[];
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+// Vinculo pessoa <-> vaga (FR-002/FR-006): uma pessoa em no maximo uma vaga.
+export interface PessoaVaga {
+  pessoaId: string;
+  vagaId: string;
+  criadoEm: string;
+}
+
+// Historico append-only da associacao vaga <-> estacionamento (FR-012).
+// operacao: 'associar' | 'transferir' | 'desassociar'.
+export interface HistoricoEstacionamentoVaga {
+  id: string;
+  vagaId: string;
+  estacionamentoId: string | null;
+  estacionamentoNome: string;
+  operacao: "associar" | "transferir" | "desassociar";
+  autor: string;
+  autorNome: string;
+  criadoEm: string;
+}

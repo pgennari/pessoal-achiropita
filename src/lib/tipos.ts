@@ -177,7 +177,7 @@ export interface Veiculo {
   modelo: string;
   placa: string;
   cor: string;
-  estacionamentoId?: string;
+  estacionamentos?: { id: string; nome: string }[];
   observacao?: string;
   crachaCarroImpresso?: boolean;
   criadoEm: string;
@@ -219,6 +219,8 @@ export interface Pessoa {
   nomeConjuge?: string;
   tamanhoCamiseta?: string;
   temEstacionamento?: boolean;
+  vagaId?: string;
+  vagaIdentificacao?: string;
   estacionamentoId?: string;
   estacionamentoNome?: string;
   frequentaRecreacao?: boolean;
@@ -402,14 +404,44 @@ export interface Estacionamento {
   atualizadoEm: string;
 }
 
-export type OperacaoHistoricoEstacionamento = "associou" | "transferiu" | "desassociou";
-
-export interface HistoricoEstacionamentoVeiculo {
+// Vaga de estacionamento (018-vagas-estacionamento). Uma vaga esta associada a
+// no maximo um estacionamento (0..1) e a uma ou mais pessoas (via pessoa_vaga).
+// O estacionamento de pessoa/veiculo e derivado das vagas das pessoas vinculadas.
+export interface Vaga {
   id: string;
-  veiculoId: string;
-  estacionamentoId?: string;
+  identificacao: string;
+  estacionamentoId: string | null;
+  estacionamentoNome: string | null;
+  pessoas: { id: string; nome: string; cracha: number }[];
+  veiculos: VagaVeiculo[];
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+// Veiculo retornado dentro de uma vaga: os vinculados as pessoas da vaga.
+export interface VagaVeiculo {
+  id: string;
+  fabricante: string;
+  modelo: string;
+  placa: string;
+  cor: string;
+}
+
+// Vinculo pessoa <-> vaga (FR-002/FR-006): uma pessoa em no maximo uma vaga.
+export interface PessoaVaga {
+  pessoaId: string;
+  vagaId: string;
+  criadoEm: string;
+}
+
+// Historico append-only da associacao vaga <-> estacionamento (FR-012).
+// operacao: 'associar' | 'transferir' | 'desassociar'.
+export interface HistoricoEstacionamentoVaga {
+  id: string;
+  vagaId: string;
+  estacionamentoId: string | null;
   estacionamentoNome: string;
-  operacao: OperacaoHistoricoEstacionamento;
+  operacao: "associar" | "transferir" | "desassociar";
   autor: string;
   autorNome: string;
   criadoEm: string;
@@ -426,12 +458,6 @@ export interface Checkin {
   cor: string;
   estacionamentoId: string | null;
   estacionamentoNome: string;
-}
-
-export interface PessoaEstacionamento {
-  id: string;
-  nome: string;
-  cracha: number;
 }
 
 // Link de acesso publico da presenca de um dia da festa (013-presenca-equipistas).

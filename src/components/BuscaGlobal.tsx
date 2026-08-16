@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   useEquipes,
   useEdicaoAtiva,
-  useEstacionamentos,
   useParticipacoes,
   usePessoas,
   useVeiculos,
@@ -44,7 +43,6 @@ function pontuar(p: Pessoa, termo: string): number {
 function pontuarVeiculo(
   v: VeiculoComPessoas,
   termo: string,
-  mapaEstacionamento: Map<string, string>,
   equipesPorVeiculo: Map<string, string[]>
 ): number {
   const t = normalizar(termo);
@@ -55,9 +53,7 @@ function pontuarVeiculo(
   if (normalizar(v.fabricante ?? "").includes(t)) return 60;
   if (normalizar(v.modelo ?? "").includes(t)) return 60;
   if (normalizar(v.cor ?? "").includes(t)) return 50;
-  const estacionamento = v.estacionamentoId
-    ? mapaEstacionamento.get(v.estacionamentoId) ?? ""
-    : "";
+  const estacionamento = (v.estacionamentos ?? []).map((e) => e.nome).join(" ");
   if (normalizar(estacionamento).includes(t)) return 50;
   if (normalizar(v.observacao ?? "").includes(t)) return 30;
   if (v.pessoas.some((p) => normalizar(p.nome ?? "").includes(t))) return 40;
@@ -89,7 +85,6 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
   const [destaque, setDestaque] = useState(0);
   const { itens } = usePessoas();
   const { itens: veiculos } = useVeiculos();
-  const { itens: estacionamentos } = useEstacionamentos();
   const { edicao } = useEdicaoAtiva();
   const { itens: participacoes } = useParticipacoes(edicao?.id);
   const { itens: equipes } = useEquipes(edicao?.id);
@@ -123,11 +118,6 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
     }
     return m;
   }, [participacoes, equipes]);
-
-  const mapaEstacionamento = useMemo(
-    () => new Map(estacionamentos.map((e) => [e.id, e.nome])),
-    [estacionamentos]
-  );
 
   const equipesPorVeiculo = useMemo(() => {
     const equipesPorId = new Map(equipes.map((e) => [e.id, e.nome]));
@@ -171,7 +161,7 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
           .map((v): ResultadoComPontos => ({
             tipo: "veiculo",
             veiculo: v,
-            pontos: pontuarVeiculo(v, termo, mapaEstacionamento, equipesPorVeiculo),
+            pontos: pontuarVeiculo(v, termo, equipesPorVeiculo),
           }))
           .filter((r) => r.pontos > 0),
         ...equipes
@@ -184,7 +174,7 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
       ].sort((a, b) => b.pontos - a.pontos);
     }
     return lista;
-  }, [itens, veiculos, equipes, termo, mapaEstacionamento, equipesPorVeiculo]);
+  }, [itens, veiculos, equipes, termo, equipesPorVeiculo]);
 
   useEffect(() => {
     setDestaque((d) => Math.min(d, Math.max(resultados.length - 1, 0)));
@@ -255,9 +245,7 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
             }`;
             if (r.tipo === "veiculo") {
               const v = r.veiculo;
-              const estNome = v.estacionamentoId
-                ? mapaEstacionamento.get(v.estacionamentoId)
-                : undefined;
+              const estNome = (v.estacionamentos ?? []).map((e) => e.nome).join(", ");
               const equipesDoVeiculo = equipesPorVeiculo.get(v.id) ?? [];
               const detalhes = [v.fabricante, v.modelo, v.cor].filter(Boolean).join(" ");
               return (

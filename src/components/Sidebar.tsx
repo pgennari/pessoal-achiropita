@@ -30,12 +30,19 @@ const secoes: Secao[] = [
       "estacionamento.detalhe",
       "estacionamento.relatorio",
       "estacionamento.dashboard",
+      "vaga.lista",
+      "vaga.detalhe",
     ],
     itens: [
       {
         to: "/veiculos",
         label: "Veículos",
         permissoes: ["veiculos.lista", "veiculos.equipe", "veiculos.proprio"],
+      },
+      {
+        to: "/vagas",
+        label: "Vagas",
+        permissoes: ["vaga.lista", "vaga.detalhe"],
       },
       {
         to: "/estacionamentos",

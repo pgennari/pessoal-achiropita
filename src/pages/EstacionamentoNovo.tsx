@@ -19,14 +19,11 @@ export function EstacionamentoNovo() {
     nome: "",
     endereco: "",
     vagasContratadas: "",
-    vagasDistribuidas: "0",
     dentroPerimetro: false,
     horarios: "",
   });
   const [enviando, setEnviando] = useState(false);
   const [erros, setErros] = useState<Record<string, string>>({});
-
-  const diferenca = (parseInt(dados.vagasContratadas, 10) || 0) - (parseInt(dados.vagasDistribuidas, 10) || 0);
 
   if (!sessao) return null;
   const podeCriar = temPermissao(sessao, "estacionamento.incluir");
@@ -144,34 +141,6 @@ export function EstacionamentoNovo() {
               {erros.vagasContratadas && (
                 <p className="input-erro-msg">{erros.vagasContratadas}</p>
               )}
-            </div>
-
-            <div className="input-grupo">
-              <label className="input-label" htmlFor="vagasDistribuidas">
-                Vagas Distribuidas
-              </label>
-              <input
-                id="vagasDistribuidas"
-                type="text"
-                className={`input ${erros.vagasDistribuidas ? "erro" : ""}`}
-                value={dados.vagasDistribuidas}
-                onChange={(e) =>
-                  setDados((d) => ({ ...d, vagasDistribuidas: e.target.value }))
-                }
-                required
-              />
-              {erros.vagasDistribuidas && (
-                <p className="input-erro-msg">{erros.vagasDistribuidas}</p>
-              )}
-            </div>
-
-            <div className="input-grupo">
-              <label className="input-label">
-                Diferença
-              </label>
-              <div className="input bg-pietra-clara/40 font-mono flex items-center px-3 select-none">
-                {diferenca}
-              </div>
             </div>
 
             <div className="input-grupo">

@@ -25,6 +25,8 @@ const PessoaSchema = z.object({
   nomeConjuge: z.string().optional().nullable(),
   tamanhoCamiseta: z.string().optional().nullable(),
   temEstacionamento: z.boolean(),
+  vagaId: z.string().optional().nullable(),
+  vagaIdentificacao: z.string().optional().nullable(),
   estacionamentoId: z.string().optional().nullable(),
   estacionamentoNome: z.string().optional().nullable(),
   frequentaRecreacao: z.boolean(),
@@ -67,6 +69,8 @@ function pessoaDeRow(r: Record<string, unknown>) {
     nomeConjuge: r.nome_conjuge ?? undefined,
     tamanhoCamiseta: r.tamanho_camiseta ?? undefined,
     temEstacionamento: r.tem_estacionamento ?? false,
+    vagaId: r.vaga_id ?? undefined,
+    vagaIdentificacao: r.vaga_identificacao ?? undefined,
     estacionamentoId: r.estacionamento_id ?? undefined,
     estacionamentoNome: r.estacionamento_nome ?? undefined,
     frequentaRecreacao: r.frequenta_recreacao ?? false,
@@ -156,9 +160,14 @@ app.openapi(getPessoasRoute, async (c) => {
     const equipes = sessao.equipesCRD ?? [];
     if (!equipes.length) return c.json([], 200);
     const rows = await sql<Record<string, unknown>[]>`
-      SELECT DISTINCT p.* FROM pessoas p
+      SELECT DISTINCT p.*, v.id AS vaga_id, v.identificacao AS vaga_identificacao,
+        e.id AS estacionamento_id, e.nome AS estacionamento_nome
+      FROM pessoas p
+      LEFT JOIN pessoa_vaga pvg ON pvg.pessoa_id = p.id
+      LEFT JOIN vagas v ON v.id = pvg.vaga_id
+      LEFT JOIN estacionamentos e ON e.id = v.estacionamento_id
       JOIN participacoes part ON part.pessoa_id = p.id
-      JOIN edicoes e ON e.id = part.edicao_id AND e.status = 'ativa'
+      JOIN edicoes ed ON ed.id = part.edicao_id AND ed.status = 'ativa'
       WHERE part.equipe_id = ANY(${equipes})
       ORDER BY p.cracha
     `;
@@ -166,10 +175,26 @@ app.openapi(getPessoasRoute, async (c) => {
   }
   if (escopo === "proprio") {
     if (!sessao.pessoaId) return c.json([], 200);
-    const [row] = await sql`SELECT * FROM pessoas WHERE id = ${sessao.pessoaId}`;
+    const [row] = await sql`
+      SELECT p.*, v.id AS vaga_id, v.identificacao AS vaga_identificacao,
+        e.id AS estacionamento_id, e.nome AS estacionamento_nome
+      FROM pessoas p
+      LEFT JOIN pessoa_vaga pvg ON pvg.pessoa_id = p.id
+      LEFT JOIN vagas v ON v.id = pvg.vaga_id
+      LEFT JOIN estacionamentos e ON e.id = v.estacionamento_id
+      WHERE p.id = ${sessao.pessoaId}
+    `;
     return c.json(row ? [pessoaDeRow(row)] : [], 200);
   }
-  const rows = await sql`SELECT * FROM pessoas ORDER BY cracha`;
+  const rows = await sql`
+    SELECT p.*, v.id AS vaga_id, v.identificacao AS vaga_identificacao,
+      e.id AS estacionamento_id, e.nome AS estacionamento_nome
+    FROM pessoas p
+    LEFT JOIN pessoa_vaga pvg ON pvg.pessoa_id = p.id
+    LEFT JOIN vagas v ON v.id = pvg.vaga_id
+    LEFT JOIN estacionamentos e ON e.id = v.estacionamento_id
+    ORDER BY p.cracha
+  `;
   return c.json(rows.map(pessoaDeRow) as any, 200);
 });
 
@@ -226,9 +251,12 @@ app.openapi(getPessoaIdRoute, async (c) => {
   }
 
   const [row] = await sql`
-    SELECT p.*, e.nome AS estacionamento_nome
+    SELECT p.*, v.id AS vaga_id, v.identificacao AS vaga_identificacao,
+      e.id AS estacionamento_id, e.nome AS estacionamento_nome
     FROM pessoas p
-    LEFT JOIN estacionamentos e ON e.id = p.estacionamento_id
+    LEFT JOIN pessoa_vaga pvg ON pvg.pessoa_id = p.id
+    LEFT JOIN vagas v ON v.id = pvg.vaga_id
+    LEFT JOIN estacionamentos e ON e.id = v.estacionamento_id
     WHERE ${filtro}
   `;
   if (!row) return c.json({ erro: "Pessoa não encontrada." }, 404);

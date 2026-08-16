@@ -6,7 +6,7 @@
 import { useState, FormEvent } from "react";
 import { useEffect } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { useEstacionamento, useCheckinsEstacionamento } from "../lib/hooks";
+import { useEstacionamento, useCheckinsEstacionamento, useVagasEstacionamento } from "../lib/hooks";
 import { useSessao, temPermissao } from "../lib/sessao";
 import {
   atualizarEstacionamento,
@@ -24,6 +24,7 @@ export function EstacionamentoDetalhe() {
   const { sessao } = useSessao();
   const { item: estacionamento, carregando, erro } = useEstacionamento(id);
   const { itens: checkins, carregando: carregandoCheckins } = useCheckinsEstacionamento(id);
+  const { itens: vagas, carregando: carregandoVagas } = useVagasEstacionamento(id);
   const [editando, setEditando] = useState(false);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [acaoOcupado, setAcaoOcupado] = useState(false);
@@ -42,13 +43,11 @@ export function EstacionamentoDetalhe() {
     nome: "",
     endereco: "",
     vagasContratadas: "",
-    vagasDistribuidas: "0",
     dentroPerimetro: false,
     horarios: "",
   });
   const [erros, setErros] = useState<Record<string, string>>({});
 
-  const diferencaEditando = (parseInt(dados.vagasContratadas, 10) || 0) - (parseInt(dados.vagasDistribuidas, 10) || 0);
   const diferencaVisualizando = (estacionamento?.vagasContratadas ?? 0) - (estacionamento?.vagasDistribuidas ?? 0);
 
   if (!sessao) return null;
@@ -84,7 +83,6 @@ export function EstacionamentoDetalhe() {
       nome: estacionamento.nome,
       endereco: estacionamento.endereco,
       vagasContratadas: String(estacionamento.vagasContratadas ?? 0),
-      vagasDistribuidas: String(estacionamento.vagasDistribuidas ?? 0),
       dentroPerimetro: estacionamento.dentroPerimetro,
       horarios: estacionamento.horarios,
     });
@@ -209,34 +207,6 @@ export function EstacionamentoDetalhe() {
                 {erros.vagasContratadas && (
                   <p className="input-erro-msg">{erros.vagasContratadas}</p>
                 )}
-              </div>
-
-              <div className="input-grupo">
-                <label className="input-label" htmlFor="vagasDistribuidas">
-                  Vagas Distribuidas
-                </label>
-                <input
-                  id="vagasDistribuidas"
-                  type="text"
-                  className={`input ${erros.vagasDistribuidas ? "erro" : ""}`}
-                  value={dados.vagasDistribuidas}
-                  onChange={(e) =>
-                    setDados((d) => ({ ...d, vagasDistribuidas: e.target.value }))
-                  }
-                  required
-                />
-                {erros.vagasDistribuidas && (
-                  <p className="input-erro-msg">{erros.vagasDistribuidas}</p>
-                )}
-              </div>
-
-              <div className="input-grupo">
-                <label className="input-label">
-                  Diferença
-                </label>
-                <div className="input bg-pietra-clara/40 font-mono flex items-center px-3 select-none">
-                  {diferencaEditando}
-                </div>
               </div>
 
               <div className="input-grupo">
@@ -456,6 +426,13 @@ export function EstacionamentoDetalhe() {
 
       <div className="tabs">
         <div className="tabs-lista">
+          <button
+            type="button"
+            className={`aba ${abaAtiva === "vagas" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaAtiva("vagas")}
+          >
+            Vagas
+          </button>
           <button
             type="button"
             className={`aba ${abaAtiva === "vagas" ? "aba-ativa" : ""}`}

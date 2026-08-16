@@ -38,6 +38,7 @@ app.openapi(getDashboardRoute, async (c) => {
   const estacionamentos = await sql`
     SELECT
       e.id, e.nome, e.endereco, e.vagas_contratadas,
+      (SELECT COUNT(*)::int FROM vagas v WHERE v.estacionamento_id = e.id) AS vagas_distribuidas,
       COALESCE(COUNT(c.id) FILTER (WHERE c.data = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date), 0)::int AS checkins_hoje
     FROM estacionamentos e
     LEFT JOIN checkins c ON c.estacionamento_id = e.id AND c.data = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
@@ -57,12 +58,14 @@ app.openapi(getDashboardRoute, async (c) => {
 
   const estacionamentosComOcupacao = (estacionamentos as Array<Record<string, unknown>>).map((e) => {
     const vagas = Number(e.vagas_contratadas ?? 0);
+    const vagasDistribuidas = Number(e.vagas_distribuidas ?? 0);
     const checkinsHoje = Number(e.checkins_hoje ?? 0);
     return {
       id: e.id,
       nome: e.nome,
       endereco: e.endereco,
       vagasContratadas: vagas,
+      vagasDistribuidas,
       checkinsHoje,
       ocupacaoPercentual: vagas > 0 ? Math.round((checkinsHoje / vagas) * 100) : null,
     };

@@ -12,7 +12,7 @@ const VeiculoSchema = z.object({
   modelo: z.string(),
   placa: z.string(),
   cor: z.string(),
-  estacionamentoId: z.string().nullable().optional(),
+  estacionamentos: z.array(z.object({ id: z.string(), nome: z.string() })).optional(),
   observacao: z.string().nullable().optional(),
   crachaCarroImpresso: z.boolean().optional(),
   criadoEm: z.string(),
@@ -38,7 +38,7 @@ function veiculoDeRow(r: Record<string, unknown>) {
     modelo: r.modelo,
     placa: r.placa,
     cor: r.cor,
-    estacionamentoId: r.estacionamento_id ?? null,
+    estacionamentos: r.estacionamentos ?? [],
     observacao: r.observacao ?? null,
     crachaCarroImpresso: !!r.cracha_carro_impresso,
     criadoEm,
@@ -47,6 +47,35 @@ function veiculoDeRow(r: Record<string, unknown>) {
 }
 
 const msgErro = z.object({ erro: z.string() });
+
+// Estacionamentos derivados das vagas das pessoas ativas vinculadas (FR-010).
+function selectVeiculoCompleto(where: ReturnType<typeof sql>) {
+  return sql`
+    SELECT v.*,
+      COALESCE(
+        (SELECT jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'cracha', p.cracha))
+         FROM pessoa_veiculo pv
+         JOIN pessoas p ON p.id = pv.pessoa_id
+         WHERE pv.veiculo_id = v.id),
+        '[]'::jsonb
+      ) AS pessoas,
+      COALESCE(
+        (SELECT jsonb_agg(est) FROM (
+          SELECT DISTINCT jsonb_build_object('id', e.id, 'nome', e.nome) AS est
+          FROM pessoa_veiculo pv
+          JOIN pessoas p ON p.id = pv.pessoa_id AND p.ativo
+          JOIN pessoa_vaga pvg ON pvg.pessoa_id = p.id
+          JOIN vagas va ON va.id = pvg.vaga_id AND va.estacionamento_id IS NOT NULL
+          JOIN estacionamentos e ON e.id = va.estacionamento_id
+          WHERE pv.veiculo_id = v.id
+        ) sub),
+        '[]'::jsonb
+      ) AS estacionamentos
+    FROM veiculos v
+    ${where}
+    ORDER BY v.placa
+  `;
+}
 
 // GET /api/veiculos
 const getRoute = createRoute({
@@ -70,7 +99,7 @@ app.openapi(getRoute, async (c) => {
   const escopo = escopoVeiculos(sessao);
   if (!escopo) return c.json({ erro: "Acesso negado. Sem permissao de leitura de veiculos." }, 403);
 
-  let where = sql``;
+  let where: ReturnType<typeof sql> = sql``;
   if (escopo === "equipe") {
     const equipes = sessao.equipesCRD ?? [];
     where = sql`WHERE EXISTS (
@@ -86,19 +115,7 @@ app.openapi(getRoute, async (c) => {
     )`;
   }
 
-  const rows = await sql`
-    SELECT v.*,
-      COALESCE(
-        (SELECT jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'cracha', p.cracha))
-         FROM pessoa_veiculo pv
-         JOIN pessoas p ON p.id = pv.pessoa_id
-         WHERE pv.veiculo_id = v.id),
-        '[]'::jsonb
-      ) AS pessoas
-    FROM veiculos v
-    ${where}
-    ORDER BY v.placa
-  `;
+  const rows = await selectVeiculoCompleto(where);
   const resultado = rows.map((r) => ({ ...veiculoDeRow(r), pessoas: r.pessoas }));
   return c.json(resultado as any, 200);
 });
@@ -125,10 +142,10 @@ app.openapi(getIdRoute, async (c) => {
   const escopo = escopoVeiculos(sessao);
   if (!escopo) return c.json({ erro: "Acesso negado. Sem permissao de leitura de veiculos." }, 403);
 
-  let filtro = sql`v.id = ${id}`;
+  let filtro: ReturnType<typeof sql> = sql`WHERE v.id = ${id}`;
   if (escopo === "equipe") {
     const equipes = sessao.equipesCRD ?? [];
-    filtro = sql`v.id = ${id} AND EXISTS (
+    filtro = sql`WHERE v.id = ${id} AND EXISTS (
       SELECT 1 FROM pessoa_veiculo pv
       JOIN participacoes part ON part.pessoa_id = pv.pessoa_id
       JOIN edicoes e ON e.id = part.edicao_id AND e.status = 'ativa'
@@ -136,14 +153,14 @@ app.openapi(getIdRoute, async (c) => {
     )`;
   } else if (escopo === "proprio") {
     if (!sessao.pessoaId) return c.json({ erro: "Veiculo nao encontrado." }, 404);
-    filtro = sql`v.id = ${id} AND EXISTS (
+    filtro = sql`WHERE v.id = ${id} AND EXISTS (
       SELECT 1 FROM pessoa_veiculo pv WHERE pv.veiculo_id = v.id AND pv.pessoa_id = ${sessao.pessoaId}
     )`;
   }
 
-  const [row] = await sql`SELECT * FROM veiculos v WHERE ${filtro}`;
+  const [row] = await selectVeiculoCompleto(filtro);
   if (!row) return c.json({ erro: "Veiculo nao encontrado." }, 404);
-  return c.json(veiculoDeRow(row) as any, 200);
+  return c.json({ ...veiculoDeRow(row), pessoas: row.pessoas } as any, 200);
 });
 
 // POST /api/veiculos
@@ -415,54 +432,6 @@ app.openapi(deletePessoaRoute, async (c) => {
   await sql`DELETE FROM pessoa_veiculo WHERE pessoa_id = ${pessoaId} AND veiculo_id = ${id}`;
   await registrarEvento(sessao, "veiculo.pessoa.desvinculou", `veiculos/${id}`, `${pessoa?.nome ?? ""} (#${pessoaId})`);
   return c.json({ ok: true }, 200);
-});
-
-// GET /api/veiculos/:id/historico-estacionamentos
-const HistoricoEstacionamentoSchema = z.object({
-  id: z.string(),
-  veiculoId: z.string(),
-  estacionamentoId: z.string().nullable().optional(),
-  estacionamentoNome: z.string(),
-  operacao: z.enum(["associou", "transferiu", "desassociou"]),
-  autor: z.string(),
-  autorNome: z.string(),
-  criadoEm: z.string(),
-});
-
-const getHistoricoEstacionamentosRoute = createRoute({
-  method: "get",
-  path: "/{id}/historico-estacionamentos",
-  tags: ["Veiculos", "Estacionamentos"],
-  summary: "Lista o historico de associacao do veiculo a estacionamentos",
-  middleware: [comAuth as any] as const,
-  security: [{ bearerAuth: [] }],
-  request: { params: z.object({ id: z.string() }) },
-  responses: {
-    200: { content: { "application/json": { schema: z.array(HistoricoEstacionamentoSchema) } }, description: "Historico do veiculo" },
-    404: { content: { "application/json": { schema: msgErro } }, description: "Veiculo nao encontrado" },
-  },
-});
-
-app.openapi(getHistoricoEstacionamentosRoute, async (c) => {
-  const { id } = c.req.valid("param");
-  const [veiculo] = await sql`SELECT id FROM veiculos WHERE id = ${id}`;
-  if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
-  const rows = await sql`
-    SELECT * FROM veiculo_estacionamento_historico
-    WHERE veiculo_id = ${id}
-    ORDER BY criado_em DESC
-  `;
-  const resultado = rows.map((r) => ({
-    id: r.id,
-    veiculoId: r.veiculo_id,
-    estacionamentoId: r.estacionamento_id ?? null,
-    estacionamentoNome: r.estacionamento_nome,
-    operacao: r.operacao,
-    autor: r.autor,
-    autorNome: r.autor_nome,
-    criadoEm: r.criado_em instanceof Date ? r.criado_em.toISOString() : String(r.criado_em ?? ""),
-  }));
-  return c.json(resultado as any, 200);
 });
 
 export default app;

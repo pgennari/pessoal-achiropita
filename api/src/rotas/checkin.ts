@@ -47,11 +47,20 @@ const getEstacionamentoRoute = createRoute({
 app.openapi(getEstacionamentoRoute, async (c) => {
   const { token } = c.req.valid("param");
   const [row] = await sql`
-    SELECT id, nome, endereco FROM estacionamentos WHERE token_checkin = ${token}
+    SELECT e.id, e.nome, e.endereco, e.vagas_contratadas, e.dentro_perimetro,
+           (SELECT COUNT(*)::int FROM vagas v WHERE v.estacionamento_id = e.id) AS vagas_distribuidas
+    FROM estacionamentos e WHERE e.token_checkin = ${token}
   `;
   if (!row) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
   return c.json(
-    { estacionamentoId: row.id, nome: row.nome, endereco: row.endereco },
+    {
+      estacionamentoId: row.id,
+      nome: row.nome,
+      endereco: row.endereco,
+      vagasContratadas: Number(row.vagas_contratadas ?? 0),
+      vagasDistribuidas: Number(row.vagas_distribuidas ?? 0),
+      dentroPerimetro: !!row.dentro_perimetro,
+    },
     200,
   );
 });
@@ -94,23 +103,31 @@ app.openapi(buscarPlacaRoute, async (c) => {
 
   const padraoPlaca = `%${placa.toUpperCase()}%`;
 
-  // Buscar veiculos que pertencem ao estacionamento (via estacionamento_id)
+  // Buscar veiculos que pertencem ao estacionamento (via vaga das pessoas, FR-011)
   const veiculos = await sql`
     SELECT v.id, v.fabricante, v.modelo, v.placa, v.cor
     FROM veiculos v
-    WHERE v.estacionamento_id = ${est.id}
-      AND UPPER(v.placa) LIKE ${padraoPlaca}
+    JOIN pessoa_veiculo pv ON pv.veiculo_id = v.id
+    JOIN pessoas p ON p.id = pv.pessoa_id AND p.ativo = true
+    JOIN pessoa_vaga pvg ON pvg.pessoa_id = p.id
+    JOIN vagas va ON va.id = pvg.vaga_id AND va.estacionamento_id = ${est.id}
+    WHERE UPPER(v.placa) LIKE ${padraoPlaca}
+    GROUP BY v.id
+    ORDER BY v.placa
   `;
 
   if (veiculos.length === 0) {
-    // Verificar se a placa pertence a outro estacionamento
+    // Verificar se a placa pertence a outro estacionamento (via vaga das pessoas)
     const [outro] = await sql`
-      SELECT e.nome
+      SELECT DISTINCT e.nome
       FROM veiculos v
-      JOIN estacionamentos e ON e.id = v.estacionamento_id
+      JOIN pessoa_veiculo pv ON pv.veiculo_id = v.id
+      JOIN pessoas p ON p.id = pv.pessoa_id AND p.ativo = true
+      JOIN pessoa_vaga pvg ON pvg.pessoa_id = p.id
+      JOIN vagas va ON va.id = pvg.vaga_id AND va.estacionamento_id IS NOT NULL
+      JOIN estacionamentos e ON e.id = va.estacionamento_id
       WHERE UPPER(v.placa) LIKE ${padraoPlaca}
-        AND v.estacionamento_id IS NOT NULL
-        AND v.estacionamento_id <> ${est.id}
+        AND va.estacionamento_id <> ${est.id}
       LIMIT 1
     `;
 
@@ -209,15 +226,18 @@ app.openapi(postCheckinRoute, async (c) => {
   `;
   if (!est) return c.json({ erro: "Estacionamento nao encontrado." }, 404);
 
-  // Verificar se o veiculo existe e pertence ao estacionamento
+  // Verificar se o veiculo existe e pertence ao estacionamento (via vaga das pessoas, FR-011)
   const [veiculo] = await sql`
-    SELECT id, fabricante, modelo, placa, cor, estacionamento_id
-    FROM veiculos WHERE id = ${veiculoId}
+    SELECT v.id, v.fabricante, v.modelo, v.placa, v.cor
+    FROM veiculos v
+    JOIN pessoa_veiculo pv ON pv.veiculo_id = v.id
+    JOIN pessoas p ON p.id = pv.pessoa_id AND p.ativo = true
+    JOIN pessoa_vaga pvg ON pvg.pessoa_id = p.id
+    JOIN vagas va ON va.id = pvg.vaga_id AND va.estacionamento_id = ${est.id}
+    WHERE v.id = ${veiculoId}
+    LIMIT 1
   `;
-  if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
-  if (veiculo.estacionamento_id !== est.id) {
-    return c.json({ erro: "Veiculo nao pertence a este estacionamento." }, 404);
-  }
+  if (!veiculo) return c.json({ erro: "Veiculo nao encontrado neste estacionamento." }, 404);
 
   // Verificar unicidade por dia
   const [existente] = await sql`

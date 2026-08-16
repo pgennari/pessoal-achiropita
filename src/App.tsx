@@ -41,6 +41,9 @@ import { VeiculoDetalhe } from "./pages/VeiculoDetalhe";
 import { DashboardEstacionamentos } from "./pages/DashboardEstacionamentos";
 import { RelatorioEstacionamentos } from "./pages/RelatorioEstacionamentos";
 import { Sincronizacao } from "./pages/Sincronizacao";
+import { Vagas } from "./pages/Vagas";
+import { VagaNova } from "./pages/VagaNova";
+import { VagaDetalhe } from "./pages/VagaDetalhe";
 
 export function App() {
   return (
@@ -91,6 +94,9 @@ export function App() {
         <Route path="veiculos" element={<Veiculos />} />
         <Route path="veiculos/novo" element={<VeiculoNovo />} />
         <Route path="veiculos/:id" element={<VeiculoDetalhe />} />
+        <Route path="vagas" element={<Vagas />} />
+        <Route path="vagas/nova" element={<VagaNova />} />
+        <Route path="vagas/:id" element={<VagaDetalhe />} />
         <Route path="auditoria" element={<Auditoria />} />
         <Route path="setores" element={<Setores />} />
         <Route path="zeramento" element={<ZeramentoDados />} />

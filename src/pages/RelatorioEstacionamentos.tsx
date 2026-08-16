@@ -7,7 +7,6 @@ import { Link } from "react-router-dom";
 import {
   useEdicaoAtiva,
   useEquipes,
-  useEstacionamentos,
   useParticipacoes,
   useTodosCheckins,
   useVeiculos,
@@ -44,7 +43,6 @@ function formatarDataISO(data: string): string {
 export function RelatorioEstacionamentos() {
   const { sessao } = useSessao();
   const { itens: veiculos, carregando, erro } = useVeiculos();
-  const { itens: estacionamentos } = useEstacionamentos();
   const { itens: checkins, carregando: carregandoCheckins } = useTodosCheckins();
   const { edicao } = useEdicaoAtiva();
   const { itens: equipes } = useEquipes(edicao?.id);
@@ -56,11 +54,6 @@ export function RelatorioEstacionamentos() {
   const [filtroEstacionamento, setFiltroEstacionamento] = useState("");
   const [filtroCheckin, setFiltroCheckin] = useState<"com" | "sem" | null>(null);
   const [filtroTotal, setFiltroTotal] = useState<number | null>(null);
-
-  const mapaEstacionamento = useMemo(
-    () => new Map(estacionamentos.map((e) => [e.id, e.nome])),
-    [estacionamentos]
-  );
 
   const equipesPorPessoa = useMemo(() => {
     const equipesPorId = new Map(equipes.map((e) => [e.id, e.nome]));
@@ -121,9 +114,7 @@ export function RelatorioEstacionamentos() {
 
     return veiculosOrdenados.filter((v) => {
       if (t) {
-        const estacionamento = v.estacionamentoId
-          ? mapaEstacionamento.get(v.estacionamentoId) ?? ""
-          : "";
+        const estacionamento = (v.estacionamentos ?? []).map((e) => e.nome).join(", ");
         const total = checkinsPorVeiculo.totais.get(v.id) ?? 0;
         const combina =
           normalizar(v.placa ?? "").includes(t) ||
@@ -151,9 +142,7 @@ export function RelatorioEstacionamentos() {
         if (!normalizar(v.placa ?? "").includes(p)) return false;
       }
       if (e) {
-        const estac = v.estacionamentoId
-          ? mapaEstacionamento.get(v.estacionamentoId) ?? ""
-          : "";
+        const estac = (v.estacionamentos ?? []).map((est) => est.nome).join(", ");
         if (!normalizar(estac).includes(e)) return false;
       }
       if (filtroTotal !== null) {
@@ -179,7 +168,6 @@ export function RelatorioEstacionamentos() {
     filtroNome,
     filtroPlaca,
     filtroEstacionamento,
-    mapaEstacionamento,
     equipesPorVeiculo,
     checkinsPorVeiculo,
     filtroCheckin,
@@ -378,9 +366,9 @@ export function RelatorioEstacionamentos() {
                 ) : (
                   veiculosFiltrados.map((v) => {
                   const equipesVeiculo = equipesPorVeiculo.get(v.id) ?? [];
-                  const estacionamentoNome = v.estacionamentoId
-                    ? mapaEstacionamento.get(v.estacionamentoId) ?? ""
-                    : "";
+                  const estacionamentoNome = (v.estacionamentos ?? [])
+                    .map((e) => e.nome)
+                    .join(", ");
                   const total = checkinsPorVeiculo.totais.get(v.id) ?? 0;
                   return (
                     <tr

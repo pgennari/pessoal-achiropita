@@ -1,0 +1,26 @@
+
+> api-achiropita@0.1.0 build
+> tsc
+
+src/rotas/veiculos.ts(118,44): error TS2345: Argument of type 'PendingQuery<Row[]>' is not assignable to parameter of type 'PendingQuery<readonly (object | undefined)[]>'.
+  The types of 'values().then' are incompatible between these types.
+    Type '<TResult1 = ValuesRowList<Row[]>, TResult2 = never>(onfulfilled?: ((value: ValuesRowList<Row[]>) => TResult1 | PromiseLike<TResult1>) | null | undefined, onrejected?: ((reason: any) => TResult2 | PromiseLike<...>) | ... 1 more ... | undefined) => Promise<...>' is not assignable to type '<TResult1 = ValuesRowList<readonly (object | undefined)[]>, TResult2 = never>(onfulfilled?: ((value: ValuesRowList<readonly (object | undefined)[]>) => TResult1 | PromiseLike<TResult1>) | null | undefined, onrejected?: ((reason: any) => TResult2 | PromiseLike<...>) | ... 1 more ... | undefined) => Promise<...>'.
+      Types of parameters 'onfulfilled' and 'onfulfilled' are incompatible.
+        Types of parameters 'value' and 'value' are incompatible.
+          Type 'ValuesRowList<Row[]>' is not assignable to type 'ValuesRowList<readonly (object | undefined)[]>'.
+            Type 'ValuesRowList<Row[]>' is not assignable to type 'never[][]'.
+              The types returned by 'pop()' are incompatible between these types.
+                Type 'any[] | undefined' is not assignable to type 'never[] | undefined'.
+                  Type 'any[]' is not assignable to type 'never[]'.
+                    Type 'any' is not assignable to type 'never'.
+src/rotas/veiculos.ts(161,45): error TS2345: Argument of type 'PendingQuery<Row[]>' is not assignable to parameter of type 'PendingQuery<readonly (object | undefined)[]>'.
+  The types of 'values().then' are incompatible between these types.
+    Type '<TResult1 = ValuesRowList<Row[]>, TResult2 = never>(onfulfilled?: ((value: ValuesRowList<Row[]>) => TResult1 | PromiseLike<TResult1>) | null | undefined, onrejected?: ((reason: any) => TResult2 | PromiseLike<...>) | ... 1 more ... | undefined) => Promise<...>' is not assignable to type '<TResult1 = ValuesRowList<readonly (object | undefined)[]>, TResult2 = never>(onfulfilled?: ((value: ValuesRowList<readonly (object | undefined)[]>) => TResult1 | PromiseLike<TResult1>) | null | undefined, onrejected?: ((reason: any) => TResult2 | PromiseLike<...>) | ... 1 more ... | undefined) => Promise<...>'.
+      Types of parameters 'onfulfilled' and 'onfulfilled' are incompatible.
+        Types of parameters 'value' and 'value' are incompatible.
+          Type 'ValuesRowList<Row[]>' is not assignable to type 'ValuesRowList<readonly (object | undefined)[]>'.
+            Type 'ValuesRowList<Row[]>' is not assignable to type 'never[][]'.
+              The types returned by 'pop()' are incompatible between these types.
+                Type 'any[] | undefined' is not assignable to type 'never[] | undefined'.
+                  Type 'any[]' is not assignable to type 'never[]'.
+                    Type 'any' is not assignable to type 'never'.

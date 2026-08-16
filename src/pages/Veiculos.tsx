@@ -7,7 +7,6 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   useEdicaoAtiva,
   useEquipes,
-  useEstacionamentos,
   useParticipacoes,
   useVeiculos,
 } from "../lib/hooks";
@@ -32,7 +31,6 @@ type Ordenacao = { coluna: ColunaOrdenacao; direcao: "asc" | "desc" };
 function valorOrdenacao(
   v: VeiculoComPessoas,
   coluna: ColunaOrdenacao,
-  mapaEstacionamento: Map<string, string>,
   equipes: string[]
 ): string {
   switch (coluna) {
@@ -45,9 +43,7 @@ function valorOrdenacao(
     case "cor":
       return v.cor ?? "";
     case "estacionamento":
-      return v.estacionamentoId
-        ? mapaEstacionamento.get(v.estacionamentoId) ?? ""
-        : "";
+      return (v.estacionamentos ?? []).map((e) => e.nome).join(" ");
     case "pessoas":
       return v.pessoas.map((p) => p.nome).join(" ");
     case "equipes":
@@ -107,11 +103,6 @@ export function Veiculos() {
   const navigate = useNavigate();
   const { sessao } = useSessao();
   const { itens, carregando, erro } = useVeiculos();
-  const { itens: estacionamentos } = useEstacionamentos();
-  const mapaEstacionamento = useMemo(
-    () => new Map(estacionamentos.map((e) => [e.id, e.nome])),
-    [estacionamentos]
-  );
 
   const { edicao } = useEdicaoAtiva();
   const { itens: equipes } = useEquipes(edicao?.id);
@@ -164,9 +155,7 @@ export function Veiculos() {
           if (normalizar(v.fabricante ?? "").includes(t)) return true;
           if (normalizar(v.modelo ?? "").includes(t)) return true;
           if (normalizar(v.cor ?? "").includes(t)) return true;
-          const estacionamento = v.estacionamentoId
-            ? mapaEstacionamento.get(v.estacionamentoId) ?? ""
-            : "";
+          const estacionamento = (v.estacionamentos ?? []).map((e) => e.nome).join(" ");
           if (normalizar(estacionamento).includes(t)) return true;
           if (normalizar(v.observacao ?? "").includes(t)) return true;
           if (["sim", "impresso"].includes(t) && v.crachaCarroImpresso) return true;
@@ -192,13 +181,11 @@ export function Veiculos() {
       const va = valorOrdenacao(
         a,
         coluna,
-        mapaEstacionamento,
         equipesPorVeiculo.get(a.id) ?? []
       );
       const vb = valorOrdenacao(
         b,
         coluna,
-        mapaEstacionamento,
         equipesPorVeiculo.get(b.id) ?? []
       );
       if (!va && !vb) return 0;
@@ -211,7 +198,7 @@ export function Veiculos() {
       return direcao === "asc" ? cmp : -cmp;
     });
     return lista;
-  }, [itens, termo, mapaEstacionamento, equipesPorVeiculo, ordenacao]);
+  }, [itens, termo, equipesPorVeiculo, ordenacao]);
 
   return (
     <div className="space-y-6">
@@ -288,26 +275,21 @@ export function Veiculos() {
                   >
                     <td className="py-2 px-3 font-mono font-medium">{v.placa}</td>
                     <td className="py-2 px-3">
-                      {v.estacionamentoId ? (
-                        (() => {
-                          const nome = mapaEstacionamento.get(v.estacionamentoId);
-                          if (!nome) {
+                      {v.estacionamentos && v.estacionamentos.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {v.estacionamentos.map((e) => {
+                            const cores = coresEstacionamento(e.nome);
                             return (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-verde/10 text-verde-escuro">
-                                Vinculado
+                              <span
+                                key={e.id}
+                                style={{ backgroundColor: cores.fundo, color: cores.texto }}
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                              >
+                                {e.nome}
                               </span>
                             );
-                          }
-                          const cores = coresEstacionamento(nome);
-                          return (
-                            <span
-                              style={{ backgroundColor: cores.fundo, color: cores.texto }}
-                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                            >
-                              {nome}
-                            </span>
-                          );
-                        })()
+                          })}
+                        </div>
                       ) : (
                         <span className="text-ardesia">-</span>
                       )}

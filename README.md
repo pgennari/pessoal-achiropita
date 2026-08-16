@@ -49,8 +49,7 @@ src/
 
 ### CI/CD
 
-- **`.github/workflows/deploy.yml`** roda em todo push para `main` (e
-  na branch atual `claude/restart`, enquanto o app está em
+- **`.github/workflows/deploy.yml`** roda em todo push para `main`, enquanto o app está em
   desenvolvimento). Faz build do Vite e roda
   `firebase deploy --only hosting,firestore:rules,firestore:indexes`
   com a service account.

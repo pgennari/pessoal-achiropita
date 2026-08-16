@@ -1,19 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   useVeiculosEstacionamento,
-  useVeiculos,
-  useEstacionamentos,
   useCheckinsEstacionamento,
   useEdicaoAtiva,
   useEquipes,
   useParticipacoes,
 } from "../lib/hooks";
 import { useSessao, temPermissao } from "../lib/sessao";
-import {
-  associarVeiculoEstacionamento,
-  desassociarVeiculoEstacionamento,
-  registrarCheckinsManuais,
-} from "../lib/veiculos";
+import { registrarCheckinsManuais } from "../lib/veiculos";
 import type { VeiculoComPessoas } from "../lib/tipos";
 import { Icone } from "./Icone";
 
@@ -59,26 +53,19 @@ function formatarDataISO(data: string): string {
 export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
   const { sessao } = useSessao();
   const { itens: veiculosEstacionamento, carregando } = useVeiculosEstacionamento(estacionamentoId);
-  const { itens: todosVeiculos } = useVeiculos();
-  const { itens: estacionamentos } = useEstacionamentos();
   const { itens: checkins, carregando: carregandoCheckins } = useCheckinsEstacionamento(estacionamentoId);
   const { edicao } = useEdicaoAtiva();
   const { itens: equipes } = useEquipes(edicao?.id);
   const { itens: participacoes } = useParticipacoes(edicao?.id);
   const [busca, setBusca] = useState("");
-  const [buscaAssociacao, setBuscaAssociacao] = useState("");
-  const [modalAssociarAberto, setModalAssociarAberto] = useState(false);
   const [filtroCheckin, setFiltroCheckin] = useState<"com" | "sem" | null>(null);
   const [acaoOcupado, setAcaoOcupado] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
-  const [veiculoTransferencia, setVeiculoTransferencia] = useState<VeiculoComPessoas | null>(null);
   const [veiculoCheckinManual, setVeiculoCheckinManual] = useState<VeiculoComPessoas | null>(null);
   const [diasCheckinSelecionados, setDiasCheckinSelecionados] = useState<Set<string>>(new Set());
 
   const buscaDebounced = useDebounce(busca, 300);
-  const buscaAssociacaoDebounced = useDebounce(buscaAssociacao, 300);
 
-  const podeEditar = temPermissao(sessao, "estacionamento.associar");
   const podeCheckinManual = temPermissao(sessao, "estacionamento.checkinManual");
 
   const checkinsPorVeiculo = useMemo(() => {
@@ -133,24 +120,6 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
     );
   }, [veiculosEstacionamento, buscaDebounced]);
 
-  const veiculosNaoAssociados = useMemo(() => {
-    const disponiveis = todosVeiculos.filter((v) => v.estacionamentoId !== estacionamentoId);
-    const termo = buscaAssociacaoDebounced.trim().toLowerCase();
-    if (!termo) return disponiveis;
-    return disponiveis.filter(
-      (v) =>
-        (v.fabricante ?? "").toLowerCase().includes(termo) ||
-        (v.modelo ?? "").toLowerCase().includes(termo) ||
-        (v.cor ?? "").toLowerCase().includes(termo) ||
-        (v.placa ?? "").toLowerCase().includes(termo) ||
-        (v.pessoas ?? []).some(
-          (p) =>
-            (p.nome ?? "").toLowerCase().includes(termo) ||
-            String(p.cracha ?? "").includes(termo)
-        )
-    );
-  }, [todosVeiculos, buscaAssociacaoDebounced]);
-
   const veiculosExibidos = useMemo(() => {
     if (!filtroCheckin) return veiculosFiltrados;
     const hoje = dataLocalISO(new Date());
@@ -164,47 +133,6 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
   }, [veiculosFiltrados, filtroCheckin, checkinsPorVeiculo]);
 
   if (!sessao) return null;
-
-  async function handleAssociar(veiculoId: string) {
-    const veiculo = veiculosNaoAssociados.find((v) => v.id === veiculoId);
-    if (veiculo?.estacionamentoId) {
-      setModalAssociarAberto(false);
-      setVeiculoTransferencia(veiculo);
-      return;
-    }
-    await confirmarAssociacao(veiculoId);
-  }
-
-  async function confirmarAssociacao(veiculoId: string, estacionamentoAnteriorId?: string) {
-    setAcaoErro(null);
-    setAcaoOcupado(true);
-    try {
-      await associarVeiculoEstacionamento(estacionamentoId, veiculoId, estacionamentoAnteriorId);
-      setBuscaAssociacao("");
-      setModalAssociarAberto(false);
-      setVeiculoTransferencia(null);
-    } catch (e) {
-      setAcaoErro(e instanceof Error ? e.message : "Falha ao associar.");
-    } finally {
-      setAcaoOcupado(false);
-    }
-  }
-
-  function obterNomeEstacionamento(id: string) {
-    return estacionamentos.find((e) => e.id === id)?.nome ?? "desconhecido";
-  }
-
-  async function handleDesassociar(veiculoId: string) {
-    setAcaoErro(null);
-    setAcaoOcupado(true);
-    try {
-      await desassociarVeiculoEstacionamento(estacionamentoId, veiculoId);
-    } catch (e) {
-      setAcaoErro(e instanceof Error ? e.message : "Falha ao desassociar.");
-    } finally {
-      setAcaoOcupado(false);
-    }
-  }
 
   function abrirCheckinManual(veiculo: VeiculoComPessoas) {
     setVeiculoCheckinManual(veiculo);
@@ -240,22 +168,11 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h4 className="font-semibold text-carbone">Veículos Associados</h4>
+        <h4 className="font-semibold text-carbone">Veículos vinculados por vaga</h4>
         <div className="flex items-center gap-3">
           <span className="text-sm text-ardesia">
             {veiculosEstacionamento.length} veículo(s)
           </span>
-          {podeEditar && (
-            <button
-              type="button"
-              className="btn btn-primario btn-pequeno"
-              onClick={() => setModalAssociarAberto(true)}
-              aria-label="Associar"
-              title="Associar"
-            >
-              <Icone nome="mais" />
-            </button>
-          )}
         </div>
       </div>
 
@@ -309,7 +226,7 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
         <p className="text-ardesia text-sm">
           {busca.trim() || filtroCheckin
             ? "Nenhum veiculo encontrado com os filtros atuais."
-            : "Nenhum veiculo associado."}
+            : "Nenhum veiculo vinculado por vaga."}
         </p>
       ) : (
         <ul className="divide-y divide-pietra-clara" role="list">
@@ -355,174 +272,23 @@ export function ListaVeiculosEstacionamento({ estacionamentoId }: Props) {
                   })}
                 </div>
               </div>
-              {podeEditar && (
+              {podeCheckinManual && (
                 <div className="flex items-center gap-2 self-end sm:self-auto">
-                  {podeCheckinManual && (
-                    <button
-                      type="button"
-                      className="btn btn-secundario btn-pequeno"
-                      onClick={() => abrirCheckinManual(v)}
-                      disabled={acaoOcupado}
-                      aria-label="Check-in manual"
-                      title="Check-in manual"
-                    >
-                      <Icone nome="scan" />
-                    </button>
-                  )}
                   <button
                     type="button"
-                    className="btn btn-perigo btn-pequeno"
-                    onClick={() => handleDesassociar(v.id)}
+                    className="btn btn-secundario btn-pequeno"
+                    onClick={() => abrirCheckinManual(v)}
                     disabled={acaoOcupado}
-                    aria-label="Desassociar"
-                    title="Desassociar"
+                    aria-label="Check-in manual"
+                    title="Check-in manual"
                   >
-                    <Icone nome="lixeira" />
+                    <Icone nome="scan" />
                   </button>
                 </div>
               )}
             </li>
           ))}
         </ul>
-      )}
-
-      {modalAssociarAberto && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-carbone/40"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Associar veiculo"
-          onClick={() => setModalAssociarAberto(false)}
-        >
-          <div
-            className="card w-full max-w-md shadow-media"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-4 py-3 border-b border-pietra-clara flex items-center justify-between gap-3">
-              <h4 className="m-0">Associar veículo</h4>
-              <button
-                type="button"
-                className="text-ardesia hover:text-carbone text-2xl leading-none"
-                onClick={() => setModalAssociarAberto(false)}
-                aria-label="Fechar"
-              >
-                ×
-              </button>
-            </div>
-            <div className="px-4 py-4 space-y-3">
-              <input
-                type="text"
-                className="input"
-                placeholder="Buscar por placa, modelo, nome da pessoa..."
-                value={buscaAssociacao}
-                onChange={(e) => setBuscaAssociacao(e.target.value)}
-                aria-label="Buscar veículos para associar"
-              />
-              {veiculosNaoAssociados.length === 0 ? (
-                <p className="text-sm text-ardesia">
-                  {buscaAssociacao.trim()
-                    ? "Nenhum veiculo encontrado."
-                    : "Todos os veículos já estão associados a este estacionamento."}
-                </p>
-              ) : (
-                <ul
-                  className="divide-y divide-pietra-clara max-h-[60vh] overflow-y-auto"
-                  role="list"
-                >
-                  {veiculosNaoAssociados.map((v) => (
-                    <li
-                      key={v.id}
-                      className="py-2 flex items-center justify-between gap-3"
-                      role="listitem"
-                    >
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-carbone">
-                          {v.fabricante} {v.modelo}
-                        </div>
-                        <div className="text-xs text-ardesia font-mono">
-                          {v.placa} · {v.cor}
-                        </div>
-                        {(v.pessoas ?? []).length > 0 && (
-                          <div className="text-xs text-ardesia">
-                            Pessoas: {(v.pessoas ?? []).map((p) => `#${p.cracha}-${p.nome}`).join(", ")}
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        className="btn btn-secundario btn-pequeno shrink-0"
-                        onClick={() => handleAssociar(v.id)}
-                        disabled={acaoOcupado}
-                        aria-label="Associar"
-                        title="Associar"
-                      >
-                        <Icone nome="mais" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {veiculoTransferencia && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-carbone/40"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Confirmar transferencia"
-          onClick={() => setVeiculoTransferencia(null)}
-        >
-          <div
-            className="card w-full max-w-md shadow-media"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-4 py-3 border-b border-pietra-clara">
-              <h4 className="m-0">Transferir veículo</h4>
-            </div>
-            <div className="px-4 py-4 space-y-3">
-              <p className="text-sm text-carbone">
-                O veículo abaixo já está associado ao estacionamento{" "}
-                <strong>{obterNomeEstacionamento(veiculoTransferencia.estacionamentoId!)}</strong>.
-              </p>
-              <div className="bg-pietra-clara/40 rounded-lg p-3">
-                <div className="font-semibold text-carbone">
-                  {veiculoTransferencia.fabricante} {veiculoTransferencia.modelo}
-                </div>
-                <div className="text-xs text-ardesia font-mono">
-                  {veiculoTransferencia.placa} · {veiculoTransferencia.cor}
-                </div>
-              </div>
-              <p className="text-sm text-ardesia">
-                Deseja transferir a associação para <strong>{obterNomeEstacionamento(estacionamentoId)}</strong>?
-              </p>
-            </div>
-            <div className="px-4 py-3 border-t border-pietra-clara flex items-center justify-end gap-3">
-              <button
-                type="button"
-                className="btn btn-secundario"
-                onClick={() => setVeiculoTransferencia(null)}
-                disabled={acaoOcupado}
-                aria-label="Cancelar"
-                title="Cancelar"
-              >
-                <Icone nome="fechar" />
-              </button>
-              <button
-                type="button"
-                className="btn btn-primario"
-                onClick={() => confirmarAssociacao(veiculoTransferencia.id, veiculoTransferencia.estacionamentoId)}
-                disabled={acaoOcupado}
-                aria-label="Confirmar transferência"
-                title="Confirmar transferência"
-              >
-                <Icone nome="check" />
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {veiculoCheckinManual && (

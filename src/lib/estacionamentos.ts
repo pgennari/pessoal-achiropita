@@ -7,7 +7,6 @@ export interface DadosEstacionamentoForm {
   nome: string;
   endereco: string;
   vagasContratadas: string;
-  vagasDistribuidas: string;
   dentroPerimetro: boolean;
   horarios: string;
 }
@@ -32,13 +31,6 @@ function validar(dados: DadosEstacionamentoForm): Record<string, string> {
     erros.vagasContratadas = "Apenas numeros sao permitidos.";
   }
 
-  const vDistribuidasStr = String(dados.vagasDistribuidas ?? "").trim();
-  if (!vDistribuidasStr) {
-    erros.vagasDistribuidas = "Quantidade de vagas distribuidas e obrigatoria.";
-  } else if (!/^\d+$/.test(vDistribuidasStr)) {
-    erros.vagasDistribuidas = "Apenas numeros sao permitidos.";
-  }
-
   if (!dados.horarios.trim()) erros.horarios = "Horarios sao obrigatorios.";
   return erros;
 }
@@ -54,7 +46,6 @@ export async function criarEstacionamento(
     nome: dados.nome.trim(),
     endereco: dados.endereco.trim(),
     vagasContratadas: parseInt(dados.vagasContratadas, 10),
-    vagasDistribuidas: parseInt(dados.vagasDistribuidas, 10),
     dentroPerimetro: dados.dentroPerimetro,
     horarios: dados.horarios.trim(),
   });
@@ -75,7 +66,6 @@ export async function atualizarEstacionamento(
     nome: dados.nome.trim(),
     endereco: dados.endereco.trim(),
     vagasContratadas: parseInt(dados.vagasContratadas, 10),
-    vagasDistribuidas: parseInt(dados.vagasDistribuidas, 10),
     dentroPerimetro: dados.dentroPerimetro,
     horarios: dados.horarios.trim(),
   });
@@ -89,26 +79,4 @@ export async function excluirEstacionamento(
 ): Promise<void> {
   await api.delete(`/api/estacionamentos/${id}`);
   await queryClient.invalidateQueries({ queryKey: ["estacionamentos"] });
-}
-
-export async function associarPessoaEstacionamento(
-  _sessao: Sessao,
-  estacionamentoId: string,
-  pessoaId: string
-): Promise<void> {
-  await api.post(`/api/estacionamentos/${estacionamentoId}/pessoas`, { pessoaId });
-  await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId, "pessoas"] });
-  await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId] });
-  await queryClient.invalidateQueries({ queryKey: ["pessoas", pessoaId] });
-}
-
-export async function desassociarPessoaEstacionamento(
-  _sessao: Sessao,
-  estacionamentoId: string,
-  pessoaId: string
-): Promise<void> {
-  await api.delete(`/api/estacionamentos/${estacionamentoId}/pessoas/${pessoaId}`);
-  await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId, "pessoas"] });
-  await queryClient.invalidateQueries({ queryKey: ["estacionamentos", estacionamentoId] });
-  await queryClient.invalidateQueries({ queryKey: ["pessoas", pessoaId] });
 }

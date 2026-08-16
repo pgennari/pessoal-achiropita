@@ -17,7 +17,7 @@ Fontes obrigatorias antes de codar: `CLAUDE.md`, `user-stories-festa-100.md`, `g
 - **Sem Cloud Functions** — tudo cliente + Security Rules.
 - Perfis (`ADM`/`ORG`/`CRD`/`EQP`/`OPC`/`REC`) armazenados em doc `/usuarios/{uid}`, **nao** em custom claims.
 - Emuladores locais: `VITE_USE_EMULATORS=1` conecta auth(:9099), firestore(:8080), storage(:9199).
-- CI/CD: GitHub Actions faz deploy em push para `main` ou `claude/restart`. Comando exato:
+- CI/CD: GitHub Actions faz deploy em push para `main`. Comando exato:
   `firebase deploy --only hosting,firestore:rules,firestore:indexes,storage --project $ID --non-interactive`
 
 ## Setup
@@ -47,7 +47,7 @@ Todas as colecoes Firestore e nomes de identificadores estao em `src/lib/tipos.t
 
 - **PT-BR** em UI, identificadores, commits, comentarios. **Sem emojis** em codigo/commits.
 - Datas: `YYYY-MM-DD` para data, `YYYY-MM-DDTHH:mm:ssZ` para timestamp.
-- Commits em PT-BR no imperativo. Branch atual: `claude/restart` (orfã). Nunca commit direto em `main`.
+- Commits em PT-BR no imperativo. Branch atual: `main`.
 - Hooks sao `usePessoas`, `useEdicaoAtiva`, etc. — `onSnapshot` em colecoes filtradas.
 - `ProtegerRota` redireciona para `/login` se nao ha sessao. Usuarios anonimos (validacao publica) sao tratados como deslogados.
 
@@ -67,6 +67,9 @@ Todas as colecoes Firestore e nomes de identificadores estao em `src/lib/tipos.t
 | `/edicoes/:edicaoId/barracas/:id` | BarracaDetalhe |
 | `/formacao` | PaginaFormacao |
 | `/formacao/pendencias` | PendenciasFormacao |
+| `/vagas` | Vagas |
+| `/vagas/nova` | VagaNova |
+| `/vagas/:id` | VagaDetalhe |
 | `/usuarios` | Usuarios |
 | `/auditoria` | Auditoria |
 | `/historico` | Historico |

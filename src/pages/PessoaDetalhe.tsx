@@ -334,6 +334,14 @@ export function PessoaDetalhe() {
               <Linha rotulo="RG" valor={pessoa.rg ?? "—"} />
               <Linha rotulo="Endereço" valor={pessoa.endereco ?? "—"} />
               <Linha rotulo="Bairro" valor={pessoa.bairro ?? "—"} />
+              <Linha
+                rotulo="Vaga de estacionamento"
+                valor={pessoa.vagaIdentificacao ?? "—"}
+              />
+              <Linha
+                rotulo="Estacionamento"
+                valor={pessoa.estacionamentoNome ?? "—"}
+              />
             </div>
           </div>
         )}

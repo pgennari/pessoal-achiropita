@@ -15,7 +15,7 @@ import {
   ErroValidacao,
 } from "../lib/estacionamentos";
 import { ListaCheckins } from "../components/ListaCheckins";
-import { ListaVeiculosEstacionamento } from "../components/ListaVeiculosEstacionamento";
+import { ListaVagas } from "../components/ListaVagas";
 import { Icone } from "../components/Icone";
 
 export function EstacionamentoDetalhe() {
@@ -29,7 +29,7 @@ export function EstacionamentoDetalhe() {
   const [acaoOcupado, setAcaoOcupado] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [, setCopiado] = useState(false);
-  const [abaAtiva, setAbaAtiva] = useState<"checkins" | "veiculos">("veiculos");
+  const [abaAtiva, setAbaAtiva] = useState<"checkins" | "vagas">("vagas");
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -458,10 +458,10 @@ export function EstacionamentoDetalhe() {
         <div className="tabs-lista">
           <button
             type="button"
-            className={`aba ${abaAtiva === "veiculos" ? "aba-ativa" : ""}`}
-            onClick={() => setAbaAtiva("veiculos")}
+            className={`aba ${abaAtiva === "vagas" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaAtiva("vagas")}
           >
-            Veículos
+            Vagas
           </button>
           <button
             type="button"
@@ -472,15 +472,15 @@ export function EstacionamentoDetalhe() {
           </button>
         </div>
 
-        {abaAtiva === "checkins" && (
+        {abaAtiva === "vagas" && (
           <div className="tabs-painel">
-            <ListaCheckins checkins={checkins} carregando={carregandoCheckins} />
+            <ListaVagas estacionamentoId={id!} vagas={vagas} carregando={carregandoVagas} />
           </div>
         )}
 
-        {abaAtiva === "veiculos" && (
+        {abaAtiva === "checkins" && (
           <div className="tabs-painel">
-            <ListaVeiculosEstacionamento estacionamentoId={id!} />
+            <ListaCheckins checkins={checkins} carregando={carregandoCheckins} />
           </div>
         )}
       </div>

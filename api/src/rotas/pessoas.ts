@@ -4,6 +4,7 @@ import { comAuth, escopoPessoas, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
 import { uploadFoto, deletarFoto } from "../r2.js";
 import type { Variaveis } from "../tipos.js";
+import sharp from "sharp";
 
 const app = new OpenAPIHono<Variaveis>();
 
@@ -842,6 +843,117 @@ app.openapi(deleteParentePessoaRoute, async (c) => {
     `${vinculo.nome} (#${vinculo.cracha})`
   );
   return c.json({ ok: true }, 200);
+});
+
+
+// POST /api/pessoas/importar-fotos — importacao em massa por cracha
+const postImportarFotosRoute = createRoute({
+  method: "post",
+  path: "/importar-fotos",
+  tags: ["Pessoas"],
+  summary: "Importar fotos em massa (nome do arquivo = cracha)",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            importadas: z.number(),
+            ignoradas: z.number(),
+            erros: z.array(z.object({ cracha: z.number(), motivo: z.string() })),
+          }),
+        },
+      },
+      description: "Relatorio da importacao",
+    },
+    400: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Requisicao invalida" },
+    403: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Acesso negado" },
+  },
+});
+app.openapi(postImportarFotosRoute, async (c) => {
+  const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "pessoas.editar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao pessoas.editar." }, 403);
+  }
+
+  const body = await c.req.parseBody({ all: true });
+  const raw = body["fotos"];
+  if (!raw) {
+    return c.json({ erro: "Campo 'fotos' com ao menos um arquivo e obrigatorio." }, 400);
+  }
+  const entradas = Array.isArray(raw) ? raw : [raw];
+  console.log(`[importar-fotos] ${entradas.length} arquivo(s) recebido(s)`);
+  if (entradas.length === 0) {
+    return c.json({ erro: "Campo 'fotos' com ao menos um arquivo e obrigatorio." }, 400);
+  }
+
+  const LIMITE = 10 * 1024 * 1024; // 10 MB por arquivo antes do resize
+  const MIME_PERMITIDOS = ["image/jpeg", "image/png", "image/webp"];
+  const importadas: string[] = [];
+  const erros: { cracha: number; motivo: string }[] = [];
+
+  for (const arquivo of entradas) {
+    if (typeof arquivo === "string") {
+      erros.push({ cracha: 0, motivo: "Arquivo invalido (campo vazio)." });
+      continue;
+    }
+
+    console.log(`[importar-fotos] arquivo="${arquivo.name}" type="${arquivo.type}" size=${arquivo.size}`);
+
+    if (!arquivo.type || !MIME_PERMITIDOS.includes(arquivo.type)) {
+      erros.push({ cracha: 0, motivo: `Arquivo "${arquivo.name}" (tipo: "${arquivo.type || "vazio"}") nao e JPEG/PNG/WebP.` });
+      continue;
+    }
+
+    if (arquivo.size > LIMITE) {
+      erros.push({ cracha: 0, motivo: `Arquivo "${arquivo.name}" excede 10 MB.` });
+      continue;
+    }
+
+    const nomeSemExtensao = arquivo.name.replace(/\.[^.]+$/, "");
+    const crachaNum = parseInt(nomeSemExtensao.replace(/\D/g, ""), 10);
+    if (isNaN(crachaNum) || crachaNum <= 0) {
+      erros.push({ cracha: 0, motivo: `Nome "${arquivo.name}" nao contem numero de cracha valido.` });
+      continue;
+    }
+
+    const [pessoa] = await sql`SELECT id, nome, cracha FROM pessoas WHERE cracha = ${crachaNum}`;
+    if (!pessoa) {
+      erros.push({ cracha: crachaNum, motivo: `Cracha #${crachaNum} nao encontrado no banco.` });
+      continue;
+    }
+
+    try {
+      const bufferOriginal = Buffer.from(await arquivo.arrayBuffer());
+      console.log(`[importar-fotos] processando cracha #${crachaNum}: buffer=${bufferOriginal.length} bytes`);
+      const bufferProcessado = await sharp(bufferOriginal)
+        .resize(600, 600, { fit: "cover", position: "center" })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+      console.log(`[importar-fotos] sharp OK: ${bufferProcessado.length} bytes`);
+
+      const fotoUrl = await uploadFoto(pessoa.id, bufferProcessado);
+      console.log(`[importar-fotos] R2 upload OK: ${fotoUrl}`);
+      await sql`UPDATE pessoas SET foto_url = ${fotoUrl}, atualizado_em = NOW() WHERE id = ${pessoa.id}`;
+      console.log(`[importar-fotos] DB update OK para id=${pessoa.id}`);
+      await registrarEvento(
+        sessao,
+        "pessoa.foto.atualizou",
+        `pessoas/${pessoa.id}`,
+        `${pessoa.nome} (#${pessoa.cracha})`
+      );
+      importadas.push(`${pessoa.cracha}`);
+    } catch (e) {
+      console.error(`[importar-fotos] ERRO cracha #${crachaNum}:`, e);
+      erros.push({ cracha: crachaNum, motivo: `Erro ao processar "${arquivo.name}": ${e instanceof Error ? e.message : "desconhecido"}` });
+    }
+  }
+
+  return c.json(
+    { importadas: importadas.length, ignoradas: erros.length, erros },
+    200
+  );
 });
 
 export default app;

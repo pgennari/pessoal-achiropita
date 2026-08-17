@@ -40,6 +40,7 @@ import { VeiculoNovo } from "./pages/VeiculoNovo";
 import { VeiculoDetalhe } from "./pages/VeiculoDetalhe";
 import { DashboardEstacionamentos } from "./pages/DashboardEstacionamentos";
 import { RelatorioEstacionamentos } from "./pages/RelatorioEstacionamentos";
+import { ImportarFotos } from "./pages/ImportarFotos";
 import { Sincronizacao } from "./pages/Sincronizacao";
 import { Vagas } from "./pages/Vagas";
 import { VagaNova } from "./pages/VagaNova";
@@ -70,6 +71,7 @@ export function App() {
         <Route index element={<RedirecionarEdicaoAtiva />} />
         <Route path="pessoas" element={<Pessoas />} />
         <Route path="pessoas/nova" element={<PessoaNova />} />
+        <Route path="pessoas/importar-fotos" element={<ImportarFotos />} />
         <Route path="pessoas/:id" element={<PessoaDetalhe />} />
         <Route path="edicoes" element={<Edicoes />} />
         <Route path="edicoes/:id" element={<EdicaoDetalhe />} />

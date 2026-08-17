@@ -64,6 +64,12 @@ const secoes: Secao[] = [
         to: "/pessoas",
         label: "Pessoas",
         permissoes: ["pessoas.lista", "pessoas.equipe", "pessoas.proprio"],
+        excluirAtivo: ["/pessoas/importar-fotos"],
+      },
+      {
+        to: "/pessoas/importar-fotos",
+        label: "Importar Fotos",
+        permissoes: ["pessoas.editar"],
       },
       {
         to: "/formacao",

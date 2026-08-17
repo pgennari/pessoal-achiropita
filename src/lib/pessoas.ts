@@ -244,6 +244,42 @@ export async function removerFoto(_sessao: Sessao, pessoa: Pessoa): Promise<void
   await queryClient.invalidateQueries({ queryKey: ["pessoas"] });
 }
 
+export interface ResultadoImportacao {
+  importadas: number;
+  ignoradas: number;
+  erros: { cracha: number; motivo: string }[];
+}
+
+export async function importarFotos(
+  _sessao: Sessao,
+  arquivos: File[]
+): Promise<ResultadoImportacao> {
+  const user = auth().currentUser;
+  if (!user) throw new Error("Sem sessao ativa.");
+  const token = await user.getIdToken();
+
+  const formData = new FormData();
+  for (const arquivo of arquivos) {
+    formData.append("fotos", arquivo);
+  }
+
+  const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+  const res = await fetch(`${BASE}/api/pessoas/importar-fotos`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({})) as { erro?: string };
+    throw new Error(payload.erro ?? `Erro ${res.status}`);
+  }
+
+  const resultado = await res.json() as ResultadoImportacao;
+  await queryClient.invalidateQueries({ queryKey: ["pessoas"] });
+  return resultado;
+}
+
 export async function proximoCracha(): Promise<number> {
   const { proximo } = await api.get<{ proximo: number }>("/api/pessoas/proximo-cracha");
   return proximo;

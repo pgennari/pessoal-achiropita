@@ -1,6 +1,6 @@
 // Hooks de leitura de dados — substituem o padrão onSnapshot do Firestore.
 // Usa @tanstack/react-query: cache, loading state e refetch após mutações.
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { api } from "./api";
 import {
@@ -571,6 +571,15 @@ export function useDashboardEstacionamentos() {
 }
 
 // ─── Utilitário ───────────────────────────────────────────────────────────────
+
+export function useDebounce<T>(valor: T, atraso: number): T {
+  const [debounced, setDebounced] = useState(valor);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(valor), atraso);
+    return () => clearTimeout(timer);
+  }, [valor, atraso]);
+  return debounced;
+}
 
 function erroMsg(error: unknown): string | null {
   if (!error) return null;

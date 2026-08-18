@@ -3,7 +3,7 @@
 // quadrados de check-in: verde quando qualquer carro da vaga fez check-in
 // naquele dia, em qualquer estacionamento. Com permissao, o botao abre o
 // check-in manual da vaga: o operador escolhe o carro e os dias a registrar.
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Vaga, VagaVeiculo } from "../lib/tipos";
 import { useSessao, temPermissao } from "../lib/sessao";
@@ -12,6 +12,7 @@ import {
   useDiasFesta,
   useTodosCheckins,
   useCheckinsEstacionamento,
+  useDebounce,
 } from "../lib/hooks";
 import { registrarCheckinsManuais } from "../lib/veiculos";
 import { Icone } from "./Icone";
@@ -25,15 +26,6 @@ interface Props {
 interface DiaInfo {
   numero: number;
   data: string;
-}
-
-function useDebounce(valor: string, atraso: number) {
-  const [debounced, setDebounced] = useState(valor);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(valor), atraso);
-    return () => clearTimeout(timer);
-  }, [valor, atraso]);
-  return debounced;
 }
 
 function dataLocalISO(d: Date): string {

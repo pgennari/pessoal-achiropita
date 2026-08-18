@@ -32,15 +32,11 @@ A migração Firestore → PostgreSQL está **concluída**. O código na branch
 - **Frontend**: **Vite + React** (SPA puro). TypeScript obrigatório.
   Build artifacts em `dist/`.
 - **Auth**: Firebase Authentication (e-mail/senha + Google). **Mantido.**
-- **Dados**: **PostgreSQL** (Neon, plano gratuito, 0,5 GB). Substitui Firestore.
-- **Backend API**: **Hono** no Node.js 22, rodando no **Google Cloud Run**
-  (serverless containers, escala para zero). Diretório `api/`.
+- **Dados**: **PostgreSQL** 
+- **Backend API**: **Hono** no Node.js 22. Diretório `api/`.
 - **Hosting**: Firebase Hosting estático com SPA fallback.
-- **CI/CD**: GitHub Actions — job `deploy-api` constrói imagem Docker e
-  publica no Cloud Run; job `deploy-hosting` faz o build do frontend e
-  deploya no Firebase Hosting.
+- **CI/CD**: GitHub Actions 
 
-**Removidos**: Firestore, Firebase Storage, Cloud Functions.
 **Fotos**: armazenadas no **Cloudflare R2** (US-07-01 implementado). Upload
 client-side (Canvas 600×600 JPEG 85%) → `POST /api/pessoas/:id/foto`.
 Acesso via URL pública do bucket (`R2_PUBLIC_URL`).

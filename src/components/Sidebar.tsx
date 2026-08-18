@@ -96,7 +96,12 @@ const secoes: Secao[] = [
           "presenca.linkRevogar",
           "presenca.relatorio",
         ],
-        excluirAtivo: ["/presenca/relatorio"],
+        excluirAtivo: ["/presenca/grade", "/presenca/relatorio"],
+      },
+      {
+        to: "/presenca/grade",
+        label: "Grade",
+        permissoes: ["presenca.lista"],
       },
       {
         to: "/presenca/relatorio",

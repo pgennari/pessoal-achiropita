@@ -338,6 +338,34 @@ export function useResumoEquipesDoDia(diaFestaId: string | undefined): EstadoLis
   return { itens: data ?? [], carregando: isLoading && !!diaFestaId, erro: erroMsg(error), atualizadoEm: dataUpdatedAt };
 }
 
+// Resumo de equipes de todos os dias de festa de uma edicao, em uma unica lista.
+// Usa useQueries com a mesma queryKey de useResumoEquipesDoDia para reaproveitar
+// o cache das telas de presenca.
+export interface ResumoEquipePresencaDia extends ResumoEquipePresenca {
+  diaFestaId: string;
+}
+
+export function useResumoEquipesDaEdicao(
+  edicaoId: string | undefined,
+  dias: DiaFesta[]
+): EstadoLista<ResumoEquipePresencaDia> {
+  const resultados = useQueries({
+    queries: dias.map((dia) => ({
+      queryKey: ["presencas", "resumo-equipes", dia.id],
+      queryFn: () => listarResumoEquipesDoDia(dia.id),
+      enabled: !!edicaoId,
+      refetchInterval: 60_000,
+    })),
+  });
+  const itens = resultados.flatMap((r, i) =>
+    (r.data ?? []).map((item) => ({ ...item, diaFestaId: dias[i].id }))
+  );
+  const carregando = resultados.some((r) => r.isLoading);
+  const erro =
+    resultados.map((r) => erroMsg(r.error)).find((e) => e !== null) ?? null;
+  return { itens, carregando, erro };
+}
+
 // Presencas de todos os dias de festa de uma edicao, em uma unica lista.
 // Usa useQueries com a mesma queryKey de usePresencasDoDia para reaproveitar
 // o cache das telas de presenca.

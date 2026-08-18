@@ -28,6 +28,7 @@ import { PaginaConvite } from "./pages/PaginaConvite";
 import { RedefinirSenha } from "./pages/RedefinirSenha";
 import { UploadFotoPublico } from "./pages/UploadFotoPublico";
 import { Presenca } from "./pages/Presenca";
+import { GradePresencaPage } from "./pages/GradePresencaPage";
 import { RelatorioPresenca } from "./pages/RelatorioPresenca";
 import { PresencaPublico } from "./pages/PresencaPublico";
 import { QrPresenca } from "./pages/QrPresenca";
@@ -83,6 +84,7 @@ export function App() {
         <Route path="formacao" element={<PaginaFormacao />} />
         <Route path="formacao/pendencias" element={<PendenciasFormacao />} />
         <Route path="presenca" element={<Presenca />} />
+        <Route path="presenca/grade" element={<GradePresencaPage />} />
         <Route path="presenca/relatorio" element={<RelatorioPresenca />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="perfis" element={<Perfis />} />

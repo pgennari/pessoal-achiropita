@@ -12,8 +12,11 @@ function versaoDoBuild(): string {
   } catch {
     // sem repositório git — a versão ainda reflete a data/hora do build
   }
-  const data = new Date().toISOString().slice(0, 19).replace("T", " ");
-  return `v0.1-${sha} ${data}Z`;
+  const data = new Date(Date.now() - 3 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+  return `v0.1-${sha} ${data}`;
 }
 
 // Publica /versao.json junto do app (dist/). O cliente compara a versão do

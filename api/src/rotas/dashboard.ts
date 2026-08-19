@@ -33,7 +33,6 @@ app.openapi(getDashboardRoute, async (c) => {
   const [totalCheckins] = await sql`SELECT COUNT(*)::int AS total FROM checkins`;
   const [totalHoje] = await sql`SELECT COUNT(*)::int AS total FROM checkins WHERE data = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date`;
   const amostra = await sql`SELECT id, data, estacionamento_id FROM checkins LIMIT 3`;
-  console.log("[Dashboard] total=%s hoje=%s amostra=%j", totalCheckins?.total, totalHoje?.total, amostra);
 
   const estacionamentos = await sql`
     SELECT

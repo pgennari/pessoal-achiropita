@@ -523,3 +523,45 @@ export interface Formacao {
   dadosValidados: boolean;
   validadoEm?: string;
 }
+
+// Link de acesso publico para avaliacao de equipistas (019).
+// Unico link ativo por edicao; ao regenerar, o anterior e revogado.
+export interface LinkAvaliacao {
+  id: string; // = token (32 hex)
+  edicaoId: string;
+  status: StatusLink;
+  criadoPorUid: string;
+  criadoPorNome: string;
+  criadoEm: string;
+}
+
+export type StatusAvaliacao = "rascunho" | "finalizada";
+
+// Registro da avaliacao de um equipista por um coordenador.
+// Criterios sao armazenados em JSONB.
+export interface Avaliacao {
+  id: string;
+  edicaoId: string;
+  equipeId: string;
+  pessoaId: string;
+  avaliadorCracha: number;
+  avaliadorNome: string;
+  criterios: CriteriosAvaliacao;
+  aptoCoordenar: boolean | null;
+  comentarios: string | null;
+  status: StatusAvaliacao;
+  criadoEm: string;
+  atualizadoEm: string;
+  finalizadoEm: string | null;
+}
+
+export type ValorCriterio = "Otimo" | "Bom" | "Regular" | "Ruim";
+
+export interface CriteriosAvaliacao {
+  pontualidade: ValorCriterio | null;
+  dedicacao: ValorCriterio | null;
+  companheirismo: ValorCriterio | null;
+  espiritualidade: ValorCriterio | null;
+  comprometimento: ValorCriterio | null;
+  uniforme: ValorCriterio | null;
+}

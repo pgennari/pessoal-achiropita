@@ -28,7 +28,6 @@ export async function   listarAbas(planilhaId: string): Promise<string[]> {
   const url =
     `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(planilhaId)}` +
     `?fields=sheets.properties.title&key=${encodeURIComponent(chave)}`;
-    console.log("url", url);
   const res = await fetch(url);
   if (!res.ok) throw erroGoogle(res, "nao foi possivel listar as abas da planilha.");
   const dados = (await res.json()) as {

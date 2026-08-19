@@ -28,6 +28,8 @@ import dashboard from "./rotas/dashboard.js";
 import diasFesta from "./rotas/diasFesta.js";
 import presenca from "./rotas/presenca.js";
 import presencaPublico from "./rotas/presencaPublico.js";
+import avaliacao from "./rotas/avaliacao.js";
+import avaliacaoPublico from "./rotas/avaliacaoPublico.js";
 import sincronizacao from "./rotas/sincronizacao.js";
 import vagas from "./rotas/vagas.js";
 
@@ -83,6 +85,9 @@ app.route("/api/setores", setores);
 app.route("/api/parametros", parametros);
 app.route("/api/dias-festa", diasFesta);
 app.route("/api/presenca", presenca);
+app.route("/api/avaliacao", avaliacao);
+app.route("/api/avaliacoes", avaliacao);
+app.route("/api/publico", avaliacaoPublico);
 app.route("/api/sincronizacao", sincronizacao);
 app.route("/api/vagas", vagas);
 

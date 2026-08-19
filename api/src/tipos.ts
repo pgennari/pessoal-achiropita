@@ -105,6 +105,21 @@ export type VariaveisPresenca = {
   Variables: { sessaoPresenca: SessaoPresenca };
 };
 
+// Sessão JWT curta do coordenador no fluxo público de avaliação.
+// Assinada com HS256, expira em 1h.
+export interface SessaoAvaliacao {
+  pessoaId: string;
+  cracha: number;
+  edicaoId: string;
+  equipeId: string;
+  linkToken: string;
+}
+
+// Tipagem de variáveis Hono para a sessão pública de avaliação.
+export type VariaveisAvaliacao = {
+  Variables: { sessaoAvaliacao: SessaoAvaliacao };
+};
+
 // Tipagem de variáveis Hono para rotas que só verificam o token Firebase
 // (ex.: aceitar convite — o usuário ainda não tem doc em /usuarios).
 export type VariaveisFirebase = {

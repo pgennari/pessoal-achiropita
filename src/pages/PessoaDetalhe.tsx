@@ -5,7 +5,7 @@
 // Dados sensiveis: perfil ADM.
 // ============================================================================
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { PessoaForm } from "../components/PessoaForm";
 import { UploadFoto } from "../components/UploadFoto";
@@ -16,7 +16,7 @@ import { EditarFilhos } from "../components/EditarFilhos";
 import { EditarParentes } from "../components/EditarParentes";
 import { VinculoVeiculo } from "../components/VinculoVeiculo";
 import { Icone } from "../components/Icone";
-import { usePessoa, usePessoas, useVeiculos, useVeiculosPessoa, useParentes } from "../lib/hooks";
+import { usePessoa, usePessoas, useVeiculos, useVeiculosPessoa, useParentes, useAvaliacoesPessoa } from "../lib/hooks";
 import { useSessao, temPermissao } from "../lib/sessao";
 import {
   DadosPessoaForm,
@@ -46,10 +46,20 @@ export function PessoaDetalhe() {
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [acaoOcupado, setAcaoOcupado] = useState(false);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [searchParams] = useSearchParams();
   const [abaCadastro, setAbaCadastro] = useState<"foto" | "dados" | "filhos" | "veiculos" | "parentes">("dados");
+  const historicoInicial = searchParams.get("aba") === "avaliacoes" ? "avaliacoes" as const : "presenca" as const;
   const [abaHistorico, setAbaHistorico] = useState<
-    "movimentacao" | "participacoes" | "presenca"
-  >("presenca");
+    "movimentacao" | "participacoes" | "presenca" | "avaliacoes"
+  >(historicoInicial);
+  const { itens: avaliacoesPessoa } = useAvaliacoesPessoa(id);
+
+  const coresCriterio: Record<string, string> = {
+    Otimo: "#16a34a",
+    Bom: "#2563eb",
+    Regular: "#ca8a04",
+    Ruim: "#dc2626",
+  };
 
   if (!sessao) return null;
   const ehProprio = !!sessao.pessoaId && sessao.pessoaId === id;
@@ -434,6 +444,15 @@ export function PessoaDetalhe() {
                 >
                   Histórico participações
                 </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={abaHistorico === "avaliacoes"}
+                  className={`aba ${abaHistorico === "avaliacoes" ? "aba-ativa" : ""}`}
+                  onClick={() => setAbaHistorico("avaliacoes")}
+                >
+                  Histórico de avaliações
+                </button>
               </div>
 
               {abaHistorico === "presenca" && (
@@ -451,6 +470,67 @@ export function PessoaDetalhe() {
               {abaHistorico === "participacoes" && (
                 <div className="tabs-painel" role="tabpanel" tabIndex={0}>
                   <HistoricoPessoa pessoa={pessoa} />
+                </div>
+              )}
+
+              {abaHistorico === "avaliacoes" && (
+                <div className="tabs-painel" role="tabpanel" tabIndex={0}>
+                  {avaliacoesPessoa.length === 0 ? (
+                    <p className="text-sm text-ardesia">Nenhuma avaliação registrada para esta pessoa.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-sm text-ardesia">
+                        {avaliacoesPessoa.length} avaliação(ões) registrada(s)
+                      </p>
+                      <div className="card">
+                        <div className="card-corpo divide-y divide-pietra-clara">
+                          {avaliacoesPessoa.map((a) => (
+                            <div key={a.id} className="py-3 first:pt-0 last:pb-0 space-y-2">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-sm font-semibold text-carbone">
+                                  {(a as any).edicaoNumero ?? a.edicaoId}ª edição
+                                </span>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="text-xs text-ardesia font-mono">
+                                    {new Date(a.atualizadoEm).toLocaleString("pt-BR")}
+                                  </span>
+                                  <span className={`badge ${a.status === "finalizada" ? "badge-verde" : "badge-azul"}`}>
+                                    {a.status === "finalizada" ? "Finalizada" : "Rascunho"}
+                                  </span>
+                                </div>
+                              </div>
+                              <p className="text-xs text-ardesia">
+                                Equipe {(a as any).equipeNome ?? "—"} · Avaliador: {a.avaliadorNome}
+                              </p>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
+                                {Object.entries(a.criterios).map(([k, v]) => (
+                                  <div key={k} className="flex justify-between">
+                                    <span className="text-ardesia capitalize">{k}</span>
+                                    <span
+                                      className="font-semibold"
+                                      style={{ color: coresCriterio[v as string] ?? undefined }}
+                                    >
+                                      {(v as string) ?? "—"}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="flex items-center gap-4 text-xs text-ardesia">
+                                <span>
+                                  Apto a coordenar: <strong className="text-carbone">{a.aptoCoordenar ? "Sim" : "Não"}</strong>
+                                </span>
+                              </div>
+                              {a.comentarios && (
+                                <p className="text-xs text-ardesia italic border-t border-pietra-clara pt-2">
+                                  {a.comentarios}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

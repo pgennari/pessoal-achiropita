@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { api } from "./api";
 import {
+  Avaliacao,
   Checkin,
   Convite,
   DiaFesta,
@@ -14,6 +15,7 @@ import {
   Formacao,
   HistoricoEquipePessoa,
   HistoricoEstacionamentoVaga,
+  LinkAvaliacao,
   LinkPresenca,
   LinkValidacao,
   Participacao,
@@ -596,6 +598,43 @@ export function useDashboardEstacionamentos() {
     queryFn: () => api.get<DashboardInicial>("/api/estacionamentos/dashboard"),
   });
   return { dados: data ?? null, carregando: isLoading, erro: erroMsg(error) };
+}
+
+// ─── Avaliação de equipistas ──────────────────────────────────────────────────
+
+export function useAvaliacaoLinkAtivo(edicaoId: string | undefined): EstadoItem<LinkAvaliacao> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["avaliacaoLink", edicaoId],
+    queryFn: () => api.get<LinkAvaliacao>(`/api/avaliacao/links/${edicaoId}`),
+    enabled: !!edicaoId,
+  });
+  return { item: data ?? null, carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
+}
+
+export function useAvaliacoes(
+  edicaoId: string | undefined,
+  filtros?: { equipeId?: string; status?: string }
+): EstadoLista<Avaliacao> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["avaliacoes", edicaoId, filtros?.equipeId, filtros?.status],
+    queryFn: () => {
+      const params = new URLSearchParams({ edicaoId: edicaoId! });
+      if (filtros?.equipeId) params.set("equipeId", filtros.equipeId);
+      if (filtros?.status) params.set("status", filtros.status);
+      return api.get<Avaliacao[]>(`/api/avaliacoes?${params.toString()}`);
+    },
+    enabled: !!edicaoId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
+}
+
+export function useAvaliacoesPessoa(pessoaId: string | undefined): EstadoLista<Avaliacao> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["avaliacoes", "pessoa", pessoaId],
+    queryFn: () => api.get<Avaliacao[]>(`/api/avaliacoes/pessoa/${pessoaId}`),
+    enabled: !!pessoaId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!pessoaId, erro: erroMsg(error) };
 }
 
 // ─── Utilitário ───────────────────────────────────────────────────────────────

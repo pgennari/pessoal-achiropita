@@ -15,6 +15,7 @@ import {
   Crop,
   Download,
   Eye,
+  ExternalLink,
   HelpCircle,
   History,
   Link,
@@ -41,6 +42,7 @@ import {
   Wand2,
   X,
   type LucideIcon,
+  NotebookPen,
 } from "lucide-react";
 
 const icones: Record<string, LucideIcon> = {
@@ -50,6 +52,7 @@ const icones: Record<string, LucideIcon> = {
   fechar: X,
   check: Check,
   entrar: LogIn,
+  abrir: ExternalLink,
   sair: LogOut,
   lapis: Pencil,
   lixeira: Trash2,
@@ -85,6 +88,7 @@ const icones: Record<string, LucideIcon> = {
   varinha: Wand2,
   alerta: AlertTriangle,
   "check-circular": CheckCircle2,
+  avaliar: NotebookPen,
 };
 
 interface IconeProps {

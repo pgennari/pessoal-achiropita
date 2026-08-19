@@ -551,7 +551,8 @@ INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
   ('vaga.lista', 'Vagas: ver lista', 'Ver a listagem de vagas de estacionamento.'),
   ('vaga.detalhe', 'Vagas: ver detalhes', 'Ver os detalhes de uma vaga de estacionamento.'),
   ('vaga.incluir', 'Vagas: incluir', 'Cadastrar novas vagas de estacionamento.'),
-  ('vaga.editar', 'Vagas: editar', 'Editar vagas (identificacao, pessoas e estacionamento).')
+  ('vaga.editar', 'Vagas: editar', 'Editar vagas (identificacao, pessoas e estacionamento).'),
+  ('avaliacao.gerenciar', 'Avaliação: gerenciar', 'Gerar link de avaliação, listar e visualizar avaliações da edição.')
 ON CONFLICT (codigo) DO NOTHING;
 
 -- Desativa codigos antigos do catalogo substituidos pelos granulares acima.
@@ -603,7 +604,8 @@ INSERT INTO perfis (sigla, nome, fixo, permissoes) VALUES
     usuario.lista,usuario.conviteEnviar,usuario.conviteRevogar,usuario.editar,
     auditoria.ver,
     perfil.lista,
-    parametros.acessar
+    parametros.acessar,
+    avaliacao.gerenciar
   }'),
   ('CRD', 'Coordenador de barraca', FALSE, '{
     veiculos.equipe,veiculos.detalhe,
@@ -739,6 +741,42 @@ CREATE TABLE IF NOT EXISTS planilhas_acessadas (
 
 CREATE INDEX IF NOT EXISTS idx_planilhas_acessadas_atualizado
 ON planilhas_acessadas(atualizado_em DESC);
+
+-- links_avaliacao: link de acesso publico para avaliacao de equipistas (019).
+-- Um link ativo por edicao; ao regenerar, o anterior e revogado (historico mantido).
+CREATE TABLE IF NOT EXISTS links_avaliacao (
+  id              TEXT PRIMARY KEY,
+  edicao_id       TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
+  status          status_link NOT NULL DEFAULT 'ativo',
+  criado_por_uid  TEXT NOT NULL,
+  criado_por_nome TEXT NOT NULL,
+  criado_em       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_links_avaliacao_edicao ON links_avaliacao(edicao_id);
+
+-- avaliacoes: registro da avaliacao de um equipista por um coordenador (019).
+-- UNIQUE(pessoa_id, edicao_id) = maximo 1 avaliacao por equipista por edicao.
+CREATE TABLE IF NOT EXISTS avaliacoes (
+  id               TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  edicao_id        TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
+  equipe_id        TEXT NOT NULL REFERENCES equipes(id) ON DELETE CASCADE,
+  pessoa_id        TEXT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+  avaliador_cracha INTEGER NOT NULL,
+  avaliador_nome   TEXT NOT NULL,
+  criterios        JSONB NOT NULL DEFAULT '{}',
+  apto_coordenar   BOOLEAN,
+  comentarios      TEXT,
+  status           TEXT NOT NULL DEFAULT 'rascunho',
+  criado_em        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finalizado_em    TIMESTAMPTZ,
+  UNIQUE(pessoa_id, edicao_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_edicao ON avaliacoes(edicao_id);
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_pessoa ON avaliacoes(pessoa_id);
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_equipe ON avaliacoes(equipe_id);
 
 -- Migração: remoção da função 'Apoio' das participações.
 -- Todas as participações com funcao 'Apoio' passam a 'Coordenador'.

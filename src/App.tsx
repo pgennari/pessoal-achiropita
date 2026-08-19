@@ -31,6 +31,7 @@ import { Presenca } from "./pages/Presenca";
 import { GradePresencaPage } from "./pages/GradePresencaPage";
 import { RelatorioPresenca } from "./pages/RelatorioPresenca";
 import { PresencaPublico } from "./pages/PresencaPublico";
+import { AvaliacaoPublico } from "./pages/AvaliacaoPublico";
 import { QrPresenca } from "./pages/QrPresenca";
 import { CheckinPublico } from "./pages/CheckinPublico";
 import { QrEstacionamento } from "./pages/QrEstacionamento";
@@ -61,6 +62,7 @@ export function App() {
       <Route path="/checkin/:token" element={<CheckinPublico />} />
       <Route path="/qr-checkin/:token" element={<QrEstacionamento />} />
       <Route path="/presenca/:token" element={<PresencaPublico />} />
+      <Route path="/avaliacao/:token" element={<AvaliacaoPublico />} />
       <Route path="/qr-presenca/:token" element={<QrPresenca />} />
       <Route
         element={

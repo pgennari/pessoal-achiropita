@@ -33,7 +33,6 @@ import {
   criarDiaFesta,
   removerDiaFesta,
 } from "../lib/diasFesta";
-import { gerarLinkAvaliacao } from "../lib/avaliacao";
 import { EdicaoForm } from "../components/EdicaoForm";
 import { EquipeForm } from "../components/EquipeForm";
 import { Icone } from "../components/Icone";
@@ -74,7 +73,6 @@ export function EdicaoDetalhe() {
   const [enviandoDia, setEnviandoDia] = useState(false);
   const [diaFormErro, setDiaFormErro] = useState<Record<string, string>>({});
   const [abaAtiva, setAbaAtiva] = useState<"equipes" | "dias" | "avaliacao">("equipes");
-  const [gerandoLinkAvaliacao, setGerandoLinkAvaliacao] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
   const mapaSetor = useMemo(() => {
@@ -92,19 +90,6 @@ export function EdicaoDetalhe() {
   const podeCriarEquipe = temPermissao(sessao, "edicao.equipeCriar");
   const podeRemoverEquipe = temPermissao(sessao, "edicao.equipeExcluir");
   const podeAlterarSetor = temPermissao(sessao, "setor.editar");
-  const podeGerenciarAvaliacao = temPermissao(sessao, "avaliacao.gerenciar");
-
-  async function handleGerarLinkAvaliacao() {
-    if (!id) return;
-    setGerandoLinkAvaliacao(true);
-    try {
-      await gerarLinkAvaliacao(id);
-    } catch (e) {
-      alert((e as Error).message);
-    } finally {
-      setGerandoLinkAvaliacao(false);
-    }
-  }
 
   function handleCopiarLink() {
     if (!linkAvaliacao) return;
@@ -698,34 +683,6 @@ export function EdicaoDetalhe() {
                           : "Sem link ativo para esta edição."}
                       </div>
                     </div>
-                    {podeGerenciarAvaliacao && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          className="btn btn-primario btn-pequeno"
-                          onClick={handleGerarLinkAvaliacao}
-                          disabled={gerandoLinkAvaliacao || !!linkAvaliacao}
-                          aria-label="Gerar link"
-                          title={
-                            linkAvaliacao
-                              ? "Já existe um link ativo para esta edição"
-                              : "Gerar link"
-                          }
-                        >
-                          <Icone nome="link" />
-                        </button>
-                          <button
-                            type="button"
-                            className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                            onClick={handleGerarLinkAvaliacao}
-                            disabled={gerandoLinkAvaliacao}
-                            aria-label="Gerar novo link"
-                            title="Gerar novo link (revoga o atual)"
-                          >
-                            <Icone nome="proibido" />
-                          </button>
-                      </div>
-                    )}
                   </div>
 
                   {linkAvaliacao && (

@@ -1,13 +1,14 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { Sessao, pode } from "../lib/sessao";
 import { useEdicaoAtiva } from "../lib/hooks";
+import { useFavoritos, ROTAS } from "../lib/favoritos";
+import { Icone } from "./Icone";
+import { useState, useEffect } from "react";
 
-// A navegacao e controlada pelas permissoes do catalogo de perfis
-// (sessao.permissoes). Um item aparece se o perfil tem QUALQUER uma das
-// permissoes listadas; item sem `permissoes` fica visivel para todos.
 interface ItemNav {
   to: string;
   label: string;
+  icone?: string;
   permissoes?: string[];
   filhos?: ItemNav[];
   excluirAtivo?: string[];
@@ -15,138 +16,125 @@ interface ItemNav {
 
 interface Secao {
   label?: string;
+  to?: string;
+  icone?: string;
   permissoes?: string[];
   itens: ItemNav[];
 }
 
 const secoes: Secao[] = [
   {
-    label: "Gestão de Estacionamento",
+    label: "Pessoas",
+    to: "/pessoas",
+    icone: "usuarios",
     permissoes: [
+      "pessoas.lista",
+      "pessoas.equipe",
+      "pessoas.proprio",
       "veiculos.lista",
       "veiculos.equipe",
       "veiculos.proprio",
-      "estacionamento.lista",
-      "estacionamento.detalhe",
-      "estacionamento.relatorio",
-      "estacionamento.dashboard",
-      "vaga.lista",
-      "vaga.detalhe",
     ],
     itens: [
       {
+        to: "/criancas",
+        label: "Crianças",
+        icone: "usuario",
+        permissoes: ["pessoas.lista"],
+      },
+      {
         to: "/veiculos",
         label: "Veículos",
+        icone: "carro",
         permissoes: ["veiculos.lista", "veiculos.equipe", "veiculos.proprio"],
       },
+    ],
+  },
+  {
+    label: "Edição da Festa",
+    to: "/edicoes",
+    icone: "calendario",
+    permissoes: [
+      "edicao.lista",
+      "edicao.detalhe",
+      "presenca.lista",
+      "presenca.linkGerar",
+      "presenca.linkRevogar",
+      "formacao.turmas",
+      "formacao.marcarManual",
+    ],
+    itens: [
+      {
+        to: "/edicoes/ativa",
+        label: "Equipes",
+        icone: "usuarios",
+        permissoes: ["edicao.lista", "edicao.detalhe"],
+      },
+      {
+        to: "/presenca",
+        label: "Presença",
+        icone: "check",
+        permissoes: [
+          "presenca.lista",
+          "presenca.linkGerar",
+          "presenca.linkRevogar",
+        ],
+      },
+      {
+        to: "/formacao",
+        label: "Formação",
+        icone: "clipboard",
+        permissoes: ["formacao.turmas", "formacao.marcarManual"],
+      },
+    ],
+  },
+  {
+    label: "Estacionamentos",
+    to: "/estacionamentos",
+    icone: "carro",
+    permissoes: ["vaga.lista", "vaga.detalhe"],
+    itens: [
       {
         to: "/vagas",
         label: "Vagas",
+        icone: "alvo",
         permissoes: ["vaga.lista", "vaga.detalhe"],
       },
       {
-        to: "/estacionamentos",
-        label: "Estacionamentos",
-        permissoes: ["estacionamento.lista", "estacionamento.detalhe"],
-        excluirAtivo: ["/estacionamentos/relatorio"],
+        to: "/dashboard/estacionamentos",
+        label: "Check-ins do dia",
+        icone: "check",
+        permissoes: ["estacionamento.dashboard"],
+      },
+    ],
+  },
+  {
+    label: "Relatórios",
+    icone: "relatorio",
+    itens: [
+      {
+        to: "/presenca/relatorio",
+        label: "Presença",
+        icone: "check",
+        permissoes: ["presenca.relatorio"],
       },
       {
         to: "/estacionamentos/relatorio",
-        label: "Relatório",
+        label: "Estacionamento",
+        icone: "carro",
         permissoes: ["estacionamento.relatorio", "estacionamento.dashboard"],
       },
     ],
   },
   {
-    label: "Pessoal",
+    label: "Configurações",
+    icone: "chaves",
     itens: [
-      {
-        to: "/pessoas",
-        label: "Pessoas",
-        permissoes: ["pessoas.lista", "pessoas.equipe", "pessoas.proprio"],
-        excluirAtivo: ["/pessoas/importar-fotos"],
-      },
-      {
-        to: "/pessoas/importar-fotos",
-        label: "Importar Fotos",
-        permissoes: ["pessoas.editar"],
-      },
-      {
-        to: "/formacao",
-        label: "Formação",
-        permissoes: [
-          "formacao.marcarManual",
-          "formacao.pendenciaListar",
-          "formacao.pendenciaEquipe",
-          "formacao.turmas",
-        ],
-        excluirAtivo: ["/formacao/pendencias"],
-      },
-      {
-        to: "/formacao/pendencias",
-        label: "Pendências de formação",
-        permissoes: ["formacao.pendenciaListar", "formacao.pendenciaEquipe"],
-      },
-      {
-        to: "/presenca",
-        label: "Presença",
-        permissoes: [
-          "presenca.lista",
-          "presenca.linkGerar",
-          "presenca.linkRevogar",
-          "presenca.relatorio",
-        ],
-        excluirAtivo: ["/presenca/grade", "/presenca/relatorio"],
-      },
-      {
-        to: "/presenca/grade",
-        label: "Grade",
-        permissoes: ["presenca.lista"],
-      },
-      {
-        to: "/presenca/relatorio",
-        label: "Relatório",
-        permissoes: ["presenca.relatorio"],
-      },
-    ],
-  },
-  {
-    label: "Festa",
-    permissoes: [
-      "edicao.lista",
-      "edicao.detalhe",
-      "edicao.historico",
-      "setor.lista",
-      "setor.editar",
-    ],
-    itens: [
-      {
-        to: "/edicoes",
-        label: "Edição",
-        permissoes: ["edicao.lista", "edicao.detalhe"],
-        filhos: [
-          {
-            to: "/historico",
-            label: "Histórico",
-            permissoes: ["edicao.historico"],
-          },
-        ],
-      },
-      {
-        to: "/setores",
-        label: "Setores",
-        permissoes: ["setor.lista", "setor.editar"],
-      },
-    ],
-  },
-  {
-    label: "Administração",
-    itens: [
-      { to: "/usuarios", label: "Usuários", permissoes: ["usuario.lista"] },
-      { to: "/auditoria", label: "Auditoria", permissoes: ["auditoria.ver"] },
+      { to: "/usuarios", label: "Usuários", icone: "usuarios", permissoes: ["usuario.lista"] },
       {
         to: "/perfis",
         label: "Perfis",
+        icone: "usuario",
         permissoes: [
           "perfil.lista",
           "perfil.incluir",
@@ -157,31 +145,35 @@ const secoes: Secao[] = [
       {
         to: "/permissoes",
         label: "Permissões",
+        icone: "cadeado",
         permissoes: ["permissao.gerenciar"],
       },
       {
         to: "/parametros",
         label: "Parâmetros",
+        icone: "chaves",
         permissoes: ["parametros.acessar"],
       },
+      { to: "/auditoria", label: "Auditoria", icone: "historico", permissoes: ["auditoria.ver"] },
       {
-        to: "/controle-menu",
-        label: "Controle de Menus",
-        permissoes: ["perfil.editar"],
-      },
-      {
-        to: "/zeramento",
-        label: "Zeramento",
-        permissoes: ["zeramento.executar"],
+        to: "/setores",
+        label: "Setores",
+        icone: "grade",
+        permissoes: ["setor.lista", "setor.editar"],
       },
       {
         to: "/sincronizacao",
         label: "Sincronização",
+        icone: "recarregar",
         permissoes: ["sincronizacao.executar"],
       },
     ],
   },
 ];
+
+const LARGURA_OPEN = "w-64";
+const LARGURA_CLOSED = "w-16";
+const CHAVE_COLAPSADO = "sidebar-colapsado";
 
 function temPermissao(sessao: Sessao, codigo: string): boolean {
   return pode(sessao, codigo);
@@ -208,22 +200,43 @@ interface Props {
 
 export function Sidebar({ sessao, aberta, onFechar }: Props) {
   const { edicao: edicaoAtiva } = useEdicaoAtiva();
+  const { favoritos } = useFavoritos();
   const location = useLocation();
+
+  const [colapsado, setColapsado] = useState(() => {
+    try {
+      return localStorage.getItem(CHAVE_COLAPSADO) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CHAVE_COLAPSADO, colapsado ? "1" : "0");
+    } catch {
+      // ignored
+    }
+  }, [colapsado]);
+
+  const largura = colapsado ? LARGURA_CLOSED : LARGURA_OPEN;
 
   const classeLink = (isActive: boolean) =>
     [
-      "flex items-center px-3 py-2.5 rounded-sm text-sm font-semibold transition",
+      "flex items-center gap-2 px-3 py-2 rounded-sm text-xs font-sans transition",
+      colapsado && "justify-center px-0",
       isActive
-        ? "bg-pietra-clara text-verde-escuro"
-        : "text-carbone hover:bg-pietra-clara",
+        ? "bg-pietra text-verde-escuro font-semibold"
+        : "text-carbone hover:bg-pietra",
     ].join(" ");
 
-  const classeSubLink = (isActive: boolean) =>
+  const classeLinkSecao = (isActive: boolean) =>
     [
-      "flex items-center px-3 py-2 rounded-sm text-sm transition",
+      "flex items-center gap-2 px-3 py-2 text-sm font-sans font-semibold uppercase tracking-wider transition rounded-sm",
+      colapsado && "justify-center px-0",
       isActive
-        ? "text-verde-escuro font-semibold"
-        : "text-ardesia hover:text-carbone hover:bg-pietra-clara",
+        ? "bg-pietra text-verde"
+        : "text-verde hover:text-verde-escuro hover:bg-pietra",
     ].join(" ");
 
   return (
@@ -239,28 +252,48 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
 
       <aside
         className={[
-          "fixed md:static inset-y-0 left-0 z-40 w-64 shrink-0",
-          "flex-col border-r border-pietra bg-bianco",
+          "fixed md:static inset-y-0 left-0 z-40 shrink-0",
+          "flex-col border-r border-pietra bg-bianco transition-[width] duration-200",
+          largura,
           aberta ? "flex" : "hidden md:flex",
         ].join(" ")}
       >
-        <div className="px-6 py-7 border-b border-pietra-clara flex items-start justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <img
-              src="/logo-achiropita.png"
-              alt="Nossa Senhora Achiropita"
-              className="h-14 w-auto shrink-0"
-            />
-            <div>
-              <div className="eyebrow">Festa Nsa. Sra.</div>
-              <div className="font-display text-2xl mt-1">
-                <span className="text-verde">Achiropita</span>
+        {/* Header */}
+        <div className="px-4 py-5 border-b border-pietra-clara flex items-center gap-2">
+          {!colapsado && (
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <img
+                src="/logo-achiropita.png"
+                alt="Nossa Senhora Achiropita"
+                className="h-10 w-auto shrink-0"
+              />
+              <div className="min-w-0">
+                <div className="eyebrow text-[9px]">Festa Nsa. Sra.</div>
+                <div className="font-display text-lg leading-tight">
+                  <span className="text-verde">Achiropita</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+          {colapsado && (
+            <img
+              src="/logo-achiropita.png"
+              alt="Achiropita"
+              className="h-8 w-auto shrink-0 mx-auto"
+            />
+          )}
           <button
             type="button"
-            className="md:hidden text-ardesia text-2xl leading-none px-2 py-1 hover:text-carbone"
+            className="hidden md:block text-ardesia hover:text-carbone shrink-0 p-1 rounded-sm hover:bg-pietra transition"
+            onClick={() => setColapsado((c) => !c)}
+            aria-label={colapsado ? "Expandir menu" : "Recolher menu"}
+            title={colapsado ? "Expandir menu" : "Recolher menu"}
+          >
+            <Icone nome={colapsado ? "expandir" : "recolher"} tamanho={18} />
+          </button>
+          <button
+            type="button"
+            className="md:hidden text-ardesia text-2xl leading-none px-1 py-0.5 hover:text-carbone"
             onClick={onFechar}
             aria-label="Fechar menu"
           >
@@ -268,54 +301,81 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
           </button>
         </div>
 
-        <nav className="flex-1 p-3 overflow-y-auto space-y-4">
+        {/* Nav */}
+        <nav className="flex-1 p-2 overflow-y-auto space-y-3">
           {/* Atalho para edição ativa */}
           {edicaoAtiva && (
             <div>
-              <div className="px-3 pt-1 pb-1 text-[10px] font-sans uppercase tracking-wider text-verde/60">
-                Edição Ativa
-              </div>
+              {!colapsado && (
+                <div className="px-3 pt-1 pb-1 text-[10px] font-sans uppercase tracking-wider text-verde/60">
+                  Edição Ativa
+                </div>
+              )}
               <div className="space-y-0.5">
                 <NavLink
                   to={`/edicoes/${edicaoAtiva.id}`}
                   end={false}
                   onClick={onFechar}
+                  title={colapsado ? `${edicaoAtiva.numero}ª edição · ${edicaoAtiva.ano}` : undefined}
                   className={({ isActive }) =>
                     [
-                      "flex items-center px-3 py-2.5 rounded-sm text-sm font-semibold transition",
+                      "flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-semibold transition",
+                      colapsado && "justify-center px-0",
                       isActive
                         ? "bg-verde/10 text-verde-escuro border-l-2 border-verde"
                         : "text-carbone hover:bg-verde/5 border-l-2 border-transparent",
                     ].join(" ")
                   }
                 >
-                  <span className="inline-block w-2 h-2 rounded-full bg-verde mr-2" />
-                  {edicaoAtiva.numero}ª edição · {edicaoAtiva.ano}
+                  <span className="inline-block w-2 h-2 rounded-full bg-verde shrink-0" />
+                  {!colapsado && (
+                    <span className="truncate">
+                      {edicaoAtiva.numero}ª edição · {edicaoAtiva.ano}
+                    </span>
+                  )}
                 </NavLink>
-                {itemVisivel(
-                  { permissoes: ["estacionamento.dashboard"] },
-                  sessao,
-                ) && (
-                  <NavLink
-                    to="/dashboard/estacionamentos"
-                    onClick={onFechar}
-                    className={({ isActive }) =>
-                      [
-                        "flex items-center px-3 py-2.5 rounded-sm text-sm font-semibold transition",
-                        isActive
-                          ? "bg-verde/10 text-verde-escuro border-l-2 border-verde"
-                          : "text-carbone hover:bg-verde/5 border-l-2 border-transparent",
-                      ].join(" ")
-                    }
-                  >
-                    <span className="inline-block w-2 h-2 rounded-full bg-verde mr-2" />
-                    Check-ins
-                  </NavLink>
-                )}
               </div>
             </div>
           )}
 
+          {/* Favoritos */}
+          {favoritos.length > 0 && (
+            <div>
+              {!colapsado && (
+                <div className="px-3 pt-1 pb-1 text-[10px] font-sans uppercase tracking-wider text-verde/60">
+                  Favoritos
+                </div>
+              )}
+              <div className="space-y-0.5">
+                {favoritos.map((rota) => {
+                  const meta = ROTAS[rota];
+                  if (!meta) return null;
+                  return (
+                    <NavLink
+                      key={rota}
+                      to={rota}
+                      onClick={onFechar}
+                      title={colapsado ? meta.label : undefined}
+                      className={({ isActive }) =>
+                        [
+                          "flex items-center gap-2 px-3 py-2 rounded-sm text-sm font-semibold transition",
+                          colapsado && "justify-center px-0",
+                          isActive
+                            ? "bg-verde/10 text-verde-escuro border-l-2 border-verde"
+                            : "text-carbone hover:bg-verde/5 border-l-2 border-transparent",
+                        ].join(" ")
+                      }
+                    >
+                      <Icone nome={meta.icone} tamanho={16} />
+                      {!colapsado && <span>{meta.label}</span>}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Seções */}
           {secoes.map((secao, si) => {
             if (secao.permissoes && !itemVisivel(secao, sessao)) return null;
             const itensVisiveis = secao.itens.filter((item) =>
@@ -325,11 +385,30 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
 
             return (
               <div key={si}>
-                {secao.label && (
-                  <div className="px-3 pt-1 pb-1 text-[10px] font-sans uppercase tracking-wider text-ardesia/40">
-                    {secao.label}
+                {secao.label && secao.to ? (
+                  <NavLink
+                    to={secao.to}
+                    end
+                    onClick={onFechar}
+                    title={colapsado ? secao.label : undefined}
+                    className={({ isActive }) => classeLinkSecao(isActive)}
+                  >
+                    {secao.icone && (
+                      <Icone nome={secao.icone} tamanho={16} />
+                    )}
+                    {!colapsado && <span>{secao.label}</span>}
+                  </NavLink>
+                ) : secao.label ? (
+                  <div
+                    className={`px-3 py-2 text-[11px] font-sans font-semibold uppercase tracking-wider text-ardesia flex items-center gap-2${colapsado ? " justify-center px-0" : ""}`}
+                    title={colapsado ? secao.label : undefined}
+                  >
+                    {secao.icone && (
+                      <Icone nome={secao.icone} tamanho={16} />
+                    )}
+                    {!colapsado && <span>{secao.label}</span>}
                   </div>
-                )}
+                ) : null}
                 <div className="space-y-0.5">
                   {itensVisiveis.map((item) => {
                     const filhosVisiveis = item.filhos?.filter((f) =>
@@ -342,13 +421,17 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
                           to={item.to}
                           end={item.to === "/"}
                           onClick={onFechar}
+                          title={colapsado ? item.label : undefined}
                           className={() =>
                             classeLink(itemAtivo(item, location.pathname))
                           }
                         >
-                          {item.label}
+                          {item.icone && (
+                            <Icone nome={item.icone} tamanho={14} />
+                          )}
+                          {!colapsado && <span>{item.label}</span>}
                         </NavLink>
-                        {filhosVisiveis && filhosVisiveis.length > 0 && (
+                        {filhosVisiveis && filhosVisiveis.length > 0 && !colapsado && (
                           <div className="ml-3 pl-3 border-l border-pietra space-y-0.5 mt-0.5 mb-1">
                             {filhosVisiveis.map((filho) => (
                               <NavLink
@@ -356,10 +439,13 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
                                 to={filho.to}
                                 onClick={onFechar}
                                 className={({ isActive }) =>
-                                  classeSubLink(isActive)
+                                  classeLink(isActive)
                                 }
                               >
-                                {filho.label}
+                                {filho.icone && (
+                                  <Icone nome={filho.icone} tamanho={14} />
+                                )}
+                                <span>{filho.label}</span>
                               </NavLink>
                             ))}
                           </div>
@@ -373,12 +459,15 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
           })}
         </nav>
 
-        <div
-          className="p-4 border-t border-pietra-clara text-xs text-ardesia font-mono"
-          title="Versão do build"
-        >
-          {VERSAO_APP}
-        </div>
+        {/* Footer */}
+        {!colapsado && (
+          <div
+            className="p-4 border-t border-pietra-clara text-xs text-ardesia font-mono"
+            title="Versão do build"
+          >
+            {VERSAO_APP}
+          </div>
+        )}
       </aside>
     </>
   );

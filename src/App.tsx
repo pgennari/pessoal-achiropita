@@ -14,12 +14,11 @@ import { EstacionamentoDetalhe } from "./pages/EstacionamentoDetalhe";
 import { Edicoes } from "./pages/Edicoes";
 import { EdicaoDetalhe } from "./pages/EdicaoDetalhe";
 import { EquipeDetalhe } from "./pages/EquipeDetalhe";
-import { Historico } from "./pages/Historico";
+import { Criancas } from "./pages/Criancas";
 import { Usuarios } from "./pages/Usuarios";
 import { Perfis } from "./pages/Perfis";
 import { Permissoes } from "./pages/Permissoes";
 import { Parametros } from "./pages/Parametros";
-import { ControleMenus } from "./pages/ControleMenus";
 import { PaginaFormacao } from "./pages/Formacao";
 import { PendenciasFormacao } from "./pages/PendenciasFormacao";
 import { ValidarPublico } from "./pages/ValidarPublico";
@@ -35,7 +34,6 @@ import { AvaliacaoPublico } from "./pages/AvaliacaoPublico";
 import { QrPresenca } from "./pages/QrPresenca";
 import { CheckinPublico } from "./pages/CheckinPublico";
 import { QrEstacionamento } from "./pages/QrEstacionamento";
-import { ZeramentoDados } from "./pages/ZeramentoDados";
 import { Setores } from "./pages/Setores";
 import { Veiculos } from "./pages/Veiculos";
 import { VeiculoNovo } from "./pages/VeiculoNovo";
@@ -76,13 +74,14 @@ export function App() {
         <Route path="pessoas/nova" element={<PessoaNova />} />
         <Route path="pessoas/importar-fotos" element={<ImportarFotos />} />
         <Route path="pessoas/:id" element={<PessoaDetalhe />} />
+        <Route path="criancas" element={<Criancas />} />
         <Route path="edicoes" element={<Edicoes />} />
+        <Route path="edicoes/ativa" element={<RedirecionarEdicaoAtiva />} />
         <Route path="edicoes/:id" element={<EdicaoDetalhe />} />
         <Route
           path="edicoes/:edicaoId/equipes/:id"
           element={<EquipeDetalhe />}
         />
-        <Route path="historico" element={<Historico />} />
         <Route path="formacao" element={<PaginaFormacao />} />
         <Route path="formacao/pendencias" element={<PendenciasFormacao />} />
         <Route path="presenca" element={<Presenca />} />
@@ -92,7 +91,6 @@ export function App() {
         <Route path="perfis" element={<Perfis />} />
         <Route path="permissoes" element={<Permissoes />} />
         <Route path="parametros" element={<Parametros />} />
-        <Route path="controle-menu" element={<ControleMenus />} />
         <Route path="estacionamentos" element={<Estacionamentos />} />
         <Route path="estacionamentos/relatorio" element={<RelatorioEstacionamentos />} />
         <Route path="estacionamentos/novo" element={<EstacionamentoNovo />} />
@@ -105,7 +103,6 @@ export function App() {
         <Route path="vagas/:id" element={<VagaDetalhe />} />
         <Route path="auditoria" element={<Auditoria />} />
         <Route path="setores" element={<Setores />} />
-        <Route path="zeramento" element={<ZeramentoDados />} />
         <Route path="sincronizacao" element={<Sincronizacao />} />
         <Route path="dashboard/estacionamentos" element={<DashboardEstacionamentos />} />
       </Route>

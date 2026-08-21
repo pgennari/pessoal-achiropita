@@ -183,28 +183,40 @@ export function Presenca() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ardesia">
-          <label className="inline-flex items-center gap-2 text-carbone cursor-pointer">
-            <input
-              type="checkbox"
-              className="checkbox"
-              checked={mostrarTodas}
-              onChange={(e) => setMostrarTodas(e.target.checked)}
-            />
-            Mostrar todas as equipes
-          </label>
-          <span aria-hidden="true">·</span>
-          <span className="inline-flex items-center gap-1.5">
-            <span
-              className="w-2 h-2 rounded-full bg-verde"
-              aria-hidden="true"
-            />
-            Atualizado às {formatarHora(ultimaAtualizacao)}
-          </span>
-          <span aria-hidden="true">·</span>
-          <span>
-            Próxima atualização em {formatarContagem(ateProxima)}
-          </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {podeVer && (
+            <Link
+              to="/presenca/grade"
+              className="btn btn-secundario"
+              aria-label="Grade de presença"
+              title="Grade de presença"
+            >
+              <Icone nome="grade" />
+            </Link>
+          )}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ardesia">
+            <label className="inline-flex items-center gap-2 text-carbone cursor-pointer">
+              <input
+                type="checkbox"
+                className="checkbox"
+                checked={mostrarTodas}
+                onChange={(e) => setMostrarTodas(e.target.checked)}
+              />
+              Mostrar todas as equipes
+            </label>
+            <span aria-hidden="true">·</span>
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className="w-2 h-2 rounded-full bg-verde"
+                aria-hidden="true"
+              />
+              Atualizado às {formatarHora(ultimaAtualizacao)}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
+              Próxima atualização em {formatarContagem(ateProxima)}
+            </span>
+          </div>
         </div>
       </header>
 

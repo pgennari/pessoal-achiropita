@@ -191,6 +191,16 @@ export function Pessoas() {
         <div className="flex gap-2 flex-wrap">
           {podeCriar && (
             <Link
+              to="/pessoas/importar-fotos"
+              className="btn btn-secundario"
+              aria-label="Importar fotos"
+              title="Importar fotos"
+            >
+              <Icone nome="camera" />
+            </Link>
+          )}
+          {podeCriar && (
+            <Link
               to="/pessoas/nova"
               className="btn btn-primario"
               aria-label="Nova pessoa"

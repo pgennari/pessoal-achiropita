@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Sessao, sair } from "../lib/sessao";
 import { Icone } from "./Icone";
+import { BotaoFavoritar } from "./BotaoFavoritar";
 
 interface Props {
   sessao: Sessao;
@@ -79,6 +80,7 @@ export function Topbar({ sessao, onAbrirBusca, onAbrirSidebar }: Props) {
       </button>
 
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
+        <BotaoFavoritar />
         <button
           type="button"
           onClick={onAbrirBusca}

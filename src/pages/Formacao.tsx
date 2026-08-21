@@ -139,15 +139,27 @@ export function PaginaFormacao() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <div className="eyebrow">Operação</div>
-        <h2 className="mt-1">Formação</h2>
-        <p className="text-ardesia text-sm">
-          {edicao.numero}ª edição ({edicao.ano}) ·{" "}
-          <span className="font-mono">{totalPresencas}</span> de{" "}
-          <span className="font-mono">{alocados.length}</span> alocados com
-          formação ({pctPresencas}%)
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="eyebrow">Operação</div>
+          <h2 className="mt-1">Formação</h2>
+          <p className="text-ardesia text-sm">
+            {edicao.numero}ª edição ({edicao.ano}) ·{" "}
+            <span className="font-mono">{totalPresencas}</span> de{" "}
+            <span className="font-mono">{alocados.length}</span> alocados com
+            formação ({pctPresencas}%)
+          </p>
+        </div>
+        {temPermissao(sessao, "formacao.pendenciaListar") && (
+          <Link
+            to="/formacao/pendencias"
+            className="btn btn-secundario"
+            aria-label="Pendências de formação"
+            title="Pendências de formação"
+          >
+            <Icone nome="alerta" />
+          </Link>
+        )}
       </header>
 
       {erro && (

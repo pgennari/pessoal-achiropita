@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const CHAVE_FAVORITOS = "favoritos-menu";
 
@@ -28,7 +28,14 @@ export const ROTAS: Record<string, MetaRota> = {
   "/dashboard/estacionamentos": { label: "Check-ins", icone: "check" },
 };
 
-function lerFavoritos(): string[] {
+// ─── Estado compartilhado (pub/sub a nivel de modulo) ────────────────────────
+
+type Listener = () => void;
+const listeners = new Set<Listener>();
+
+let favoritosCache: string[] = lerFavoritosRaw();
+
+function lerFavoritosRaw(): string[] {
   try {
     const raw = localStorage.getItem(CHAVE_FAVORITOS);
     if (!raw) return [];
@@ -41,19 +48,37 @@ function lerFavoritos(): string[] {
 }
 
 function gravarFavoritos(lista: string[]) {
+  favoritosCache = lista;
   try {
     localStorage.setItem(CHAVE_FAVORITOS, JSON.stringify(lista));
   } catch {
     // ignored
   }
+  for (const fn of listeners) fn();
 }
 
+function inscrever(fn: Listener): () => void {
+  listeners.add(fn);
+  return () => {
+    listeners.delete(fn);
+  };
+}
+
+// ─── Hook ────────────────────────────────────────────────────────────────────
+
 export function useFavoritos() {
-  const [favoritos, setFavoritos] = useState<string[]>(lerFavoritos);
+  const [, forceRender] = useState(0);
+  const favoritosRef = useRef(favoritosCache);
 
   useEffect(() => {
-    gravarFavoritos(favoritos);
-  }, [favoritos]);
+    favoritosRef.current = favoritosCache;
+    return inscrever(() => {
+      favoritosRef.current = favoritosCache;
+      forceRender((n) => n + 1);
+    });
+  }, []);
+
+  const favoritos = favoritosRef.current;
 
   const estaNoFavorito = useCallback(
     (rota: string) => favoritos.includes(rota),
@@ -61,8 +86,9 @@ export function useFavoritos() {
   );
 
   const alternarFavorito = useCallback((rota: string) => {
-    setFavoritos((prev) =>
-      prev.includes(rota) ? prev.filter((r) => r !== rota) : [...prev, rota],
+    const atual = favoritosCache;
+    gravarFavoritos(
+      atual.includes(rota) ? atual.filter((r) => r !== rota) : [...atual, rota],
     );
   }, []);
 

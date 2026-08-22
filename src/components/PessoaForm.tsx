@@ -101,6 +101,14 @@ export function PessoaForm({
         </div>
       )}
 
+      {(erros.filhos || erros.carros) && (
+        <div className="card border-vermelho/40">
+          <div className="card-corpo py-4 text-vermelho-escuro">
+            {erros.filhos ?? erros.carros} Corrija na aba correspondente antes de salvar.
+          </div>
+        </div>
+      )}
+
       <section>
         <h4 className="mb-4">Dados pessoais</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

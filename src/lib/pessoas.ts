@@ -54,10 +54,17 @@ export function pessoaDeSnap(id: string, data: Record<string, unknown>): Pessoa 
   };
 }
 
+interface OpcoesValidacao {
+  // Formularios que nao editam filhos/carros (ex.: edicao de dados basicos)
+  // nao devem ser bloqueados por registros legados incompletos dessas listas.
+  checarFilhosCarros?: boolean;
+}
+
 function validar(
   dados: DadosPessoaForm,
   pessoas: Pessoa[],
-  excetoId?: string
+  excetoId?: string,
+  opcoes: OpcoesValidacao = {}
 ): Record<string, string> {
   const erros: Record<string, string> = {};
   if (!dados.nome.trim()) erros.nome = "Nome é obrigatório.";
@@ -94,16 +101,18 @@ function validar(
     if (dup) erros.nome = `Já existe ${dup.nome} (#${dup.cracha}) com esta data.`;
   }
 
-  for (const f of dados.filhos) {
-    if (!f.nome.trim() || !f.nascimento) {
-      erros.filhos = "Cada filho precisa de nome e data de nascimento.";
-      break;
+  if (opcoes.checarFilhosCarros !== false) {
+    for (const f of dados.filhos) {
+      if (!f.nome.trim() || !f.nascimento) {
+        erros.filhos = "Cada filho precisa de nome e data de nascimento.";
+        break;
+      }
     }
-  }
-  for (const c of dados.carros) {
-    if (!c.fabricante.trim() || !c.modelo.trim() || !c.placa.trim() || !c.cor.trim()) {
-      erros.carros = "Cada veículo precisa de fabricante, modelo, placa e cor.";
-      break;
+    for (const c of dados.carros) {
+      if (!c.fabricante.trim() || !c.modelo.trim() || !c.placa.trim() || !c.cor.trim()) {
+        erros.carros = "Cada veículo precisa de fabricante, modelo, placa e cor.";
+        break;
+      }
     }
   }
   return erros;
@@ -162,9 +171,10 @@ export async function atualizarPessoa(
   _sessao: Sessao,
   pessoaId: string,
   dados: DadosPessoaForm,
-  pessoasExistentes: Pessoa[]
+  pessoasExistentes: Pessoa[],
+  opcoes: OpcoesValidacao = {}
 ): Promise<void> {
-  const erros = validar(dados, pessoasExistentes, pessoaId);
+  const erros = validar(dados, pessoasExistentes, pessoaId, opcoes);
   if (Object.keys(erros).length > 0) throw new ErroValidacao(erros);
 
   await api.put(`/api/pessoas/${pessoaId}`, payloadDeForm(dados));

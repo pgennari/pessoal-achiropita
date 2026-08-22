@@ -94,7 +94,9 @@ export function PessoaDetalhe() {
 
   async function handleSalvar(dados: DadosPessoaForm) {
     if (!sessao || !pessoa) return;
-    await atualizarPessoa(sessao, pessoa.id, dados, itens);
+    await atualizarPessoa(sessao, pessoa.id, dados, itens, {
+      checarFilhosCarros: false,
+    });
     setEditando(false);
   }
 

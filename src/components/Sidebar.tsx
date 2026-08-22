@@ -111,7 +111,6 @@ const secoes: Secao[] = [
   },
   {
     label: "Relatórios",
-    icone: "relatorio",
     itens: [
       {
         to: "/presenca/relatorio",
@@ -129,7 +128,6 @@ const secoes: Secao[] = [
   },
   {
     label: "Configurações",
-    icone: "chaves",
     itens: [
       { to: "/usuarios", label: "Usuários", icone: "usuarios", permissoes: ["usuario.lista"] },
       {

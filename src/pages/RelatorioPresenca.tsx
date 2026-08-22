@@ -30,6 +30,7 @@ interface LinhaRelatorio {
 }
 
 type ColunaOrdenacao = "equipe" | "nome" | "funcao" | "total";
+type FiltroPresenca = "todos" | "presentes" | "ausentes";
 
 function dataLocalISO(d: Date): string {
   const ano = d.getFullYear();
@@ -50,6 +51,7 @@ export function RelatorioPresenca() {
   const [filtroNome, setFiltroNome] = useState("");
   const [filtroFuncao, setFiltroFuncao] = useState("");
   const [filtroTotal, setFiltroTotal] = useState<number | null>(null);
+  const [filtroPresenca, setFiltroPresenca] = useState<FiltroPresenca>("todos");
   const [diasSelecionados, setDiasSelecionados] = useState<Set<string>>(new Set());
   const [filtroDiasAberto, setFiltroDiasAberto] = useState(false);
   const [colunaOrdenada, setColunaOrdenada] = useState<ColunaOrdenacao>("equipe");
@@ -61,6 +63,14 @@ export function RelatorioPresenca() {
   );
   const { itens: presencas, carregando: carregandoPresencas } =
     usePresencasDaEdicao(edicao?.id, diasOrdenados);
+
+  const diasConsiderados = useMemo(
+    () =>
+      diasSelecionados.size > 0
+        ? diasOrdenados.filter((d) => diasSelecionados.has(d.id))
+        : diasOrdenados,
+    [diasOrdenados, diasSelecionados]
+  );
 
   const podeVer = temPermissao(sessao, "presenca.relatorio");
 
@@ -127,7 +137,13 @@ export function RelatorioPresenca() {
       }
       if (f && !normalizar(linha.funcao).includes(f)) return false;
       if (filtroTotal !== null && linha.total !== filtroTotal) return false;
-      if (diasSelecionados.size > 0) {
+      if (filtroPresenca !== "todos") {
+        const noRecorte =
+          filtroPresenca === "presentes"
+            ? diasConsiderados.some((dia) => linha.diasPresentes.has(dia.id))
+            : diasConsiderados.every((dia) => !linha.diasPresentes.has(dia.id));
+        if (!noRecorte) return false;
+      } else if (diasSelecionados.size > 0) {
         const presenteEmAlgum = Array.from(diasSelecionados).some((diaId) =>
           linha.diasPresentes.has(diaId)
         );
@@ -168,6 +184,8 @@ export function RelatorioPresenca() {
     filtroNome,
     filtroFuncao,
     filtroTotal,
+    filtroPresenca,
+    diasConsiderados,
     diasSelecionados,
     colunaOrdenada,
     ordemAsc,
@@ -187,7 +205,12 @@ export function RelatorioPresenca() {
     filtroNome !== "" ||
     filtroFuncao !== "" ||
     filtroTotal !== null ||
+    filtroPresenca !== "todos" ||
     diasSelecionados.size > 0;
+
+  function alternarFiltroPresenca(valor: "presentes" | "ausentes") {
+    setFiltroPresenca((atual) => (atual === valor ? "todos" : valor));
+  }
 
   function toggleDia(diaId: string) {
     setDiasSelecionados((atual) => {
@@ -210,6 +233,13 @@ export function RelatorioPresenca() {
     diasSelecionados.size === 0
       ? "Todos os dias"
       : `${diasSelecionados.size} dia${diasSelecionados.size === 1 ? "" : "s"}`;
+
+  const classeFiltroDias =
+    filtroPresenca === "ausentes" && diasSelecionados.size > 0
+      ? "bg-vermelho text-white"
+      : diasSelecionados.size > 0
+        ? "filtro-chip-ativo"
+        : "filtro-chip-inativo";
 
   if (!sessao) return null;
   if (!podeVer) {
@@ -271,16 +301,36 @@ export function RelatorioPresenca() {
         <div className="card-corpo space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2 text-xs text-ardesia">
-              <span className="inline-flex items-center gap-1.5 px-2 py-1">
-                <span className="inline-block w-3 h-3 rounded-sm bg-verde" />
+              <button
+                type="button"
+                className={`filtro-chip ${filtroPresenca === "presentes" ? "filtro-chip-ativo" : "filtro-chip-inativo"}`}
+                onClick={() => alternarFiltroPresenca("presentes")}
+                aria-pressed={filtroPresenca === "presentes"}
+                aria-label="Filtrar apenas quem esteve presente nos dias selecionados"
+                title="Ver apenas quem esteve presente em pelo menos um dos dias do recorte (todos os dias, se nenhum for escolhido)"
+              >
+                <span
+                  className={`inline-block w-3 h-3 rounded-sm ${filtroPresenca === "presentes" ? "bg-bianco" : "bg-verde"}`}
+                  aria-hidden="true"
+                />
                 presente
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-2 py-1">
-                <span className="inline-block w-3 h-3 rounded-sm bg-vermelho" />
+              </button>
+              <button
+                type="button"
+                className={`filtro-chip ${filtroPresenca === "ausentes" ? "bg-vermelho text-white" : "filtro-chip-inativo"}`}
+                onClick={() => alternarFiltroPresenca("ausentes")}
+                aria-pressed={filtroPresenca === "ausentes"}
+                aria-label="Filtrar apenas quem faltou nos dias selecionados"
+                title="Ver apenas quem faltou em todos os dias do recorte (todos os dias, se nenhum for escolhido)"
+              >
+                <span
+                  className={`inline-block w-3 h-3 rounded-sm ${filtroPresenca === "ausentes" ? "bg-bianco" : "bg-vermelho"}`}
+                  aria-hidden="true"
+                />
                 ausente
-              </span>
+              </button>
               <span className="inline-flex items-center gap-1.5 px-2 py-1">
-                <span className="inline-block w-3 h-3 rounded-sm bg-pietra-clara" />
+                <span className="inline-block w-3 h-3 rounded-sm bg-pietra-clara border border-pietra" />
                 data futura
               </span>
             </div>
@@ -288,7 +338,7 @@ export function RelatorioPresenca() {
             <div className="relative">
               <button
                 type="button"
-                className={`filtro-chip ${diasSelecionados.size > 0 ? "filtro-chip-ativo" : "filtro-chip-inativo"}`}
+                className={`filtro-chip ${classeFiltroDias}`}
                 onClick={() => setFiltroDiasAberto((a) => !a)}
                 aria-haspopup="listbox"
                 aria-expanded={filtroDiasAberto}
@@ -417,8 +467,9 @@ export function RelatorioPresenca() {
           </div>
 
           <p className="text-ardesia text-sm">
-            Selecione os dias no dropdown para ver apenas quem esteve presente
-            em pelo menos um dos dias escolhidos.
+            Os chips presente e ausente consideram os dias selecionados no
+            dropdown (sem seleção, valem todos os dias): presente mostra quem
+            foi em pelo menos um dia do recorte; ausente, quem faltou em todos.
           </p>
         </div>
       </div>

@@ -12,8 +12,6 @@ import {
   useEdicao,
   useParticipacoes,
   useSetores,
-  useAvaliacaoLinkAtivo,
-  useAvaliacoes,
 } from "../lib/hooks";
 import { useSessao, temPermissao } from "../lib/sessao";
 import {
@@ -59,8 +57,6 @@ export function EdicaoDetalhe() {
   const { itens: participacoes, carregando: carregandoParticipacoes } = useParticipacoes(id);
   const { itens: setores, carregando: carregandoSetores } = useSetores();
   const { itens: dias, carregando: carregandoDias } = useDiasFesta(id);
-  const { item: linkAvaliacao } = useAvaliacaoLinkAtivo(id);
-  const { itens: avaliacoes } = useAvaliacoes(id);
 
   const [editandoEdicao, setEditandoEdicao] = useState(false);
   const [criandoEquipe, setCriandoEquipe] = useState(false);
@@ -72,8 +68,7 @@ export function EdicaoDetalhe() {
   const [novoDiaData, setNovoDiaData] = useState("");
   const [enviandoDia, setEnviandoDia] = useState(false);
   const [diaFormErro, setDiaFormErro] = useState<Record<string, string>>({});
-  const [abaAtiva, setAbaAtiva] = useState<"equipes" | "dias" | "avaliacao">("equipes");
-  const [copiado, setCopiado] = useState(false);
+  const [abaAtiva, setAbaAtiva] = useState<"equipes" | "dias">("equipes");
 
   const mapaSetor = useMemo(() => {
     const m = new Map<string, SetorInfo>();
@@ -90,15 +85,6 @@ export function EdicaoDetalhe() {
   const podeCriarEquipe = temPermissao(sessao, "edicao.equipeCriar");
   const podeRemoverEquipe = temPermissao(sessao, "edicao.equipeExcluir");
   const podeAlterarSetor = temPermissao(sessao, "setor.editar");
-
-  function handleCopiarLink() {
-    if (!linkAvaliacao) return;
-    const url = `${window.location.origin}/avaliacao/${linkAvaliacao.id}`;
-    navigator.clipboard.writeText(url).then(() => {
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 2000);
-    });
-  }
 
   const alocadas = participacoes.length;
 
@@ -349,15 +335,6 @@ export function EdicaoDetalhe() {
             onClick={() => setAbaAtiva("dias")}
           >
             Dias de festa
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={abaAtiva === "avaliacao"}
-            className={`aba ${abaAtiva === "avaliacao" ? "aba-ativa" : ""}`}
-            onClick={() => setAbaAtiva("avaliacao")}
-          >
-            Avaliação
           </button>
         </div>
 
@@ -660,114 +637,6 @@ export function EdicaoDetalhe() {
                         )}
                       </div>
                     ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-
-        {abaAtiva === "avaliacao" && (
-          <section className="tabs-painel" role="tabpanel" tabIndex={0}>
-            <div>
-              <div className="card">
-                <div className="card-corpo space-y-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="font-display text-xl">
-                        Link público de avaliação
-                      </div>
-                      <div className="text-ardesia text-sm">
-                        {linkAvaliacao
-                          ? "Link ativo para esta edição. O coordenador avalia os equipistas da equipe."
-                          : "Sem link ativo para esta edição."}
-                      </div>
-                    </div>
-                  </div>
-
-                  {linkAvaliacao && (
-                    <div className="flex flex-wrap items-center gap-3 border-t border-pietra-clara pt-4">
-                      <code className="flex-1 min-w-[220px] bg-pietra-clara/40 rounded-sm px-2 py-1 text-xs break-all">
-                        {`${window.location.origin}/avaliacao/${linkAvaliacao.id}`}
-                      </code>
-                      <div className="flex gap-2 ml-auto">
-                        <button
-                          type="button"
-                          className="btn btn-secundario btn-pequeno"
-                          onClick={handleCopiarLink}
-                          aria-label={copiado ? "Copiado!" : "Copiar URL"}
-                          title={copiado ? "Copiado!" : "Copiar URL"}
-                        >
-                          <Icone nome="copiar" />
-                        </button>
-                        <a
-                          href={`${window.location.origin}/avaliacao/${linkAvaliacao.id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn btn-secundario btn-pequeno"
-                          aria-label="Abrir link em nova janela"
-                          title="Abrir link em nova janela"
-                        >
-                          <Icone nome="abrir" />
-                        </a>
-                        
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-baseline justify-between gap-2 my-3">
-                <h3 className="font-display text-lg">Avaliações</h3>
-              </div>
-
-              {avaliacoes.length === 0 ? (
-                <p className="text-ardesia text-sm">Nenhuma avaliação registrada nesta edição.</p>
-              ) : (
-                <div className="card overflow-hidden">
-                  <div className="tabela-rolavel">
-                    <table className="tabela-larga">
-                      <thead className="bg-pietra-clara/60 text-left">
-                        <tr>
-                          <th className="px-4 py-2 font-semibold">Crachá · Nome</th>
-                          <th className="px-4 py-2 font-semibold">Equipe</th>
-                          <th className="px-4 py-2 font-semibold">Avaliador</th>
-                          <th className="px-4 py-2 font-semibold">Status</th>
-                          <th className="px-4 py-2 font-semibold">Atualizado</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {avaliacoes.map((a) => (
-                          <tr key={a.id} className="border-t border-pietra-clara hover:bg-pietra-clara/40">
-                            <td className="px-4 py-2 whitespace-nowrap">
-                              <Link
-                                to={`/pessoas/${a.pessoaId}?aba=avaliacoes`}
-                                className="text-carbone font-semibold no-underline hover:text-verde hover:underline"
-                              >
-                                <span className="font-mono text-ardesia">
-                                  #{(a as any).pessoaCracha ?? "????"}
-                                </span>{" "}
-                                {(a as any).pessoaNome ?? ""}
-                              </Link>
-                            </td>
-                            <td className="px-4 py-2 text-ardesia whitespace-nowrap">
-                              {(a as any).equipeNome ?? a.equipeId}
-                            </td>
-                            <td className="px-4 py-2 text-ardesia whitespace-nowrap">
-                              {a.avaliadorNome}
-                            </td>
-                            <td className="px-4 py-2 whitespace-nowrap">
-                              <span className={`badge ${a.status === "finalizada" ? "badge-verde" : "badge-azul"}`}>
-                                {a.status === "finalizada" ? "Finalizada" : "Rascunho"}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2 text-ardesia whitespace-nowrap">
-                              {new Date(a.atualizadoEm).toLocaleString("pt-BR")}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
                   </div>
                 </div>
               )}

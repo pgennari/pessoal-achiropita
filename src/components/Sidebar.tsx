@@ -87,6 +87,12 @@ const secoes: Secao[] = [
         icone: "clipboard",
         permissoes: ["formacao.turmas", "formacao.marcarManual"],
       },
+      {
+        to: "/avaliacao",
+        label: "Avaliação",
+        icone: "avaliar",
+        permissoes: ["avaliacao.gerenciar"],
+      },
     ],
   },
   {

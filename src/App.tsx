@@ -21,6 +21,7 @@ import { Permissoes } from "./pages/Permissoes";
 import { Parametros } from "./pages/Parametros";
 import { PaginaFormacao } from "./pages/Formacao";
 import { PendenciasFormacao } from "./pages/PendenciasFormacao";
+import { PaginaAvaliacao } from "./pages/Avaliacao";
 import { ValidarPublico } from "./pages/ValidarPublico";
 import { QrTurma } from "./pages/QrTurma";
 import { PaginaConvite } from "./pages/PaginaConvite";
@@ -84,6 +85,7 @@ export function App() {
         />
         <Route path="formacao" element={<PaginaFormacao />} />
         <Route path="formacao/pendencias" element={<PendenciasFormacao />} />
+        <Route path="avaliacao" element={<PaginaAvaliacao />} />
         <Route path="presenca" element={<Presenca />} />
         <Route path="presenca/grade" element={<GradePresencaPage />} />
         <Route path="presenca/relatorio" element={<RelatorioPresenca />} />

@@ -73,7 +73,7 @@ const secoes: Secao[] = [
       {
         to: "/presenca",
         label: "Presença",
-        icone: "check",
+        icone: "presenca",
         permissoes: [
           "presenca.lista",
           "presenca.linkGerar",
@@ -92,7 +92,7 @@ const secoes: Secao[] = [
   {
     label: "Estacionamentos",
     to: "/estacionamentos",
-    icone: "carro",
+    icone: "MapPin",
     permissoes: ["vaga.lista", "vaga.detalhe"],
     itens: [
       {
@@ -104,7 +104,7 @@ const secoes: Secao[] = [
       {
         to: "/dashboard/estacionamentos",
         label: "Check-ins do dia",
-        icone: "check",
+        icone: "checkin",
         permissoes: ["estacionamento.dashboard"],
       },
     ],
@@ -121,7 +121,7 @@ const secoes: Secao[] = [
       {
         to: "/estacionamentos/relatorio",
         label: "Estacionamento",
-        icone: "carro",
+        icone: "relatorioestacionamento",
         permissoes: ["estacionamento.relatorio", "estacionamento.dashboard"],
       },
     ],
@@ -251,7 +251,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
 
       <aside
         className={[
-          "fixed md:static inset-y-0 left-0 z-40 shrink-0",
+          "fixed md:sticky top-0 inset-y-0 left-0 z-40 shrink-0 md:h-screen",
           "flex-col border-r border-pietra bg-bianco transition-[width] duration-200",
           largura,
           aberta ? "flex" : "hidden md:flex",
@@ -283,16 +283,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
           )}
           <button
             type="button"
-            className="hidden md:block text-ardesia hover:text-carbone shrink-0 p-1 rounded-sm hover:bg-pietra transition"
-            onClick={() => setColapsado((c) => !c)}
-            aria-label={colapsado ? "Expandir menu" : "Recolher menu"}
-            title={colapsado ? "Expandir menu" : "Recolher menu"}
-          >
-            <Icone nome={colapsado ? "expandir" : "recolher"} tamanho={18} />
-          </button>
-          <button
-            type="button"
-            className="md:hidden text-ardesia text-2xl leading-none px-1 py-0.5 hover:text-carbone"
+            className="md:hidden text-ardesia text-2xl leading-none px-1 py-0.5 hover:text-carbone ml-auto"
             onClick={onFechar}
             aria-label="Fechar menu"
           >
@@ -365,7 +356,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
                         ].join(" ")
                       }
                     >
-                      <Icone nome={meta.icone} tamanho={16} />
+                      <Icone nome={meta.icone} tamanho={18} className="shrink-0" />
                       {!colapsado && <span>{meta.label}</span>}
                     </NavLink>
                   );
@@ -393,7 +384,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
                     className={({ isActive }) => classeLinkSecao(isActive)}
                   >
                     {secao.icone && (
-                      <Icone nome={secao.icone} tamanho={16} />
+                      <Icone nome={secao.icone} tamanho={16} className="shrink-0" />
                     )}
                     {!colapsado && <span>{secao.label}</span>}
                   </NavLink>
@@ -403,7 +394,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
                     title={colapsado ? secao.label : undefined}
                   >
                     {secao.icone && (
-                      <Icone nome={secao.icone} tamanho={16} />
+                      <Icone nome={secao.icone} tamanho={16} className="shrink-0" />
                     )}
                     {!colapsado && <span>{secao.label}</span>}
                   </div>
@@ -426,7 +417,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
                           }
                         >
                           {item.icone && (
-                            <Icone nome={item.icone} tamanho={14} />
+                            <Icone nome={item.icone} tamanho={14} className="shrink-0" />
                           )}
                           {!colapsado && <span>{item.label}</span>}
                         </NavLink>
@@ -442,7 +433,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
                                 }
                               >
                                 {filho.icone && (
-                                  <Icone nome={filho.icone} tamanho={14} />
+                                  <Icone nome={filho.icone} tamanho={14} className="shrink-0" />
                                 )}
                                 <span>{filho.label}</span>
                               </NavLink>
@@ -461,12 +452,23 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
         {/* Footer */}
         {!colapsado && (
           <div
-            className="p-4 border-t border-pietra-clara text-xs text-ardesia font-mono"
+            className="p-4 pr-8 border-t border-pietra-clara text-xs text-ardesia font-mono"
             title="Versão do build"
           >
             {VERSAO_APP}
           </div>
         )}
+
+        {/* Botao flutuante de recolher/expandir, sobre a borda com o conteudo */}
+        <button
+          type="button"
+          className="hidden md:flex absolute bottom-5 -right-3 z-10 h-7 w-7 items-center justify-center rounded-full border border-pietra-clara bg-bianco text-ardesia shadow-sm hover:bg-pietra hover:text-carbone transition"
+          onClick={() => setColapsado((c) => !c)}
+          aria-label={colapsado ? "Expandir menu" : "Recolher menu"}
+          title={colapsado ? "Expandir menu" : "Recolher menu"}
+        >
+          <Icone nome={colapsado ? "expandir" : "recolher"} tamanho={14} />
+        </button>
       </aside>
     </>
   );

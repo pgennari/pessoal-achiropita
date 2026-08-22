@@ -7,9 +7,11 @@ import {
   BarChart3,
   Braces,
   Calendar,
+  CalendarCheck2,
   Camera,
   Car,
   Check,
+  CheckCheck,
   CheckCircle2,
   ChevronDown,
   ClipboardList,
@@ -27,6 +29,7 @@ import {
   LogIn,
   LogOut,
   Mail,
+  MapPin,
   MessageCircle,
   PanelLeftClose,
   PanelLeftOpen,
@@ -50,6 +53,7 @@ import {
   X,
   type LucideIcon,
   NotebookPen,
+  ParkingCircle,
 } from "lucide-react";
 
 const icones: Record<string, LucideIcon> = {
@@ -58,6 +62,7 @@ const icones: Record<string, LucideIcon> = {
   mais: Plus,
   fechar: X,
   check: Check,
+  checkin: CheckCheck,
   entrar: LogIn,
   abrir: ExternalLink,
   sair: LogOut,
@@ -73,6 +78,7 @@ const icones: Record<string, LucideIcon> = {
   copiar: Copy,
   link: Link,
   proibido: Ban,
+  presenca: CalendarCheck2,
   recarregar: RefreshCw,
   baixar: Download,
   enviar: Send,
@@ -80,6 +86,7 @@ const icones: Record<string, LucideIcon> = {
   "usuario-x": UserX,
   usuarios: Users,
   carro: Car,
+  relatorioestacionamento: ParkingCircle,
   cadeado: Lock,
   "cadeado-aberto": LockOpen,
   camera: Camera,
@@ -103,6 +110,7 @@ const icones: Record<string, LucideIcon> = {
   "clipboard": ClipboardList,
   "recolher": PanelLeftClose,
   "expandir": PanelLeftOpen,
+  MapPin: MapPin,
 };
 
 interface IconeProps {

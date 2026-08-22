@@ -79,6 +79,7 @@ const secoes: Secao[] = [
           "presenca.linkGerar",
           "presenca.linkRevogar",
         ],
+        excluirAtivo: ["/presenca/relatorio"],
       },
       {
         to: "/formacao",

@@ -344,6 +344,72 @@
     letter-spacing: 0.15em;
   }
 
+  /* Organograma — canvas com zoom (fundo quadriculado no tom crema). */
+  .org-canvas {
+    @apply bg-crema;
+    background-image: radial-gradient(#e0d9c8 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  /* Organograma — arvore vertical (raiz no topo, filhos em linha abaixo).
+     O ul.org-filhos desce um traco do pai ate o "bus" horizontal; cada
+     filho recebe um tracinho vertical caindo no proprio card. */
+  .org-no {
+    @apply relative flex flex-col items-center;
+  }
+  .org-no > .org-filhos {
+    @apply relative flex justify-center items-start m-0 p-0;
+    margin-top: 1.75rem;
+  }
+  /* Traco vertical do pai descendo ate o nivel dos filhos. */
+  .org-no > .org-filhos::before {
+    content: "";
+    position: absolute;
+    top: -1.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 1.75rem;
+    @apply bg-pietra;
+  }
+  /* Cada celula de filho reserva espaco para o conector acima do card. */
+  .org-no > .org-filhos > .org-no {
+    @apply px-3;
+    padding-top: 1.75rem;
+  }
+  /* Bus horizontal: cada filho pinta seu trecho; extremidades abertas
+     comecam/terminam no centro do primeiro/ultimo filho. */
+  .org-no > .org-filhos > .org-no::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    @apply bg-pietra;
+  }
+  .org-no > .org-filhos > .org-no:first-child::before {
+    left: 50%;
+  }
+  .org-no > .org-filhos > .org-no:last-child::before {
+    right: 50%;
+  }
+  /* Filho unico: so o traco vertical, sem bus. */
+  .org-no > .org-filhos > .org-no:only-child::before {
+    @apply hidden;
+  }
+  /* Traco vertical caindo dentro do card do filho. */
+  .org-no > .org-filhos > .org-no::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 1.75rem;
+    @apply bg-pietra;
+  }
+
   /* Telas de toque: densidade é de desktop (guia visual §07).
      No celular do coordenador em campo os alvos voltam a 48px. */
   @media (pointer: coarse) {

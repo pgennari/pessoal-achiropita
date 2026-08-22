@@ -14,6 +14,8 @@ function equipeDeRow(r: Record<string, unknown>) {
     edicaoId: r.edicao_id,
     nome: r.nome,
     setor: r.setor,
+    equipePaiId: r.equipe_pai_id ?? null,
+    raiz: r.raiz === true,
     vagasCoordenador: r.vagas_coordenador,
     vagasEquipista: r.vagas_equipista,
     criadoEm,
@@ -29,6 +31,8 @@ const SEL_EQUIPES = sql`
     e.edicao_id,
     e.nome,
     e.setor,
+    e.equipe_pai_id,
+    e.raiz,
     e.criado_em,
     e.atualizado_em,
     COALESCE(COUNT(*) FILTER (WHERE p.funcao = 'Coordenador'), 0)::int AS vagas_coordenador,
@@ -36,6 +40,50 @@ const SEL_EQUIPES = sql`
   FROM equipes e
   LEFT JOIN participacoes p ON p.equipe_id = e.id
 `;
+
+// Marca equipeId como a unica equipe raiz da edicao (desmarca as demais).
+async function definirUnicaRaiz(edicaoId: string, equipeId: string) {
+  await sql`UPDATE equipes SET raiz = FALSE WHERE edicao_id = ${edicaoId} AND id <> ${equipeId}`;
+  await sql`UPDATE equipes SET raiz = TRUE WHERE id = ${equipeId}`;
+}
+
+// Valida um pai candidato para o organograma: precisa existir, pertencer a
+// mesma edicao e nao ser a propria equipe. Retorna mensagem de erro ou null.
+async function erroPaiInvalido(
+  paiId: string,
+  edicaoId: string,
+  excetoId?: string
+): Promise<string | null> {
+  if (excetoId && paiId === excetoId) {
+    return "Uma equipe não pode ser subordinada a si mesma.";
+  }
+  const [pai] = await sql`SELECT edicao_id FROM equipes WHERE id = ${paiId}`;
+  if (!pai) return "Equipe superior não encontrada.";
+  if (String(pai.edicao_id) !== edicaoId) {
+    return "A equipe superior deve pertencer à mesma edição.";
+  }
+  return null;
+}
+
+// Subir a cadeia de pais a partir de novoPaiId; se chegar em equipeId,
+// atribuir esse pai criaria um ciclo no organograma.
+async function criaCiclo(
+  equipeId: string,
+  novoPaiId: string
+): Promise<boolean> {
+  let atual: string | null = novoPaiId;
+  const visitados = new Set<string>();
+  while (atual && !visitados.has(atual)) {
+    if (atual === equipeId) return true;
+    visitados.add(atual);
+    const rows: Record<string, unknown>[] =
+      await sql`SELECT equipe_pai_id FROM equipes WHERE id = ${atual}`;
+    const row = rows[0];
+    if (!row) return false;
+    atual = typeof row.equipe_pai_id === "string" ? row.equipe_pai_id : null;
+  }
+  return false;
+}
 
 const getEquipesRoute = createRoute({
   method: "get",
@@ -107,6 +155,7 @@ const postEquipeRoute = createRoute({
   request: { body: { content: { "application/json": { schema: z.any() } } } },
   responses: {
     201: { content: { "application/json": { schema: z.any() } }, description: "Criada" },
+    400: { content: { "application/json": { schema: z.any() } }, description: "Dados inválidos" },
     403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
   }
 });
@@ -117,12 +166,31 @@ app.openapi(postEquipeRoute, async (c) => {
   }
   const body = await c.req.json() as Record<string, unknown>;
   const { edicaoId, nome, setor } = body;
+  const edicao = String(edicaoId ?? "");
+
+  // Subordinacao opcional no organograma.
+  const paiIdBruto = body.equipePaiId;
+  const equipePaiId =
+    typeof paiIdBruto === "string" && paiIdBruto.trim() !== "" ? paiIdBruto.trim() : null;
+  if (equipePaiId) {
+    const erro = await erroPaiInvalido(equipePaiId, edicao);
+    if (erro) return c.json({ erro }, 400);
+  }
+
   const [row] = await sql`
-    INSERT INTO equipes (edicao_id, nome, setor)
-    VALUES (${String(edicaoId ?? "")}, ${String(nome ?? "")}, ${String(setor ?? "Interna")})
+    INSERT INTO equipes (edicao_id, nome, setor, equipe_pai_id)
+    VALUES (${edicao}, ${String(nome ?? "")}, ${String(setor ?? "Interna")}, ${equipePaiId})
     RETURNING id
   `;
-  await registrarEvento(sessao, "equipe.criou", `equipes/${row.id}`, String(nome ?? ""));
+  if (body.raiz === true) {
+    await definirUnicaRaiz(edicao, String(row.id));
+  }
+  await registrarEvento(
+    sessao,
+    equipePaiId ? "equipe.criouSubordinada" : "equipe.criou",
+    `equipes/${row.id}`,
+    String(nome ?? "")
+  );
   const [criada] = await sql`${SEL_EQUIPES} WHERE e.id = ${row.id} GROUP BY e.id`;
   return c.json(equipeDeRow(criada) as any, 201);
 });
@@ -137,6 +205,7 @@ const putEquipeRoute = createRoute({
   request: { params: z.object({ id: z.string() }), body: { content: { "application/json": { schema: z.any() } } } },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Atualizada" },
+    400: { content: { "application/json": { schema: z.any() } }, description: "Dados inválidos" },
     403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
     404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
   }
@@ -147,17 +216,64 @@ app.openapi(putEquipeRoute, async (c) => {
   if (!temPermissao(sessao, "edicao.equipeEditar")) {
     return c.json({ erro: "Acesso negado. Requer permissao edicao.equipeEditar." }, 403);
   }
+  const [existente] =
+    await sql`SELECT edicao_id, equipe_pai_id, raiz FROM equipes WHERE id = ${id}`;
+  if (!existente) return c.json({ erro: "Equipe não encontrada." }, 404);
+  const edicaoId = String(existente.edicao_id);
+
   const body = await c.req.json() as Record<string, unknown>;
   const { nome, setor } = body;
+
+  // Subordinacao no organograma: so altera quando o campo vem no corpo
+  // (chamadas que editam apenas nome/setor preservam o pai atual).
+  let equipePaiId = (existente.equipe_pai_id as string | null) ?? null;
+  if ("equipePaiId" in body) {
+    const paiIdBruto = body.equipePaiId;
+    equipePaiId =
+      typeof paiIdBruto === "string" && paiIdBruto.trim() !== "" ? paiIdBruto.trim() : null;
+    if (equipePaiId) {
+      let erro = await erroPaiInvalido(equipePaiId, edicaoId, id);
+      if (!erro && (await criaCiclo(id, equipePaiId))) {
+        erro = "Subordinação inválida: criaria um ciclo no organograma.";
+      }
+      if (erro) return c.json({ erro }, 400);
+    }
+  }
+
+  // Equipe raiz do organograma: so muda quando "raiz" vem no corpo. Uma
+  // unica por edicao; subordinar a equipe raiz derruba a marcacao.
+  let raiz = existente.raiz === true;
+  if ("raiz" in body) {
+    const querRaiz = body.raiz === true;
+    if (querRaiz && equipePaiId) {
+      return c.json(
+        { erro: "A equipe raiz do organograma não pode ter equipe superior." },
+        400
+      );
+    }
+    raiz = querRaiz;
+    if (raiz) await definirUnicaRaiz(edicaoId, id);
+  }
+  if (equipePaiId) raiz = false;
+
   const [row] = await sql`
     UPDATE equipes SET
       nome          = ${String(nome ?? "")},
       setor         = ${String(setor ?? "Interna")},
+      equipe_pai_id = ${equipePaiId},
+      raiz          = ${raiz},
       atualizado_em = NOW()
     WHERE id = ${id} RETURNING id
   `;
   if (!row) return c.json({ erro: "Equipe não encontrada." }, 404);
-  await registrarEvento(sessao, "equipe.atualizou", `equipes/${id}`, String(nome ?? ""));
+  await registrarEvento(
+    sessao,
+    "equipe.atualizou",
+    `equipes/${id}`,
+    equipePaiId
+      ? `${String(nome ?? "")} (subordinada a ${equipePaiId})`
+      : String(nome ?? "")
+  );
   const [atualizada] = await sql`${SEL_EQUIPES} WHERE e.id = ${id} GROUP BY e.id`;
   return c.json(equipeDeRow(atualizada) as any, 200);
 });
@@ -210,13 +326,31 @@ app.openapi(postEquipeCopiarRoute, async (c) => {
     edicaoOrigemId: string;
     edicaoDestinoId: string;
   };
-  const result = await sql`
-    INSERT INTO equipes (edicao_id, nome, setor, criado_em, atualizado_em)
-    SELECT ${edicaoDestinoId}, nome, setor, NOW(), NOW()
+  const origem = await sql`
+    SELECT id, nome, setor, equipe_pai_id
     FROM equipes WHERE edicao_id = ${edicaoOrigemId}
-    RETURNING id
+    ORDER BY criado_em
   `;
-  const copiadas = result.length;
+  // Copia uma a uma para mapear ids e preservar a subordinacao no destino.
+  const mapaIds = new Map<string, string>();
+  for (const eq of origem) {
+    const [nova] = await sql`
+      INSERT INTO equipes (edicao_id, nome, setor)
+      VALUES (${edicaoDestinoId}, ${eq.nome}, ${eq.setor})
+      RETURNING id
+    `;
+    mapaIds.set(String(eq.id), String(nova.id));
+  }
+  for (const eq of origem) {
+    const paiOrigem = (eq.equipe_pai_id as string | null) ?? null;
+    const paiDestino = paiOrigem ? mapaIds.get(paiOrigem) ?? null : null;
+    if (!paiDestino) continue;
+    await sql`
+      UPDATE equipes SET equipe_pai_id = ${paiDestino}
+      WHERE id = ${mapaIds.get(String(eq.id)) ?? ""}
+    `;
+  }
+  const copiadas = origem.length;
   if (copiadas > 0) {
     await registrarEvento(
       sessao,

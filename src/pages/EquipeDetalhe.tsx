@@ -53,6 +53,9 @@ export function EquipeDetalhe() {
   const { itens: setores } = useSetores();
   const indice = useIndicePessoas(pessoas);
   const nomeSetor = equipe ? (setores.find((s) => s.id === equipe.setor)?.nome ?? equipe.setor) : "";
+  const equipePai = equipe?.equipePaiId
+    ? equipes.find((e) => e.id === equipe.equipePaiId) ?? null
+    : null;
 
   const [editando, setEditando] = useState(false);
   const [alocando, setAlocando] = useState(false);
@@ -217,6 +220,7 @@ export function EquipeDetalhe() {
           <div className="card-corpo">
             <EquipeForm
               inicial={equipe}
+              equipes={equipes}
               onSubmit={handleSalvarEquipe}
               onCancelar={() => setEditando(false)}
             />
@@ -239,6 +243,17 @@ export function EquipeDetalhe() {
           <h2 className="mt-1">{equipe.nome}</h2>
           <div className="text-ardesia text-sm">
             {nomeSetor}
+            {equipePai && (
+              <>
+                {" · subordinada a "}
+                <Link
+                  to={`/edicoes/${edicao.id}/equipes/${equipePai.id}`}
+                  className="hover:underline"
+                >
+                  {equipePai.nome}
+                </Link>
+              </>
+            )}
           </div>
         </div>
         {(podeEditarEquipe || podeAlocar) && (

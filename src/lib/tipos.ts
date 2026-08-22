@@ -296,6 +296,11 @@ export interface Equipe {
   edicaoId: string;
   nome: string;
   setor: Setor;
+  // Subordinacao no organograma; null = sem equipe superior.
+  equipePaiId?: string | null;
+  // Equipe raiz do organograma (unica por edicao; as demais equipes sem
+  // equipe superior aparecem numa secao a parte).
+  raiz?: boolean;
   vagasCoordenador: number;
   vagasEquipista: number;
   criadoEm: string;

@@ -14,6 +14,7 @@ import { EstacionamentoDetalhe } from "./pages/EstacionamentoDetalhe";
 import { Edicoes } from "./pages/Edicoes";
 import { EdicaoDetalhe } from "./pages/EdicaoDetalhe";
 import { EquipeDetalhe } from "./pages/EquipeDetalhe";
+import { Organograma } from "./pages/Organograma";
 import { Criancas } from "./pages/Criancas";
 import { Usuarios } from "./pages/Usuarios";
 import { Perfis } from "./pages/Perfis";
@@ -83,6 +84,7 @@ export function App() {
           path="edicoes/:edicaoId/equipes/:id"
           element={<EquipeDetalhe />}
         />
+        <Route path="organograma" element={<Organograma />} />
         <Route path="formacao" element={<PaginaFormacao />} />
         <Route path="formacao/pendencias" element={<PendenciasFormacao />} />
         <Route path="avaliacao" element={<PaginaAvaliacao />} />

@@ -12,6 +12,7 @@ export const ROTAS: Record<string, MetaRota> = {
   "/criancas": { label: "Crianças", icone: "usuario" },
   "/veiculos": { label: "Veículos", icone: "carro" },
   "/edicoes": { label: "Edições", icone: "calendario" },
+  "/organograma": { label: "Organograma", icone: "organograma" },
   "/presenca": { label: "Presença", icone: "check" },
   "/formacao": { label: "Formação", icone: "clipboard" },
   "/estacionamentos": { label: "Estacionamentos", icone: "carro" },

@@ -112,6 +112,23 @@ CREATE TABLE equipes (
 );
 CREATE INDEX idx_equipes_edicao ON equipes(edicao_id);
 
+-- Hierarquia de equipes para o organograma (equipes subordinadas).
+-- Pai nulo = equipe raiz; exclusao do pai desaninha as filhas (SET NULL).
+-- A FK fica no bloco abaixo para servir tambem a bancos ja existentes.
+ALTER TABLE equipes ADD COLUMN IF NOT EXISTS equipe_pai_id TEXT;
+DO $$
+BEGIN
+  ALTER TABLE equipes
+  ADD CONSTRAINT fk_equipes_equipe_pai
+  FOREIGN KEY (equipe_pai_id) REFERENCES equipes(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+CREATE INDEX IF NOT EXISTS idx_equipes_pai ON equipes(equipe_pai_id);
+
+-- Equipe raiz do organograma: no maximo uma por edicao fica com TRUE.
+-- A unicidade logica e garantida pela API (marca a nova e desmarca as demais).
+ALTER TABLE equipes ADD COLUMN IF NOT EXISTS raiz BOOLEAN NOT NULL DEFAULT FALSE;
+
 -- participacoes: UNIQUE(edicao_id, pessoa_id) = uma equipe por edição por pessoa
 CREATE TABLE participacoes (
   id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

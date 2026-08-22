@@ -176,6 +176,7 @@ export function EdicaoDetalhe() {
       await atualizarEquipe(sessao, equipe, {
         nome: equipe.nome,
         setor: novoSector,
+        equipePaiId: equipe.equipePaiId ?? null,
       }, equipes);
       setAlterandoSetorId(null);
     } catch (err) {
@@ -420,6 +421,7 @@ export function EdicaoDetalhe() {
                 <div className="card-corpo">
                   <h4 className="mb-3">Nova equipe</h4>
                   <EquipeForm
+                    equipes={equipes}
                     onSubmit={handleCriarEquipe}
                     onCancelar={() => setCriandoEquipe(false)}
                   />
@@ -438,6 +440,9 @@ export function EdicaoDetalhe() {
               {lista.map((e) => {
                 const setorInfo = getSetor(e.setor);
                 const cor = setorInfo?.cor ?? "#888";
+                const equipePai = e.equipePaiId
+                  ? equipes.find((eq) => eq.id === e.equipePaiId)
+                  : undefined;
                 return (
                   <div
                     key={e.id}
@@ -455,6 +460,16 @@ export function EdicaoDetalhe() {
                           >
                             {e.nome}
                           </Link>
+                          {equipePai && (
+                            <Link
+                              to={`/edicoes/${edicao.id}/equipes/${equipePai.id}`}
+                              className="block text-xs text-ardesia hover:text-verde no-underline hover:underline"
+                              onClick={(ev) => ev.stopPropagation()}
+                              title={`Ir para ${equipePai.nome}`}
+                            >
+                              Subordinada a {equipePai.nome}
+                            </Link>
+                          )}
                         </div>
                         {alterandoSetorId === e.id && podeAlterarSetor ? (
                           <select

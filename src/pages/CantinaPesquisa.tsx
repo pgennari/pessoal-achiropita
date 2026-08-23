@@ -4,7 +4,6 @@
 // ============================================================================
 import { useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import QRCode from "qrcode";
 import { Toast, DadosToast } from "../components/Toast";
 import { Icone } from "../components/Icone";
 import { useSessao, temPermissao } from "../lib/sessao";
@@ -48,7 +47,6 @@ function formatarMomento(iso: string): string {
 export function CantinaPesquisa() {
   const { sessao } = useSessao();
   const [toast, setToast] = useState<DadosToast | null>(null);
-  const [qrSvg, setQrSvg] = useState<string | null>(null);
   const [detalheAbertoId, setDetalheAbertoId] = useState<string | null>(null);
 
   const url = `${window.location.origin}/cantina/pesquisa`;
@@ -81,20 +79,6 @@ export function CantinaPesquisa() {
       setToast({ tipo: "sucesso", mensagem: "Link copiado para a área de transferência." });
     } catch {
       setToast({ tipo: "erro", mensagem: "Não foi possível copiar o link." });
-    }
-  }
-
-  async function gerarQr() {
-    try {
-      const svg = await QRCode.toString(url, {
-        type: "svg",
-        errorCorrectionLevel: "H",
-        margin: 1,
-        color: { dark: "#000000", light: "#FFFFFF" },
-      });
-      setQrSvg(svg);
-    } catch {
-      setToast({ tipo: "erro", mensagem: "Não foi possível gerar o QR Code." });
     }
   }
 
@@ -147,9 +131,9 @@ export function CantinaPesquisa() {
             <button
               type="button"
               className="btn btn-secundario"
-              onClick={gerarQr}
-              aria-label="Gerar QR Code"
-              title="Gerar QR Code"
+              onClick={() => window.open("/qr-pesquisa-cantina", "_blank")}
+              aria-label="Abrir QR Code em nova aba"
+              title="Abrir QR Code em nova aba"
             >
               <Icone nome="qr" />
             </button>
@@ -302,43 +286,6 @@ export function CantinaPesquisa() {
         <p className="text-center text-ardesia text-sm">
           Todas as {total} respostas exibidas.
         </p>
-      )}
-
-      {qrSvg && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] px-4 bg-carbone/40"
-          role="dialog"
-          aria-modal="true"
-          aria-label="QR Code do link da pesquisa"
-          onClick={() => setQrSvg(null)}
-        >
-          <div
-            className="card max-w-sm w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="card-corpo space-y-4 text-center">
-              <h3>QR Code da pesquisa</h3>
-              <p className="text-ardesia text-sm">
-                Aponte a câmera do celular para abrir o formulário.
-              </p>
-              <div
-                className="mx-auto bg-white p-3 rounded-md w-fit [&>svg]:w-56 [&>svg]:h-56"
-                dangerouslySetInnerHTML={{ __html: qrSvg }}
-              />
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  className="btn btn-secundario"
-                  onClick={() => setQrSvg(null)}
-                  aria-label="Fechar QR Code"
-                  title="Fechar"
-                >
-                  <Icone nome="fechar" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
 
       <Toast dados={toast} onFechar={() => setToast(null)} />

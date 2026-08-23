@@ -151,7 +151,6 @@ export function CantinaPesquisaPublico() {
               className="mx-auto h-20 w-auto"
             />
             <div className="eyebrow">Festa Nsa. Sra. Achiropita</div>
-            <h1 className="mt-1">Pesquisa de Satisfação</h1>
           </header>
 
           <div className="card">
@@ -185,10 +184,9 @@ export function CantinaPesquisaPublico() {
             className="mx-auto h-20 w-auto"
           />
           <div className="eyebrow">Festa Nsa. Sra. Achiropita</div>
-          <h1 className="mt-1">Pesquisa de Satisfação — Cantina Madonna Achiropita</h1>
+          <h1 className="mt-1">Cantina Madonna Achiropita</h1>
           <p className="text-ardesia">
-            Leva menos de um minuto. Sua resposta é anônima para outros
-            visitantes e ajuda a cantina a melhorar.
+            Leva menos de um minuto. Sua resposta ajuda a cantina a melhorar.
           </p>
         </header>
 
@@ -443,9 +441,7 @@ export function CantinaPesquisaPublico() {
               title="Enviar pesquisa"
             >
               <Icone nome={enviando ? "recarregar" : "enviar"} />
-              <span className="hidden sm:inline">
-                {enviando ? "Enviando..." : "Enviar resposta"}
-              </span>
+              
             </button>
           </div>
         </form>

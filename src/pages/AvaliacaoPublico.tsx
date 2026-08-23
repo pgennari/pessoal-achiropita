@@ -54,11 +54,16 @@ interface Equipista {
   pessoaId: string;
   nome: string;
   cracha: string | null;
+  fotoUrl: string | null;
   avaliacaoId: string | null;
   statusAvaliacao: string | null;
   criterios: Record<string, string | null> | null;
   aptoCoordenar: boolean | null;
   comentarios: string | null;
+}
+
+function inicialDe(nome: string): string {
+  return nome.trim().charAt(0).toUpperCase();
 }
 
 function Mensagem({ titulo, texto }: { titulo: string; texto: string }) {
@@ -490,7 +495,27 @@ export function AvaliacaoPublico() {
           <div className="card">
             <div className="card-corpo">
               <div className="flex items-center justify-between mb-4">
-                <h3>{equipistaSel.nome}</h3>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="h-14 w-14 shrink-0 rounded-full ring-2 ring-bianco overflow-hidden flex items-center justify-center text-bianco font-display text-xl"
+                    style={
+                      equipistaSel.fotoUrl
+                        ? undefined
+                        : { background: "linear-gradient(135deg, #2E9D52, #16753A)" }
+                    }
+                  >
+                    {equipistaSel.fotoUrl ? (
+                      <img
+                        src={equipistaSel.fotoUrl}
+                        alt={`Foto de ${equipistaSel.nome}`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      inicialDe(equipistaSel.nome)
+                    )}
+                  </div>
+                  <h3 className="truncate">{equipistaSel.nome}</h3>
+                </div>
                 <button
                   type="button"
                   className="btn btn-secundario btn-pequeno"

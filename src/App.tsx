@@ -50,6 +50,7 @@ import { VagaNova } from "./pages/VagaNova";
 import { VagaDetalhe } from "./pages/VagaDetalhe";
 import { CantinaPesquisa } from "./pages/CantinaPesquisa";
 import { CantinaPesquisaPublico } from "./pages/CantinaPesquisaPublico";
+import { QrPesquisaCantina } from "./pages/QrPesquisaCantina";
 
 export function App() {
   return (
@@ -67,6 +68,7 @@ export function App() {
       <Route path="/presenca/:token" element={<PresencaPublico />} />
       <Route path="/avaliacao/:token" element={<AvaliacaoPublico />} />
       <Route path="/cantina/pesquisa" element={<CantinaPesquisaPublico />} />
+      <Route path="/qr-pesquisa-cantina" element={<QrPesquisaCantina />} />
       <Route path="/qr-presenca/:token" element={<QrPresenca />} />
       <Route
         element={

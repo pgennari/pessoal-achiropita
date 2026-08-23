@@ -30,7 +30,7 @@ app.openapi(getEquipistasRoute, async (c) => {
 
   const rows = await sql`
     SELECT DISTINCT ON (p.id)
-      p.id AS pessoa_id, p.nome, p.cracha,
+      p.id AS pessoa_id, p.nome, p.cracha, p.foto_url,
       a.id AS avaliacao_id, a.status AS status_avaliacao,
       a.criterios, a.apto_coordenar, a.comentarios
     FROM participacoes part
@@ -48,6 +48,7 @@ app.openapi(getEquipistasRoute, async (c) => {
       pessoaId: String(r.pessoa_id),
       nome: String(r.nome),
       cracha: r.cracha != null ? String(r.cracha) : null,
+      fotoUrl: r.foto_url ?? null,
       avaliacaoId: r.avaliacao_id ? String(r.avaliacao_id) : null,
       statusAvaliacao: r.status_avaliacao ? String(r.status_avaliacao) : null,
       criterios: typeof r.criterios === "string" ? JSON.parse(r.criterios) : r.criterios ?? null,

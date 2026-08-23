@@ -4,7 +4,13 @@
 // Criar equipes: edicao.equipeCriar. Alterar setores: setor.editar.
 // Editar edicao: edicao.editar. Ativar: edicao.ativar. Dias: edicao.editar.
 // ============================================================================
-import { FormEvent, useMemo, useState } from "react";
+import {
+  FormEvent,
+  MouseEvent as MouseEventReact,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   useDiasFesta,
@@ -69,6 +75,12 @@ export function EdicaoDetalhe() {
   const [enviandoDia, setEnviandoDia] = useState(false);
   const [diaFormErro, setDiaFormErro] = useState<Record<string, string>>({});
   const [abaAtiva, setAbaAtiva] = useState<"equipes" | "dias">("equipes");
+
+  // No mobile, apos rolar a lista o navegador pode sintetizar o clique no
+  // cartao que ficou sob o dedo no fim do gesto (e nao no que iniciou o
+  // toque), abrindo outra equipe. Guardamos onde o dedo desceu e so abrimos
+  // a equipe se o clique ocorrer perto desse ponto, em gesto curto.
+  const toqueRef = useRef<{ x: number; y: number; t: number } | null>(null);
 
   const mapaSetor = useMemo(() => {
     const m = new Map<string, SetorInfo>();
@@ -215,6 +227,18 @@ export function EdicaoDetalhe() {
     } catch (err) {
       setAcaoErro(err instanceof Error ? err.message : "Falha ao remover.");
     }
+  }
+
+  function abrirEquipe(equipeId: string, ev: MouseEventReact<HTMLDivElement>) {
+    if (!edicao) return;
+    const origem = toqueRef.current;
+    toqueRef.current = null;
+    const gestoCurto = origem !== null && performance.now() - origem.t < 2000;
+    const semArrasto =
+      origem !== null &&
+      Math.hypot(ev.clientX - origem.x, ev.clientY - origem.y) <= 10;
+    if (!gestoCurto || !semArrasto) return;
+    navigate(`/edicoes/${edicao.id}/equipes/${equipeId}`);
   }
 
   if (editandoEdicao) {
@@ -448,7 +472,14 @@ export function EdicaoDetalhe() {
                     key={e.id}
                     className="card cursor-pointer hover:shadow-media hover:-translate-y-0.5 transition-all"
                     style={{ borderLeft: `4px solid ${cor}` }}
-                    onClick={() => navigate(`/edicoes/${edicao.id}/equipes/${e.id}`)}
+                    onPointerDown={(ev) => {
+                      toqueRef.current = {
+                        x: ev.clientX,
+                        y: ev.clientY,
+                        t: performance.now(),
+                      };
+                    }}
+                    onClick={(ev) => abrirEquipe(e.id, ev)}
                   >
                     <div className="card-corpo space-y-4">
                       <div className="flex items-start justify-between gap-3">

@@ -88,6 +88,7 @@ export async function listarEquipistasAvaliacao(
     pessoaId: string;
     nome: string;
     cracha: string | null;
+    fotoUrl: string | null;
     avaliacaoId: string | null;
     statusAvaliacao: string | null;
     criterios: Record<string, string | null> | null;

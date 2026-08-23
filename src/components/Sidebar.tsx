@@ -123,7 +123,6 @@ const secoes: Secao[] = [
   },
   {
     label: "Cantina",
-    to: "/cantina/pesquisas",
     icone: "chat",
     permissoes: ["cantina.gerenciar"],
     itens: [

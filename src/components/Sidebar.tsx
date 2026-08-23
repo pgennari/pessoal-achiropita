@@ -122,6 +122,20 @@ const secoes: Secao[] = [
     ],
   },
   {
+    label: "Cantina",
+    to: "/cantina/pesquisas",
+    icone: "chat",
+    permissoes: ["cantina.gerenciar"],
+    itens: [
+      {
+        to: "/cantina/pesquisas",
+        label: "Pesquisa",
+        icone: "estrela",
+        permissoes: ["cantina.gerenciar"],
+      },
+    ],
+  },
+  {
     label: "Relatórios",
     itens: [
       {
@@ -135,6 +149,12 @@ const secoes: Secao[] = [
         label: "Estacionamento",
         icone: "relatorioestacionamento",
         permissoes: ["estacionamento.relatorio", "estacionamento.dashboard"],
+      },
+      {
+        to: "/avaliacoes/relatorio",
+        label: "Avaliações",
+        icone: "avaliar",
+        permissoes: ["avaliacao.gerenciar"],
       },
     ],
   },

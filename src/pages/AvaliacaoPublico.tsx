@@ -12,7 +12,7 @@ import {
   listarEquipistasAvaliacao,
   salvarAvaliacaoPublica,
 } from "../lib/avaliacao";
-import { CriteriosAvaliacao, ValorCriterio } from "../lib/tipos";
+import { CriteriosAvaliacao, NotaConvidarNovamente, ValorCriterio } from "../lib/tipos";
 import { Icone } from "../components/Icone";
 
 type Etapa =
@@ -41,6 +41,14 @@ const OPCOES_CRITERIO: { valor: ValorCriterio; rotulo: string; cor: string }[] =
     { valor: "Regular", rotulo: "Regular", cor: "#ca8a04" },
     { valor: "Ruim", rotulo: "Ruim", cor: "#dc2626" },
   ];
+
+const NOTAS_CONVIDAR: NotaConvidarNovamente[] = [1, 2, 3, 4, 5];
+
+// Matiz 0 (vermelho) a 130 (verde) conforme a nota aumenta.
+function corNotaConvidar(nota: NotaConvidarNovamente): string {
+  const matiz = Math.round(((nota - 1) / (NOTAS_CONVIDAR.length - 1)) * 130);
+  return `hsl(${matiz} 72% 42%)`;
+}
 
 interface Equipista {
   pessoaId: string;
@@ -80,6 +88,7 @@ export function AvaliacaoPublico() {
     espiritualidade: null,
     comprometimento: null,
     uniforme: null,
+    convidarNovamente: null,
   });
   const [aptoCoordenar, setAptoCoordenar] = useState<boolean | null>(null);
   const [comentarios, setComentarios] = useState("");
@@ -233,6 +242,9 @@ export function AvaliacaoPublico() {
         espiritualidade: (eq.criterios.espiritualidade as ValorCriterio) ?? null,
         comprometimento: (eq.criterios.comprometimento as ValorCriterio) ?? null,
         uniforme: (eq.criterios.uniforme as ValorCriterio) ?? null,
+        convidarNovamente:
+          (eq.criterios.convidarNovamente as unknown as NotaConvidarNovamente) ??
+          null,
       });
       setAptoCoordenar(eq.aptoCoordenar);
       setComentarios(eq.comentarios ?? "");
@@ -244,6 +256,7 @@ export function AvaliacaoPublico() {
         espiritualidade: null,
         comprometimento: null,
         uniforme: null,
+        convidarNovamente: null,
       });
       setAptoCoordenar(null);
       setComentarios("");
@@ -253,9 +266,9 @@ export function AvaliacaoPublico() {
   }
 
   function handleFinalizar() {
-    const todosPreenchidos = CRITERIOS.every(
-      (c) => criterios[c.chave] !== null,
-    );
+    const todosPreenchidos =
+      CRITERIOS.every((c) => criterios[c.chave] !== null) &&
+      criterios.convidarNovamente !== null;
     if (!todosPreenchidos) {
       setErro("Para finalizar, todos os critérios devem ser preenchidos");
       return;
@@ -535,6 +548,58 @@ export function AvaliacaoPublico() {
                     </div>
                   </div>
                 ))}
+                <div>
+                  <label className="input-label">
+                    Quais as chances de convidar novamente essa pessoa para sua
+                    equipe?
+                  </label>
+                  <div
+                    className="flex rounded-sm border border-pietra-clara overflow-hidden"
+                    role="radiogroup"
+                    aria-label="Chances de convidar novamente"
+                  >
+                    {NOTAS_CONVIDAR.map((nota) => {
+                      const preenchida =
+                        typeof criterios.convidarNovamente === "number" &&
+                        nota <= criterios.convidarNovamente;
+                      const cor = corNotaConvidar(nota);
+                      return (
+                        <label
+                          key={nota}
+                          className={`flex-1 flex items-center justify-center py-2 text-sm font-semibold cursor-pointer select-none transition-colors ${
+                            preenchida
+                              ? "text-white"
+                              : "bg-white text-ardesia hover:bg-pietra-clara/40"
+                          }`}
+                          style={
+                            preenchida
+                              ? { backgroundColor: cor }
+                              : undefined
+                          }
+                        >
+                          <input
+                            type="radio"
+                            className="sr-only"
+                            name="criterio-convidar-novamente"
+                            checked={criterios.convidarNovamente === nota}
+                            onChange={() =>
+                              setCriterios((prev) => ({
+                                ...prev,
+                                convidarNovamente: nota,
+                              }))
+                            }
+                          />
+                          {nota}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <div className="flex justify-between text-xs text-ardesia mt-1">
+                    <span>Pouco provável</span>
+                    <span>Muito provável</span>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <label className="input-label mb-0">Apto a Coordenar?</label>
                   <button

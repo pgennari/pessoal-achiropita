@@ -158,3 +158,30 @@ export interface HistoricoEstacionamentoVaga {
   autorNome: string;
   criadoEm: string;
 }
+
+// Pesquisa de satisfacao da cantina (020-cantina-pesquisa).
+export type NotaPesquisa = 1 | 2 | 3 | 4 | 5;
+
+export interface NotasPesquisa {
+  atendimento: NotaPesquisa;
+  alimentacao: NotaPesquisa;
+  organizacao: NotaPesquisa;
+  ambiente: NotaPesquisa;
+  voluntarios: NotaPesquisa;
+}
+
+export type RecomendariaCantina = "Sim" | "Nao" | "Talvez";
+
+export interface PesquisaCantina {
+  id: string;
+  nome: string;
+  email: string | null;
+  telefone: string | null;
+  diaIda: string | null; // YYYY-MM-DD
+  convite: string | null;
+  desejaInformacoes: boolean;
+  notas: NotasPesquisa;
+  recomendaria: RecomendariaCantina;
+  melhorias: string | null;
+  criadoEm: string;
+}

@@ -31,6 +31,7 @@ import { UploadFotoPublico } from "./pages/UploadFotoPublico";
 import { Presenca } from "./pages/Presenca";
 import { GradePresencaPage } from "./pages/GradePresencaPage";
 import { RelatorioPresenca } from "./pages/RelatorioPresenca";
+import { RelatorioAvaliacoes } from "./pages/RelatorioAvaliacoes";
 import { PresencaPublico } from "./pages/PresencaPublico";
 import { AvaliacaoPublico } from "./pages/AvaliacaoPublico";
 import { QrPresenca } from "./pages/QrPresenca";
@@ -47,6 +48,8 @@ import { Sincronizacao } from "./pages/Sincronizacao";
 import { Vagas } from "./pages/Vagas";
 import { VagaNova } from "./pages/VagaNova";
 import { VagaDetalhe } from "./pages/VagaDetalhe";
+import { CantinaPesquisa } from "./pages/CantinaPesquisa";
+import { CantinaPesquisaPublico } from "./pages/CantinaPesquisaPublico";
 
 export function App() {
   return (
@@ -63,6 +66,7 @@ export function App() {
       <Route path="/qr-checkin/:token" element={<QrEstacionamento />} />
       <Route path="/presenca/:token" element={<PresencaPublico />} />
       <Route path="/avaliacao/:token" element={<AvaliacaoPublico />} />
+      <Route path="/cantina/pesquisa" element={<CantinaPesquisaPublico />} />
       <Route path="/qr-presenca/:token" element={<QrPresenca />} />
       <Route
         element={
@@ -91,6 +95,7 @@ export function App() {
         <Route path="presenca" element={<Presenca />} />
         <Route path="presenca/grade" element={<GradePresencaPage />} />
         <Route path="presenca/relatorio" element={<RelatorioPresenca />} />
+        <Route path="avaliacoes/relatorio" element={<RelatorioAvaliacoes />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="perfis" element={<Perfis />} />
         <Route path="permissoes" element={<Permissoes />} />
@@ -105,6 +110,7 @@ export function App() {
         <Route path="vagas" element={<Vagas />} />
         <Route path="vagas/nova" element={<VagaNova />} />
         <Route path="vagas/:id" element={<VagaDetalhe />} />
+        <Route path="cantina/pesquisas" element={<CantinaPesquisa />} />
         <Route path="auditoria" element={<Auditoria />} />
         <Route path="setores" element={<Setores />} />
         <Route path="sincronizacao" element={<Sincronizacao />} />

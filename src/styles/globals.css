@@ -92,6 +92,10 @@
     width: 34px;
     height: 34px;
   }
+  .btn-xs {
+    width: 18px;
+    height: 18px;
+  }
   .btn svg {
     width: 20px;
     height: 20px;

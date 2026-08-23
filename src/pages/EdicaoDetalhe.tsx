@@ -492,14 +492,9 @@ export function EdicaoDetalhe() {
                             {e.nome}
                           </Link>
                           {equipePai && (
-                            <Link
-                              to={`/edicoes/${edicao.id}/equipes/${equipePai.id}`}
-                              className="block text-xs text-ardesia hover:text-verde no-underline hover:underline"
-                              onClick={(ev) => ev.stopPropagation()}
-                              title={`Ir para ${equipePai.nome}`}
-                            >
+                            <span className="block text-xs text-ardesia">
                               Subordinada a {equipePai.nome}
-                            </Link>
+                            </span>
                           )}
                         </div>
                         {alterandoSetorId === e.id && podeAlterarSetor ? (

@@ -61,6 +61,16 @@ export function PessoaDetalhe() {
     Ruim: "#dc2626",
   };
 
+  const rotulosCriterio: Record<string, string> = {
+    pontualidade: "Pontualidade",
+    dedicacao: "Dedicação",
+    companheirismo: "Companheirismo",
+    espiritualidade: "Espiritualidade",
+    comprometimento: "Comprometimento",
+    uniforme: "Uniforme",
+    convidarNovamente: "Convidaria novamente",
+  };
+
   if (!sessao) return null;
   const ehProprio = !!sessao.pessoaId && sessao.pessoaId === id;
   const podeEditar = temPermissao(sessao, "pessoas.editar") || ehProprio;
@@ -507,12 +517,22 @@ export function PessoaDetalhe() {
                               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
                                 {Object.entries(a.criterios).map(([k, v]) => (
                                   <div key={k} className="flex justify-between">
-                                    <span className="text-ardesia capitalize">{k}</span>
+                                    <span className="text-ardesia">
+                                      {rotulosCriterio[k] ?? k}
+                                    </span>
                                     <span
                                       className="font-semibold"
-                                      style={{ color: coresCriterio[v as string] ?? undefined }}
+                                      style={{
+                                        color:
+                                          typeof v === "number"
+                                            ? undefined
+                                            : coresCriterio[v as string] ??
+                                              undefined,
+                                      }}
                                     >
-                                      {(v as string) ?? "—"}
+                                      {typeof v === "number"
+                                        ? `${v}/5`
+                                        : ((v as string) ?? "—")}
                                     </span>
                                   </div>
                                 ))}

@@ -32,6 +32,8 @@ import avaliacao from "./rotas/avaliacao.js";
 import avaliacaoPublico from "./rotas/avaliacaoPublico.js";
 import sincronizacao from "./rotas/sincronizacao.js";
 import vagas from "./rotas/vagas.js";
+import cantina from "./rotas/cantina.js";
+import cantinaPublico from "./rotas/cantinaPublico.js";
 
 const app = new OpenAPIHono();
 
@@ -90,6 +92,8 @@ app.route("/api/avaliacoes", avaliacao);
 app.route("/api/publico", avaliacaoPublico);
 app.route("/api/sincronizacao", sincronizacao);
 app.route("/api/vagas", vagas);
+app.route("/api/cantina", cantina);
+app.route("/api/publico", cantinaPublico);
 
 app.onError((err, c) => {
   console.error("[API Error]", err);

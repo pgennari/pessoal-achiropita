@@ -809,3 +809,39 @@ ALTER TABLE pessoa_equipe_historico ALTER COLUMN funcao TYPE funcao_participacao
 DROP TYPE funcao_participacao_legado;
 ALTER TABLE equipes DROP COLUMN IF EXISTS vagas_apoio;
 COMMIT;
+
+-- ============================================================================
+-- 020-cantina-pesquisa
+-- ============================================================================
+
+-- pesquisas_cantina: respostas do formulario publico de satisfacao da cantina.
+-- Rota publica fixa (/cantina/pesquisa), sem token; sem deduplicacao por
+-- e-mail: cada envio cria um registro novo. dia_ida guarda apenas a data
+-- (sem FK) para o formulario ficar resiliente a mudancas na agenda da festa.
+CREATE TABLE IF NOT EXISTS pesquisas_cantina (
+  id                 TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  nome               TEXT NOT NULL,
+  email              TEXT,
+  telefone           TEXT,
+  dia_ida            DATE,
+  convite            TEXT,
+  deseja_informacoes BOOLEAN NOT NULL DEFAULT FALSE,
+  notas              JSONB NOT NULL DEFAULT '{}',
+  recomendaria       TEXT NOT NULL CHECK (recomendaria IN ('Sim','Nao','Talvez')),
+  melhorias          TEXT CHECK (char_length(melhorias) <= 4000),
+  criado_em          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pesquisas_cantina_criado_em
+ON pesquisas_cantina(criado_em DESC);
+
+-- Permissao dedicada para a area logada Cantina > Pesquisa (PBAC). Concedida
+-- ao ORG; o ADM e superuser e sempre possui todas as permissoes ativas.
+INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
+  ('cantina.gerenciar', 'Cantina: gerenciar pesquisa', 'Ver o link publico, listar e visualizar as pesquisas de satisfacao da cantina.')
+ON CONFLICT (codigo) DO NOTHING;
+
+UPDATE perfis SET
+  permissoes = permissoes || ARRAY['cantina.gerenciar']
+WHERE sigla = 'ORG'
+  AND NOT 'cantina.gerenciar' = ANY(permissoes);

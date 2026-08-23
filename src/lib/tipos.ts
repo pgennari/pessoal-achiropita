@@ -558,9 +558,18 @@ export interface Avaliacao {
   criadoEm: string;
   atualizadoEm: string;
   finalizadoEm: string | null;
+  // Nomes/cracha resolvidos por JOIN em GET /api/avaliacoes. Opcionais porque
+  // outros consumidores deste tipo (ex.: avaliacoes por pessoa) nao os retornam.
+  equipeNome?: string;
+  pessoaNome?: string;
+  pessoaCracha?: string | null;
 }
 
 export type ValorCriterio = "Otimo" | "Bom" | "Regular" | "Ruim";
+
+// Nota de 1 a 5 do criterio publico "convidar novamente"
+// (barra de selecao que vai de vermelho a verde).
+export type NotaConvidarNovamente = 1 | 2 | 3 | 4 | 5;
 
 export interface CriteriosAvaliacao {
   pontualidade: ValorCriterio | null;
@@ -569,4 +578,35 @@ export interface CriteriosAvaliacao {
   espiritualidade: ValorCriterio | null;
   comprometimento: ValorCriterio | null;
   uniforme: ValorCriterio | null;
+  convidarNovamente: NotaConvidarNovamente | null;
+}
+
+// Pesquisa de satisfacao da cantina (020-cantina-pesquisa).
+export type NotaPesquisa = 1 | 2 | 3 | 4 | 5;
+
+// Notas de 1 a 5 dos criterios do formulario publico.
+export interface NotasPesquisa {
+  atendimento: NotaPesquisa;
+  alimentacao: NotaPesquisa;
+  organizacao: NotaPesquisa;
+  ambiente: NotaPesquisa;
+  voluntarios: NotaPesquisa;
+}
+
+export type RecomendariaCantina = "Sim" | "Nao" | "Talvez";
+
+// Resposta do formulario publico /cantina/pesquisa. Cada envio cria um
+// registro novo (sem deduplicacao por e-mail).
+export interface PesquisaCantina {
+  id: string;
+  nome: string;
+  email: string | null;
+  telefone: string | null;
+  diaIda: string | null; // YYYY-MM-DD
+  convite: string | null;
+  desejaInformacoes: boolean;
+  notas: NotasPesquisa;
+  recomendaria: RecomendariaCantina;
+  melhorias: string | null;
+  criadoEm: string;
 }

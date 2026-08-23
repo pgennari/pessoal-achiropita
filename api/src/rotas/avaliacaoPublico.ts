@@ -196,6 +196,7 @@ const postSalvarRoute = createRoute({
               espiritualidade: z.enum(["Otimo", "Bom", "Regular", "Ruim"]).nullable(),
               comprometimento: z.enum(["Otimo", "Bom", "Regular", "Ruim"]).nullable(),
               uniforme: z.enum(["Otimo", "Bom", "Regular", "Ruim"]).nullable(),
+              convidarNovamente: z.number().int().min(1).max(5).nullable(),
             }),
             aptoCoordenar: z.boolean().nullable(),
             comentarios: z.string().max(4000).nullable(),
@@ -236,7 +237,7 @@ app.openapi(postSalvarRoute, async (c) => {
   // Se finalizar, valida completude
   if (body.finalizar) {
     const criterios = body.criterios;
-    const todosPreenchidos = ["pontualidade", "dedicacao", "companheirismo", "espiritualidade", "comprometimento", "uniforme"]
+    const todosPreenchidos = ["pontualidade", "dedicacao", "companheirismo", "espiritualidade", "comprometimento", "uniforme", "convidarNovamente"]
       .every((k) => criterios[k] !== null && criterios[k] !== undefined);
     if (!todosPreenchidos || body.aptoCoordenar === null || body.aptoCoordenar === undefined) {
       return c.json({ erro: "Para finalizar, todos os critérios e a aptidão devem ser preenchidos" }, 422);

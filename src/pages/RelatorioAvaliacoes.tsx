@@ -582,7 +582,7 @@ export function RelatorioAvaliacoes() {
                       <span className="text-xs text-ardesia">Convidar novamente</span>{" "}
                       {avaliacao.criterios.convidarNovamente !== null ? (
                         <span
-                          className="font-semibold"
+                          className="font-bold text-md font-display"
                           style={{
                             color: corNotaConvidar(
                               avaliacao.criterios.convidarNovamente,
@@ -601,7 +601,7 @@ export function RelatorioAvaliacoes() {
                         "-"
                       ) : (
                         <span
-                          className={`font-semibold ${
+                          className={`font-bold text-md font-display ${
                             avaliacao.aptoCoordenar
                               ? "text-verde-escuro"
                               : "text-vermelho-escuro"

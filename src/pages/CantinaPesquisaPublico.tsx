@@ -16,10 +16,20 @@ const CRITERIOS: { chave: keyof NotasPesquisa; rotulo: string }[] = [
 
 const NOTAS: NotaPesquisa[] = [1, 2, 3, 4, 5];
 
-const OPCOES_RECOMENDARIA: { valor: RecomendariaCantina; rotulo: string }[] = [
-  { valor: "Sim", rotulo: "Sim" },
-  { valor: "Nao", rotulo: "Não" },
-  { valor: "Talvez", rotulo: "Talvez" },
+// Matiz 0 (vermelho) a 130 (verde) conforme a nota aumenta.
+// Mesma escala de corNotaConvidar em AvaliacaoPublico.tsx.
+function matizNota(nota: NotaPesquisa): number {
+  return Math.round(((nota - 1) / (NOTAS.length - 1)) * 130);
+}
+
+const OPCOES_RECOMENDARIA: {
+  valor: RecomendariaCantina;
+  rotulo: string;
+  cor: string;
+}[] = [
+  { valor: "Sim", rotulo: "Sim", cor: "#16753A" },
+  { valor: "Nao", rotulo: "Não", cor: "#C8102E" },
+  { valor: "Talvez", rotulo: "Talvez", cor: "#C99A2E" },
 ];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -334,18 +344,31 @@ export function CantinaPesquisaPublico() {
                 <div key={criterio.chave}>
                   <p className="input-label">{criterio.rotulo}</p>
                   <div
-                    className="flex flex-wrap gap-2"
+                    className="grid grid-cols-5 gap-2"
                     role="radiogroup"
                     aria-label={criterio.rotulo}
                   >
                     {NOTAS.map((nota) => {
                       const selecionado = notas[criterio.chave] === nota;
+                      const m = matizNota(nota);
                       return (
                         <label
                           key={nota}
-                          className={`filtro-chip w-10 justify-center ${
-                            selecionado ? "filtro-chip-ativo" : "filtro-chip-inativo"
+                          className={`filtro-chip justify-center border ${
+                            selecionado ? "text-white" : ""
                           }`}
+                          style={
+                            selecionado
+                              ? {
+                                  backgroundColor: `hsl(${m} 72% 42%)`,
+                                  borderColor: `hsl(${m} 72% 42%)`,
+                                }
+                              : {
+                                  backgroundColor: `hsl(${m} 72% 42% / 0.14)`,
+                                  borderColor: `hsl(${m} 72% 42% / 0.4)`,
+                                  color: `hsl(${m} 72% 32%)`,
+                                }
+                          }
                         >
                           <input
                             type="radio"
@@ -374,7 +397,7 @@ export function CantinaPesquisaPublico() {
               <div>
                 <p className="input-label">Você recomendaria a cantina?</p>
                 <div
-                  className="flex flex-wrap gap-2"
+                  className="grid grid-cols-3 gap-2"
                   role="radiogroup"
                   aria-label="Recomendaria a cantina"
                 >
@@ -383,9 +406,18 @@ export function CantinaPesquisaPublico() {
                     return (
                       <label
                         key={opcao.valor}
-                        className={`filtro-chip ${
-                          selecionado ? "filtro-chip-ativo" : "filtro-chip-inativo"
+                        className={`filtro-chip justify-center border ${
+                          selecionado ? "text-white" : ""
                         }`}
+                        style={
+                          selecionado
+                            ? { backgroundColor: opcao.cor, borderColor: opcao.cor }
+                            : {
+                                backgroundColor: `${opcao.cor}24`,
+                                borderColor: `${opcao.cor}66`,
+                                color: opcao.cor,
+                              }
+                        }
                       >
                         <input
                           type="radio"

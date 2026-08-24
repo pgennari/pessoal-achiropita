@@ -43,6 +43,7 @@ import { VeiculoNovo } from "./pages/VeiculoNovo";
 import { VeiculoDetalhe } from "./pages/VeiculoDetalhe";
 import { DashboardEstacionamentos } from "./pages/DashboardEstacionamentos";
 import { RelatorioEstacionamentos } from "./pages/RelatorioEstacionamentos";
+import { RelatorioEquipistas } from "./pages/RelatorioEquipistas";
 import { ImportarFotos } from "./pages/ImportarFotos";
 import { Sincronizacao } from "./pages/Sincronizacao";
 import { Vagas } from "./pages/Vagas";
@@ -104,6 +105,7 @@ export function App() {
         <Route path="parametros" element={<Parametros />} />
         <Route path="estacionamentos" element={<Estacionamentos />} />
         <Route path="estacionamentos/relatorio" element={<RelatorioEstacionamentos />} />
+        <Route path="equipes/relatorio" element={<RelatorioEquipistas />} />
         <Route path="estacionamentos/novo" element={<EstacionamentoNovo />} />
         <Route path="estacionamentos/:id" element={<EstacionamentoDetalhe />} />
         <Route path="veiculos" element={<Veiculos />} />

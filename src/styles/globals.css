@@ -416,8 +416,7 @@
 
   /* Telas de toque: densidade é de desktop (guia visual §07).
      No celular do coordenador em campo os alvos voltam a 48px. */
-  @media (pointer: coarse) {
-    .btn {
+  @media (pointer: coarse) {    .btn {
       width: 48px;
       height: 48px;
     }
@@ -453,5 +452,60 @@
       font-size: 0.85rem;
       min-height: 44px;
     }
+  }
+}
+
+/* Impressao / exportacao em PDF (Salvar como PDF no dialogo de impressao).
+   Sidebar e Topbar saem via print:hidden nos componentes. A folha A4 tem
+   menos de 768px uteis (cai abaixo do breakpoint md), entao aqui devolvemos
+   largura ao conteudo: sem padding do main, tabela sem largura minima,
+   celulas quebrando linha e cabecalho repetido a cada pagina. */
+@media print {
+  @page {
+    margin: 12mm 10mm;
+  }
+
+  html,
+  body {
+    width: auto;
+    min-width: 0;
+    background: none;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .card {
+    overflow: visible;
+    box-shadow: none;
+  }
+
+  .tabela-rolavel {
+    overflow: visible;
+  }
+
+  .tabela-larga {
+    min-width: 0;
+    font-size: 12px;
+  }
+
+  .tabela-larga th,
+  .tabela-larga td {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* Repete o cabecalho da tabela em cada pagina e evita linha cortada. */
+  .tabela-larga thead {
+    display: table-header-group;
+  }
+
+  .tabela-larga tr {
+    break-inside: avoid;
+  }
+
+  /* O navegador repete o tfoot em todas as paginas ao imprimir; como grupo
+     de linhas comum ele aparece so uma vez, apos a ultima linha. */
+  .tabela-larga tfoot {
+    display: table-row-group;
   }
 }

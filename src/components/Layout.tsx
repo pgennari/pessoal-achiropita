@@ -44,7 +44,7 @@ export function Layout() {
           onAbrirBusca={() => setBuscaAberta(true)}
           onAbrirSidebar={() => setSidebarAberta(true)}
         />
-        <main className="flex-1 px-4 sm:px-6 md:px-10 py-6 sm:py-8 max-w-container w-full mx-auto">
+        <main className="flex-1 px-4 sm:px-6 md:px-10 py-6 sm:py-8 max-w-container w-full mx-auto print:max-w-none print:p-0">
           <Outlet />
         </main>
       </div>

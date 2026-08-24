@@ -155,6 +155,12 @@ const secoes: Secao[] = [
         icone: "avaliar",
         permissoes: ["avaliacao.gerenciar"],
       },
+      {
+        to: "/equipes/relatorio",
+        label: "Nº Equipistas",
+        icone: "relatorio",
+        permissoes: ["equipes.listar"],
+      },
     ],
   },
   {
@@ -283,7 +289,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
       <aside
         className={[
           "fixed md:sticky top-0 inset-y-0 left-0 z-40 shrink-0 md:h-screen",
-          "flex-col border-r border-pietra bg-bianco transition-[width] duration-200",
+          "flex-col border-r border-pietra bg-bianco transition-[width] duration-200 print:hidden",
           largura,
           aberta ? "flex" : "hidden md:flex",
         ].join(" ")}
@@ -325,7 +331,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
         {/* Nav */}
         <nav className="flex-1 p-2 overflow-y-auto space-y-3">
           {/* Atalho para edição ativa */}
-          {edicaoAtiva && (
+          {edicaoAtiva && temPermissao(sessao, "edicao.lista") && (
             <div>
               {!colapsado && (
                 <div className="px-3 pt-1 pb-1 text-[10px] font-sans uppercase tracking-wider text-verde/60">

@@ -72,6 +72,7 @@ Todas as colecoes Firestore e nomes de identificadores estao em `src/lib/tipos.t
 | `/vagas/:id` | VagaDetalhe |
 | `/cantina/pesquisa` | CantinaPesquisaPublico (anonimo, sem Layout) |
 | `/cantina/pesquisas` | CantinaPesquisa (permissao `cantina.gerenciar`) |
+| `/equipes/relatorio` | RelatorioEquipistas (permissao `equipes.listar`) |
 | `/usuarios` | Usuarios |
 | `/auditoria` | Auditoria |
 | `/historico` | Historico |

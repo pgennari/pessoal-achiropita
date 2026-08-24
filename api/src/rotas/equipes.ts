@@ -120,6 +120,44 @@ app.openapi(getEquipesRoute, async (c) => {
   return c.json(rows.map(equipeDeRow) as any, 200);
 });
 
+// Relatorio de nº de equipistas por equipe: contagem de coordenadores e
+// equipistas alocados em cada equipe da edição. Registrado antes da rota
+// "/{id}" para o literal ter precedência no casamento de rotas.
+const getRelatorioEquipistasRoute = createRoute({
+  method: "get",
+  path: "/relatorio-equipistas",
+  tags: ["Equipes"],
+  summary: "Relatório de nº de equipistas por equipe",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { query: z.object({ edicaoId: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Linhas do relatório" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
+  }
+});
+app.openapi(getRelatorioEquipistasRoute, async (c) => {
+  const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "equipes.listar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao equipes.listar." }, 403);
+  }
+  const { edicaoId } = c.req.valid("query");
+  const rows = await sql`
+    SELECT
+      e.id,
+      e.nome,
+      e.setor,
+      COALESCE(COUNT(*) FILTER (WHERE p.funcao = 'Coordenador'), 0)::int AS coordenadores,
+      COALESCE(COUNT(*) FILTER (WHERE p.funcao = 'Equipista'), 0)::int    AS equipistas
+    FROM equipes e
+    LEFT JOIN participacoes p ON p.equipe_id = e.id
+    WHERE e.edicao_id = ${edicaoId}
+    GROUP BY e.id
+    ORDER BY e.nome
+  `;
+  return c.json(rows as any, 200);
+});
+
 const getEquipeIdRoute = createRoute({
   method: "get",
   path: "/{id}",

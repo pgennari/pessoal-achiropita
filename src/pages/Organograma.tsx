@@ -215,6 +215,7 @@ function NoArvore(props: PropsNo) {
   const setorNome = setorInfo?.nome ?? e.setor;
   const coordenadores = coordenadoresPorEquipe.get(e.id) ?? [];
   const emEdicao = editandoId === e.id && podeEditar;
+  const [expandido, setExpandido] = useState(false);
 
   return (
     <li className="org-no">
@@ -223,120 +224,145 @@ function NoArvore(props: PropsNo) {
           "card py-2.5 px-4 " +
           (emEdicao ? "" : "hover:shadow-suave transition-shadow")
         }
-        style={{ borderLeft: "4px solid " + cor, minWidth: "20rem" }}
+        style={{ borderLeft: "4px solid " + cor, minWidth: "10rem" }}
       >
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <Link
             to={"/edicoes/" + edicaoId + "/equipes/" + e.id}
-            className="font-semibold text-carbone hover:text-verde hover:underline"
+            className="font-semibold text-carbone hover:text-verde hover:underline line-clamp-2 leading-snug max-w-[10rem]"
           >
             {e.nome}
           </Link>
-          {e.raiz && (
-            <span
-              className="inline-flex items-center gap-1 shrink-0 rounded-full font-semibold text-vermelho bg-vermelho/10 px-2 py-0.5"
-              style={{ fontSize: "0.75rem" }}
-              title="Equipe raiz do organograma"
-            >
-              <Icone nome="coroa" /> Raiz
-            </span>
-          )}
-          {no.filhos.length > 0 && (
-            <span
-              className="text-xs font-semibold text-ardesia ml-auto whitespace-nowrap"
-              title="Subequipes"
-            >
-              {no.filhos.length} ▾
-            </span>
-          )}
-        </div>
-
-        <div className="mt-2 pt-2 border-t border-pietra-clara">
-          {coordenadores.length > 0 ? (
-            <ul className="space-y-1.5">
-              {coordenadores.map((c) => (
-                <li key={c.id} className="min-w-0">
-                  <Link
-                    to={"/pessoas/" + c.id}
-                    className="flex items-center gap-2 no-underline hover:underline"
-                    title={"Abrir cadastro de " + c.nome}
-                  >
-                    <AvatarPessoa pessoa={c} />
-                    <span className="text-sm text-carbone truncate">
-                      {c.nome}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <span className="text-xs text-ardesia/70 italic">
-              Sem coordenador alocado
-            </span>
-          )}
-        </div>
-
-        <div className="mt-2 pt-2 border-t border-pietra-clara flex items-center gap-2">
-          <span
-            className="badge shrink-0"
-            style={{ backgroundColor: cor + "14", color: cor }}
+          <button
+            type="button"
+            className="btn btn-texto btn-pequeno ml-auto shrink-0"
+            onClick={() => setExpandido((v) => !v)}
+            aria-expanded={expandido}
+            aria-label={(expandido ? "Recolher " : "Detalhes de ") + e.nome}
+            title={(expandido ? "Recolher " : "Detalhes de ") + e.nome}
           >
-            {setorNome}
-          </span>
-          {podeEditar && (
-            <div className="flex gap-0.5 items-center ml-auto">
-              <button
-                type="button"
-                className="btn btn-texto btn-pequeno"
-                onClick={() => aoAlternarPainel(e.id, "subordinar")}
-                aria-label={"Subordinar equipe existente a " + e.nome}
-                title={"Subordinar equipe existente a " + e.nome}
-              >
-                <Icone nome="mais" />
-              </button>
-              <button
-                type="button"
-                className="btn btn-texto btn-pequeno"
-                onClick={() => aoAlternarPainel(e.id, "pai")}
-                aria-label={"Definir equipe superior de " + e.nome}
-                title={"Definir equipe superior de " + e.nome}
-              >
-                <Icone nome="inserir-acima" />
-              </button>
-              <button
-                type="button"
-                className="btn btn-texto btn-pequeno"
-                onClick={() => aoAlternarEdicao(e.id)}
-                aria-label={"Editar " + e.nome}
-                title={"Editar " + e.nome}
-              >
-                <Icone nome="lapis" />
-              </button>
-              {e.equipePaiId && (
-                <button
-                  type="button"
-                  className="btn btn-texto btn-pequeno"
-                  onClick={() => aoDesvincular(e)}
-                  aria-label={"Tornar " + e.nome + " equipe sem equipe superior"}
-                  title={"Tornar " + e.nome + " equipe sem equipe superior"}
-                >
-                  <Icone nome="topo" />
-                </button>
-              )}
-              {!e.equipePaiId && !e.raiz && (
-                <button
-                  type="button"
-                  className="btn btn-texto btn-pequeno"
-                  onClick={() => aoDefinirRaiz(e)}
-                  aria-label={"Definir " + e.nome + " como equipe raiz"}
-                  title={"Definir " + e.nome + " como equipe raiz do organograma"}
-                >
-                  <Icone nome="coroa" />
-                </button>
+            <Icone
+              nome="seta-baixo"
+              className={
+                "transition-transform " + (expandido ? "rotate-180" : "")
+              }
+            />
+          </button>
+        </div>
+
+        {expandido && (
+          <>
+            {(e.raiz || no.filhos.length > 0) && (
+              <div className="mt-2 pt-2 border-t border-pietra-clara flex items-center gap-2 flex-wrap">
+                {e.raiz && (
+                  <span
+                    className="inline-flex items-center gap-1 shrink-0 rounded-full font-semibold text-vermelho bg-vermelho/10 px-2 py-0.5"
+                    style={{ fontSize: "0.75rem" }}
+                    title="Equipe raiz do organograma"
+                  >
+                    <Icone nome="coroa" /> Raiz
+                  </span>
+                )}
+                {no.filhos.length > 0 && (
+                  <span
+                    className="text-xs font-semibold text-ardesia whitespace-nowrap"
+                    title="Subequipes"
+                  >
+                    {no.filhos.length}{" "}
+                    {no.filhos.length === 1 ? "subequipe" : "subequipes"}
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className="mt-2 pt-2 border-t border-pietra-clara">
+              {coordenadores.length > 0 ? (
+                <ul className="space-y-1.5">
+                  {coordenadores.map((c) => (
+                    <li key={c.id} className="min-w-0">
+                      <Link
+                        to={"/pessoas/" + c.id}
+                        className="flex items-center gap-2 no-underline hover:underline"
+                        title={"Abrir cadastro de " + c.nome}
+                      >
+                        <AvatarPessoa pessoa={c} />
+                        <span className="text-sm text-carbone truncate">
+                          {c.nome}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="text-xs text-ardesia/70 italic">
+                  Sem coordenador alocado
+                </span>
               )}
             </div>
-          )}
-        </div>
+
+            <div className="mt-2 pt-2 border-t border-pietra-clara flex items-center gap-2">
+              <span
+                className="badge shrink-0"
+                style={{ backgroundColor: cor + "14", color: cor }}
+              >
+                {setorNome}
+              </span>
+              {podeEditar && (
+                <div className="flex gap-0.5 items-center ml-auto">
+                  <button
+                    type="button"
+                    className="btn btn-texto btn-pequeno"
+                    onClick={() => aoAlternarPainel(e.id, "subordinar")}
+                    aria-label={"Subordinar equipe existente a " + e.nome}
+                    title={"Subordinar equipe existente a " + e.nome}
+                  >
+                    <Icone nome="mais" />
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-texto btn-pequeno"
+                    onClick={() => aoAlternarPainel(e.id, "pai")}
+                    aria-label={"Definir equipe superior de " + e.nome}
+                    title={"Definir equipe superior de " + e.nome}
+                  >
+                    <Icone nome="inserir-acima" />
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-texto btn-pequeno"
+                    onClick={() => aoAlternarEdicao(e.id)}
+                    aria-label={"Editar " + e.nome}
+                    title={"Editar " + e.nome}
+                  >
+                    <Icone nome="lapis" />
+                  </button>
+                  {e.equipePaiId && (
+                    <button
+                      type="button"
+                      className="btn btn-texto btn-pequeno"
+                      onClick={() => aoDesvincular(e)}
+                      aria-label={"Tornar " + e.nome + " equipe sem equipe superior"}
+                      title={"Tornar " + e.nome + " equipe sem equipe superior"}
+                    >
+                      <Icone nome="topo" />
+                    </button>
+                  )}
+                  {!e.equipePaiId && !e.raiz && (
+                    <button
+                      type="button"
+                      className="btn btn-texto btn-pequeno"
+                      onClick={() => aoDefinirRaiz(e)}
+                      aria-label={"Definir " + e.nome + " como equipe raiz"}
+                      title={"Definir " + e.nome + " como equipe raiz do organograma"}
+                    >
+                      <Icone nome="coroa" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {emEdicao && (
@@ -676,7 +702,9 @@ export function Organograma() {
       )}
 
       <p className="input-ajuda">
-        Use o botão “+” num nó para subordinar a ele uma equipe já cadastrada;
+        A seta para baixo no cartão expande os detalhes da equipe (badge
+        Raiz, subequipes, coordenadores, setor e ações). Use o botão “+” num
+        nó para subordinar a ele uma equipe já cadastrada;
         a seta com traço define uma equipe superior já cadastrada; o lápis
         edita nome, setor e equipe superior; a seta torna a equipe sem equipe
         superior; a coroa define a equipe raiz do organograma.

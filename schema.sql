@@ -547,6 +547,7 @@ INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
   ('edicao.equipeExcluir', 'Edição: excluir equipe', 'Excluir equipes.'),
   ('edicao.equipeAlocar', 'Edição: alocar pessoa', 'Alocar, mover ou desalocar pessoas nas equipes.'),
   ('edicao.historico', 'Edição: histórico', 'Ver o histórico de participações.'),
+  ('equipes.listar', 'Equipes: relatório de equipistas', 'Ver o relatório de nº de equipistas por equipe.'),
   ('setor.lista', 'Setores: ver lista', 'Ver a listagem de setores.'),
   ('setor.incluir', 'Setores: incluir', 'Cadastrar novos setores.'),
   ('setor.editar', 'Setores: editar', 'Editar os detalhes de setores.'),
@@ -655,6 +656,15 @@ ON CONFLICT (sigla) DO NOTHING;
 -- WHERE sigla IN ('ORG', 'OPC')
 --   AND NOT 'presenca.relatorio' = ANY(permissoes);
 -- O ADM nao precisa da permissao no array: pode() concede por ser ADM.
+
+-- Migracao do relatorio de equipistas (equipes.listar). Executar no banco
+-- existente (Neon -> SQL Editor):
+-- INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
+--   ('equipes.listar', 'Equipes: relatório de equipistas', 'Ver o relatório de nº de equipistas por equipe.')
+-- ON CONFLICT (codigo) DO NOTHING;
+-- Associar a permissao aos perfis desejados pela tela Perfis, ex.:
+-- UPDATE perfis SET permissoes = permissoes || ARRAY['equipes.listar']
+-- WHERE sigla = 'ORG' AND NOT 'equipes.listar' = ANY(permissoes);
 
 -- Migracao PBAC: preserva o acesso atual dos perfis padrao agora que a
 -- validacao passa a ser por permissoes (e nao mais por letra do perfil).

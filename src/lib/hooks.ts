@@ -151,6 +151,35 @@ export function useTodasEquipes(): EstadoLista<Equipe> {
   return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
 }
 
+// ─── Relatório de equipistas por equipe ───────────────────────────────────────
+
+// Uma linha do relatorio de nº de equipistas (GET /api/equipes/relatorio-equipistas).
+export interface LinhaRelatorioEquipistas {
+  id: string;
+  nome: string;
+  setor: string;
+  coordenadores: number;
+  equipistas: number;
+}
+
+export function useRelatorioEquipistas(
+  edicaoId: string | undefined
+): EstadoLista<LinhaRelatorioEquipistas> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["relatorio-equipistas", edicaoId],
+    queryFn: () =>
+      api.get<LinhaRelatorioEquipistas[]>(
+        `/api/equipes/relatorio-equipistas?edicaoId=${edicaoId}`
+      ),
+    enabled: !!edicaoId,
+  });
+  return {
+    itens: data ?? [],
+    carregando: isLoading && !!edicaoId,
+    erro: erroMsg(error),
+  };
+}
+
 // ─── Participações ────────────────────────────────────────────────────────────
 
 export function useParticipacoes(edicaoId: string | undefined): EstadoLista<Participacao> {

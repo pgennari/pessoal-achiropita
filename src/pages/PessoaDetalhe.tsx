@@ -428,6 +428,9 @@ export function PessoaDetalhe() {
 
       {podeVerExclusivo && (
             <div className="tabs" role="tablist" aria-label="Históricos da pessoa">
+              <div className="px-4 pt-4 pb-1">
+                <h4 className="m-0">Exclusivo Pessoal</h4>
+              </div>
               <div className="tabs-lista">
                 <button
                   type="button"

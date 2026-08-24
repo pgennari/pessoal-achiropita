@@ -71,12 +71,6 @@ const secoes: Secao[] = [
         permissoes: ["edicao.lista", "edicao.detalhe"],
       },
       {
-        to: "/organograma",
-        label: "Organograma",
-        icone: "organograma",
-        permissoes: ["edicao.detalhe"],
-      },
-      {
         to: "/presenca",
         label: "Presença",
         icone: "presenca",
@@ -98,6 +92,12 @@ const secoes: Secao[] = [
         label: "Avaliação",
         icone: "avaliar",
         permissoes: ["avaliacao.gerenciar"],
+      },
+      {
+        to: "/organograma",
+        label: "Organograma",
+        icone: "organograma",
+        permissoes: ["edicao.detalhe"],
       },
     ],
   },

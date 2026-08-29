@@ -233,6 +233,10 @@ export interface Pessoa {
   carros: Carro[];
   criadoEm: string; // ISO timestamp
   atualizadoEm: string;
+  // Bloqueio de pessoas (025): estado corrente e resumo do detalhe. A lista
+  // retorna apenas `bloqueada`; o detalhe enriquece com `bloqueio`.
+  bloqueada?: boolean;
+  bloqueio?: ResumoBloqueio | null;
 }
 
 export interface EventoAuditoria {
@@ -648,4 +652,48 @@ export interface MatchHistoricoResponse {
   pessoaId: string;
   equipeId: string | null;
   edicoes: EdicaoMatchHistorico[];
+}
+
+// ─── Bloqueio de Pessoas (025) ───────────────────────────────────────────────
+
+export type TipoBloqueio = "bloqueio" | "desbloqueio";
+export type StatusBloqueio = "pendente" | "aprovado";
+
+// Solicitação/lance de bloqueio ou desbloqueio (append-only, disputado por dois
+// aprovadores distintos). Espelho de BloqueioSchema do contrato.
+export interface Bloqueio {
+  id: string;
+  pessoaId: string;
+  pessoaNome: string;
+  pessoaCracha: number;
+  tipo: TipoBloqueio;
+  status: StatusBloqueio;
+  motivo: string;
+  aprovador1Uid: string;
+  aprovador1Nome: string;
+  aprovador2Uid: string | null;
+  aprovador2Nome: string | null;
+  criadoPorUid: string;
+  criadoPorNome: string;
+  criadoEm: string; // ISO timestamp
+  concluidoEm: string | null;
+}
+
+// Pedido pendente em andamento, exibido no detalhe da Pessoa (FR-013).
+export interface BloqueioPendente {
+  id: string;
+  tipo: TipoBloqueio;
+  motivo: string;
+  aprovador1Uid: string;
+  aprovador1Nome: string;
+  criadoEm: string;
+}
+
+// Bloco `bloqueio` do GET /api/pessoas/:id (resumo do estado atual da pessoa).
+export interface ResumoBloqueio {
+  ativo: boolean;
+  bloqueadoEm: string | null;
+  motivo: string | null;
+  aprovadores: string[];
+  pendente: BloqueioPendente | null;
 }

@@ -53,6 +53,9 @@ import { CantinaPesquisa } from "./pages/CantinaPesquisa";
 import { CantinaPesquisaPublico } from "./pages/CantinaPesquisaPublico";
 import { QrPesquisaCantina } from "./pages/QrPesquisaCantina";
 import { Montagem } from "./pages/Montagem";
+import { Bloqueios } from "./pages/Bloqueios";
+import { BloqueioPessoa } from "./pages/BloqueioPessoa";
+import { DesbloqueioPessoa } from "./pages/DesbloqueioPessoa";
 
 export function App() {
   return (
@@ -83,6 +86,9 @@ export function App() {
         <Route path="pessoas" element={<Pessoas />} />
         <Route path="pessoas/nova" element={<PessoaNova />} />
         <Route path="pessoas/importar-fotos" element={<ImportarFotos />} />
+        <Route path="pessoas/bloqueios" element={<Bloqueios />} />
+        <Route path="pessoas/:id/bloquear" element={<BloqueioPessoa />} />
+        <Route path="pessoas/:id/desbloquear" element={<DesbloqueioPessoa />} />
         <Route path="pessoas/:id" element={<PessoaDetalhe />} />
         <Route path="criancas" element={<Criancas />} />
         <Route path="edicoes" element={<Edicoes />} />

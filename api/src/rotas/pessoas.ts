@@ -40,6 +40,8 @@ const PessoaSchema = z.object({
   carros: z.array(z.any()),
   criadoEm: z.string(),
   atualizadoEm: z.string(),
+  bloqueada: z.boolean(),
+  bloqueio: z.any().nullable().optional(),
 });
 
 function pessoaDeRow(r: Record<string, unknown>) {
@@ -84,6 +86,7 @@ function pessoaDeRow(r: Record<string, unknown>) {
     carros: r.carros ?? [],
     criadoEm,
     atualizadoEm,
+    bloqueada: r.bloqueada ?? false,
   };
 }
 
@@ -133,6 +136,53 @@ async function paresParentesco(): Promise<{ ida: string; volta: string }[]> {
   } catch {
     return PARENTESCOS_PADRAO;
   }
+}
+
+// Resumo do estado de bloqueio da pessoa (bloco `bloqueio` do detalhe).
+// `ativo` espelha pessoas.bloqueada (coluna autoritativa); o motivo/aprovadores
+// sao da ultima solicitacao de bloqueio concluida; `pendente` e a solicitacao
+// em andamento (append-only em `bloqueios`, espectro de contracts/bloqueios-api.md).
+async function resumoBloqueioDaPessoa(pessoaId: string, bloqueada: boolean) {
+  const [aprovado] = bloqueada
+    ? await sql`
+        SELECT b.motivo, b.concluido_em, b.aprovador1_nome, b.aprovador2_nome
+        FROM bloqueios b
+        WHERE b.pessoa_id = ${pessoaId}
+          AND b.tipo = 'bloqueio' AND b.status = 'aprovado'
+        ORDER BY b.concluido_em DESC NULLS LAST
+        LIMIT 1
+      `
+    : [];
+  const [pendente] = await sql`
+    SELECT b.id, b.tipo, b.motivo, b.aprovador1_uid, b.aprovador1_nome, b.criado_em
+    FROM bloqueios b
+    WHERE b.pessoa_id = ${pessoaId} AND b.status = 'pendente'
+    ORDER BY b.criado_em DESC
+    LIMIT 1
+  `;
+  const criadoEm = (r: Record<string, unknown>) =>
+    r.criado_em instanceof Date ? r.criado_em.toISOString() : String(r.criado_em ?? "");
+  return {
+    ativo: bloqueada,
+    bloqueadoEm:
+      aprovado?.concluido_em instanceof Date
+        ? aprovado.concluido_em.toISOString()
+        : null,
+    motivo: aprovado ? String(aprovado.motivo) : null,
+    aprovadores: aprovado
+      ? [String(aprovado.aprovador1_nome), String(aprovado.aprovador2_nome ?? "")].filter(Boolean)
+      : [],
+    pendente: pendente
+      ? {
+          id: String(pendente.id),
+          tipo: String(pendente.tipo) as "bloqueio" | "desbloqueio",
+          motivo: String(pendente.motivo),
+          aprovador1Uid: String(pendente.aprovador1_uid),
+          aprovador1Nome: String(pendente.aprovador1_nome),
+          criadoEm: criadoEm(pendente as Record<string, unknown>),
+        }
+      : null,
+  };
 }
 
 // GET /api/pessoas
@@ -261,7 +311,12 @@ app.openapi(getPessoaIdRoute, async (c) => {
     WHERE ${filtro}
   `;
   if (!row) return c.json({ erro: "Pessoa não encontrada." }, 404);
-  return c.json(pessoaDeRow(row) as any, 200);
+  const pessoa = pessoaDeRow(row) as Record<string, unknown>;
+  pessoa.bloqueio = await resumoBloqueioDaPessoa(
+    String(row.id),
+    Boolean((row as Record<string, unknown>).bloqueada)
+  );
+  return c.json(pessoa as any, 200);
 });
 
 // POST /api/pessoas

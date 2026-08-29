@@ -860,3 +860,64 @@ UPDATE perfis SET
   permissoes = permissoes || ARRAY['cantina.gerenciar']
 WHERE sigla = 'ORG'
   AND NOT 'cantina.gerenciar' = ANY(permissoes);
+
+-- ============================================================================
+-- 025-bloqueio-pessoa
+-- ============================================================================
+
+-- Estado corrente: pessoa esta bloqueada ou nao. A derivacao e atomica (no ato
+-- da 2a aprovacao) e e o flag consumido por listagens, montagem, alocacao e UI.
+ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS bloqueada BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Solicitacoes de bloqueio/desbloqueio (append-only). Uma linha por pedido:
+-- nasce 'pendente' com o 1o aprovador (= quem solicitou) e so conclui (aprovador2
+-- preenchido, status='aprovado') com a 2a aprovacao de usuario distinto.
+CREATE TABLE IF NOT EXISTS bloqueios (
+  id               TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  pessoa_id        TEXT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+  tipo             TEXT NOT NULL CHECK (tipo IN ('bloqueio', 'desbloqueio')),
+  status           TEXT NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente', 'aprovado')),
+  motivo           TEXT NOT NULL CHECK (char_length(btrim(motivo)) >= 100),
+  aprovador1_uid   TEXT NOT NULL,
+  aprovador1_nome  TEXT NOT NULL,
+  aprovador2_uid   TEXT,
+  aprovador2_nome  TEXT,
+  criado_por_uid   TEXT NOT NULL,
+  criado_por_nome  TEXT NOT NULL,
+  criado_em        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  concluido_em     TIMESTAMPTZ,
+  -- 2o aprovador nunca pode ser o mesmo usuario do 1o.
+  CHECK (aprovador2_uid IS NULL OR aprovador1_uid <> aprovador2_uid)
+);
+
+-- Um pedido pendente por pessoa por vez (FR-015/R-005).
+CREATE UNIQUE INDEX IF NOT EXISTS uq_bloqueios_pendente_pessoa
+  ON bloqueios(pessoa_id) WHERE status = 'pendente';
+CREATE INDEX IF NOT EXISTS idx_bloqueios_pessoa_criado
+  ON bloqueios(pessoa_id, criado_em DESC);
+CREATE INDEX IF NOT EXISTS idx_bloqueios_status
+  ON bloqueios(status);
+
+-- Permissao dedicada para a area de bloqueios (PBAC). Concedida ao ORG;
+-- o ADM e superuser e sempre possui todas as permissoes ativas.
+INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
+  ('pessoas.bloqueio', 'Pessoas: bloquear/desbloquear',
+   'Solicitar e aprovar bloqueios e desbloqueios de pessoas e acessar a tela Bloqueios.')
+ON CONFLICT (codigo) DO NOTHING;
+
+UPDATE perfis SET
+  permissoes = permissoes || ARRAY['pessoas.bloqueio']
+WHERE sigla = 'ORG'
+  AND NOT 'pessoas.bloqueio' = ANY(permissoes);
+
+-- Formaliza no catalogo a permissao 'exclusivoPessoal' (hoje apenas referenciada
+-- em codigo no box "Exclusivo Pessoal" do detalhe da Pessoa). Concedida ao ORG.
+INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
+  ('exclusivoPessoal', 'Pessoal: area exclusiva',
+   'Ver o box Exclusivo Pessoal no detalhe da Pessoa, incluindo a aba de historico de bloqueios.')
+ON CONFLICT (codigo) DO NOTHING;
+
+UPDATE perfis SET
+  permissoes = permissoes || ARRAY['exclusivoPessoal']
+WHERE sigla = 'ORG'
+  AND NOT 'exclusivoPessoal' = ANY(permissoes);

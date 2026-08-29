@@ -534,6 +534,9 @@ export function BuscaGlobal({ aberto, onFechar }: Props) {
                       </div>
                     </div>
                     {!p.ativo && <span className="badge badge-cinza">inativo</span>}
+                    {p.bloqueada && (
+                      <span className="badge badge-vermelho">bloqueado</span>
+                    )}
                   </button>
                 </div>
               );

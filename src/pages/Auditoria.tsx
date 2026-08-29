@@ -29,6 +29,10 @@ const ACOES: Record<string, string> = {
   "sincronizacao.participacao.moveu": "moveu de equipe (sincronização)",
   "sincronizacao.participacao.removeu": "removeu da equipe (sincronização)",
   "sincronizacao.participacao.atualizou": "atualizou participação (sincronização)",
+  "bloqueio.solicitou": "solicitou bloqueio/desbloqueio",
+  "bloqueio.aprovou": "aprovou solicitação de bloqueio",
+  "pessoa.bloqueou": "bloqueou pessoa",
+  "pessoa.desbloqueou": "desbloqueou pessoa",
 };
 
 export function Auditoria() {

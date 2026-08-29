@@ -5,6 +5,7 @@ import { useQuery, useQueries, useInfiniteQuery } from "@tanstack/react-query";
 import { api } from "./api";
 import {
   Avaliacao,
+  Bloqueio,
   Checkin,
   Convite,
   DiaFesta,
@@ -28,6 +29,7 @@ import {
   PresencaRegistrada,
   ResumoEquipePresenca,
   SetorInfo,
+  StatusBloqueio,
   TurmaFormacao,
   Usuario,
   Vaga,
@@ -47,6 +49,7 @@ import {
 import type { DashboardInicial } from "./dashboard";
 import { PerfilInfo } from "./tipos";
 import { listarCandidatosMontagem } from "./montagem";
+import { listarBloqueios } from "./bloqueio";
 
 export interface EstadoLista<T> {
   itens: T[];
@@ -700,4 +703,34 @@ export function useMontagemCandidatos(
     getNextPageParam: (ultima, todas) =>
       ultima.temMais ? todas.length * TAMANHO_LOTE_MONTAGEM : undefined,
   });
+}
+
+// ─── Bloqueio de Pessoas (025) ───────────────────────────────────────────────
+
+// Solicitacoes de bloqueio/desbloqueio. `status` opcional filtra a tela
+// Bloqueios (Pendentes / Bloqueados); sem filtro, retorna tudo para o historico.
+export function useBloqueios(
+  args: { status?: StatusBloqueio } = {}
+): EstadoLista<Bloqueio> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["bloqueios", "status", args.status ?? "todos"],
+    queryFn: () => listarBloqueios({ status: args.status }),
+  });
+  return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
+}
+
+// Historico de uma pessoa (aba Bloqueios do box Exclusivo Pessoal e cards).
+export function useBloqueiosDaPessoa(
+  pessoaId: string | undefined
+): EstadoLista<Bloqueio> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["bloqueios", "pessoa", pessoaId],
+    queryFn: () => listarBloqueios({ pessoaId: pessoaId as string }),
+    enabled: !!pessoaId,
+  });
+  return {
+    itens: data ?? [],
+    carregando: isLoading && !!pessoaId,
+    erro: erroMsg(error),
+  };
 }

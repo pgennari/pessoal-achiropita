@@ -10,6 +10,7 @@ export interface MetaRota {
 export const ROTAS: Record<string, MetaRota> = {
   "/pessoas": { label: "Pessoas", icone: "usuarios" },
   "/criancas": { label: "Crianças", icone: "usuario" },
+  "/pessoas/bloqueios": { label: "Bloqueios", icone: "cadeado" },
   "/veiculos": { label: "Veículos", icone: "carro" },
   "/edicoes": { label: "Edições", icone: "calendario" },
   "/organograma": { label: "Organograma", icone: "organograma" },

@@ -86,5 +86,5 @@ Todas as colecoes Firestore e nomes de identificadores estao em `src/lib/tipos.t
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/020-cantina-pesquisa/plan.md
+at specs\025-bloqueio-pessoa\plan.md
 <!-- SPECKIT END -->

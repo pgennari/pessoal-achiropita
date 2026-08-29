@@ -12,6 +12,7 @@ import { UploadFoto } from "../components/UploadFoto";
 import { HistoricoPessoa } from "../components/HistoricoPessoa";
 import { HistoricoEquipesPessoa } from "../components/HistoricoEquipesPessoa";
 import { HistoricoPresencaPessoa } from "../components/HistoricoPresencaPessoa";
+import { HistoricoBloqueiosPessoa } from "../components/HistoricoBloqueiosPessoa";
 import { EditarFilhos } from "../components/EditarFilhos";
 import { EditarParentes } from "../components/EditarParentes";
 import { VinculoVeiculo } from "../components/VinculoVeiculo";
@@ -25,6 +26,10 @@ import {
   excluirPessoa,
 } from "../lib/pessoas";
 import { adicionarParente, removerParente } from "../lib/parentes";
+import {
+  aprovarSolicitacaoBloqueio,
+  podeAprovar,
+} from "../lib/bloqueio";
 import {
   vincularVeiculoPessoa,
   desvincularVeiculoPessoa,
@@ -52,7 +57,7 @@ export function PessoaDetalhe() {
   const [abaCadastro, setAbaCadastro] = useState<"foto" | "dados" | "filhos" | "veiculos" | "parentes">("dados");
   const historicoInicial = searchParams.get("aba") === "avaliacoes" ? "avaliacoes" as const : "presenca" as const;
   const [abaHistorico, setAbaHistorico] = useState<
-    "movimentacao" | "participacoes" | "presenca" | "avaliacoes"
+    "movimentacao" | "participacoes" | "presenca" | "avaliacoes" | "bloqueios"
   >(historicoInicial);
   const { itens: avaliacoesPessoa } = useAvaliacoesPessoa(id);
 
@@ -80,6 +85,8 @@ export function PessoaDetalhe() {
   const podeExcluir = temPermissao(sessao, "pessoas.excluir");
   const bloquearSensivel = sessao.perfil !== "ADM";
   const podeVerExclusivo = temPermissao(sessao, "exclusivoPessoal");
+  const podeBloquear = temPermissao(sessao, "pessoas.bloqueio");
+  const pendenteBloqueio = pessoa?.bloqueio?.pendente ?? null;
 
   if (carregando) {
     return <p className="text-ardesia">Carregando...</p>;
@@ -135,6 +142,19 @@ export function PessoaDetalhe() {
     } catch (e) {
       setAcaoErro(e instanceof Error ? e.message : "Falha ao excluir.");
       setConfirmandoExclusao(false);
+      setAcaoOcupado(false);
+    }
+  }
+
+  async function handleAprovarBloqueio(id: string) {
+    if (!sessao) return;
+    setAcaoErro(null);
+    setAcaoOcupado(true);
+    try {
+      await aprovarSolicitacaoBloqueio(sessao, id);
+    } catch (e) {
+      setAcaoErro(e instanceof Error ? e.message : "Falha ao aprovar.");
+    } finally {
       setAcaoOcupado(false);
     }
   }
@@ -239,11 +259,96 @@ export function PessoaDetalhe() {
             )}
           </div>
         )}
+        {podeBloquear && !pessoa.bloqueada && !pendenteBloqueio && (
+          <button
+            type="button"
+            className="btn btn-perigo"
+            onClick={() => navigate(`/pessoas/${pessoa.id}/bloquear`)}
+            disabled={acaoOcupado}
+            aria-label="Bloquear"
+            title="Bloquear"
+          >
+            <Icone nome="proibido" />
+          </button>
+        )}
+        {podeBloquear && pessoa.bloqueada && !pendenteBloqueio && (
+          <button
+            type="button"
+            className="btn btn-primario"
+            onClick={() => navigate(`/pessoas/${pessoa.id}/desbloquear`)}
+            disabled={acaoOcupado}
+            aria-label="Desbloquear"
+            title="Desbloquear"
+          >
+            <Icone nome="cadeado-aberto" />
+          </button>
+        )}
       </header>
 
       {acaoErro && (
         <div className="card border-vermelho/40">
           <div className="card-corpo text-vermelho-escuro">{acaoErro}</div>
+        </div>
+      )}
+
+      {pessoa.bloqueio?.ativo && (
+        <div className="card border-vermelho/40">
+          <div className="card-corpo space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-semibold text-vermelho-escuro flex items-center gap-2">
+                <Icone nome="proibido" tamanho={18} />
+                Pessoa bloqueada
+              </p>
+              {pessoa.bloqueio.bloqueadoEm && (
+                <span className="badge badge-vermelho text-xs font-mono">
+                  desde {formatarData(pessoa.bloqueio.bloqueadoEm)}
+                </span>
+              )}
+            </div>
+            {pessoa.bloqueio.motivo && (
+              <p className="text-sm text-vermelho-escuro whitespace-pre-wrap">
+                {pessoa.bloqueio.motivo}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {pendenteBloqueio && (
+        <div className="card border-azul/40">
+          <div className="card-corpo space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-semibold text-carbone flex items-center gap-2">
+                <Icone nome="alerta" tamanho={18} />
+                Bloqueio pendente de aprovação
+              </p>
+              <span className="badge badge-azul text-xs font-mono">
+                {formatarData(pendenteBloqueio.criadoEm)}
+              </span>
+            </div>
+            <p className="text-sm text-ardesia whitespace-pre-wrap">
+              {pendenteBloqueio.motivo}
+            </p>
+            <p className="text-xs text-ardesia">
+              1º aprovador:{" "}
+              <strong className="text-carbone">
+                {pendenteBloqueio.aprovador1Nome}
+              </strong>
+              {podeBloquear &&
+                podeAprovar(pendenteBloqueio, sessao) && (
+                  <button
+                    type="button"
+                    className="btn btn-primario ml-3"
+                    onClick={() => handleAprovarBloqueio(pendenteBloqueio.id)}
+                    disabled={acaoOcupado}
+                    aria-label="Aprovar bloqueio"
+                    title="Aprovar bloqueio"
+                  >
+                    <Icone nome="check" />
+                  </button>
+                )}
+            </p>
+          </div>
         </div>
       )}
 
@@ -537,6 +642,15 @@ export function PessoaDetalhe() {
                 >
                   Histórico de avaliações
                 </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={abaHistorico === "bloqueios"}
+                  className={`aba ${abaHistorico === "bloqueios" ? "aba-ativa" : ""}`}
+                  onClick={() => setAbaHistorico("bloqueios")}
+                >
+                  Histórico bloqueios
+                </button>
               </div>
 
               {abaHistorico === "presenca" && (
@@ -628,8 +742,13 @@ export function PessoaDetalhe() {
                 </div>
               )}
 
+              {abaHistorico === "bloqueios" && (
+                <div className="tabs-painel" role="tabpanel" tabIndex={0}>
+                  <HistoricoBloqueiosPessoa pessoaId={pessoa.id} />
+                </div>
+              )}
             </div>
-      )}
+          )}
 
       {pessoa.atualizadoEm && (
         <p className="text-xs text-ardesia font-mono">

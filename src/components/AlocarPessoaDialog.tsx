@@ -166,6 +166,7 @@ export function AlocarPessoaDialog({
           )}
           {resultados.map((p, idx) => {
             const jaAlocada = idsAlocados.has(p.id);
+            const bloqueada = p.bloqueada === true;
             return (
               <li key={p.id}>
                 <button
@@ -174,7 +175,7 @@ export function AlocarPessoaDialog({
                     idx === destaque
                       ? "bg-pietra-clara"
                       : "hover:bg-pietra-clara/60"
-                  } ${jaAlocada ? "opacity-50" : ""}`}
+                  } ${jaAlocada || bloqueada ? "opacity-50" : ""}`}
                   onMouseEnter={() => setDestaque(idx)}
                   onClick={() => escolher(p)}
                   disabled={enviando}
@@ -188,9 +189,11 @@ export function AlocarPessoaDialog({
                       {p.email ? ` · ${p.email}` : ""}
                     </div>
                   </div>
-                  {jaAlocada && (
+                  {jaAlocada ? (
                     <span className="badge badge-cinza">já alocada</span>
-                  )}
+                  ) : bloqueada ? (
+                    <span className="badge badge-vermelho">bloqueada</span>
+                  ) : null}
                 </button>
               </li>
             );

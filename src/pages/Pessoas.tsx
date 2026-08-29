@@ -351,11 +351,16 @@ export function Pessoas() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {p.ativo ? (
-                      <span className="badge badge-verde">ativo</span>
-                    ) : (
-                      <span className="badge badge-cinza">inativo</span>
-                    )}
+                    <div className="flex items-center justify-end gap-2">
+                      {p.ativo ? (
+                        <span className="badge badge-verde">ativo</span>
+                      ) : (
+                        <span className="badge badge-cinza">inativo</span>
+                      )}
+                      {p.bloqueada && (
+                        <span className="badge badge-vermelho">bloqueado</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );

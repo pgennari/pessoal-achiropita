@@ -100,11 +100,12 @@ app.openapi(getCandidatosRoute, async (c) => {
 
   const rows = await sql`
     WITH
-    -- Pessoas ativas nao alocadas nesta edicao
+    -- Pessoas ativas nao alocadas nesta edicao e nao bloqueadas
     candidatos AS (
       SELECT p.id AS pessoa_id, p.nome AS pessoa_nome, p.foto_url, p.nascimento
       FROM pessoas p
       WHERE p.ativo = TRUE
+        AND p.bloqueada = FALSE
         AND NOT EXISTS (
           SELECT 1 FROM participacoes pt
           WHERE pt.pessoa_id = p.id AND pt.edicao_id = ${edicaoId}
@@ -217,6 +218,7 @@ app.openapi(getCandidatosRoute, async (c) => {
     SELECT COUNT(*)::int AS total
     FROM pessoas p
     WHERE p.ativo = TRUE
+      AND p.bloqueada = FALSE
       AND NOT EXISTS (
         SELECT 1 FROM participacoes pt
         WHERE pt.pessoa_id = p.id AND pt.edicao_id = ${edicaoId}

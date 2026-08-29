@@ -43,6 +43,12 @@ const secoes: Secao[] = [
         permissoes: ["pessoas.lista"],
       },
       {
+        to: "/pessoas/bloqueios",
+        label: "Bloqueios",
+        icone: "cadeado",
+        permissoes: ["pessoas.bloqueio"],
+      },
+      {
         to: "/veiculos",
         label: "Veículos",
         icone: "carro",

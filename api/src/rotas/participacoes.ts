@@ -20,6 +20,22 @@ function participacaoDeRow(r: Record<string, unknown>) {
   };
 }
 
+// Pessoa bloqueada (025-bloqueio-pessoa): retorna a justificativa do bloqueio
+// ativo (ultimo `aprovado` do tipo `bloqueio`) ou null quando desbloqueada.
+async function bloqueioAtivoDaPessoa(pessoaId: string) {
+  const [p] = await sql`
+    SELECT bloqueada FROM pessoas WHERE id = ${pessoaId}
+  `;
+  if (!p?.bloqueada) return null;
+  const [b] = await sql`
+    SELECT motivo FROM bloqueios
+    WHERE pessoa_id = ${pessoaId} AND tipo = 'bloqueio' AND status = 'aprovado'
+    ORDER BY concluido_em DESC NULLS LAST
+    LIMIT 1
+  `;
+  return b ? String(b.motivo) : "";
+}
+
 const getParticipacoesRoute = createRoute({
   method: "get",
   path: "/",
@@ -87,6 +103,15 @@ app.openapi(postParticipacaoRoute, async (c) => {
     return c.json({ erro: "Equipe não encontrada ou excluída." }, 404);
   }
 
+  // Restricao de selecao (FR-018): pessoa bloqueada nao pode ser alocada.
+  const motivoBloqueio = await bloqueioAtivoDaPessoa(body.pessoaId);
+  if (motivoBloqueio !== null) {
+    return c.json(
+      { erro: `Pessoa bloqueada. Justificativa: ${motivoBloqueio}.` },
+      409
+    );
+  }
+
   try {
     const [row] = await sql`
       INSERT INTO participacoes (edicao_id, equipe_id, pessoa_id, funcao)
@@ -136,7 +161,8 @@ const putParticipacaoRoute = createRoute({
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Atualizada" },
     403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
-    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" },
+    409: { content: { "application/json": { schema: z.any() } }, description: "Conflito" }
   }
 });
 
@@ -157,6 +183,16 @@ app.openapi(putParticipacaoRoute, async (c) => {
     SELECT id, edicao_id, equipe_id, pessoa_id FROM participacoes WHERE id = ${id}
   `;
   if (!antes) return c.json({ erro: "Participação não encontrada." }, 404);
+
+  // Mover pessoa bloqueada tambem e barrado (FR-018); quem ja esta alocada
+  // permanece no roster (FR-019) — apenas novas acoes sao vetadas.
+  const motivoBloqueio = await bloqueioAtivoDaPessoa(String(antes.pessoa_id));
+  if (motivoBloqueio !== null) {
+    return c.json(
+      { erro: `Pessoa bloqueada. Justificativa: ${motivoBloqueio}.` },
+      409
+    );
+  }
 
   const [row] = await sql`
     UPDATE participacoes SET

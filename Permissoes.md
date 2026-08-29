@@ -29,6 +29,8 @@
 |  | Ver somente equipe | pessoas.equipe |
 |  | Ver somente proprio | pessoas.proprio |
 |  | Associar/Desassociar veículo | pessoas.associar |
+|  | Bloquear/Desbloquear pessoa (com dupla aprovação) | pessoas.bloqueio |
+|  | Ver box Exclusivo Pessoal (históricos) | exclusivoPessoal |
 | Formação - Turmas | Acessar | formacao.turmas |
 | Formação - Pendencias | Listar | formacao.pendenciaListar |
 |  | Listar equipe | formacao.pendenciaEquipe |

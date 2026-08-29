@@ -329,12 +329,19 @@ export function EquipeDetalhe() {
                 </td>
                 <td className="px-4 py-3">
                   {l.pessoa ? (
-                    <Link
-                      to={`/pessoas/${l.pessoa.id}`}
-                      className="font-semibold text-carbone hover:text-verde"
-                    >
-                      {l.pessoa.nome}
-                    </Link>
+                    <>
+                      <Link
+                        to={`/pessoas/${l.pessoa.id}`}
+                        className="font-semibold text-carbone hover:text-verde"
+                      >
+                        {l.pessoa.nome}
+                      </Link>
+                      {l.pessoa.bloqueada && (
+                        <span className="badge badge-vermelho ml-2">
+                          bloqueada
+                        </span>
+                      )}
+                    </>
                   ) : (
                     <span className="text-ardesia">
                       pessoa removida
@@ -342,7 +349,7 @@ export function EquipeDetalhe() {
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  {podeAlocar ? (
+                  {podeAlocar && l.pessoa && !l.pessoa.bloqueada ? (
                     <select
                       className="input min-h-[36px] py-1.5"
                       value={l.participacao.funcao}
@@ -363,20 +370,22 @@ export function EquipeDetalhe() {
                 <td className="px-4 py-3 text-right">
                   {podeAlocar && (
                     <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        className="btn btn-secundario btn-pequeno"
-                        onClick={(ev) => {
-                          ev.stopPropagation();
-                          setMovendoLinha(l);
-                          setEquipeDestinoId("");
-                          setFuncaoDestino(l.participacao.funcao);
-                        }}
-                        aria-label="Mover"
-                        title="Mover"
-                      >
-                        <Icone nome="trocar" />
-                      </button>
+                      {!l.pessoa?.bloqueada && (
+                        <button
+                          type="button"
+                          className="btn btn-secundario btn-pequeno"
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            setMovendoLinha(l);
+                            setEquipeDestinoId("");
+                            setFuncaoDestino(l.participacao.funcao);
+                          }}
+                          aria-label="Mover"
+                          title="Mover"
+                        >
+                          <Icone nome="trocar" />
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="btn btn-texto btn-pequeno text-vermelho-escuro"

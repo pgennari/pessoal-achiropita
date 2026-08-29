@@ -9,13 +9,15 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   useAvaliacoes,
+  useDiasFesta,
   useEdicaoAtiva,
   useEquipes,
+  usePresencasDaEdicao,
   useSetores,
 } from "../lib/hooks";
 import { useSessao, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
-import { normalizar } from "../lib/utilsDominio";
+import { formatarData, normalizar } from "../lib/utilsDominio";
 import { SETORES } from "../lib/tipos";
 import type {
   Avaliacao,
@@ -278,6 +280,7 @@ export function RelatorioAvaliacoes() {
   const { itens: avaliacoes, carregando, erro } = useAvaliacoes(edicao?.id);
   const { itens: equipes } = useEquipes(edicao?.id);
   const { itens: setores } = useSetores();
+  const { itens: diasFesta } = useDiasFesta(edicao?.id);
   const [filtros, setFiltros] = useState<FiltrosRelatorio>(FILTROS_INICIAIS);
   const [detalheAbertoId, setDetalheAbertoId] = useState<string | null>(null);
   const [dropdownAberto, setDropdownAberto] = useState<string | null>(null);
@@ -327,6 +330,38 @@ export function RelatorioAvaliacoes() {
   function alternarDetalhe(id: string) {
     setDetalheAbertoId((atual) => (atual === id ? null : id));
   }
+
+  // Dias de festa da edicao (ordenados) e presencas de todos os dias, para o
+  // quadro de presenca de cada pessoa avaliada.
+  const diasOrdenados = useMemo(
+    () =>
+      [...diasFesta].sort((a, b) => a.data.localeCompare(b.data)),
+    [diasFesta]
+  );
+  const { itens: presencas, carregando: carregandoPresencas } =
+    usePresencasDaEdicao(edicao?.id, diasOrdenados);
+
+  // pessoaId -> conjunto de diaFestaId onde a pessoa esteve presente.
+  const diasPresentesPorPessoa = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    for (const pr of presencas) {
+      let conjunto = m.get(pr.pessoaId);
+      if (!conjunto) {
+        conjunto = new Set<string>();
+        m.set(pr.pessoaId, conjunto);
+      }
+      conjunto.add(pr.diaFestaId);
+    }
+    return m;
+  }, [presencas]);
+
+  const hoje = useMemo(() => {
+    const d = new Date();
+    const ano = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, "0");
+    const dia = String(d.getDate()).padStart(2, "0");
+    return `${ano}-${mes}-${dia}`;
+  }, []);
 
   // Setores de equipes desta edicao: usa o catalogo editavel quando existir,
   // senao o catalogo fixo (mesma logica do formulario de equipe).
@@ -718,6 +753,35 @@ export function RelatorioAvaliacoes() {
                       </span>
                     </button>
                     <div className="flex items-center gap-2 shrink-0">
+                      <div
+                        className="flex items-center gap-0.5 whitespace-nowrap"
+                        title="Presença nos dias de festa"
+                      >
+                        {diasOrdenados.map((dia, indice) => {
+                          const presente =
+                            diasPresentesPorPessoa
+                              .get(avaliacao.pessoaId)
+                              ?.has(dia.id) ?? false;
+                          const futuro = dia.data > hoje;
+                          const classe =
+                            carregandoPresencas || futuro
+                              ? "bg-pietra-clara text-ardesia"
+                              : presente
+                                ? "bg-verde text-white"
+                                : "bg-vermelho text-white";
+                          return (
+                            <div
+                              key={dia.id}
+                              title={`Dia ${indice + 1} · ${formatarData(
+                                dia.data
+                              )}`}
+                              className={`w-6 h-6 rounded-sm flex items-center justify-center font-mono text-xs font-semibold select-none ${classe}`}
+                            >
+                              {indice + 1}
+                            </div>
+                          );
+                        })}
+                      </div>
                       <span className={badgeStatus(avaliacao.status)}>
                         {rotuloStatus(avaliacao.status)}
                       </span>

@@ -401,7 +401,7 @@ const putPessoaAtivacaoRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({ id: z.string() }),
-    body: { content: { "application/json": { schema: z.object({ ativo: z.boolean() }) } } }
+    body: { content: { "application/json": { schema: z.object({ ativo: z.boolean(), motivoInativacao: z.string().optional().nullable() }) } } }
   },
   responses: {
     200: { content: { "application/json": { schema: z.object({ ok: z.boolean() }) } }, description: "Sucesso" },
@@ -415,12 +415,50 @@ app.openapi(putPessoaAtivacaoRoute, async (c) => {
   if (!temPermissao(sessao, "pessoas.ativar")) {
     return c.json({ erro: "Acesso negado. Requer permissao pessoas.ativar." }, 403);
   }
-  const { ativo } = c.req.valid("json");
+  const { ativo, motivoInativacao } = c.req.valid("json");
   const [row] = await sql`
-    UPDATE pessoas SET ativo = ${Boolean(ativo)}, atualizado_em = NOW()
+    UPDATE pessoas SET
+      ativo = ${Boolean(ativo)},
+      motivo_inativacao = ${ativo ? null : (motivoInativacao as string | null) ?? null},
+      atualizado_em = NOW()
     WHERE id = ${id} RETURNING id, nome, cracha
   `;
   if (!row) return c.json({ erro: "Pessoa não encontrada." }, 404);
+
+  // Inativacao: desaloca automaticamente a pessoa de todas as equipes em que
+  // esta alocada, registrando no historico de movimentacoes e na auditoria.
+  const alocacoes = await sql`
+    SELECT part.id, part.edicao_id, part.equipe_id, part.pessoa_id, part.funcao,
+           eq.nome AS equipe_nome,
+           edic.numero AS edicao_numero
+    FROM participacoes part
+    LEFT JOIN equipes eq ON eq.id = part.equipe_id
+    LEFT JOIN edicoes edic ON edic.id = part.edicao_id
+    WHERE part.pessoa_id = ${id}
+  `;
+  if (!ativo && alocacoes.length > 0) {
+    await sql`DELETE FROM participacoes WHERE pessoa_id = ${id}`;
+    for (const aloc of alocacoes) {
+      await sql`
+        INSERT INTO pessoa_equipe_historico (
+          pessoa_id, edicao_id,
+          equipe_origem_id, equipe_origem_nome,
+          equipe_destino_id, equipe_destino_nome,
+          funcao, autor, autor_nome
+        ) VALUES (
+          ${aloc.pessoa_id}, ${aloc.edicao_id},
+          ${aloc.equipe_id}, ${aloc.equipe_nome ?? ""},
+          NULL, '',
+          ${aloc.funcao}, ${sessao.uid}, ${sessao.nome}
+        )
+      `;
+      await registrarEvento(
+        sessao, "participacao.desalocou", `participacoes/${aloc.id}`,
+        `${row.nome} desalocado(a) automaticamente por inativacao de ${aloc.equipe_nome ?? ""} (${aloc.edicao_numero ?? ""}ª edicao)`
+      );
+    }
+  }
+
   await registrarEvento(sessao, ativo ? "pessoa.reativou" : "pessoa.inativou", `pessoas/${id}`, `${row.nome} (#${row.cracha})`);
   return c.json({ ok: true }, 200);
 });

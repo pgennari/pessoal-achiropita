@@ -46,6 +46,8 @@ export function PessoaDetalhe() {
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [acaoOcupado, setAcaoOcupado] = useState(false);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [perguntandoMotivo, setPerguntandoMotivo] = useState(false);
+  const [motivoInativacao, setMotivoInativacao] = useState("");
   const [searchParams] = useSearchParams();
   const [abaCadastro, setAbaCadastro] = useState<"foto" | "dados" | "filhos" | "veiculos" | "parentes">("dados");
   const historicoInicial = searchParams.get("aba") === "avaliacoes" ? "avaliacoes" as const : "presenca" as const;
@@ -110,12 +112,12 @@ export function PessoaDetalhe() {
     setEditando(false);
   }
 
-  async function handleAtivacao(ativar: boolean) {
+  async function handleAtivacao(ativar: boolean, motivo?: string) {
     if (!sessao || !pessoa) return;
     setAcaoErro(null);
     setAcaoOcupado(true);
     try {
-      await definirAtivacao(sessao, pessoa, ativar);
+      await definirAtivacao(sessao, pessoa, ativar, motivo);
     } catch (e) {
       setAcaoErro(e instanceof Error ? e.message : "Falha ao atualizar.");
     } finally {
@@ -201,7 +203,10 @@ export function PessoaDetalhe() {
                 <button
                   type="button"
                   className="btn btn-perigo"
-                  onClick={() => handleAtivacao(false)}
+                  onClick={() => {
+                    setMotivoInativacao("");
+                    setPerguntandoMotivo(true);
+                  }}
                   disabled={acaoOcupado}
                   aria-label="Inativar"
                   title="Inativar"
@@ -273,6 +278,70 @@ export function PessoaDetalhe() {
               >
                 <Icone nome="fechar" />
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {perguntandoMotivo && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] px-4 bg-carbone/40"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Motivo da inativação"
+        >
+          <div className="card w-full max-w-md">
+            <div className="card-corpo space-y-4">
+              <h3 className="m-0">Inativar {pessoa.nome}?</h3>
+              <p className="text-sm text-ardesia">
+                O cadastro será retirado do quadro corrente sem ser apagado.
+              </p>
+              <div className="input-grupo">
+                <label className="input-label" htmlFor="motivoInativacaoRapida">
+                  Motivo da inativação <span className="opcional">(opcional)</span>
+                </label>
+                <input
+                  id="motivoInativacaoRapida"
+                  className="input"
+                  list="motivos-inativacao-rapida-lista"
+                  value={motivoInativacao}
+                  onChange={(e) => setMotivoInativacao(e.target.value)}
+                  placeholder="Selecione ou escreva o motivo"
+                  autoComplete="off"
+                />
+                <datalist id="motivos-inativacao-rapida-lista">
+                  <option value="Saída voluntária" />
+                  <option value="Mudança de cidade" />
+                  <option value="Indisponibilidade" />
+                  <option value="Afastamento temporário" />
+                  <option value="Falecimento" />
+                </datalist>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="btn btn-perigo"
+                  onClick={() => {
+                    setPerguntandoMotivo(false);
+                    handleAtivacao(false, motivoInativacao.trim() || undefined);
+                  }}
+                  disabled={acaoOcupado}
+                  aria-label="Confirmar inativação"
+                  title="Confirmar inativação"
+                >
+                  <Icone nome="usuario-x" />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secundario"
+                  onClick={() => setPerguntandoMotivo(false)}
+                  disabled={acaoOcupado}
+                  aria-label="Cancelar"
+                  title="Cancelar"
+                >
+                  <Icone nome="fechar" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

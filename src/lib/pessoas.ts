@@ -184,10 +184,23 @@ export async function atualizarPessoa(
 export async function definirAtivacao(
   _sessao: Sessao,
   pessoa: Pessoa,
-  ativo: boolean
+  ativo: boolean,
+  motivoInativacao?: string
 ): Promise<void> {
-  await api.put(`/api/pessoas/${pessoa.id}/ativacao`, { ativo });
+  await api.put(`/api/pessoas/${pessoa.id}/ativacao`, {
+    ativo,
+    motivoInativacao: ativo ? undefined : motivoInativacao,
+  });
   await queryClient.invalidateQueries({ queryKey: ["pessoas"] });
+  if (!ativo) {
+    // A inativacao desaloca a pessoa das equipes no backend; recarrega as
+    // participacoes e as equipes (vagas calculadas pelas alocacoes).
+    await queryClient.invalidateQueries({ queryKey: ["participacoes"] });
+    await queryClient.invalidateQueries({ queryKey: ["equipes"] });
+    await queryClient.invalidateQueries({
+      queryKey: ["pessoas", pessoa.id, "historico-equipes"],
+    });
+  }
 }
 
 export async function excluirPessoa(_sessao: Sessao, pessoa: Pessoa): Promise<void> {

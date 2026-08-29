@@ -16,7 +16,7 @@ import {
   usePresencasDaEdicao,
 } from "../lib/hooks";
 import { Icone } from "../components/Icone";
-import { dispararCsv, escaparCsv } from "../lib/csv";
+import { dispararCsv, escaparCsv, montarTsv } from "../lib/csv";
 import { formatarData, normalizar } from "../lib/utilsDominio";
 import { SETORES } from "../lib/tipos";
 import type { Funcao } from "../lib/tipos";
@@ -73,6 +73,7 @@ export function RelatorioPresenca() {
   const [filtroDiasAberto, setFiltroDiasAberto] = useState(false);
   const [colunaOrdenada, setColunaOrdenada] = useState<ColunaOrdenacao>("equipe");
   const [ordemAsc, setOrdemAsc] = useState(true);
+  const [copiado, setCopiado] = useState(false);
 
   const diasOrdenados = useMemo(
     () => [...dias].sort((a, b) => a.data.localeCompare(b.data)),
@@ -273,6 +274,28 @@ export function RelatorioPresenca() {
     const csv = [header.join(","), ...corpo].join("\n");
     const stamp = new Date().toISOString().slice(0, 10);
     dispararCsv(`equipes-sem-presenca-${stamp}.csv`, csv);
+  }
+
+  function montarEquipesSemPresencaTsv(): string {
+    const cabecalho = ["data", "pasta", "equipe"];
+    const linhas = equipesSemPresencaPorDia.flatMap((dia) =>
+      dia.equipes.map((equipe) => [
+        formatarData(dia.data),
+        rotuloSetor(equipe.setor),
+        equipe.nome,
+      ])
+    );
+    return montarTsv(cabecalho, linhas);
+  }
+
+  function copiarEquipesSemPresenca() {
+    navigator.clipboard
+      .writeText(montarEquipesSemPresencaTsv())
+      .then(() => {
+        setCopiado(true);
+        setTimeout(() => setCopiado(false), 2000);
+      })
+      .catch(() => setCopiado(false));
   }
 
   function toggleOrdenacao(coluna: ColunaOrdenacao) {
@@ -773,16 +796,28 @@ export function RelatorioPresenca() {
                 Equipes desta edição sem nenhuma presença registrada, agrupadas
                 por dia de festa.
               </p>
-              <button
-                type="button"
-                className="btn btn-secundario btn-pequeno"
-                onClick={exportarEquipesSemPresencaCsv}
-                disabled={totalEquipesSemPresenca === 0 || carregandoPresencas}
-                aria-label="Exportar CSV"
-                title="Exportar CSV"
-              >
-                <Icone nome="baixar" />
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-secundario btn-pequeno"
+                  onClick={exportarEquipesSemPresencaCsv}
+                  disabled={totalEquipesSemPresenca === 0 || carregandoPresencas}
+                  aria-label="Exportar CSV"
+                  title="Exportar CSV"
+                >
+                  <Icone nome="baixar" />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secundario btn-pequeno"
+                  onClick={copiarEquipesSemPresenca}
+                  disabled={totalEquipesSemPresenca === 0 || carregandoPresencas}
+                  aria-label={copiado ? "Copiado!" : "Copiar TSV"}
+                  title={copiado ? "Copiado!" : "Copiar TSV"}
+                >
+                  <Icone nome="copiar" />
+                </button>
+              </div>
             </div>
 
             <p className="text-ardesia text-sm text-right">

@@ -73,3 +73,18 @@ export function escaparCsv(valor: string | number): string {
   if (/[",\n;]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }
+
+export function escaparTsv(valor: string | number): string {
+  const s = String(valor ?? "");
+  if (/[\t\n"]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+export function montarTsv(
+  cabecalho: string[],
+  linhas: (string | number)[][]
+): string {
+  const linha = (colunas: (string | number)[]) =>
+    colunas.map(escaparTsv).join("\t");
+  return [linha(cabecalho), ...linhas.map(linha)].join("\n");
+}

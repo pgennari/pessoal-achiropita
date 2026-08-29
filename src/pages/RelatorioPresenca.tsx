@@ -17,6 +17,7 @@ import {
 } from "../lib/hooks";
 import { Icone } from "../components/Icone";
 import { formatarData, normalizar } from "../lib/utilsDominio";
+import { SETORES } from "../lib/tipos";
 import type { Funcao } from "../lib/tipos";
 
 interface LinhaRelatorio {
@@ -32,6 +33,10 @@ interface LinhaRelatorio {
 type ColunaOrdenacao = "equipe" | "nome" | "funcao" | "total";
 type FiltroPresenca = "todos" | "presentes" | "ausentes";
 
+function rotuloSetor(setor: string): string {
+  return SETORES.find((s) => s.valor === setor)?.rotulo ?? setor;
+}
+
 function dataLocalISO(d: Date): string {
   const ano = d.getFullYear();
   const mes = String(d.getMonth() + 1).padStart(2, "0");
@@ -46,7 +51,7 @@ type AbaRelatorio = "pessoas" | "equipes-sem-presenca";
 interface EquipesSemPresencaDia {
   diaId: string;
   data: string;
-  equipes: { id: string; nome: string }[];
+  equipes: { id: string; nome: string; setor: string }[];
 }
 
 function dispararCsv(nome: string, conteudo: string) {
@@ -256,7 +261,11 @@ export function RelatorioPresenca() {
         return {
           diaId: dia.id,
           data: dia.data,
-          equipes: semPresenca.map((e) => ({ id: e.id, nome: e.nome })),
+          equipes: semPresenca.map((e) => ({
+            id: e.id,
+            nome: e.nome,
+            setor: e.setor,
+          })),
         };
       }),
     [diasOrdenados, equipesValidas, equipesComPresencaPorDia]
@@ -269,12 +278,14 @@ export function RelatorioPresenca() {
   );
 
   function exportarEquipesSemPresencaCsv() {
-    const header = ["data", "equipe"];
+    const header = ["data", "pasta", "equipe"];
     const corpo: string[] = [];
     for (const dia of equipesSemPresencaPorDia) {
       for (const equipe of dia.equipes) {
         corpo.push(
-          [formatarData(dia.data), equipe.nome].map(escaparCsv).join(",")
+          [formatarData(dia.data), rotuloSetor(equipe.setor), equipe.nome]
+            .map(escaparCsv)
+            .join(",")
         );
       }
     }
@@ -816,6 +827,7 @@ export function RelatorioPresenca() {
                     <thead className="bg-pietra-clara/60 text-left">
                       <tr>
                         <th className="px-4 py-2 font-semibold">Data</th>
+                        <th className="px-4 py-2 font-semibold">Pasta</th>
                         <th className="px-4 py-2 font-semibold">
                           Nome da Equipe
                         </th>
@@ -826,7 +838,7 @@ export function RelatorioPresenca() {
                         const cabecalho = (
                           <tr className="bg-pietra-clara/30">
                             <td
-                              colSpan={2}
+                              colSpan={3}
                               className="px-4 py-2 font-semibold"
                             >
                               Dia {indice + 1} · {formatarData(dia.data)}
@@ -846,7 +858,7 @@ export function RelatorioPresenca() {
                               {cabecalho}
                               <tr>
                                 <td
-                                  colSpan={2}
+                                  colSpan={3}
                                   className="px-4 py-4 text-center text-ardesia text-sm"
                                 >
                                   Nenhuma equipe sem presença neste dia.
@@ -865,6 +877,9 @@ export function RelatorioPresenca() {
                               >
                                 <td className="px-4 py-2 font-mono whitespace-nowrap">
                                   {formatarData(dia.data)}
+                                </td>
+                                <td className="px-4 py-2 text-ardesia whitespace-nowrap">
+                                  {rotuloSetor(equipe.setor)}
                                 </td>
                                 <td className="px-4 py-2 font-semibold">
                                   {equipe.nome}

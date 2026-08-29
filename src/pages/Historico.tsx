@@ -14,6 +14,7 @@ import {
 } from "../lib/hooks";
 import { useSessao, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
+import { dispararCsv, escaparCsv } from "../lib/csv";
 import {
   FUNCOES,
   Funcao,
@@ -26,26 +27,6 @@ interface LinhaResultado {
   edicoes: Set<number>; // por número da edição (unifica atual + histórico)
   funcoes: Set<Funcao>;
   equipes: Set<string>; // por nome
-}
-
-function dispararCsv(nome: string, conteudo: string) {
-  const blob = new Blob([`﻿${conteudo}`], {
-    type: "text/csv;charset=utf-8",
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nome;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-function escaparCsv(valor: string | number): string {
-  const s = String(valor ?? "");
-  if (/[",\n;]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
 }
 
 export function Historico() {

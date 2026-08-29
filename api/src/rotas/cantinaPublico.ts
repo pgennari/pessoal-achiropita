@@ -8,7 +8,6 @@ import { registrarEvento } from "../auditoria.js";
 const app = new OpenAPIHono();
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const DATA_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const notaSchema = z.number().int().min(1).max(5);
 
@@ -17,8 +16,6 @@ const corpoSchema = z
     nome: z.string().trim().min(1),
     email: z.string().nullable(),
     telefone: z.string().nullable(),
-    diaIda: z.string().nullable(),
-    convite: z.string().nullable(),
     desejaInformacoes: z.boolean(),
     notas: z.object({
       atendimento: notaSchema,
@@ -49,34 +46,6 @@ function textoOuNulo(valor: unknown, max: number): string | null {
   return t.slice(0, max);
 }
 
-// ─── Dias de festa da edicao ativa ──────────────────────────────────────────
-
-const getDiasRoute = createRoute({
-  method: "get",
-  path: "/cantina/dias-festa",
-  tags: ["Cantina pública"],
-  summary: "Dias de festa da edicao ativa",
-  responses: {
-    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de dias" }
-  }
-});
-
-app.openapi(getDiasRoute, async (c) => {
-  const rows = await sql`
-    SELECT df.id, df.data
-    FROM dias_festa df
-    JOIN edicoes ed ON ed.id = df.edicao_id
-    WHERE ed.status = 'ativa'
-    ORDER BY df.data
-  `;
-  return c.json({
-    dias: rows.map((r) => ({
-      id: String(r.id),
-      data: r.data instanceof Date ? r.data.toISOString().slice(0, 10) : String(r.data).slice(0, 10),
-    })),
-  }, 200);
-});
-
 // ─── Envio da pesquisa ───────────────────────────────────────────────────────
 
 const postPesquisaRoute = createRoute({
@@ -101,32 +70,17 @@ app.openapi(postPesquisaRoute, async (c) => {
   }
   const dados = parsed.data;
 
-  // diaIda, quando informado, precisa pertencer a um dia da edicao ativa.
-  if (dados.diaIda && DATA_RE.test(dados.diaIda)) {
-    const [dia] = await sql`
-      SELECT 1
-      FROM dias_festa df
-      JOIN edicoes ed ON ed.id = df.edicao_id
-      WHERE ed.status = 'ativa' AND df.data = ${dados.diaIda}
-    `;
-    if (!dia) {
-      return c.json({ erro: "Dia de ida invalido." }, 400);
-    }
-  }
-
   const email =
     dados.email && EMAIL_RE.test(dados.email.trim()) ? dados.email.trim() : null;
 
   await sql`
     INSERT INTO pesquisas_cantina (
-      nome, email, telefone, dia_ida, convite,
+      nome, email, telefone,
       deseja_informacoes, notas, recomendaria, melhorias
     ) VALUES (
       ${textoOuNulo(dados.nome, 300)},
       ${email},
       ${textoOuNulo(dados.telefone, 60)},
-      ${dados.diaIda && DATA_RE.test(dados.diaIda) ? dados.diaIda : null},
-      ${textoOuNulo(dados.convite, 120)},
       ${dados.desejaInformacoes},
       ${JSON.stringify(dados.notas)}::jsonb,
       ${dados.recomendaria},

@@ -610,3 +610,39 @@ export interface PesquisaCantina {
   melhorias: string | null;
   criadoEm: string;
 }
+
+// ─── Montagem de Equipes (022) ───────────────────────────────────────────────
+
+export interface MatchDetalhe {
+  historico: number;
+  criterios: number;
+  convidarNovamente: number;
+  presencas: number;
+}
+
+export interface CandidatoMontagem {
+  pessoaId: string;
+  pessoaNome: string;
+  pessoaFotoUrl: string | null;
+  pessoaNascimento: string | null;
+  match: number;
+  matchDetalhe: MatchDetalhe;
+}
+
+export interface EdicaoMatchHistorico {
+  edicaoId: string;
+  edicaoNumero: number;
+  match: number;
+  historico: number;
+  criterios: number;
+  convidarNovamente: number;
+  presencas: number;
+  comentarios: string | null;
+  avaliadorNome: string | null;
+}
+
+export interface MatchHistoricoResponse {
+  pessoaId: string;
+  equipeId: string | null;
+  edicoes: EdicaoMatchHistorico[];
+}

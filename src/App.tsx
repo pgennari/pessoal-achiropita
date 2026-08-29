@@ -52,6 +52,7 @@ import { VagaDetalhe } from "./pages/VagaDetalhe";
 import { CantinaPesquisa } from "./pages/CantinaPesquisa";
 import { CantinaPesquisaPublico } from "./pages/CantinaPesquisaPublico";
 import { QrPesquisaCantina } from "./pages/QrPesquisaCantina";
+import { Montagem } from "./pages/Montagem";
 
 export function App() {
   return (
@@ -115,6 +116,7 @@ export function App() {
         <Route path="vagas/nova" element={<VagaNova />} />
         <Route path="vagas/:id" element={<VagaDetalhe />} />
         <Route path="cantina/pesquisas" element={<CantinaPesquisa />} />
+        <Route path="montagem" element={<Montagem />} />
         <Route path="auditoria" element={<Auditoria />} />
         <Route path="setores" element={<Setores />} />
         <Route path="sincronizacao" element={<Sincronizacao />} />

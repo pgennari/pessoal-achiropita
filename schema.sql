@@ -570,7 +570,8 @@ INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
   ('vaga.detalhe', 'Vagas: ver detalhes', 'Ver os detalhes de uma vaga de estacionamento.'),
   ('vaga.incluir', 'Vagas: incluir', 'Cadastrar novas vagas de estacionamento.'),
   ('vaga.editar', 'Vagas: editar', 'Editar vagas (identificacao, pessoas e estacionamento).'),
-  ('avaliacao.gerenciar', 'Avaliação: gerenciar', 'Gerar link de avaliação, listar e visualizar avaliações da edição.')
+  ('avaliacao.gerenciar', 'Avaliação: gerenciar', 'Gerar link de avaliação, listar e visualizar avaliações da edição.'),
+  ('edicao.montagem', 'Edição: montagem', 'Montar equipes com pontuação de match.')
 ON CONFLICT (codigo) DO NOTHING;
 
 -- Desativa codigos antigos do catalogo substituidos pelos granulares acima.
@@ -617,7 +618,7 @@ INSERT INTO perfis (sigla, nome, fixo, permissoes) VALUES
     pessoas.lista,pessoas.detalhe,pessoas.incluir,pessoas.editar,pessoas.ativar,pessoas.associar,
     formacao.turmas,formacao.pendenciaListar,formacao.marcarManual,
     presenca.lista,presenca.linkGerar,presenca.linkRevogar,presenca.relatorio,
-    edicao.lista,edicao.detalhe,edicao.incluir,edicao.editar,edicao.ativar,edicao.equipeCriar,edicao.equipeEditar,edicao.equipeExcluir,edicao.equipeAlocar,edicao.historico,
+    edicao.lista,edicao.detalhe,edicao.incluir,edicao.editar,edicao.ativar,edicao.equipeCriar,edicao.equipeEditar,edicao.equipeExcluir,edicao.equipeAlocar,edicao.historico,edicao.montagem,
     setor.lista,setor.incluir,setor.editar,
     usuario.lista,usuario.conviteEnviar,usuario.conviteRevogar,usuario.editar,
     auditoria.ver,

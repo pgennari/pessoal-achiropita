@@ -1,7 +1,7 @@
 // Hooks de leitura de dados — substituem o padrão onSnapshot do Firestore.
 // Usa @tanstack/react-query: cache, loading state e refetch após mutações.
 import { useEffect, useMemo, useState } from "react";
-import { useQuery, useQueries } from "@tanstack/react-query";
+import { useQuery, useQueries, useInfiniteQuery } from "@tanstack/react-query";
 import { api } from "./api";
 import {
   Avaliacao,
@@ -46,6 +46,7 @@ import {
 } from "./presenca";
 import type { DashboardInicial } from "./dashboard";
 import { PerfilInfo } from "./tipos";
+import { listarCandidatosMontagem } from "./montagem";
 
 export interface EstadoLista<T> {
   itens: T[];
@@ -680,4 +681,23 @@ export function useDebounce<T>(valor: T, atraso: number): T {
 function erroMsg(error: unknown): string | null {
   if (!error) return null;
   return (error as Error).message ?? "Falha ao carregar dados.";
+}
+
+// ─── Montagem de Equipes (022) ───────────────────────────────────────────────
+
+const TAMANHO_LOTE_MONTAGEM = 20;
+
+export function useMontagemCandidatos(
+  edicaoId: string | undefined,
+  equipeId: string | undefined
+) {
+  return useInfiniteQuery({
+    queryKey: ["montagem-candidatos", edicaoId, equipeId],
+    enabled: !!edicaoId && !!equipeId,
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      listarCandidatosMontagem(edicaoId!, equipeId!, pageParam as number),
+    getNextPageParam: (ultima, todas) =>
+      ultima.temMais ? todas.length * TAMANHO_LOTE_MONTAGEM : undefined,
+  });
 }

@@ -99,6 +99,12 @@ const secoes: Secao[] = [
         icone: "organograma",
         permissoes: ["edicao.detalhe"],
       },
+      {
+        to: "/montagem",
+        label: "Montagem",
+        icone: "usuarios",
+        permissoes: ["edicao.montagem"],
+      },
     ],
   },
   {

@@ -1,8 +1,8 @@
 // Formulario publico de satisfacao da cantina (020-cantina-pesquisa).
 // Rota fixa /cantina/pesquisa, sem autenticacao e sem token: cada envio cria
 // um registro novo em pesquisas_cantina.
-import { useEffect, useState, FormEvent } from "react";
-import { enviarPesquisa, listarDiasPublicos, DiaFestaPublico } from "../lib/cantina";
+import { useState, FormEvent } from "react";
+import { enviarPesquisa } from "../lib/cantina";
 import type { NotasPesquisa, RecomendariaCantina, NotaPesquisa } from "../lib/tipos";
 import { Icone } from "../components/Icone";
 
@@ -36,19 +36,10 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type NotasParciais = Record<keyof NotasPesquisa, NotaPesquisa | null>;
 
-function dataHojeIso(): string {
-  const hoje = new Date();
-  return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(
-    hoje.getDate()
-  ).padStart(2, "0")}`;
-}
-
 export function CantinaPesquisaPublico() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
-  const [diaIda, setDiaIda] = useState("");
-  const [convite, setConvite] = useState("");
   const [desejaInformacoes, setDesejaInformacoes] = useState<boolean | null>(null);
   const [notas, setNotas] = useState<NotasParciais>({
     atendimento: null,
@@ -60,32 +51,9 @@ export function CantinaPesquisaPublico() {
   const [recomendaria, setRecomendaria] = useState<RecomendariaCantina | null>(null);
   const [melhorias, setMelhorias] = useState("");
 
-  const [dias, setDias] = useState<DiaFestaPublico[] | null>(null);
   const [erros, setErros] = useState<Record<string, string>>({});
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
-
-  useEffect(() => {
-    let cancelado = false;
-    (async () => {
-      try {
-        const lista = await listarDiasPublicos();
-        if (cancelado) return;
-        setDias(lista);
-        const hoje = dataHojeIso();
-        // FR-008: hoje vem preselecionado quando fizer parte da agenda.
-        if (lista.some((d) => d.data === hoje)) {
-          setDiaIda(hoje);
-        }
-      } catch {
-        // Sem a agenda o campo fica vazio; nao bloqueia a pesquisa.
-        if (!cancelado) setDias([]);
-      }
-    })();
-    return () => {
-      cancelado = true;
-    };
-  }, []);
 
   function limparErro(campo: string) {
     setErros((atuais) => {
@@ -133,8 +101,6 @@ export function CantinaPesquisaPublico() {
         nome: nome.trim(),
         email: email.trim() || null,
         telefone: telefone.trim() || null,
-        diaIda: diaIda || null,
-        convite: convite.trim() || null,
         desejaInformacoes: desejaInformacoes === true,
         notas: notas as NotasPesquisa,
         recomendaria: recomendaria as RecomendariaCantina,
@@ -248,48 +214,16 @@ export function CantinaPesquisaPublico() {
                 {erros.email && <p className="input-erro-msg">{erros.email}</p>}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="input-grupo m-0">
-                  <label className="input-label" htmlFor="pesq-telefone">
-                    Telefone <span className="opcional">opcional</span>
-                  </label>
-                  <input
-                    id="pesq-telefone"
-                    type="tel"
-                    className="input"
-                    value={telefone}
-                    onChange={(e) => setTelefone(e.target.value)}
-                  />
-                </div>
-                <div className="input-grupo m-0">
-                  <label className="input-label" htmlFor="pesq-dia">
-                    Dia da ida <span className="opcional">opcional</span>
-                  </label>
-                  <select
-                    id="pesq-dia"
-                    className="input"
-                    value={diaIda}
-                    onChange={(e) => setDiaIda(e.target.value)}
-                  >
-                    <option value="">Não informar</option>
-                    {(dias ?? []).map((dia) => (
-                      <option key={dia.id} value={dia.data}>
-                        {new Date(`${dia.data}T00:00:00`).toLocaleDateString("pt-BR")}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
               <div className="input-grupo m-0">
-                <label className="input-label" htmlFor="pesq-convite">
-                  Número do convite <span className="opcional">opcional</span>
+                <label className="input-label" htmlFor="pesq-telefone">
+                  Telefone <span className="opcional">opcional</span>
                 </label>
                 <input
-                  id="pesq-convite"
+                  id="pesq-telefone"
+                  type="tel"
                   className="input"
-                  value={convite}
-                  onChange={(e) => setConvite(e.target.value)}
+                  value={telefone}
+                  onChange={(e) => setTelefone(e.target.value)}
                 />
               </div>
 

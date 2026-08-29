@@ -4,7 +4,7 @@
 // Dados montados no cliente a partir dos hooks existentes (pessoas, equipes,
 // participacoes, dias de festa e presencas por dia) — sem chamada nova na API.
 // ============================================================================
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSessao, temPermissao } from "../lib/sessao";
 import {
@@ -39,6 +39,36 @@ function dataLocalISO(d: Date): string {
   return `${ano}-${mes}-${dia}`;
 }
 
+type AbaRelatorio = "pessoas" | "equipes-sem-presenca";
+
+// Item do relatorio "Equipes sem presenca": um dia de festa e as equipes dessa
+// edicao que nao tiveram nenhuma presenca registrada naquele dia.
+interface EquipesSemPresencaDia {
+  diaId: string;
+  data: string;
+  equipes: { id: string; nome: string }[];
+}
+
+function dispararCsv(nome: string, conteudo: string) {
+  const blob = new Blob([`﻿${conteudo}`], {
+    type: "text/csv;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nome;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function escaparCsv(valor: string | number): string {
+  const s = String(valor ?? "");
+  if (/[",\n;]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
 export function RelatorioPresenca() {
   const { sessao } = useSessao();
   const { edicao, carregando: carregandoEdicao } = useEdicaoAtiva();
@@ -47,6 +77,7 @@ export function RelatorioPresenca() {
   const { itens: equipes } = useEquipes(edicao?.id);
   const { itens: participacoes } = useParticipacoes(edicao?.id);
 
+  const [aba, setAba] = useState<AbaRelatorio>("pessoas");
   const [filtroEquipe, setFiltroEquipe] = useState("");
   const [filtroNome, setFiltroNome] = useState("");
   const [filtroFuncao, setFiltroFuncao] = useState("");
@@ -191,6 +222,67 @@ export function RelatorioPresenca() {
     ordemAsc,
   ]);
 
+  // Equipes ativas (nao excluidas) da edicao, ordenadas por nome.
+  const equipesValidas = useMemo(
+    () =>
+      equipes
+        .filter((e) => !e.excluida)
+        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+    [equipes]
+  );
+
+  // Equipes com ao menos uma presenca registrada, por dia de festa.
+  const equipesComPresencaPorDia = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    for (const pr of presencas) {
+      let conjunto = m.get(pr.diaFestaId);
+      if (!conjunto) {
+        conjunto = new Set<string>();
+        m.set(pr.diaFestaId, conjunto);
+      }
+      conjunto.add(pr.equipeId);
+    }
+    return m;
+  }, [presencas]);
+
+  // Para cada dia de festa, as equipes sem nenhuma presenca registrada.
+  const equipesSemPresencaPorDia = useMemo<EquipesSemPresencaDia[]>(
+    () =>
+      diasOrdenados.map((dia) => {
+        const equipesComPresenca = equipesComPresencaPorDia.get(dia.id);
+        const semPresenca = equipesValidas.filter(
+          (e) => !equipesComPresenca?.has(e.id)
+        );
+        return {
+          diaId: dia.id,
+          data: dia.data,
+          equipes: semPresenca.map((e) => ({ id: e.id, nome: e.nome })),
+        };
+      }),
+    [diasOrdenados, equipesValidas, equipesComPresencaPorDia]
+  );
+
+  const totalEquipesSemPresenca = useMemo(
+    () =>
+      equipesSemPresencaPorDia.reduce((soma, dia) => soma + dia.equipes.length, 0),
+    [equipesSemPresencaPorDia]
+  );
+
+  function exportarEquipesSemPresencaCsv() {
+    const header = ["data", "equipe"];
+    const corpo: string[] = [];
+    for (const dia of equipesSemPresencaPorDia) {
+      for (const equipe of dia.equipes) {
+        corpo.push(
+          [formatarData(dia.data), equipe.nome].map(escaparCsv).join(",")
+        );
+      }
+    }
+    const csv = [header.join(","), ...corpo].join("\n");
+    const stamp = new Date().toISOString().slice(0, 10);
+    dispararCsv(`equipes-sem-presenca-${stamp}.csv`, csv);
+  }
+
   function toggleOrdenacao(coluna: ColunaOrdenacao) {
     if (colunaOrdenada === coluna) {
       setOrdemAsc((atual) => !atual);
@@ -297,7 +389,31 @@ export function RelatorioPresenca() {
         </div>
       </header>
 
-      <div className="card">
+      <div className="tabs">
+        <div className="tabs-lista">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={aba === "pessoas"}
+            className={`aba ${aba === "pessoas" ? "aba-ativa" : ""}`}
+            onClick={() => setAba("pessoas")}
+          >
+            Pessoas
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={aba === "equipes-sem-presenca"}
+            className={`aba ${aba === "equipes-sem-presenca" ? "aba-ativa" : ""}`}
+            onClick={() => setAba("equipes-sem-presenca")}
+          >
+            Equipes sem presença
+          </button>
+        </div>
+
+        {aba === "pessoas" && (
+          <section className="space-y-6 tabs-painel">
+            <div className="card">
         <div className="card-corpo space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2 text-xs text-ardesia">
@@ -653,8 +769,119 @@ export function RelatorioPresenca() {
                 </tbody>
               </table>
             </div>
+            </div>
+        )}
+          </section>
+        )}
+
+        {aba === "equipes-sem-presenca" && (
+          <section className="space-y-6 tabs-painel">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-ardesia text-sm">
+                Equipes desta edição sem nenhuma presença registrada, agrupadas
+                por dia de festa.
+              </p>
+              <button
+                type="button"
+                className="btn btn-secundario btn-pequeno"
+                onClick={exportarEquipesSemPresencaCsv}
+                disabled={totalEquipesSemPresenca === 0 || carregandoPresencas}
+                aria-label="Exportar CSV"
+                title="Exportar CSV"
+              >
+                <Icone nome="baixar" />
+              </button>
+            </div>
+
+            <p className="text-ardesia text-sm text-right">
+              {carregandoPresencas
+                ? "Carregando..."
+                : `${totalEquipesSemPresenca} ocorrência${
+                    totalEquipesSemPresenca === 1 ? "" : "s"
+                  } de equipe sem presença`}
+            </p>
+
+            {totalEquipesSemPresenca === 0 ? (
+              <div className="card">
+                <div className="card-corpo">
+                  <p className="text-ardesia">
+                    Todas as equipes têm presença registrada em todos os dias.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="card overflow-hidden">
+                <div className="tabela-rolavel">
+                  <table className="tabela-larga">
+                    <thead className="bg-pietra-clara/60 text-left">
+                      <tr>
+                        <th className="px-4 py-2 font-semibold">Data</th>
+                        <th className="px-4 py-2 font-semibold">
+                          Nome da Equipe
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {equipesSemPresencaPorDia.map((dia, indice) => {
+                        const cabecalho = (
+                          <tr className="bg-pietra-clara/30">
+                            <td
+                              colSpan={2}
+                              className="px-4 py-2 font-semibold"
+                            >
+                              Dia {indice + 1} · {formatarData(dia.data)}
+                              <span className="ml-2 text-sm font-normal text-ardesia">
+                                ({dia.equipes.length}{" "}
+                                {dia.equipes.length === 1
+                                  ? "equipe"
+                                  : "equipes"}{" "}
+                                sem presença)
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                        if (dia.equipes.length === 0) {
+                          return (
+                            <Fragment key={dia.diaId}>
+                              {cabecalho}
+                              <tr>
+                                <td
+                                  colSpan={2}
+                                  className="px-4 py-4 text-center text-ardesia text-sm"
+                                >
+                                  Nenhuma equipe sem presença neste dia.
+                                </td>
+                              </tr>
+                            </Fragment>
+                          );
+                        }
+                        return (
+                          <Fragment key={dia.diaId}>
+                            {cabecalho}
+                            {dia.equipes.map((equipe) => (
+                              <tr
+                                key={equipe.id}
+                                className="border-t border-pietra-clara hover:bg-pietra-clara/40"
+                              >
+                                <td className="px-4 py-2 font-mono whitespace-nowrap">
+                                  {formatarData(dia.data)}
+                                </td>
+                                <td className="px-4 py-2 font-semibold">
+                                  {equipe.nome}
+                                </td>
+                              </tr>
+                            ))}
+                          </Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
         </div>
-      )}
-    </div>
+      </div>
   );
 }

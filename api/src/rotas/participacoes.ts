@@ -60,6 +60,7 @@ const postParticipacaoRoute = createRoute({
   responses: {
     201: { content: { "application/json": { schema: z.any() } }, description: "Criada" },
     403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" },
     409: { content: { "application/json": { schema: z.any() } }, description: "Conflito" }
   }
 });
@@ -77,6 +78,14 @@ app.openapi(postParticipacaoRoute, async (c) => {
     pessoaNome: string;
     equipeNome: string;
   };
+
+  // Alocacao apenas em equipes ativas: excluida logicamente deixa de ser alvo.
+  const [equipeValida] = await sql`
+    SELECT id FROM equipes WHERE id = ${body.equipeId} AND excluida = FALSE
+  `;
+  if (!equipeValida) {
+    return c.json({ erro: "Equipe não encontrada ou excluída." }, 404);
+  }
 
   try {
     const [row] = await sql`

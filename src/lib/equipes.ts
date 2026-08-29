@@ -26,6 +26,8 @@ export function equipeDeSnap(id: string, data: Record<string, unknown>): Equipe 
     nome: (data.nome as string) ?? "",
     setor: (data.setor as Setor) ?? "Interna",
     equipePaiId: (data.equipePaiId as string | null) ?? null,
+    raiz: (data.raiz as boolean) ?? false,
+    excluida: (data.excluida as boolean) ?? false,
     vagasCoordenador: (data.vagasCoordenador as number) ?? 0,
     vagasEquipista: (data.vagasEquipista as number) ?? 0,
     criadoEm: (data.criadoEm as string) || "",
@@ -112,7 +114,8 @@ export async function copiarEquipesDeEdicao(
 export async function removerEquipe(_sessao: Sessao, equipe: Equipe): Promise<void> {
   await api.delete(`/api/equipes/${equipe.id}`);
   invalidarEquipes(equipe.edicaoId);
-  // Participações são removidas em cascade pelo banco.
+  // Exclusao logica: o backend desaloca as pessoas e marca a equipe como
+  // excluida; nada depende do cascade do banco.
   queryClient.invalidateQueries({ queryKey: ["participacoes"] });
 }
 

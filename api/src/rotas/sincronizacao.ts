@@ -257,7 +257,7 @@ async function carregarContexto(): Promise<ContextoBanco> {
     });
   }
 
-  const equipes = await sql`SELECT id, nome, setor FROM equipes WHERE edicao_id = ${edicao.id}`;
+  const equipes = await sql`SELECT id, nome, setor FROM equipes WHERE edicao_id = ${edicao.id} AND excluida = FALSE`;
   const equipeIdPorNome = new Map<string, string>();
   const equipesPorId = new Map<string, { id: string; nome: string; setor: string }>();
   for (const e of equipes) {

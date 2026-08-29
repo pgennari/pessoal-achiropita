@@ -301,6 +301,9 @@ export interface Equipe {
   // Equipe raiz do organograma (unica por edicao; as demais equipes sem
   // equipe superior aparecem numa secao a parte).
   raiz?: boolean;
+  // Falso por padrao; TRUE = equipe excluida logicamente (nao aparece no
+  // sistema; a API ja retorna listas sem ela).
+  excluida: boolean;
   vagasCoordenador: number;
   vagasEquipista: number;
   criadoEm: string;

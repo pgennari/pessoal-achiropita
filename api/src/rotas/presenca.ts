@@ -299,6 +299,7 @@ app.openapi(getResumoEquipesRoute, async (c) => {
       GROUP BY pr.equipe_id
     ) pres ON pres.equipe_id = eq.id
     WHERE eq.edicao_id = ${String(dia.edicao_id)}
+      AND eq.excluida = FALSE
       AND (total_cont.total IS NOT NULL OR pres.confirmados IS NOT NULL)
     ORDER BY eq.nome
   `;

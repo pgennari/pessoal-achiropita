@@ -129,6 +129,10 @@ CREATE INDEX IF NOT EXISTS idx_equipes_pai ON equipes(equipe_pai_id);
 -- A unicidade logica e garantida pela API (marca a nova e desmarca as demais).
 ALTER TABLE equipes ADD COLUMN IF NOT EXISTS raiz BOOLEAN NOT NULL DEFAULT FALSE;
 
+-- Exclusao logica (024-exclusao-logica-equipe): equipe marcada como excluida
+-- nao aparece no sistema; o registro e preservado para referencia e historico.
+ALTER TABLE equipes ADD COLUMN IF NOT EXISTS excluida BOOLEAN NOT NULL DEFAULT FALSE;
+
 -- participacoes: UNIQUE(edicao_id, pessoa_id) = uma equipe por edição por pessoa
 CREATE TABLE participacoes (
   id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

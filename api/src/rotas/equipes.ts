@@ -16,6 +16,7 @@ function equipeDeRow(r: Record<string, unknown>) {
     setor: r.setor,
     equipePaiId: r.equipe_pai_id ?? null,
     raiz: r.raiz === true,
+    excluida: r.excluida === true,
     vagasCoordenador: r.vagas_coordenador,
     vagasEquipista: r.vagas_equipista,
     criadoEm,
@@ -33,6 +34,7 @@ const SEL_EQUIPES = sql`
     e.setor,
     e.equipe_pai_id,
     e.raiz,
+    e.excluida,
     e.criado_em,
     e.atualizado_em,
     COALESCE(COUNT(*) FILTER (WHERE p.funcao = 'Coordenador'), 0)::int AS vagas_coordenador,
@@ -57,7 +59,7 @@ async function erroPaiInvalido(
   if (excetoId && paiId === excetoId) {
     return "Uma equipe não pode ser subordinada a si mesma.";
   }
-  const [pai] = await sql`SELECT edicao_id FROM equipes WHERE id = ${paiId}`;
+  const [pai] = await sql`SELECT edicao_id FROM equipes WHERE id = ${paiId} AND excluida = FALSE`;
   if (!pai) return "Equipe superior não encontrada.";
   if (String(pai.edicao_id) !== edicaoId) {
     return "A equipe superior deve pertencer à mesma edição.";
@@ -107,16 +109,16 @@ app.openapi(getEquipesRoute, async (c) => {
   const edicaoId = query.edicaoId;
 
   if (edicaoId) {
-    const rows = await sql`${SEL_EQUIPES} WHERE e.edicao_id = ${edicaoId} GROUP BY e.id ORDER BY e.nome`;
+    const rows = await sql`${SEL_EQUIPES} WHERE e.edicao_id = ${edicaoId} AND e.excluida = FALSE GROUP BY e.id ORDER BY e.nome`;
     return c.json(rows.map(equipeDeRow) as any, 200);
   }
 
   if (sessao.equipesCRD?.length) {
-    const rows = await sql`${SEL_EQUIPES} WHERE e.id = ANY(${sessao.equipesCRD}) GROUP BY e.id ORDER BY e.nome`;
+    const rows = await sql`${SEL_EQUIPES} WHERE e.id = ANY(${sessao.equipesCRD}) AND e.excluida = FALSE GROUP BY e.id ORDER BY e.nome`;
     return c.json(rows.map(equipeDeRow) as any, 200);
   }
 
-  const rows = await sql`${SEL_EQUIPES} GROUP BY e.id ORDER BY e.nome`;
+  const rows = await sql`${SEL_EQUIPES} WHERE e.excluida = FALSE GROUP BY e.id ORDER BY e.nome`;
   return c.json(rows.map(equipeDeRow) as any, 200);
 });
 
@@ -152,6 +154,7 @@ app.openapi(getRelatorioEquipistasRoute, async (c) => {
     FROM equipes e
     LEFT JOIN participacoes p ON p.equipe_id = e.id
     WHERE e.edicao_id = ${edicaoId}
+      AND e.excluida = FALSE
     GROUP BY e.id
     ORDER BY e.nome
   `;
@@ -178,7 +181,7 @@ app.openapi(getEquipeIdRoute, async (c) => {
   if (!temPermissao(sessao, "edicao.detalhe")) {
     return c.json({ erro: "Acesso negado. Requer permissao edicao.detalhe." }, 403);
   }
-  const [row] = await sql`${SEL_EQUIPES} WHERE e.id = ${id} GROUP BY e.id`;
+  const [row] = await sql`${SEL_EQUIPES} WHERE e.id = ${id} AND e.excluida = FALSE GROUP BY e.id`;
   if (!row) return c.json({ erro: "Equipe não encontrada." }, 404);
   return c.json(equipeDeRow(row) as any, 200);
 });
@@ -255,7 +258,7 @@ app.openapi(putEquipeRoute, async (c) => {
     return c.json({ erro: "Acesso negado. Requer permissao edicao.equipeEditar." }, 403);
   }
   const [existente] =
-    await sql`SELECT edicao_id, equipe_pai_id, raiz FROM equipes WHERE id = ${id}`;
+    await sql`SELECT edicao_id, equipe_pai_id, raiz FROM equipes WHERE id = ${id} AND excluida = FALSE`;
   if (!existente) return c.json({ erro: "Equipe não encontrada." }, 404);
   const edicaoId = String(existente.edicao_id);
 
@@ -336,9 +339,64 @@ app.openapi(deleteEquipeRoute, async (c) => {
   if (!temPermissao(sessao, "edicao.equipeExcluir")) {
     return c.json({ erro: "Acesso negado. Requer permissao edicao.equipeExcluir." }, 403);
   }
-  const [row] = await sql`DELETE FROM equipes WHERE id = ${id} RETURNING nome`;
-  if (!row) return c.json({ erro: "Equipe não encontrada." }, 404);
-  await registrarEvento(sessao, "equipe.removeu", `equipes/${id}`, String(row.nome));
+  // Exclusao logica (024-exclusao-logica-equipe): a linha nunca e apagada do
+  // banco. A transacao desaloca todas as pessoas (registrando cada uma no
+  // historico de movimentacoes), desaninha subequipes e marca excluida = TRUE.
+  const resultado = await sql.begin(async (t) => {
+    const [equipe] = await t`
+      SELECT edicao_id, nome, raiz FROM equipes
+      WHERE id = ${id} AND excluida = FALSE
+    `;
+    if (!equipe) return null;
+
+    const alocacoes = await t`
+      SELECT part.pessoa_id, part.funcao
+      FROM participacoes part
+      WHERE part.equipe_id = ${id}
+    `;
+    await t`DELETE FROM participacoes WHERE equipe_id = ${id}`;
+
+    // Desalocacao em massa: mesma forma do fluxo individual (participacoes),
+    // com origem = equipe e destino vazio, preservando a trilha da pessoa.
+    for (const aloc of alocacoes) {
+      await t`
+        INSERT INTO pessoa_equipe_historico (
+          pessoa_id, edicao_id,
+          equipe_origem_id, equipe_origem_nome,
+          equipe_destino_id, equipe_destino_nome,
+          funcao, autor, autor_nome
+        ) VALUES (
+          ${aloc.pessoa_id}, ${equipe.edicao_id},
+          ${id}, ${equipe.nome},
+          NULL, '',
+          ${aloc.funcao}, ${sessao.uid}, ${sessao.nome}
+        )
+      `;
+    }
+
+    // Subequipes permanecem ativas, sem equipe superior definida.
+    await t`UPDATE equipes SET equipe_pai_id = NULL WHERE equipe_pai_id = ${id}`;
+    // Se a excluida era raiz, a edicao deixa de ter raiz (nova pode ser
+    // definida manualmente).
+    await t`
+      UPDATE equipes SET
+        excluida = TRUE,
+        raiz = FALSE,
+        atualizado_em = NOW()
+      WHERE id = ${id}
+    `;
+
+    return {
+      nome: String(equipe.nome),
+      total: alocacoes.length,
+    };
+  });
+
+  if (!resultado) return c.json({ erro: "Equipe não encontrada." }, 404);
+  await registrarEvento(
+    sessao, "equipe.removeu", `equipes/${id}`,
+    `${resultado.nome} (${resultado.total} pessoa(s) desalocada(s))`
+  );
   return c.json({ ok: true }, 200);
 });
 
@@ -367,6 +425,7 @@ app.openapi(postEquipeCopiarRoute, async (c) => {
   const origem = await sql`
     SELECT id, nome, setor, equipe_pai_id
     FROM equipes WHERE edicao_id = ${edicaoOrigemId}
+      AND excluida = FALSE
     ORDER BY criado_em
   `;
   // Copia uma a uma para mapear ids e preservar a subordinacao no destino.

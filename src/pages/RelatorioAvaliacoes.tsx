@@ -7,9 +7,16 @@
 // Semantica dos filtros: OR dentro do mesmo campo, AND entre campos.
 // ============================================================================
 import { useEffect, useMemo, useState } from "react";
-import { useAvaliacoes, useEdicaoAtiva } from "../lib/hooks";
+import {
+  useAvaliacoes,
+  useEdicaoAtiva,
+  useEquipes,
+  useSetores,
+} from "../lib/hooks";
 import { useSessao, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
+import { normalizar } from "../lib/utilsDominio";
+import { SETORES } from "../lib/tipos";
 import type {
   Avaliacao,
   CriteriosAvaliacao,
@@ -40,16 +47,21 @@ const CRITERIOS_RELATORIO: { chave: CampoCriterio; rotulo: string }[] = [
 const NOTAS_CONVIDAR: NotaConvidarNovamente[] = [1, 2, 3, 4, 5];
 
 interface FiltrosRelatorio {
+  setores: Set<string>;
+  equipes: Set<string>;
   criterios: Partial<Record<CampoCriterio, Set<ValorCriterio>>>;
   convidarNovamente: Set<NotaConvidarNovamente>;
 }
 
 const FILTROS_INICIAIS: FiltrosRelatorio = {
+  setores: new Set(),
+  equipes: new Set(),
   criterios: {},
   convidarNovamente: new Set(),
 };
 
 function temAlgumFiltro(filtros: FiltrosRelatorio): boolean {
+  if (filtros.setores.size > 0 || filtros.equipes.size > 0) return true;
   if (filtros.convidarNovamente.size > 0) return true;
   return CRITERIOS_RELATORIO.some(
     ({ chave }) => (filtros.criterios[chave]?.size ?? 0) > 0
@@ -65,11 +77,13 @@ function campoAtivo(filtros: FiltrosRelatorio, chave: CampoCriterio): boolean {
 // da API (atualizadoEm DESC).
 //
 // `excluir` remove um campo da conjuncao — usado pelo resumo para contar cada
-// campo sobre o universo filtrado pelos demais.
+// campo sobre o universo filtrado pelos demais. Setores/equipes entram sempre
+// na conjuncao (nao sao excluidos pelo resumo).
 function aplicarFiltros(
   avaliacoes: Avaliacao[],
   filtros: FiltrosRelatorio,
-  excluir?: CampoCriterio | "convidarNovamente"
+  excluir?: CampoCriterio | "convidarNovamente",
+  equipesPorId?: Map<string, { setor: string; nome: string }>
 ): Avaliacao[] {
   const campos = CRITERIOS_RELATORIO.filter(
     ({ chave }) => chave !== excluir && campoAtivo(filtros, chave)
@@ -77,7 +91,13 @@ function aplicarFiltros(
   const filtrarConvidar =
     excluir !== "convidarNovamente" && filtros.convidarNovamente.size > 0;
 
-  if (campos.length === 0 && !filtrarConvidar) return avaliacoes;
+  if (
+    filtros.setores.size === 0 &&
+    filtros.equipes.size === 0 &&
+    campos.length === 0 &&
+    !filtrarConvidar
+  )
+    return avaliacoes;
 
   return avaliacoes.filter((avaliacao) => {
     const atendeCriterios = campos.every(({ chave }) => {
@@ -88,7 +108,15 @@ function aplicarFiltros(
     const atendeConvidar =
       !filtrarConvidar ||
       (nota !== null && filtros.convidarNovamente.has(nota));
-    return atendeCriterios && atendeConvidar;
+
+    const equipe = equipesPorId?.get(avaliacao.equipeId);
+    const atendeSetores =
+      filtros.setores.size === 0 ||
+      (equipe !== undefined && filtros.setores.has(equipe.setor));
+    const atendeEquipes =
+      filtros.equipes.size === 0 || filtros.equipes.has(avaliacao.equipeId);
+
+    return atendeCriterios && atendeConvidar && atendeSetores && atendeEquipes;
   });
 }
 
@@ -123,6 +151,7 @@ function corNotaConvidar(nota: NotaConvidarNovamente): string {
 // Dropdown multi-selecao de um campo do relatorio. O gatilho mostra o nome do
 // campo e a quantidade de valores marcados; o painel lista os valores possiveis
 // com caixas de marcacao. Fecha ao clicar fora ou com Escape (efeito no chamador).
+// Quando `permitirBusca` e true, um campo de texto filtra as opcoes listadas.
 function MenuFiltro(props: {
   aberto: boolean;
   rotulo: string;
@@ -130,10 +159,32 @@ function MenuFiltro(props: {
   aoAbrirFechar: () => void;
   aoMarcar: (chave: string) => void;
   aoLimparCampo: () => void;
+  permitirBusca?: boolean;
+  placeholderBusca?: string;
 }) {
-  const { aberto, rotulo, opcoes, aoAbrirFechar, aoMarcar, aoLimparCampo } =
-    props;
+  const {
+    aberto,
+    rotulo,
+    opcoes,
+    aoAbrirFechar,
+    aoMarcar,
+    aoLimparCampo,
+    permitirBusca = false,
+    placeholderBusca = "Buscar...",
+  } = props;
   const quantidade = opcoes.filter((opcao) => opcao.marcado).length;
+  const [busca, setBusca] = useState("");
+
+  // Limpa a busca sempre que o painel fecha, para o filtro nao vazar entre aberturas.
+  useEffect(() => {
+    if (!aberto) setBusca("");
+  }, [aberto]);
+
+  const opcoesFiltradas = useMemo(() => {
+    if (!permitirBusca || !busca.trim()) return opcoes;
+    const termo = normalizar(busca);
+    return opcoes.filter((opcao) => normalizar(opcao.rotulo).includes(termo));
+  }, [opcoes, permitirBusca, busca]);
 
   return (
     <div className="relative" data-dropdown>
@@ -156,20 +207,44 @@ function MenuFiltro(props: {
 
       {aberto && (
         <div className="absolute left-0 top-full mt-1 z-30 min-w-[190px] rounded-lg border border-pietra bg-bianco shadow-media p-2">
-          {opcoes.map((opcao) => (
-            <label
-              key={opcao.chave}
-              className="flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-pietra-clara cursor-pointer"
-            >
+          {permitirBusca && (
+            <div className="relative mb-1">
+              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-ardesia">
+                <Icone nome="busca" tamanho={14} />
+              </span>
               <input
-                type="checkbox"
-                className="accent-verde"
-                checked={opcao.marcado}
-                onChange={() => aoMarcar(opcao.chave)}
+                type="text"
+                className="input pl-8"
+                placeholder={placeholderBusca}
+                aria-label={`Buscar ${rotulo}`}
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                autoComplete="off"
               />
-              {opcao.rotulo}
-            </label>
-          ))}
+            </div>
+          )}
+          <div className="max-h-56 overflow-y-auto">
+            {opcoesFiltradas.length === 0 ? (
+              <p className="px-2 py-1.5 text-sm text-ardesia">
+                Nenhuma opção encontrada.
+              </p>
+            ) : (
+              opcoesFiltradas.map((opcao) => (
+                <label
+                  key={opcao.chave}
+                  className="flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-pietra-clara cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    className="accent-verde"
+                    checked={opcao.marcado}
+                    onChange={() => aoMarcar(opcao.chave)}
+                  />
+                  {opcao.rotulo}
+                </label>
+              ))
+            )}
+          </div>
           {quantidade > 0 && (
             <button
               type="button"
@@ -201,10 +276,12 @@ export function RelatorioAvaliacoes() {
   const { sessao } = useSessao();
   const { edicao, carregando: carregandoEdicao } = useEdicaoAtiva();
   const { itens: avaliacoes, carregando, erro } = useAvaliacoes(edicao?.id);
+  const { itens: equipes } = useEquipes(edicao?.id);
+  const { itens: setores } = useSetores();
   const [filtros, setFiltros] = useState<FiltrosRelatorio>(FILTROS_INICIAIS);
   const [detalheAbertoId, setDetalheAbertoId] = useState<string | null>(null);
   const [dropdownAberto, setDropdownAberto] = useState<string | null>(null);
-  const [resumoAberto, setResumoAberto] = useState(true);
+  const [resumoAberto, setResumoAberto] = useState(false);
 
   // Fecha o dropdown aberto ao clicar fora dele ou pressionar Escape.
   useEffect(() => {
@@ -229,7 +306,13 @@ export function RelatorioAvaliacoes() {
     setDropdownAberto((atual) => (atual === chave ? null : chave));
   }
 
-  function limparCampo(chave: CampoCriterio | "convidarNovamente") {
+  function limparCampo(
+    chave: "setores" | "equipes" | CampoCriterio | "convidarNovamente"
+  ) {
+    if (chave === "setores" || chave === "equipes") {
+      setFiltros((atual) => ({ ...atual, [chave]: new Set() }));
+      return;
+    }
     if (chave === "convidarNovamente") {
       setFiltros((atual) => ({ ...atual, convidarNovamente: new Set() }));
       return;
@@ -245,9 +328,35 @@ export function RelatorioAvaliacoes() {
     setDetalheAbertoId((atual) => (atual === id ? null : id));
   }
 
+  // Setores de equipes desta edicao: usa o catalogo editavel quando existir,
+  // senao o catalogo fixo (mesma logica do formulario de equipe).
+  const opcoesSetor = useMemo(() => {
+    if (setores.length > 0) {
+      return setores.map((s) => ({ valor: s.id, rotulo: s.nome }));
+    }
+    return SETORES.map((s) => ({ valor: s.valor, rotulo: s.rotulo }));
+  }, [setores]);
+
+  // Mapa equipeId -> { setor, nome } para resolver setor/equipe das avaliacoes.
+  const equipesPorId = useMemo(
+    () =>
+      new Map(
+        equipes.map((e) => [e.id, { setor: e.setor, nome: e.nome }] as const)
+      ),
+    [equipes]
+  );
+
+  const opcoesEquipe = useMemo(
+    () =>
+      equipes
+        .map((e) => ({ valor: e.id, rotulo: e.nome }))
+        .sort((a, b) => a.rotulo.localeCompare(b.rotulo, "pt-BR")),
+    [equipes]
+  );
+
   const filtradas = useMemo(
-    () => aplicarFiltros(avaliacoes, filtros),
-    [avaliacoes, filtros]
+    () => aplicarFiltros(avaliacoes, filtros, undefined, equipesPorId),
+    [avaliacoes, filtros, equipesPorId]
   );
   const comFiltros = temAlgumFiltro(filtros);
 
@@ -256,7 +365,12 @@ export function RelatorioAvaliacoes() {
   const resumoCriterios = useMemo(
     () =>
       CRITERIOS_RELATORIO.map(({ chave, rotulo }) => {
-        const universo = aplicarFiltros(avaliacoes, filtros, chave);
+        const universo = aplicarFiltros(
+          avaliacoes,
+          filtros,
+          chave,
+          equipesPorId
+        );
         const porValor: Record<ValorCriterio, number> = {
           Otimo: 0,
           Bom: 0,
@@ -269,11 +383,16 @@ export function RelatorioAvaliacoes() {
         }
         return { chave, rotulo, porValor };
       }),
-    [avaliacoes, filtros]
+    [avaliacoes, filtros, equipesPorId]
   );
 
   const resumoConvidar = useMemo(() => {
-    const universo = aplicarFiltros(avaliacoes, filtros, "convidarNovamente");
+    const universo = aplicarFiltros(
+      avaliacoes,
+      filtros,
+      "convidarNovamente",
+      equipesPorId
+    );
     const porNota: Record<NotaConvidarNovamente, number> = {
       1: 0,
       2: 0,
@@ -286,7 +405,7 @@ export function RelatorioAvaliacoes() {
       if (nota !== null) porNota[nota] += 1;
     }
     return porNota;
-  }, [avaliacoes, filtros]);
+  }, [avaliacoes, filtros, equipesPorId]);
 
   function alternarValorCriterio(chave: CampoCriterio, valor: ValorCriterio) {
     setFiltros((atual) => {
@@ -315,6 +434,21 @@ export function RelatorioAvaliacoes() {
         convidarNovamente.add(nota);
       }
       return { ...atual, convidarNovamente };
+    });
+  }
+
+  function alternarCampoSetorial(
+    campo: "setores" | "equipes",
+    chave: string
+  ) {
+    setFiltros((atual) => {
+      const selecao = new Set(atual[campo]);
+      if (selecao.has(chave)) {
+        selecao.delete(chave);
+      } else {
+        selecao.add(chave);
+      }
+      return { ...atual, [campo]: selecao };
     });
   }
 
@@ -383,6 +517,41 @@ export function RelatorioAvaliacoes() {
         <>
           <div className="card">
             <div className="card-corpo flex flex-wrap items-center gap-2 py-3">
+              <MenuFiltro
+                aberto={dropdownAberto === "setores"}
+                rotulo="Setores"
+                opcoes={opcoesSetor.map((setor) => ({
+                  chave: setor.valor,
+                  rotulo: setor.rotulo,
+                  marcado: filtros.setores.has(setor.valor),
+                }))}
+                aoAbrirFechar={() => alternarDropdown("setores")}
+                aoMarcar={(chave) => alternarCampoSetorial("setores", chave)}
+                aoLimparCampo={() => limparCampo("setores")}
+                permitirBusca
+                placeholderBusca="Buscar setor..."
+              />
+
+              <MenuFiltro
+                aberto={dropdownAberto === "equipes"}
+                rotulo="Equipes"
+                opcoes={opcoesEquipe.map((equipe) => ({
+                  chave: equipe.valor,
+                  rotulo: equipe.rotulo,
+                  marcado: filtros.equipes.has(equipe.valor),
+                }))}
+                aoAbrirFechar={() => alternarDropdown("equipes")}
+                aoMarcar={(chave) => alternarCampoSetorial("equipes", chave)}
+                aoLimparCampo={() => limparCampo("equipes")}
+                permitirBusca
+                placeholderBusca="Buscar equipe..."
+              />
+
+              <span
+                className="h-6 w-px bg-pietra mx-1"
+                aria-hidden="true"
+              />
+
               {CRITERIOS_RELATORIO.map((grupo) => (
                 <MenuFiltro
                   key={grupo.chave}

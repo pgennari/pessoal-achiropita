@@ -34,6 +34,7 @@ const PessoaSchema = z.object({
   parenteFesta: z.string().optional().nullable(),
   observacoes: z.string().optional().nullable(),
   ativo: z.boolean(),
+  excluida: z.boolean(),
   motivoInativacao: z.string().optional().nullable(),
   fotoUrl: z.string().optional().nullable(),
   filhos: z.array(z.any()),
@@ -80,6 +81,7 @@ function pessoaDeRow(r: Record<string, unknown>) {
     parenteFesta: r.parente_festa ?? undefined,
     observacoes: r.observacoes ?? undefined,
     ativo: r.ativo,
+    excluida: (r.excluida as boolean) ?? false,
     motivoInativacao: r.motivo_inativacao ?? undefined,
     fotoUrl: (r.foto_url as string | null) ?? undefined,
     filhos: r.filhos ?? [],
@@ -219,7 +221,7 @@ app.openapi(getPessoasRoute, async (c) => {
       LEFT JOIN estacionamentos e ON e.id = v.estacionamento_id
       JOIN participacoes part ON part.pessoa_id = p.id
       JOIN edicoes ed ON ed.id = part.edicao_id AND ed.status = 'ativa'
-      WHERE part.equipe_id = ANY(${equipes})
+      WHERE p.excluida = FALSE AND part.equipe_id = ANY(${equipes})
       ORDER BY p.cracha
     `;
     return c.json(rows.map(pessoaDeRow) as any, 200);
@@ -233,7 +235,7 @@ app.openapi(getPessoasRoute, async (c) => {
       LEFT JOIN pessoa_vaga pvg ON pvg.pessoa_id = p.id
       LEFT JOIN vagas v ON v.id = pvg.vaga_id
       LEFT JOIN estacionamentos e ON e.id = v.estacionamento_id
-      WHERE p.id = ${sessao.pessoaId}
+      WHERE p.id = ${sessao.pessoaId} AND p.excluida = FALSE
     `;
     return c.json(row ? [pessoaDeRow(row)] : [], 200);
   }
@@ -244,6 +246,7 @@ app.openapi(getPessoasRoute, async (c) => {
     LEFT JOIN pessoa_vaga pvg ON pvg.pessoa_id = p.id
     LEFT JOIN vagas v ON v.id = pvg.vaga_id
     LEFT JOIN estacionamentos e ON e.id = v.estacionamento_id
+    WHERE p.excluida = FALSE
     ORDER BY p.cracha
   `;
   return c.json(rows.map(pessoaDeRow) as any, 200);
@@ -289,10 +292,10 @@ app.openapi(getPessoaIdRoute, async (c) => {
   const escopo = escopoPessoas(sessao);
   if (!escopo) return c.json({ erro: "Acesso negado. Sem permissao de leitura de pessoas." }, 403);
 
-  let filtro = sql`p.id = ${id}`;
+  let filtro = sql`p.id = ${id} AND p.excluida = FALSE`;
   if (escopo === "equipe") {
     const equipes = sessao.equipesCRD ?? [];
-    filtro = sql`p.id = ${id} AND EXISTS (
+    filtro = sql`p.id = ${id} AND p.excluida = FALSE AND EXISTS (
       SELECT 1 FROM participacoes part
       JOIN edicoes e ON e.id = part.edicao_id AND e.status = 'ativa'
       WHERE part.pessoa_id = p.id AND part.equipe_id = ANY(${equipes})
@@ -439,7 +442,7 @@ app.openapi(putPessoaRoute, async (c) => {
       filhos               = ${sql.json((body.filhos ?? []) as never)},
       carros               = ${sql.json((body.carros ?? []) as never)},
       atualizado_em        = NOW()
-    WHERE id = ${id} RETURNING *
+    WHERE id = ${id} AND excluida = FALSE RETURNING *
   `;
   if (!row) return c.json({ erro: "Pessoa não encontrada." }, 404);
   await registrarEvento(sessao, "pessoa.atualizou", `pessoas/${id}`, String(body.nome ?? ""));
@@ -476,7 +479,7 @@ app.openapi(putPessoaAtivacaoRoute, async (c) => {
       ativo = ${Boolean(ativo)},
       motivo_inativacao = ${ativo ? null : (motivoInativacao as string | null) ?? null},
       atualizado_em = NOW()
-    WHERE id = ${id} RETURNING id, nome, cracha
+    WHERE id = ${id} AND excluida = FALSE RETURNING id, nome, cracha
   `;
   if (!row) return c.json({ erro: "Pessoa não encontrada." }, 404);
 
@@ -552,7 +555,7 @@ app.openapi(postPessoaFotoRoute, async (c) => {
   if (foto.size > LIMITE) return c.json({ erro: "Arquivo maior que 2 MB após processamento." }, 400);
   const buffer = Buffer.from(await foto.arrayBuffer());
   const fotoUrl = await uploadFoto(id, buffer);
-  const [row] = await sql`UPDATE pessoas SET foto_url = ${fotoUrl}, atualizado_em = NOW() WHERE id = ${id} RETURNING id, nome, cracha`;
+  const [row] = await sql`UPDATE pessoas SET foto_url = ${fotoUrl}, atualizado_em = NOW() WHERE id = ${id} AND excluida = FALSE RETURNING id, nome, cracha`;
   if (!row) return c.json({ erro: "Pessoa não encontrada." }, 404);
   await registrarEvento(sessao, "pessoa.foto.atualizou", `pessoas/${id}`, `${row.nome} (#${row.cracha})`);
   return c.json({ fotoUrl }, 200);
@@ -577,11 +580,91 @@ app.openapi(deletePessoaFotoRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!temPermissao(sessao, "pessoas.editar")) return c.json({ erro: "Acesso negado. Requer permissao pessoas.editar." }, 403);
-  const [row] = await sql`UPDATE pessoas SET foto_url = NULL, atualizado_em = NOW() WHERE id = ${id} AND foto_url IS NOT NULL RETURNING id, nome, cracha`;
+  const [row] = await sql`UPDATE pessoas SET foto_url = NULL, atualizado_em = NOW() WHERE id = ${id} AND excluida = FALSE AND foto_url IS NOT NULL RETURNING id, nome, cracha`;
   if (!row) return c.json({ erro: "Pessoa sem foto ou não encontrada." }, 404);
   try { await deletarFoto(id); } catch { }
   await registrarEvento(sessao, "pessoa.foto.removeu", `pessoas/${id}`, `${row.nome} (#${row.cracha})`);
   return c.json({ ok: true }, 200);
+});
+
+// GET /api/pessoas/:id/exclusao-previa
+const ExclusaoPreviaSchema = z.object({
+  pessoa: z.object({ id: z.string(), nome: z.string(), cracha: z.number().int() }),
+  vinculos: z.object({
+    equipes: z.number().int(),
+    veiculos: z.number().int(),
+    vagas: z.number().int(),
+    parentes: z.number().int(),
+  }),
+  totalVinculos: z.number().int(),
+  veiculosSemVinculos: z.number().int(),
+});
+const getExclusaoPreviaRoute = createRoute({
+  method: "get",
+  path: "/{id}/exclusao-previa",
+  tags: ["Pessoas"],
+  summary: "Previa da exclusao: vinculos que serao desfeitos",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: ExclusaoPreviaSchema } }, description: "Vinculos encontrados" },
+    403: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Pessoa nao encontrada" },
+  },
+});
+app.openapi(getExclusaoPreviaRoute, async (c) => {
+  const { id } = c.req.valid("param");
+  const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "pessoas.excluir")) {
+    return c.json({ erro: "Acesso negado. Requer permissao pessoas.excluir." }, 403);
+  }
+
+  const [pessoa] = await sql`
+    SELECT id, nome, cracha FROM pessoas
+    WHERE id = ${id} AND excluida = FALSE
+  `;
+  if (!pessoa) return c.json({ erro: "Pessoa nao encontrada." }, 404);
+
+  // Vinculos de equipe nas edicoes nao encerradas: serao desalocados e
+  // registrados no historico de movimentacoes (mesmo fluxo da inativacao).
+  const [equipes] = await sql`
+    SELECT COUNT(*)::int AS total
+    FROM participacoes part
+    JOIN edicoes ed ON ed.id = part.edicao_id AND ed.status <> 'encerrada'
+    WHERE part.pessoa_id = ${id}
+  `;
+  // Vinculos de veiculos e quantos ficarao orfaos (sem outra pessoa) e serao
+  // excluidos logicamente junto com a pessoa.
+  const [veiculos] = await sql`
+    SELECT COUNT(*)::int AS total
+    FROM pessoa_veiculo pv
+    WHERE pv.pessoa_id = ${id}
+  `;
+  const [veiculosSemVinculos] = await sql`
+    SELECT COUNT(*)::int AS total
+    FROM pessoa_veiculo pv
+    WHERE pv.pessoa_id = ${id}
+      AND NOT EXISTS (
+        SELECT 1 FROM pessoa_veiculo pv2
+        WHERE pv2.veiculo_id = pv.veiculo_id AND pv2.pessoa_id <> ${id}
+      )
+  `;
+  const [vagas] = await sql`SELECT COUNT(*)::int AS total FROM pessoa_vaga WHERE pessoa_id = ${id}`;
+  const [parentes] = await sql`SELECT COUNT(*)::int AS total FROM parentes WHERE pessoa_id = ${id} OR parente_id = ${id}`;
+
+  const vinculos = {
+    equipes: Number(equipes.total),
+    veiculos: Number(veiculos.total),
+    vagas: Number(vagas.total),
+    parentes: Number(parentes.total),
+  };
+  return c.json({
+    pessoa: { id: pessoa.id, nome: String(pessoa.nome), cracha: Number(pessoa.cracha) },
+    vinculos,
+    totalVinculos: vinculos.equipes + vinculos.veiculos + vinculos.vagas + vinculos.parentes,
+    veiculosSemVinculos: Number(veiculosSemVinculos.total),
+  }, 200);
 });
 
 // DELETE /api/pessoas/:id
@@ -594,7 +677,7 @@ const deletePessoaRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: { params: z.object({ id: z.string() }) },
   responses: {
-    200: { content: { "application/json": { schema: z.object({ ok: z.boolean() }) } }, description: "Sucesso" },
+    200: { content: { "application/json": { schema: z.object({ ok: z.boolean(), vinculosDesfeitos: z.number().int(), veiculosExcluidos: z.number().int() }) } }, description: "Sucesso" },
     403: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Acesso negado" },
     404: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Não encontrada" }
   }
@@ -603,10 +686,80 @@ app.openapi(deletePessoaRoute, async (c) => {
   const { id } = c.req.valid("param");
   const sessao = c.get("sessao");
   if (!temPermissao(sessao, "pessoas.excluir")) return c.json({ erro: "Acesso negado. Requer permissao pessoas.excluir." }, 403);
-  const [row] = await sql`DELETE FROM pessoas WHERE id = ${id} RETURNING id, nome, cracha`;
-  if (!row) return c.json({ erro: "Pessoa não encontrada." }, 404);
-  await registrarEvento(sessao, "pessoa.excluiu", `pessoas/${id}`, `${row.nome} (#${row.cracha})`);
-  return c.json({ ok: true }, 200);
+
+  // Exclusao logica (026-exclusao-logica-pessoa): a linha nunca e apagada do
+  // banco. A transacao desaloca a pessoa das equipes em edicoes nao encerradas
+  // (registrando cada movimentacao no historico), desfaz os vinculos de
+  // veiculos, vaga e parentesco, exclui logicamente os veiculos orfaos e marca
+  // excluida = TRUE. Registros historicos (participacoes encerradas, presencas,
+  // avaliacoes, formacoes etc.) e a foto sao preservados.
+  const [pessoa] = await sql`
+    SELECT id, nome, cracha FROM pessoas
+    WHERE id = ${id} AND excluida = FALSE
+    FOR UPDATE
+  `;
+  if (!pessoa) return c.json({ erro: "Pessoa não encontrada." }, 404);
+
+  const resultado = await sql.begin(async (t) => {
+    // 1) Desalocacao das equipes em edicoes nao encerradas, com historico.
+    const alocacoes = await t`
+      SELECT part.id, part.edicao_id, part.equipe_id, part.pessoa_id, part.funcao,
+             eq.nome AS equipe_nome,
+             edic.numero AS edicao_numero
+      FROM participacoes part
+      JOIN edicoes edic ON edic.id = part.edicao_id AND edic.status <> 'encerrada'
+      LEFT JOIN equipes eq ON eq.id = part.equipe_id
+      WHERE part.pessoa_id = ${id}
+    `;
+    if (alocacoes.length > 0) {
+      await t`DELETE FROM participacoes WHERE id = ANY(${alocacoes.map((a) => a.id)})`;
+      for (const aloc of alocacoes) {
+        await t`
+          INSERT INTO pessoa_equipe_historico (
+            pessoa_id, edicao_id,
+            equipe_origem_id, equipe_origem_nome,
+            equipe_destino_id, equipe_destino_nome,
+            funcao, autor, autor_nome
+          ) VALUES (
+            ${aloc.pessoa_id}, ${aloc.edicao_id},
+            ${aloc.equipe_id}, ${aloc.equipe_nome ?? ""},
+            NULL, '',
+            ${aloc.funcao}, ${sessao.uid}, ${sessao.nome}
+          )
+        `;
+      }
+    }
+
+    // 2) Veiculos: desfaz os vinculos e exclui logicamente os orfaos (sem
+    //    outra pessoa vinculada). Veiculo compartilhado permanece ativo.
+    const vinculosVeiculos = await t`SELECT veiculo_id FROM pessoa_veiculo WHERE pessoa_id = ${id}`;
+    await t`DELETE FROM pessoa_veiculo WHERE pessoa_id = ${id}`;
+    let veiculosExcluidos = 0;
+    for (const vv of vinculosVeiculos) {
+      const [orfao] = await t`
+        UPDATE veiculos SET excluida = TRUE, atualizado_em = NOW()
+        WHERE id = ${vv.veiculo_id} AND excluida = FALSE
+          AND NOT EXISTS (SELECT 1 FROM pessoa_veiculo pv WHERE pv.veiculo_id = ${vv.veiculo_id})
+        RETURNING id
+      `;
+      if (orfao) veiculosExcluidos++;
+    }
+
+    // 3) Vaga de estacionamento.
+    await t`DELETE FROM pessoa_vaga WHERE pessoa_id = ${id}`;
+    // 4) Parentescos (ambos os lados do par).
+    await t`DELETE FROM parentes WHERE pessoa_id = ${id} OR parente_id = ${id}`;
+    // 5) Exclusao logica propriamente dita.
+    await t`UPDATE pessoas SET excluida = TRUE, atualizado_em = NOW() WHERE id = ${id}`;
+
+    return { vinculosDesfeitos: alocacoes.length + vinculosVeiculos.length, veiculosExcluidos };
+  });
+
+  await registrarEvento(
+    sessao, "pessoa.excluiu", `pessoas/${id}`,
+    `${String(pessoa.nome)} (#${String(pessoa.cracha)}) — ${resultado.vinculosDesfeitos} vinculo(s) desfeito(s), ${resultado.veiculosExcluidos} veiculo(s) excluido(s) logicamente`
+  );
+  return c.json({ ok: true, vinculosDesfeitos: resultado.vinculosDesfeitos, veiculosExcluidos: resultado.veiculosExcluidos }, 200);
 });
 
 // GET /api/pessoas/:id/veiculos
@@ -626,12 +779,12 @@ const getVeiculosPessoaRoute = createRoute({
 
 app.openapi(getVeiculosPessoaRoute, async (c) => {
   const { id } = c.req.valid("param");
-  const [pessoa] = await sql`SELECT id FROM pessoas WHERE id = ${id}`;
+  const [pessoa] = await sql`SELECT id FROM pessoas WHERE id = ${id} AND excluida = FALSE`;
   if (!pessoa) return c.json({ erro: "Pessoa nao encontrada." }, 404);
   const rows = await sql`
     SELECT v.* FROM veiculos v
     JOIN pessoa_veiculo pv ON pv.veiculo_id = v.id
-    WHERE pv.pessoa_id = ${id}
+    WHERE pv.pessoa_id = ${id} AND v.excluida = FALSE
     ORDER BY v.placa
   `;
   return c.json(rows as any, 200);
@@ -662,9 +815,9 @@ app.openapi(postVeiculoPessoaRoute, async (c) => {
   const sessao = c.get("sessao");
   if (!temPermissao(sessao, "pessoas.associar")) return c.json({ erro: "Acesso negado. Requer permissao pessoas.associar." }, 403);
   const { veiculoId } = c.req.valid("json");
-  const [pessoa] = await sql`SELECT id, nome FROM pessoas WHERE id = ${id}`;
+  const [pessoa] = await sql`SELECT id, nome FROM pessoas WHERE id = ${id} AND excluida = FALSE`;
   if (!pessoa) return c.json({ erro: "Pessoa nao encontrada." }, 404);
-  const [veiculo] = await sql`SELECT id FROM veiculos WHERE id = ${veiculoId}`;
+  const [veiculo] = await sql`SELECT id FROM veiculos WHERE id = ${veiculoId} AND excluida = FALSE`;
   if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
 
   const [existente] = await sql`SELECT veiculo_id FROM pessoa_veiculo WHERE pessoa_id = ${id} AND veiculo_id = ${veiculoId}`;
@@ -853,9 +1006,9 @@ app.openapi(postParentePessoaRoute, async (c) => {
     return c.json({ erro: "Nao e possivel vincular a pessoa a si mesma." }, 400);
   }
 
-  const [pessoa] = await sql`SELECT id, nome, cracha FROM pessoas WHERE id = ${id}`;
+  const [pessoa] = await sql`SELECT id, nome, cracha FROM pessoas WHERE id = ${id} AND excluida = FALSE`;
   if (!pessoa) return c.json({ erro: "Pessoa nao encontrada." }, 404);
-  const [parente] = await sql`SELECT id, nome, cracha FROM pessoas WHERE id = ${parenteId}`;
+  const [parente] = await sql`SELECT id, nome, cracha FROM pessoas WHERE id = ${parenteId} AND excluida = FALSE`;
   if (!parente) return c.json({ erro: "Parente nao encontrado." }, 404);
 
   const pares = await paresParentesco();
@@ -1011,7 +1164,7 @@ app.openapi(postImportarFotosRoute, async (c) => {
       continue;
     }
 
-    const [pessoa] = await sql`SELECT id, nome, cracha FROM pessoas WHERE cracha = ${crachaNum}`;
+    const [pessoa] = await sql`SELECT id, nome, cracha FROM pessoas WHERE cracha = ${crachaNum} AND excluida = FALSE`;
     if (!pessoa) {
       erros.push({ cracha: crachaNum, motivo: `Cracha #${crachaNum} nao encontrado no banco.` });
       continue;

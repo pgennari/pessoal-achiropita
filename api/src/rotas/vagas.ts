@@ -60,7 +60,7 @@ function selectVagaCompleto(where: ReturnType<typeof sql>) {
       COALESCE(
         (SELECT jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'cracha', p.cracha) ORDER BY p.nome)
          FROM pessoa_vaga pvg
-         JOIN pessoas p ON p.id = pvg.pessoa_id
+         JOIN pessoas p ON p.id = pvg.pessoa_id AND p.excluida = FALSE
          WHERE pvg.vaga_id = v.id),
         '[]'::jsonb
       ) AS pessoas,
@@ -71,7 +71,7 @@ function selectVagaCompleto(where: ReturnType<typeof sql>) {
             'placa', v2.placa, 'cor', v2.cor
           ) AS veiculo
           FROM pessoa_veiculo pv
-          JOIN veiculos v2 ON v2.id = pv.veiculo_id
+          JOIN veiculos v2 ON v2.id = pv.veiculo_id AND v2.excluida = FALSE
           JOIN pessoa_vaga pvg ON pvg.pessoa_id = pv.pessoa_id
           WHERE pvg.vaga_id = v.id
         ) sub),
@@ -150,7 +150,7 @@ async function validarVaga(
     return { status: 404, erro: "Pessoa nao encontrada." };
   }
   const pessoas = await sql`
-    SELECT id, nome FROM pessoas WHERE id = ANY(${body.pessoaIds})
+    SELECT id, nome FROM pessoas WHERE id = ANY(${body.pessoaIds}) AND excluida = FALSE
   `;
   if (pessoas.length !== body.pessoaIds.length) {
     return { status: 404, erro: "Pessoa nao encontrada." };

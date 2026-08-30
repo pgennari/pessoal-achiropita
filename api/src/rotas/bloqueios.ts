@@ -171,7 +171,7 @@ app.openapi(postBloqueioRoute, async (c) => {
     const criado = await sql.begin(async (tx) => {
       const [pessoa] = await tx`
         SELECT id, nome, bloqueada FROM pessoas
-        WHERE id = ${body.pessoaId}
+        WHERE id = ${body.pessoaId} AND excluida = FALSE
         FOR UPDATE
       `;
       if (!pessoa) {
@@ -272,7 +272,7 @@ app.openapi(aprovarBloqueioRoute, async (c) => {
     }
 
     const [pessoa] = await tx`
-      SELECT nome FROM pessoas WHERE id = ${atualizado.pessoa_id} FOR UPDATE
+      SELECT nome FROM pessoas WHERE id = ${atualizado.pessoa_id} AND excluida = FALSE FOR UPDATE
     `;
     const novoEstado = atualizado.tipo === "bloqueio";
     await tx`

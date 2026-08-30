@@ -129,7 +129,7 @@ app.openapi(postCoordenadorRoute, async (c) => {
   // 2) Valida o crachá
   const [pessoa] = await sql`
     SELECT id, nome, cracha FROM pessoas
-    WHERE cracha = ${cracha} AND ativo = true
+    WHERE cracha = ${cracha} AND ativo = true AND excluida = FALSE
   `;
   if (!pessoa) {
     return c.json({ erro: "Acesso negado" }, 200);

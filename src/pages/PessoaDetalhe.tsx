@@ -24,6 +24,8 @@ import {
   atualizarPessoa,
   definirAtivacao,
   excluirPessoa,
+  previaExclusaoPessoa,
+  type PreviaExclusaoPessoa,
 } from "../lib/pessoas";
 import { adicionarParente, removerParente } from "../lib/parentes";
 import {
@@ -51,6 +53,9 @@ export function PessoaDetalhe() {
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [acaoOcupado, setAcaoOcupado] = useState(false);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [previaExclusao, setPreviaExclusao] = useState<PreviaExclusaoPessoa | null>(null);
+  const [previaExclusaoErro, setPreviaExclusaoErro] = useState<string | null>(null);
+  const [carregandoPrevia, setCarregandoPrevia] = useState(false);
   const [perguntandoMotivo, setPerguntandoMotivo] = useState(false);
   const [motivoInativacao, setMotivoInativacao] = useState("");
   const [searchParams] = useSearchParams();
@@ -249,7 +254,21 @@ export function PessoaDetalhe() {
               <button
                 type="button"
                 className="btn btn-perigo"
-                onClick={() => setConfirmandoExclusao(true)}
+                onClick={async () => {
+                  setConfirmandoExclusao(true);
+                  setPreviaExclusaoErro(null);
+                  if (!pessoa) return;
+                  setCarregandoPrevia(true);
+                  try {
+                    setPreviaExclusao(await previaExclusaoPessoa(pessoa.id));
+                  } catch (e) {
+                    setPreviaExclusaoErro(
+                      e instanceof Error ? e.message : "Falha ao carregar a previa."
+                    );
+                  } finally {
+                    setCarregandoPrevia(false);
+                  }
+                }}
                 disabled={acaoOcupado}
                 aria-label="Excluir"
                 title="Excluir"
@@ -356,18 +375,42 @@ export function PessoaDetalhe() {
         <div className="card border-vermelho/40">
           <div className="card-corpo space-y-3">
             <p className="font-semibold text-vermelho-escuro">
-              Excluir {pessoa.nome} definitivamente?
+              Excluir {pessoa.nome} (#{pessoa.cracha}) do sistema?
             </p>
             <p className="text-sm text-ardesia">
-              Esta acao e irreversivel. O cadastro, a foto e o cracha #{pessoa.cracha}
-              serao removidos permanentemente. O evento ficara registrado na auditoria.
+              A pessoa sera retirada do sistema sem apagar o cadastro, a foto e o
+              historico (presencas, avaliacoes, formacoes e participacoes em edicoes
+              encerradas). Os vinculos ativos serao desfeitos:
             </p>
+            {carregandoPrevia ? (
+              <p className="text-sm text-ardesia">Calculando vinculos...</p>
+            ) : previaExclusaoErro ? (
+              <p className="text-sm text-vermelho">{previaExclusaoErro}</p>
+            ) : previaExclusao ? (
+              <ul className="text-sm text-ardesia space-y-1">
+                <li>
+                  Equipes em edicoes em andamento:{" "}
+                  <strong>{previaExclusao.vinculos.equipes}</strong>
+                </li>
+                <li>
+                  Veiculos vinculados: <strong>{previaExclusao.vinculos.veiculos}</strong>{" "}
+                  (dos quais <strong>{previaExclusao.veiculosSemVinculos}</strong> ficarao sem
+                  outra pessoa e serao excluidos logicamente)
+                </li>
+                <li>
+                  Vaga de estacionamento: <strong>{previaExclusao.vinculos.vagas}</strong>
+                </li>
+                <li>
+                  Parentescos: <strong>{previaExclusao.vinculos.parentes}</strong>
+                </li>
+              </ul>
+            ) : null}
             <div className="flex gap-2">
               <button
                 type="button"
                 className="btn btn-perigo"
                 onClick={handleExcluir}
-                disabled={acaoOcupado}
+                disabled={acaoOcupado || carregandoPrevia}
                 aria-label="Confirmar exclusao"
                 title="Confirmar exclusao"
               >

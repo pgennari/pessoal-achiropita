@@ -15,6 +15,7 @@ const VeiculoSchema = z.object({
   estacionamentos: z.array(z.object({ id: z.string(), nome: z.string() })).optional(),
   observacao: z.string().nullable().optional(),
   crachaCarroImpresso: z.boolean().optional(),
+  excluida: z.boolean(),
   criadoEm: z.string(),
   atualizadoEm: z.string(),
 });
@@ -41,6 +42,7 @@ function veiculoDeRow(r: Record<string, unknown>) {
     estacionamentos: r.estacionamentos ?? [],
     observacao: r.observacao ?? null,
     crachaCarroImpresso: !!r.cracha_carro_impresso,
+    excluida: (r.excluida as boolean) ?? false,
     criadoEm,
     atualizadoEm,
   };
@@ -99,10 +101,10 @@ app.openapi(getRoute, async (c) => {
   const escopo = escopoVeiculos(sessao);
   if (!escopo) return c.json({ erro: "Acesso negado. Sem permissao de leitura de veiculos." }, 403);
 
-  let where: ReturnType<typeof sql> = sql``;
+  let where: ReturnType<typeof sql> = sql`WHERE v.excluida = FALSE`;
   if (escopo === "equipe") {
     const equipes = sessao.equipesCRD ?? [];
-    where = sql`WHERE EXISTS (
+    where = sql`WHERE v.excluida = FALSE AND EXISTS (
       SELECT 1 FROM pessoa_veiculo pv
       JOIN participacoes part ON part.pessoa_id = pv.pessoa_id
       JOIN edicoes e ON e.id = part.edicao_id AND e.status = 'ativa'
@@ -110,7 +112,7 @@ app.openapi(getRoute, async (c) => {
     )`;
   } else if (escopo === "proprio") {
     if (!sessao.pessoaId) return c.json([], 200);
-    where = sql`WHERE EXISTS (
+    where = sql`WHERE v.excluida = FALSE AND EXISTS (
       SELECT 1 FROM pessoa_veiculo pv WHERE pv.veiculo_id = v.id AND pv.pessoa_id = ${sessao.pessoaId}
     )`;
   }
@@ -142,10 +144,10 @@ app.openapi(getIdRoute, async (c) => {
   const escopo = escopoVeiculos(sessao);
   if (!escopo) return c.json({ erro: "Acesso negado. Sem permissao de leitura de veiculos." }, 403);
 
-  let filtro: ReturnType<typeof sql> = sql`WHERE v.id = ${id}`;
+  let filtro: ReturnType<typeof sql> = sql`WHERE v.id = ${id} AND v.excluida = FALSE`;
   if (escopo === "equipe") {
     const equipes = sessao.equipesCRD ?? [];
-    filtro = sql`WHERE v.id = ${id} AND EXISTS (
+    filtro = sql`WHERE v.id = ${id} AND v.excluida = FALSE AND EXISTS (
       SELECT 1 FROM pessoa_veiculo pv
       JOIN participacoes part ON part.pessoa_id = pv.pessoa_id
       JOIN edicoes e ON e.id = part.edicao_id AND e.status = 'ativa'
@@ -153,7 +155,7 @@ app.openapi(getIdRoute, async (c) => {
     )`;
   } else if (escopo === "proprio") {
     if (!sessao.pessoaId) return c.json({ erro: "Veiculo nao encontrado." }, 404);
-    filtro = sql`WHERE v.id = ${id} AND EXISTS (
+    filtro = sql`WHERE v.id = ${id} AND v.excluida = FALSE AND EXISTS (
       SELECT 1 FROM pessoa_veiculo pv WHERE pv.veiculo_id = v.id AND pv.pessoa_id = ${sessao.pessoaId}
     )`;
   }
@@ -289,7 +291,7 @@ app.openapi(putRoute, async (c) => {
       observacao = ${body.observacao?.trim() || null},
       cracha_carro_impresso = ${body.crachaCarroImpresso ?? false},
       atualizado_em = NOW()
-    WHERE id = ${id} RETURNING *
+    WHERE id = ${id} AND excluida = FALSE RETURNING *
   `;
   if (!row) return c.json({ erro: "Veiculo nao encontrado." }, 404);
   await registrarEvento(sessao, "veiculo.atualizou", `veiculos/${id}`, placaFormatada);
@@ -348,12 +350,12 @@ const getPessoasRoute = createRoute({
 
 app.openapi(getPessoasRoute, async (c) => {
   const { id } = c.req.valid("param");
-  const [veiculo] = await sql`SELECT id FROM veiculos WHERE id = ${id}`;
+  const [veiculo] = await sql`SELECT id FROM veiculos WHERE id = ${id} AND excluida = FALSE`;
   if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
   const rows = await sql`
     SELECT p.id, p.nome, p.cracha FROM pessoas p
     JOIN pessoa_veiculo pv ON pv.pessoa_id = p.id
-    WHERE pv.veiculo_id = ${id}
+    WHERE pv.veiculo_id = ${id} AND p.excluida = FALSE
     ORDER BY p.nome
   `;
   return c.json(rows as any, 200);
@@ -387,9 +389,9 @@ app.openapi(postPessoaRoute, async (c) => {
     return c.json({ erro: "Acesso negado. Requer permissao veiculos.vincular." }, 403);
   }
   const { pessoaId } = c.req.valid("json");
-  const [veiculo] = await sql`SELECT id FROM veiculos WHERE id = ${id}`;
+  const [veiculo] = await sql`SELECT id FROM veiculos WHERE id = ${id} AND excluida = FALSE`;
   if (!veiculo) return c.json({ erro: "Veiculo nao encontrado." }, 404);
-  const [pessoa] = await sql`SELECT id, nome FROM pessoas WHERE id = ${pessoaId}`;
+  const [pessoa] = await sql`SELECT id, nome FROM pessoas WHERE id = ${pessoaId} AND excluida = FALSE`;
   if (!pessoa) return c.json({ erro: "Pessoa nao encontrada." }, 404);
 
   const [existente] = await sql`SELECT veiculo_id FROM pessoa_veiculo WHERE pessoa_id = ${pessoaId} AND veiculo_id = ${id}`;

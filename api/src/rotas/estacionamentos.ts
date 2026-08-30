@@ -318,9 +318,10 @@ app.openapi(getVeiculosEstacionamentoRoute, async (c) => {
       ) AS estacionamentos
     FROM veiculos v
     JOIN pessoa_veiculo pv ON pv.veiculo_id = v.id
-    JOIN pessoas p ON p.id = pv.pessoa_id AND p.ativo
+    JOIN pessoas p ON p.id = pv.pessoa_id AND p.ativo AND p.excluida = FALSE
     JOIN pessoa_vaga pvg ON pvg.pessoa_id = p.id
     JOIN vagas va ON va.id = pvg.vaga_id AND va.estacionamento_id = ${id}
+    WHERE v.excluida = FALSE
     ORDER BY v.placa
   `;
   return c.json(rows as any, 200);

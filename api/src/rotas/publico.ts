@@ -182,7 +182,7 @@ app.openapi(postIdentificarRoute, async (c) => {
   // Identifica a pessoa pelo crachá (apenas ativas)
   const MSG = "Crachá ou ano de nascimento não conferem. Tente novamente ou fale com a organização.";
   const [row] = await sql`
-    SELECT * FROM pessoas WHERE cracha = ${crachaNum} AND ativo = true
+    SELECT * FROM pessoas WHERE cracha = ${crachaNum} AND ativo = true AND excluida = FALSE
   `;
   if (!row) return c.json({ erro: MSG }, 400);
 

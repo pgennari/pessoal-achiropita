@@ -22,8 +22,8 @@
 
 **Purpose**: Colunas de `excluida` no schema e na migration do delta — condição de banco para o backend novo.
 
-- [ ] T001 Adicionar `excluida BOOLEAN NOT NULL DEFAULT FALSE` nas tabelas `pessoas` e `veiculos` em `schema.sql` (colunar `pessoas` na linha ~49 após `ativo`; colunar `veiculos` na linha ~326 após `cracha_carro_impresso`), com comentário no padrão de `equipes.excluida` (`schema.sql:132-134`).
-- [ ] T002 [P] Criar `scripts/exclusao-logica-pessoa.sql` com a migration idempotente de produção (mesmo padrão de `scripts/adicionar-coluna-excluida-equipes.sql`):
+- [X] T001 Adicionar `excluida BOOLEAN NOT NULL DEFAULT FALSE` nas tabelas `pessoas` e `veiculos` em `schema.sql` (colunar `pessoas` na linha ~49 após `ativo`; colunar `veiculos` na linha ~326 após `cracha_carro_impresso`), com comentário no padrão de `equipes.excluida` (`schema.sql:132-134`).
+- [X] T002 [P] Criar `scripts/exclusao-logica-pessoa.sql` com a migration idempotente de produção (mesmo padrão de `scripts/adicionar-coluna-excluida-equipes.sql`):
   ```sql
   ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS excluida BOOLEAN NOT NULL DEFAULT FALSE;
   ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS excluida BOOLEAN NOT NULL DEFAULT FALSE;
@@ -39,10 +39,10 @@
 
 **⚠️ CRITICAL**: O banco precisa ter as colunas (fase 1) antes do primeiro deploy do backend que as lê.
 
-- [ ] T003 Adicionar `excluida: boolean;` na interface `Pessoa` (`src/lib/tipos.ts`, bloco da Pessoa ~linha 204-240) e mapear em `pessoaDeSnap` (`src/lib/pessoas.ts`) com `excluida: (data.excluida as boolean) ?? false` (snapshots antigos não quebram).
-- [ ] T004 Adicionar `excluida: boolean;` na interface `Veiculo` (`src/lib/tipos.ts`) e mapear em `veiculoDeSnap` (`src/lib/veiculos.ts`) com `excluida: (data.excluida as boolean) ?? false`.
-- [ ] T005 [P] Adicionar `excluida: z.boolean()` em `PessoaSchema` e mapear `excluida` em `pessoaDeRow` (`api/src/rotas/pessoas.ts:47-85`) — cobre listagem, detalhe e o novo `exclusao-previa`.
-- [ ] T006 [P] Adicionar `excluida` no schema/retorno de veiculo em `api/src/rotas/veiculos.ts` (onde existir mapper de linha; garantir que as seleções incluem a coluna).
+- [X] T003 Adicionar `excluida: boolean;` na interface `Pessoa` (`src/lib/tipos.ts`, bloco da Pessoa ~linha 204-240) e mapear em `pessoaDeSnap` (`src/lib/pessoas.ts`) com `excluida: (data.excluida as boolean) ?? false` (snapshots antigos não quebram).
+- [X] T004 Adicionar `excluida: boolean;` na interface `Veiculo` (`src/lib/tipos.ts`). Não há `veiculoDeSnap` no projeto (front consome `Veiculo` direto da API) — só a interface ganhou o campo.
+- [X] T005 [P] Adicionar `excluida: z.boolean()` em `PessoaSchema` e mapear `excluida` em `pessoaDeRow` (`api/src/rotas/pessoas.ts:47-85`) — cobre listagem, detalhe e o novo `exclusao-previa`.
+- [X] T006 [P] Adicionar `excluida` no schema/retorno de veiculo em `api/src/rotas/veiculos.ts` (onde existir mapper de linha; garantir que as seleções incluem a coluna).
 
 **Checkpoint**: `npm run lint` e builds passam; front recebe `excluida` nos objetos de pessoa e veiculo; API retorna o campo.
 
@@ -54,18 +54,10 @@
 
 **Independent Test**: `quickstart.md` Cenários 1-3 e 9 — excluir pessoa com/sem vinculos, conferir contagem no aviso (FR-003), `pessoa_equipe_historico`, evento `pessoa.excluiu`, veiculo orfao vs compartilhado, e 403 sem permissão.
 
-- [ ] T007 [US1] Criar `GET /api/pessoas/:id/exclusao-previa` em `api/src/rotas/pessoas.ts` (permissao `pessoas.excluir`): conta Alocações em edicoes nao encerradas + `pessoa_veiculo` + `pessoa_vaga` + `parentes` (nos dois sentidos) e os veiculos que ficarao sem nenhuma outra pessoa; pessoa inexistente/excluida → 404 `Pessoa não encontrada.` (contrato: `contracts/exclusao-pessoas-api.md`).
-- [ ] T008 [US1] Converter o handler de `DELETE /api/pessoas/:id` (`api/src/rotas/pessoas.ts:602-610`) em exclusão lógica transacional (`sql.begin`, sequência de `data-model.md` "Transicao de estado"):
-  1. `SELECT id, nome, cracha FROM pessoas WHERE id = ${id} AND excluida = FALSE FOR UPDATE` — ausente/excluida → 404 (concorrência: segunda exclusao simultanea também 404).
-  2. Desalocar alocacoes de edicoes `status <> 'encerrada'`: `INSERT INTO pessoa_equipe_historico` (origem = id/nome da equipe, destino = NULL, autor = sessão — mesmo formato de `equipes.ts:361-374`) + `DELETE FROM participacoes`.
-  3. Desvincular veiculos: ler `veiculo_id` da pessoa → `DELETE FROM pessoa_veiculo` → `UPDATE veiculos SET excluida = TRUE WHERE id = ANY(...) AND excluida = FALSE AND NOT EXISTS (SELECT 1 FROM pessoa_veiculo WHERE veiculo_id = veiculos.id)`.
-  4. `DELETE FROM pessoa_vaga WHERE pessoa_id = ${id}` (liberar vaga).
-  5. `DELETE FROM parentes WHERE pessoa_id = ${id} OR parente_id = ${id}` (ambos os sentidos, sem apagar cadastros).
-  6. `UPDATE pessoas SET excluida = TRUE, atualizado_em = NOW() WHERE id = ${id}`.
-  7. `registrarEvento(sessao, "pessoa.excluiu", "pessoas/${id}", "${nome} (#${cracha}) — ${N} vinculo(s) desfeito(s), ${M} veiculo(s) excluido(s) logicamente")` — redacao sem "apagado permanentemente" (FR-008).
-  Response `200 { ok: true, vinculosDesfeitos: N, veiculosExcluidos: M }`.
-- [ ] T009 [US1] Atualizar `excluirPessoa` (`src/lib/pessoas.ts:206`): chamar `GET /:id/exclusao-previa` para popular o dialogo antes do confirm e, após o `DELETE`, invalidar os caches `["pessoas"]`, `["participacoes"]`, `["equipes"]`, `["veiculos"]`, `["vagas"]`, `["presenca"]`.
-- [ ] T010 [US1] Atualizar o dialogo de confirmacao em `src/pages/PessoaDetalhe.tsx:392-401`: exibir a contagem de vinculos que serao desfeitos e de veiculos que ficarao sem pessoa (FR-003) e trocar o texto removendo "definitivamente", "irreversivel" e "removidos permanentemente" (FR-011).
+- [X] T007 [US1] Criar `GET /api/pessoas/:id/exclusao-previa` em `api/src/rotas/pessoas.ts` (permissao `pessoas.excluir`): conta Alocações em edicoes nao encerradas + `pessoa_veiculo` + `pessoa_vaga` + `parentes` (nos dois sentidos) e os veiculos que ficarao sem nenhuma outra pessoa; pessoa inexistente/excluida → 404 `Pessoa não encontrada.` (contrato: `contracts/exclusao-pessoas-api.md`).
+- [X] T008 [US1] Converter o handler de `DELETE /api/pessoas/:id` em exclusão lógica transacional (`sql.begin`, sequência de `data-model.md` "Transicao de estado"): FOR UPDATE com `excluida = FALSE` (404 se ausente); desaloca equipes de edicoes nao encerradas com `pessoa_equipe_historico` (destino NULL, autor = sessão); desfaz `pessoa_veiculo` e marca `veiculos.excluida = TRUE` quando `NOT EXISTS` outra pessoa; `DELETE pessoa_vaga`; `DELETE parentes` (dois sentidos); `UPDATE pessoas SET excluida = TRUE`; `registrarEvento("pessoa.excluiu")` fora da transação com contagem. Response `200 { ok, vinculosDesfeitos, veiculosExcluidos }`.
+- [X] T009 [US1] Atualizar `excluirPessoa` (`src/lib/pessoas.ts:206`): `previaExclusaoPessoa` passado ao dialogo via novo `GET /:id/exclusao-previa`; após o `DELETE`, invalidar os caches `["pessoas"]`, `["participacoes"]`, `["equipes"]`, `["veiculos"]`, `["vagas"]`, `["presenca"]`; retorna `{ vinculosDesfeitos, veiculosExcluidos }`.
+- [X] T010 [US1] Atualizar o dialogo de confirmacao em `src/pages/PessoaDetalhe.tsx`: exibe contagem de vinculos e de veiculos orfaos (FR-003) e texto sem "definitivamente", "irreversivel" e "removidos permanentemente" (FR-011).
 
 **Checkpoint**: `quickstart.md` Cenários 1-3 e 9; `npm run lint` + builds passam. SC-001/SC-005/SC-006 atendidos.
 
@@ -77,16 +69,16 @@
 
 **Independent Test**: `quickstart.md` Cenários 3, 5, 6, 7 e 8 — listagens, seletores, sincronizacao, montagem, bloqueios, estacionamento, validacao publica, link direto, mutacoes e permissão.
 
-- [ ] T011 [US2] Filtrar `excluida = FALSE` nas leituras de `api/src/rotas/pessoas.ts`: `GET /` nas três variantes (`pessoas.ts:210-249`), `GET /:id` (`pessoas.ts:292-312`, excluida → 404), busca global (`pessoas.ts:739,797`) e resolução de parente (`pessoas.ts:856-858`). `proximo-cracha` permanece inalterado.
-- [ ] T012 [US2] Guarda `excluida = FALSE` nas mutações de `api/src/rotas/pessoas.ts` — pessoa excluida responde 404 `Pessoa não encontrada.`: `PUT /:id` (editar), `PUT /:id/ativacao` (inativar/reativar), `POST/DELETE /:id/foto`, `GET/POST /:id/veiculos` e `DELETE /:id/veiculos/:veiculoId`. Em `POST /:id/veiculos`, veiculo excluido responde 404 `Veiculo nao encontrado.` (FR-014).
-- [ ] T013 [P] [US2] Validar pessoa excluida em `POST /api/participacoes` (`api/src/rotas/participacoes.ts:27`): adicionar `AND excluida = FALSE` na consulta que confere a pessoa — pessoa excluida não é alocável (FR-004).
-- [ ] T014 [P] [US2] Filtrar pessoas e veiculos excluidos em `api/src/rotas/veiculos.ts` (linhas 354, 392, 431 e listagens de `veiculos`): `pessoa.excluida = FALSE` nas consultas de candidatos/validação e `veiculos.excluida = FALSE` nas listagens.
-- [ ] T015 [P] [US2] Filtrar pessoas excluidas em `api/src/rotas/vagas.ts` (linhas 145, 153) — excluidas não aparecem como ocupantes nem são aceitas na ocupação (FR-004).
-- [ ] T016 [P] [US2] Filtrar pessoas excluidas em `api/src/rotas/montagem.ts` (linhas 106, 219, 268) — excluidas não são candidatas nem validam (FR-004).
-- [ ] T017 [P] [US2] Filtrar pessoas excluidas em `api/src/rotas/bloqueios.ts` (linhas 173, 275) — excluidas não aparecem na atribuição de bloqueio nem validam (FR-004/FR-006; pessoa bloqueada excluida some sem erro, edge case).
-- [ ] T018 [P] [US2] Filtrar `excluida = FALSE` no contexto de pessoas da sincronização (`api/src/rotas/sincronizacao.ts:248`) — pessoa excluida não entra na planilha/diffs da edição (FR-004).
-- [ ] T019 [P] [US2] Validacao publica por cracha (`api/src/rotas/publico.ts:185`): `WHERE cracha = ${n} AND ativo = true AND excluida = FALSE` — pessoa excluida cai na mensagem genérica "Crachá ou ano de nascimento não conferem." sem exibir dados (FR-005).
-- [ ] T020 [P] [US2] Filtrar pessoas excluidas nos fluxos publicos: `api/src/rotas/presencaPublico.ts` (linhas 137, 203) e `api/src/rotas/avaliacaoPublico.ts` (linha 131) (FR-005).
+- [X] T011 [US2] Filtrar `excluida = FALSE` nas leituras de `api/src/rotas/pessoas.ts`: `GET /` nas três variantes, `GET /:id` (excluida → 404). `proximo-cracha` permanece inalterado (MAX reserva o cracha). Leituras historicas (historico-equipes, parentes list) permanecem sem filtro (US3).
+- [X] T012 [US2] Guarda `excluida = FALSE` nas mutações de `api/src/rotas/pessoas.ts` — pessoa excluida responde 404 `Pessoa não encontrada.`: `PUT /:id`, `PUT /:id/ativacao`, `POST/DELETE /:id/foto`, `GET/POST /:id/veiculos` (veiculo excluido → 404 `Veiculo nao encontrado.`) e `POST /:id/parentes` (pessoa e parente). Importar-fotos salta excluidas por cracha.
+- [X] T013 [P] [US2] Validar pessoa excluida em `POST /api/participacoes` (`api/src/rotas/participacoes.ts`): check `SELECT id FROM pessoas WHERE id = ... AND excluida = FALSE` → 404 `Pessoa não encontrada.` (pessoa excluida não é alocável, FR-004).
+- [X] T014 [P] [US2] Filtrar pessoas e veiculos excluidos em `api/src/rotas/veiculos.ts`: `v.excluida = FALSE` na listagem (todas as variantes de escopo) e `GET /:id`; guardas em `PUT /:id`, `GET/POST /:id/pessoas` (veiculo excluido → 404) e `p.excluida = FALSE` na listagem de pessoas do veiculo.
+- [X] T015 [P] [US2] Filtrar pessoas excluidas em `api/src/rotas/vagas.ts`: `p.excluida = FALSE` na ocupação/validação (POST) e na listagem de ocupantes e veiculos (`selectVagaCompleto`) — excluidas não aparecem como ocupantes nem são aceitas (FR-004).
+- [X] T016 [P] [US2] Filtrar pessoas excluidas em `api/src/rotas/montagem.ts` (candidatos, COUNT) e `GET /match/:pessoaId` → 404 — excluidas não são candidatas nem validam (FR-004).
+- [X] T017 [P] [US2] Filtrar pessoas excluidas em `api/src/rotas/bloqueios.ts` (POST solicitação → 404 e aprovação) — excluidas não recebem bloqueio (FR-004/FR-006).
+- [X] T018 [P] [US2] Filtrar `excluida = FALSE` no contexto de pessoas da sincronização (`api/src/rotas/sincronizacao.ts`) — pessoa excluida não entra na planilha/diffs (FR-004).
+- [X] T019 [P] [US2] Validacao publica por cracha (`api/src/rotas/publico.ts:185`): `AND excluida = FALSE` — pessoa excluida cai na mensagem genérica (FR-005).
+- [X] T020 [P] [US2] Filtrar pessoas excluidas nos fluxos publicos: `presencaPublico.ts` (coordenador por cracha e confirmacao em lote) e `avaliacaoPublico.ts` (coordenador por cracha) (FR-005). Filtro adicional em `estacionamentos.ts` (`GET /:id/veiculos`): `v.excluida = FALSE`.
 
 **Nota (sem código)**: seletores de pessoa no front vêm da API já filtrada — nenhuma tela precisa de filtro próprio (`research.md` R1/R7). Cantina publica não referencia pessoa (`pesquisas_cantina` é anônima) — sem mudança (`research.md` R8).
 
@@ -100,8 +92,8 @@
 
 **Independent Test**: `quickstart.md` Cenário 2 (passo 6) e Cenário 4; comandos psql de historico no `quickstart.md`.
 
-- [ ] T021 [US3] Verificar (sem alteração de código, validação regressiva) que as leituras históricas do nome **não** ganharam filtro de `excluida`: presencas da pessoa (`presenca.ts` `/:diaId` e `/pessoa`), avaliacoes, formacoes, check-ins, `pessoa_equipe_historico` e `participacoes_historicas` — o nome continua resolvendo porque a linha não foi apagada (R9). Link direto de historico para a pagina da pessoa excluida → "Pessoa não encontrada" (comportamento esperado).
-- [ ] T022 [US3] Conferir que a transação de T008 preserva o historico: participacoes de edicoes `encerrada` intactas (só as de `planejamento`/`ativa` são desalocadas, R5); `pessoa_equipe_historico` registra a desalocacao com origem = equipe e destino vazio; `veiculo_estacionamento_historico` e check-ins do veiculo excluido permanecem (FR-015); placa e cracha continuam reservados (UNIQUE, FR-010/FR-015).
+- [X] T021 [US3] Verificado (sem alteração de código): nenhuma leitura histórica do nome ganhou filtro de `excluida` — presencas, avaliacoes, formacoes, check-ins, `pessoa_equipe_historico` e `participacoes_historicas` seguem sem filtro (grep de `excluida` no API confirmou); o único `excluida` em `presenca.ts` é o de equipes (024). Link direto para a página da pessoa excluida → "Pessoa não encontrada" (GET /api/pessoas/:id filtra).
+- [X] T022 [US3] Conferido na transação de T008: só participacoes de edicoes `status <> 'encerrada'` são desalocadas (JOIN com `edicoes` no SELECT/`ANY(ids)` no DELETE); `pessoa_equipe_historico` grava origem = id/nome da equipe, destino = NULL/'' e autor = sessão; checkins e `veiculo_estacionamento_historico` não são tocados; placa e cracha permanecem reservados (UNIQUE + `proximo-cracha` inalterado).
 
 **Checkpoint**: `quickstart.md` Cenário 2 (passo 6) e Cenário 4; banco sem perdas (SC-004).
 
@@ -111,9 +103,9 @@
 
 **Purpose**: Fechamento do delivery.
 
-- [ ] T023 Rodar validações finais: `npm run lint` (= `tsc -b --noEmit`), `npm run build` (frontend) e `npm run build` em `api/`.
-- [ ] T024 Rodar os 9 cenários de `quickstart.md` (validação manual, com permissões `pessoas.excluir`, `pessoas.editar`, `pessoas.ativar`, `pessoas.associar`, `pessoas.listar`).
-- [ ] T025 Commit por grupo lógico em PT-BR no imperativo (ex.: `feat(pessoas): exclusao logica com desfazer de vinculos em massa`), sem emojis.
+- [X] T023 Rodar validações finais: `npm run lint` (= `tsc -b --noEmit`) OK, `npm run build` (frontend) OK e `npm run build` em `api/` OK.
+- [ ] T024 Rodar os 9 cenários de `quickstart.md` (validação manual, com permissões `pessoas.excluir`, `pessoas.editar`, `pessoas.ativar`, `pessoas.associar`, `pessoas.listar`). — **pendente de execução manual** (requer banco/API com seed; não executado no ambiente de implementação).
+- [ ] T025 Commit por grupo lógico em PT-BR no imperativo (ex.: `feat(pessoas): exclusao logica com desfazer de vinculos em massa`), sem emojis. — **pendente de autorização explícita do usuário** (não commitar sem pedido).
 
 ---
 

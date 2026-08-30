@@ -106,6 +106,7 @@ app.openapi(getCandidatosRoute, async (c) => {
       FROM pessoas p
       WHERE p.ativo = TRUE
         AND p.bloqueada = FALSE
+        AND p.excluida = FALSE
         AND NOT EXISTS (
           SELECT 1 FROM participacoes pt
           WHERE pt.pessoa_id = p.id AND pt.edicao_id = ${edicaoId}
@@ -219,6 +220,7 @@ app.openapi(getCandidatosRoute, async (c) => {
     FROM pessoas p
     WHERE p.ativo = TRUE
       AND p.bloqueada = FALSE
+      AND p.excluida = FALSE
       AND NOT EXISTS (
         SELECT 1 FROM participacoes pt
         WHERE pt.pessoa_id = p.id AND pt.edicao_id = ${edicaoId}
@@ -265,7 +267,7 @@ app.openapi(getMatchHistoricoRoute, async (c) => {
   const { edicaoId } = c.req.valid("query");
 
   // Verificar se pessoa existe
-  const [pessoaRow] = await sql`SELECT id FROM pessoas WHERE id = ${pessoaId}`;
+  const [pessoaRow] = await sql`SELECT id FROM pessoas WHERE id = ${pessoaId} AND excluida = FALSE`;
   if (!pessoaRow) {
     return c.json({ erro: "Pessoa nao encontrada." }, 404);
   }

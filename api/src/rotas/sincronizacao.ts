@@ -245,7 +245,7 @@ async function carregarContexto(): Promise<ContextoBanco> {
   `;
   if (!edicao) throw new Error("Não há edição ativa para sincronizar.");
 
-  const pessoas = await sql`SELECT id, cracha, nome, telefone, email, nascimento FROM pessoas`;
+  const pessoas = await sql`SELECT id, cracha, nome, telefone, email, nascimento FROM pessoas WHERE excluida = FALSE`;
   const pessoasPorCracha = new Map<number, ContextoBanco["pessoasPorCracha"] extends Map<number, infer T> ? T : never>();
   for (const p of pessoas) {
     pessoasPorCracha.set(Number(p.cracha), {

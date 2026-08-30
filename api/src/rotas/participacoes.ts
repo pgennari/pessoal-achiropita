@@ -103,6 +103,14 @@ app.openapi(postParticipacaoRoute, async (c) => {
     return c.json({ erro: "Equipe não encontrada ou excluída." }, 404);
   }
 
+  // Pessoa excluida logicamente (026) nao pode ser alocada (FR-004).
+  const [pessoaValida] = await sql`
+    SELECT id FROM pessoas WHERE id = ${body.pessoaId} AND excluida = FALSE
+  `;
+  if (!pessoaValida) {
+    return c.json({ erro: "Pessoa não encontrada." }, 404);
+  }
+
   // Restricao de selecao (FR-018): pessoa bloqueada nao pode ser alocada.
   const motivoBloqueio = await bloqueioAtivoDaPessoa(body.pessoaId);
   if (motivoBloqueio !== null) {

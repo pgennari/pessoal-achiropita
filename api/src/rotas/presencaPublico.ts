@@ -135,7 +135,7 @@ app.openapi(postCoordenadorRoute, async (c) => {
 
   const [pessoa] = await sql`
     SELECT id, nome, cracha FROM pessoas
-    WHERE cracha = ${crachaNum} AND ativo = true
+    WHERE cracha = ${crachaNum} AND ativo = true AND excluida = FALSE
   `;
   // Mensagem genérica para não revelar se o crachá existe ou se a pessoa
   // é coordenadora.
@@ -200,7 +200,7 @@ app.openapi(postConfirmarRoute, async (c) => {
   const ids = [...new Set(body.equipistas.map((e) => e.pessoaId).filter(Boolean))];
   const pessoas = ids.length
     ? await sql`
-        SELECT id, cracha, nome FROM pessoas WHERE id = ANY(${ids}) AND ativo = true
+        SELECT id, cracha, nome FROM pessoas WHERE id = ANY(${ids}) AND ativo = true AND excluida = FALSE
       `
     : [];
   const pessoasPorId = new Map(pessoas.map((p) => [String(p.id), p]));

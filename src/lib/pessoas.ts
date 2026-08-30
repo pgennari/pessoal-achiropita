@@ -47,6 +47,7 @@ export function pessoaDeSnap(id: string, data: Record<string, unknown>): Pessoa 
     estadoCivil: (data.estadoCivil as Pessoa["estadoCivil"]) || undefined,
     tamanhoCamiseta: (data.tamanhoCamiseta as string) || undefined,
     ativo: data.ativo === undefined ? true : (data.ativo as boolean),
+    excluida: (data.excluida as boolean) ?? false,
     filhos: Array.isArray(data.filhos) ? (data.filhos as Filho[]) : [],
     carros: Array.isArray(data.carros) ? (data.carros as Carro[]) : [],
     criadoEm: (data.criadoEm as string) || "",
@@ -203,9 +204,34 @@ export async function definirAtivacao(
   }
 }
 
-export async function excluirPessoa(_sessao: Sessao, pessoa: Pessoa): Promise<void> {
-  await api.delete(`/api/pessoas/${pessoa.id}`);
+export interface PreviaExclusaoPessoa {
+  pessoa: { id: string; nome: string; cracha: number };
+  vinculos: { equipes: number; veiculos: number; vagas: number; parentes: number };
+  totalVinculos: number;
+  veiculosSemVinculos: number;
+}
+
+export interface ResultadoExclusaoPessoa {
+  vinculosDesfeitos: number;
+  veiculosExcluidos: number;
+}
+
+export async function previaExclusaoPessoa(pessoaId: string): Promise<PreviaExclusaoPessoa> {
+  return api.get<PreviaExclusaoPessoa>(`/api/pessoas/${pessoaId}/exclusao-previa`);
+}
+
+// Exclusao logica (026): o backend desfaz os vinculos ativos e marca a pessoa
+// como excluida (registro, foto e historico preservados). Veiculos que ficam
+// sem outra pessoa vinculada tambem sao excluidos logicamente.
+export async function excluirPessoa(_sessao: Sessao, pessoa: Pessoa): Promise<ResultadoExclusaoPessoa> {
+  const resultado = await api.delete<ResultadoExclusaoPessoa>(`/api/pessoas/${pessoa.id}`);
   await queryClient.invalidateQueries({ queryKey: ["pessoas"] });
+  await queryClient.invalidateQueries({ queryKey: ["participacoes"] });
+  await queryClient.invalidateQueries({ queryKey: ["equipes"] });
+  await queryClient.invalidateQueries({ queryKey: ["veiculos"] });
+  await queryClient.invalidateQueries({ queryKey: ["vagas"] });
+  await queryClient.invalidateQueries({ queryKey: ["presenca"] });
+  return resultado;
 }
 
 export async function carregarPessoa(id: string): Promise<Pessoa | null> {

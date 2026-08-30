@@ -180,6 +180,8 @@ export interface Veiculo {
   estacionamentos?: { id: string; nome: string }[];
   observacao?: string;
   crachaCarroImpresso?: boolean;
+  // Exclusao logica (026): veiculo marca solo pela exclusao de pessoa (orfao).
+  excluida?: boolean;
   criadoEm: string;
   atualizadoEm: string;
 }
@@ -228,6 +230,8 @@ export interface Pessoa {
   observacoes?: string;
   fotoUrl?: string;
   ativo: boolean;
+  // Exclusao logica (026): flag independente da inativacao (`ativo`).
+  excluida?: boolean;
   motivoInativacao?: string;
   filhos: Filho[];
   carros: Carro[];

@@ -69,6 +69,12 @@ ALTER TABLE pessoas DROP COLUMN IF EXISTS estacionamento_id;
 CREATE INDEX idx_pessoas_cracha ON pessoas(cracha);
 CREATE INDEX idx_pessoas_ativo  ON pessoas(ativo);
 
+-- Exclusao logica (026-exclusao-logica-pessoa): pessoa marcada como excluida
+-- nao aparece no sistema; o registro, a foto e o historico sao preservados.
+-- O cracha permanece reservado (UNIQUE acima). Inativacao (`ativo`) e um
+-- estado independente da exclusao.
+ALTER TABLE pessoas ADD COLUMN IF NOT EXISTS excluida BOOLEAN NOT NULL DEFAULT FALSE;
+
 -- estacionamentos
 CREATE TABLE estacionamentos (
   id                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -341,6 +347,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_veiculos_placa ON veiculos(placa);
 -- ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS cracha_carro_impresso BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS observacao TEXT;
 ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS cracha_carro_impresso BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Exclusao logica (026-exclusao-logica-pessoa): veiculo marcado como excluido
+-- nao aparece no sistema; o registro e preservado. So a exclusao de uma pessoa
+-- provoca a exclusao logica do veiculo que fica sem nenhuma outra pessoa
+-- vinculada (nunca o desvinculo manual). A placa permanece reservada (UNIQUE).
+ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS excluida BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- pessoa_veiculo: tabela de junção many-to-many
 CREATE TABLE IF NOT EXISTS pessoa_veiculo (

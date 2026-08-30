@@ -17,7 +17,8 @@ import {
 } from "../lib/hooks";
 import { useSessao, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
-import { formatarData, normalizar } from "../lib/utilsDominio";
+import { formatarData } from "../lib/utilsDominio";
+import { MenuFiltro } from "../components/MenuFiltro";
 import { SETORES } from "../lib/tipos";
 import type {
   Avaliacao,
@@ -25,6 +26,10 @@ import type {
   NotaConvidarNovamente,
   ValorCriterio,
 } from "../lib/tipos";
+import { RelatorioAvaliacoesApoio } from "./RelatorioAvaliacoesApoio";
+import { RelatorioAvaliacoesCoordenador } from "./RelatorioAvaliacoesCoordenador";
+
+type AbaRelatorioAvaliacoes = "equipistas" | "apoio" | "coordenador";
 
 type CampoCriterio = Exclude<keyof CriteriosAvaliacao, "convidarNovamente">;
 
@@ -150,118 +155,6 @@ function corNotaConvidar(nota: NotaConvidarNovamente): string {
   return `hsl(${matiz} 72% 38%)`;
 }
 
-// Dropdown multi-selecao de um campo do relatorio. O gatilho mostra o nome do
-// campo e a quantidade de valores marcados; o painel lista os valores possiveis
-// com caixas de marcacao. Fecha ao clicar fora ou com Escape (efeito no chamador).
-// Quando `permitirBusca` e true, um campo de texto filtra as opcoes listadas.
-function MenuFiltro(props: {
-  aberto: boolean;
-  rotulo: string;
-  opcoes: { chave: string; rotulo: string; marcado: boolean }[];
-  aoAbrirFechar: () => void;
-  aoMarcar: (chave: string) => void;
-  aoLimparCampo: () => void;
-  permitirBusca?: boolean;
-  placeholderBusca?: string;
-}) {
-  const {
-    aberto,
-    rotulo,
-    opcoes,
-    aoAbrirFechar,
-    aoMarcar,
-    aoLimparCampo,
-    permitirBusca = false,
-    placeholderBusca = "Buscar...",
-  } = props;
-  const quantidade = opcoes.filter((opcao) => opcao.marcado).length;
-  const [busca, setBusca] = useState("");
-
-  // Limpa a busca sempre que o painel fecha, para o filtro nao vazar entre aberturas.
-  useEffect(() => {
-    if (!aberto) setBusca("");
-  }, [aberto]);
-
-  const opcoesFiltradas = useMemo(() => {
-    if (!permitirBusca || !busca.trim()) return opcoes;
-    const termo = normalizar(busca);
-    return opcoes.filter((opcao) => normalizar(opcao.rotulo).includes(termo));
-  }, [opcoes, permitirBusca, busca]);
-
-  return (
-    <div className="relative" data-dropdown>
-      <button
-        type="button"
-        aria-haspopup="true"
-        aria-expanded={aberto}
-        className={`filtro-chip ${
-          aberto || quantidade > 0
-            ? "filtro-chip-ativo"
-            : "filtro-chip-inativo"
-        }`}
-        onClick={aoAbrirFechar}
-        title={rotulo}
-      >
-        {rotulo}
-        {quantidade > 0 && <span className="tabular-nums">({quantidade})</span>}
-        <Icone nome="seta-baixo" tamanho={12} />
-      </button>
-
-      {aberto && (
-        <div className="absolute left-0 top-full mt-1 z-30 min-w-[190px] rounded-lg border border-pietra bg-bianco shadow-media p-2">
-          {permitirBusca && (
-            <div className="relative mb-1">
-              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-ardesia">
-                <Icone nome="busca" tamanho={14} />
-              </span>
-              <input
-                type="text"
-                className="input pl-8"
-                placeholder={placeholderBusca}
-                aria-label={`Buscar ${rotulo}`}
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                autoComplete="off"
-              />
-            </div>
-          )}
-          <div className="max-h-56 overflow-y-auto">
-            {opcoesFiltradas.length === 0 ? (
-              <p className="px-2 py-1.5 text-sm text-ardesia">
-                Nenhuma opção encontrada.
-              </p>
-            ) : (
-              opcoesFiltradas.map((opcao) => (
-                <label
-                  key={opcao.chave}
-                  className="flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-pietra-clara cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    className="accent-verde"
-                    checked={opcao.marcado}
-                    onChange={() => aoMarcar(opcao.chave)}
-                  />
-                  {opcao.rotulo}
-                </label>
-              ))
-            )}
-          </div>
-          {quantidade > 0 && (
-            <button
-              type="button"
-              className="btn btn-texto w-full mt-1"
-              onClick={aoLimparCampo}
-            >
-              <span className="text-xs">Limpar campo</span>
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function formatarMomento(iso: string): string {
   const data = new Date(iso);
   if (isNaN(data.getTime())) return "-";
@@ -281,8 +174,8 @@ export function RelatorioAvaliacoes() {
   const { itens: equipes } = useEquipes(edicao?.id);
   const { itens: setores } = useSetores();
   const { itens: diasFesta } = useDiasFesta(edicao?.id);
+  const [abaAtiva, setAbaAtiva] = useState<AbaRelatorioAvaliacoes>("equipistas");
   const [filtros, setFiltros] = useState<FiltrosRelatorio>(FILTROS_INICIAIS);
-  const [detalheAbertoId, setDetalheAbertoId] = useState<string | null>(null);
   const [dropdownAberto, setDropdownAberto] = useState<string | null>(null);
   const [resumoAberto, setResumoAberto] = useState(false);
 
@@ -325,10 +218,6 @@ export function RelatorioAvaliacoes() {
       delete criterios[chave];
       return { ...atual, criterios };
     });
-  }
-
-  function alternarDetalhe(id: string) {
-    setDetalheAbertoId((atual) => (atual === id ? null : id));
   }
 
   // Dias de festa da edicao (ordenados) e presencas de todos os dias, para o
@@ -533,6 +422,56 @@ export function RelatorioAvaliacoes() {
         <h2 className="mt-1">Avaliações</h2>
       </header>
 
+      <div className="tabs" role="tablist" aria-label="Tipos de avaliação">
+        <div className="tabs-lista">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={abaAtiva === "equipistas"}
+            className={`aba ${abaAtiva === "equipistas" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaAtiva("equipistas")}
+          >
+            Equipistas
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={abaAtiva === "apoio"}
+            className={`aba ${abaAtiva === "apoio" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaAtiva("apoio")}
+          >
+            Apoio
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={abaAtiva === "coordenador"}
+            className={`aba ${abaAtiva === "coordenador" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaAtiva("coordenador")}
+          >
+            Coordenador
+          </button>
+        </div>
+      </div>
+
+      {abaAtiva === "apoio" && edicao && (
+        <RelatorioAvaliacoesApoio
+          edicaoId={edicao.id}
+          edicaoNumero={edicao.numero}
+          edicaoAno={edicao.ano}
+        />
+      )}
+
+      {abaAtiva === "coordenador" && edicao && (
+        <RelatorioAvaliacoesCoordenador
+          edicaoId={edicao.id}
+          edicaoNumero={edicao.numero}
+          edicaoAno={edicao.ano}
+        />
+      )}
+
+      {abaAtiva === "equipistas" && (
+        <>
       {carregando && (
         <div className="card">
           <div className="card-corpo text-ardesia">Carregando...</div>
@@ -730,28 +669,16 @@ export function RelatorioAvaliacoes() {
           )}
 
           {filtradas.map((avaliacao) => {
-            const aberto = detalheAbertoId === avaliacao.id;
             return (
               <div key={avaliacao.id} className="card">
                 <div className="card-corpo space-y-2">
                   <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <button
-                      type="button"
-                      className="flex-1 min-w-0 text-left"
-                      onClick={() => alternarDetalhe(avaliacao.id)}
-                      aria-expanded={aberto}
-                      aria-label={`${
-                        aberto ? "Fechar detalhes de" : "Ver detalhes de"
-                      } ${avaliacao.pessoaNome ?? "avaliação"}`}
-                      title={aberto ? "Fechar detalhes" : "Ver detalhes"}
-                    >
-                      <span className="block font-semibold truncate">
-                        {avaliacao.pessoaNome ?? "-"}
-                        {avaliacao.pessoaCracha
-                          ? ` · crachá ${avaliacao.pessoaCracha}`
-                          : ""}
-                      </span>
-                    </button>
+                    <span className="block font-semibold truncate">
+                      {avaliacao.pessoaNome ?? "-"}
+                      {avaliacao.pessoaCracha
+                        ? ` · crachá ${avaliacao.pessoaCracha}`
+                        : ""}
+                    </span>
                     <div className="flex items-center gap-2 shrink-0">
                       <div
                         className="flex items-center gap-0.5 whitespace-nowrap"
@@ -785,7 +712,6 @@ export function RelatorioAvaliacoes() {
                       <span className={badgeStatus(avaliacao.status)}>
                         {rotuloStatus(avaliacao.status)}
                       </span>
-                      <Icone nome={aberto ? "menos" : "mais"} tamanho={16} />
                     </div>
                   </div>
                   <span className="text-xs text-ardesia block">
@@ -846,22 +772,22 @@ export function RelatorioAvaliacoes() {
                     </span>
                   </div>
 
-                  {aberto && (
-                    <div className="mt-2 pt-4 border-t border-pietra-clara">
-                      <p className="input-label">Comentários e sugestões</p>
-                      {avaliacao.comentarios ? (
-                        <p className="text-sm whitespace-pre-wrap break-words">
-                          {avaliacao.comentarios}
-                        </p>
-                      ) : (
-                        <p className="text-sm text-ardesia">—</p>
-                      )}
-                    </div>
-                  )}
+                  <div className="mt-2 pt-4 border-t border-pietra-clara">
+                    <p className="input-label">Comentários e sugestões</p>
+                    {avaliacao.comentarios ? (
+                      <p className="text-sm whitespace-pre-wrap break-words">
+                        {avaliacao.comentarios}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-ardesia">—</p>
+                    )}
+                  </div>
                 </div>
               </div>
             );
           })}
+        </>
+      )}
         </>
       )}
     </div>

@@ -922,6 +922,59 @@ UPDATE perfis SET
 WHERE sigla = 'ORG'
   AND NOT 'pessoas.bloqueio' = ANY(permissoes);
 
+-- ─── Avaliacao de Coordenadores (027) ─────────────────────────────────────────
+
+-- links_avaliacao_coordenador: link publico para avaliacao de coordenadores
+-- (027). O id e a referencia publica = ano da edicao em texto (ex.: '2026').
+-- Um link ativo por edicao; ao gerar de novo, o anterior e revogado.
+CREATE TABLE IF NOT EXISTS links_avaliacao_coordenador (
+  id              TEXT PRIMARY KEY,
+  edicao_id       TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
+  status          status_link NOT NULL DEFAULT 'ativo',
+  criado_por_uid  TEXT NOT NULL,
+  criado_por_nome TEXT NOT NULL,
+  criado_em       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_links_avaliacao_coordenador_edicao_ativo
+ON links_avaliacao_coordenador(edicao_id) WHERE status = 'ativo';
+
+-- avaliacoes_coordenador: avaliacao do coordenador de uma equipe filha feita
+-- pelo coordenador de uma equipe 'APOIO' (027). O questionario e fixo em
+-- colunas tipadas (R1/R2 fechadas + 4 abertas, min 20 / max 4000 caracteres).
+-- UNIQUE(edicao_id, avaliador_pessoa_id, pessoa_id, equipe_filha_id) =
+-- no maximo 1 avaliacao do mesmo avaliador para o mesmo alvo na mesma filha.
+CREATE TABLE IF NOT EXISTS avaliacoes_coordenador (
+  id                   TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  edicao_id            TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
+  equipe_pai_id        TEXT NOT NULL REFERENCES equipes(id) ON DELETE CASCADE,
+  equipe_filha_id      TEXT NOT NULL REFERENCES equipes(id) ON DELETE CASCADE,
+  avaliador_pessoa_id  TEXT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+  avaliador_cracha     INTEGER NOT NULL,
+  avaliador_nome       TEXT NOT NULL,
+  pessoa_id            TEXT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+  permanencia          TEXT,
+  lideranca            TEXT,
+  ponto_positivo       TEXT,
+  aspecto_melhorar     TEXT,
+  situacao_registrar   TEXT,
+  recomendacao         TEXT,
+  status               TEXT NOT NULL DEFAULT 'rascunho',
+  criado_em            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finalizado_em        TIMESTAMPTZ,
+  UNIQUE(edicao_id, avaliador_pessoa_id, pessoa_id, equipe_filha_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_coordenador_edicao
+ON avaliacoes_coordenador(edicao_id);
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_coordenador_pessoa
+ON avaliacoes_coordenador(pessoa_id);
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_coordenador_filha
+ON avaliacoes_coordenador(equipe_filha_id);
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_coordenador_avaliador
+ON avaliacoes_coordenador(avaliador_pessoa_id);
+
 -- Formaliza no catalogo a permissao 'exclusivoPessoal' (hoje apenas referenciada
 -- em codigo no box "Exclusivo Pessoal" do detalhe da Pessoa). Concedida ao ORG.
 INSERT INTO permissoes (codigo, rotulo, descricao) VALUES

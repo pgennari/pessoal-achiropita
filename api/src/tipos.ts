@@ -120,6 +120,23 @@ export type VariaveisAvaliacao = {
   Variables: { sessaoAvaliacao: SessaoAvaliacao };
 };
 
+// Sessão JWT curta do coordenador no fluxo público de avaliação de
+// coordenadores (027). Carrega TODAS as equipes 'APOIO' (com ao menos uma
+// equipe filha) que a pessoa coordena na edição, pois o coordenador pode
+// avaliar as filhas de mais de uma equipe.
+export interface SessaoCoordenador {
+  pessoaId: string;
+  cracha: number;
+  edicaoId: string;
+  equipeIds: string[];
+  linkToken: string;
+}
+
+// Tipagem de variáveis Hono para a sessão pública de avaliação de coordenadores.
+export type VariaveisCoordenador = {
+  Variables: { sessaoCoordenador: SessaoCoordenador };
+};
+
 // Tipagem de variáveis Hono para rotas que só verificam o token Firebase
 // (ex.: aceitar convite — o usuário ainda não tem doc em /usuarios).
 export type VariaveisFirebase = {

@@ -592,6 +592,103 @@ export interface CriteriosAvaliacao {
   convidarNovamente: NotaConvidarNovamente | null;
 }
 
+// ─── Avaliação de Coordenadores (027) ─────────────────────────────────────────
+
+// Link público de avaliação de coordenadores. O id é a referência pública
+// (ano da edição em texto, ex.: "2026"); um link ativo por edição.
+export interface LinkAvaliacaoCoordenador {
+  id: string;
+  edicaoId: string;
+  status: StatusLink;
+  criadoPorUid: string;
+  criadoPorNome: string;
+  criadoEm: string;
+}
+
+export type StatusAvaliacaoCoordenador = "rascunho" | "finalizada";
+
+// Q1: permanência na função na próxima festa (fechada, obrigatória).
+export type PermanenciaCoordenador =
+  | "Sim"
+  | "Sim, com algumas ressalvas"
+  | "Nao tenho certeza"
+  | "Nao";
+
+// Q2: perfil de liderança (fechada, obrigatória).
+export type LiderancaCoordenador =
+  | "Excelente"
+  | "Bom"
+  | "Regular"
+  | "Pouco"
+  | "Nao possui";
+
+// Questionário de 6 questões (Q1/Q2 fechadas + Q3-Q6 abertas). Todas as 6 são
+// obrigatórias para finalizar; as abertas exigem no mínimo 20 caracteres.
+export interface QuestionarioCoordenador {
+  permanencia: PermanenciaCoordenador | null;
+  lideranca: LiderancaCoordenador | null;
+  pontoPositivo: string | null;
+  aspectoMelhorar: string | null;
+  situacaoRegistrar: string | null;
+  recomendacao: string | null;
+}
+
+// Registro da avaliação de um coordenador de equipe filha. Campos do
+// questionário fixos nas colunas da tabela avaliacoes_coordenador.
+export interface AvaliacaoCoordenador {
+  id: string;
+  edicaoId: string;
+  equipePaiId: string;
+  equipeFilhaId: string;
+  pessoaId: string;
+  avaliadorPessoaId: string;
+  avaliadorCracha: number;
+  avaliadorNome: string;
+  permanencia: PermanenciaCoordenador | null;
+  lideranca: LiderancaCoordenador | null;
+  pontoPositivo: string | null;
+  aspectoMelhorar: string | null;
+  situacaoRegistrar: string | null;
+  recomendacao: string | null;
+  status: StatusAvaliacaoCoordenador;
+  criadoEm: string;
+  atualizadoEm: string;
+  finalizadoEm: string | null;
+  // Resolvidos por JOIN no backend. Opcionais porque nem todo endpoint os retorna.
+  equipeFilhaNome?: string;
+  pessoaNome?: string;
+  pessoaCracha?: string | null;
+}
+
+// Alvo da avaliação: coordenador de uma equipe filha da(s) equipe(s) 'APOIO'
+// do avaliador, com o status da avaliação que ele já tenha emitido.
+export interface AlvoAvaliacaoCoordenador {
+  pessoaId: string;
+  pessoaNome: string;
+  pessoaCracha: string | null;
+  equipeFilhaId: string;
+  equipeFilhaNome: string;
+  avaliacaoId: string | null;
+  statusAvaliacao: StatusAvaliacaoCoordenador | null;
+}
+
+// Opções de exibição do enunciado (valores dos enums sem acento na API;
+// a UI exibe com acentuação, conforme a spec FR-016/FR-017).
+export const OPCOES_PERMANENCIA: { valor: PermanenciaCoordenador; rotulo: string }[] = [
+  { valor: "Sim", rotulo: "Sim" },
+  { valor: "Sim, com algumas ressalvas", rotulo: "Sim, com algumas ressalvas" },
+  { valor: "Nao tenho certeza", rotulo: "Não tenho certeza" },
+  { valor: "Nao", rotulo: "Não" },
+];
+
+export const OPCOES_LIDERANCA: { valor: LiderancaCoordenador; rotulo: string }[] = [
+  { valor: "Excelente", rotulo: "Excelente" },
+  { valor: "Bom", rotulo: "Bom" },
+  { valor: "Regular", rotulo: "Regular" },
+  { valor: "Pouco", rotulo: "Pouco" },
+  { valor: "Nao possui", rotulo: "Não possui" },
+];
+
 // Pesquisa de satisfacao da cantina (020-cantina-pesquisa).
 export type NotaPesquisa = 1 | 2 | 3 | 4 | 5;
 

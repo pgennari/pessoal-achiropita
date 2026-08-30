@@ -5,6 +5,7 @@ import { useQuery, useQueries, useInfiniteQuery } from "@tanstack/react-query";
 import { api } from "./api";
 import {
   Avaliacao,
+  AvaliacaoCoordenador,
   Bloqueio,
   Checkin,
   Convite,
@@ -17,6 +18,7 @@ import {
   HistoricoEquipePessoa,
   HistoricoEstacionamentoVaga,
   LinkAvaliacao,
+  LinkAvaliacaoCoordenador,
   LinkPresenca,
   LinkValidacao,
   Participacao,
@@ -46,6 +48,7 @@ import {
   listarPresencasDoDia,
   listarResumoEquipesDoDia,
 } from "./presenca";
+import { listarAvaliacoesCoordenador } from "./avaliacaoCoordenador";
 import type { DashboardInicial } from "./dashboard";
 import { PerfilInfo } from "./tipos";
 import { listarCandidatosMontagem } from "./montagem";
@@ -668,6 +671,37 @@ export function useAvaliacoesPessoa(pessoaId: string | undefined): EstadoLista<A
     enabled: !!pessoaId,
   });
   return { itens: data ?? [], carregando: isLoading && !!pessoaId, erro: erroMsg(error) };
+}
+
+// ─── Avaliação de coordenadores (027) ─────────────────────────────────────────
+
+export function useLinkAvaliacaoCoordenadorAtivo(
+  edicaoId: string | undefined,
+): EstadoItem<LinkAvaliacaoCoordenador> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["avaliacaoCoordenadorLink", edicaoId],
+    queryFn: () => api.get<LinkAvaliacaoCoordenador>(`/api/avaliacao-coordenador/links/${edicaoId}`),
+    enabled: !!edicaoId,
+  });
+  return { item: data ?? null, carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
+}
+
+export function useAvaliacoesCoordenador(
+  edicaoId: string | undefined,
+  filtros?: { equipeId?: string; avaliadorPessoaId?: string; status?: string }
+): EstadoLista<AvaliacaoCoordenador> {
+  const { data, isLoading, error, dataUpdatedAt } = useQuery({
+    queryKey: [
+      "avaliacoesCoordenador",
+      edicaoId,
+      filtros?.equipeId,
+      filtros?.avaliadorPessoaId,
+      filtros?.status,
+    ],
+    queryFn: () => listarAvaliacoesCoordenador(edicaoId!, filtros),
+    enabled: !!edicaoId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error), atualizadoEm: dataUpdatedAt };
 }
 
 // ─── Utilitário ───────────────────────────────────────────────────────────────

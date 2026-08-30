@@ -14,6 +14,7 @@ import {
 } from "../lib/hooks";
 import { useSessao, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
+import { SecaoAvaliacaoCoordenadores } from "./SecaoAvaliacaoCoordenadores";
 
 // Controle de preenchimento: proporcao de equipistas com avaliacao finalizada
 // por equipe. Cores conforme a paleta do guia visual (mesmo esquema da Presenca).
@@ -49,6 +50,7 @@ export function PaginaAvaliacao() {
   const { itens: equipes } = useEquipes(edicao?.id);
   const { itens: participacoes } = useParticipacoes(edicao?.id);
   const [copiado, setCopiado] = useState(false);
+  const [abaAtiva, setAbaAtiva] = useState<"equipistas" | "coordenadores">("equipistas");
 
   const podeAcessar = temPermissao(sessao, "avaliacao.gerenciar");
 
@@ -138,6 +140,31 @@ export function PaginaAvaliacao() {
         </p>
       </header>
 
+      <div className="tabs" role="tablist" aria-label="Tipos de avaliação">
+        <div className="tabs-lista">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={abaAtiva === "equipistas"}
+            className={`aba ${abaAtiva === "equipistas" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaAtiva("equipistas")}
+          >
+            Equipistas
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={abaAtiva === "coordenadores"}
+            className={`aba ${abaAtiva === "coordenadores" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaAtiva("coordenadores")}
+          >
+            Coordenadores
+          </button>
+        </div>
+      </div>
+
+      {abaAtiva === "equipistas" && (
+        <>
       <div className="card">
         <div className="card-corpo space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -271,6 +298,16 @@ export function PaginaAvaliacao() {
             </table>
           </div>
         </div>
+      )}
+        </>
+      )}
+
+      {abaAtiva === "coordenadores" && (
+        <SecaoAvaliacaoCoordenadores
+          edicaoId={edicao.id}
+          edicaoNumero={edicao.numero}
+          edicaoAno={edicao.ano}
+        />
       )}
     </div>
   );

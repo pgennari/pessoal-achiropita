@@ -72,10 +72,19 @@ Todas as colecoes Firestore e nomes de identificadores estao em `src/lib/tipos.t
 | `/vagas/:id` | VagaDetalhe |
 | `/cantina/pesquisa` | CantinaPesquisaPublico (anonimo, sem Layout) |
 | `/cantina/pesquisas` | CantinaPesquisa (permissao `cantina.gerenciar`) |
+| `/avaliacao/:token` | AvaliacaoPublico (anonimo, sem Layout) |
+| `/avaliacao/coordenadores/:referencia` | AvaliacaoCoordenadorPublico (anonimo, sem Layout) |
 | `/equipes/relatorio` | RelatorioEquipistas (permissao `equipes.listar`) |
 | `/usuarios` | Usuarios |
 | `/auditoria` | Auditoria |
 | `/historico` | Historico |
+
+## Avaliacao de Coordenadores
+
+- Fluxo da feature 027: ADM/ORG gera um link publico por edicao na pagina `/avaliacao` (aba "Coordenadores", ao lado de "Equipistas" em `PaginaAvaliacao`); a referencia do link e o `ano` da edicao (`/avaliacao/coordenadores/2026`).
+- Somente coordenadores de equipe com `APOIO` no nome e com equipes filhas se identificam (via cracha) e avaliam os coordenadores das equipes filhas — regra no backend; o frontend nunca revela qual regra falhou (resposta generica "Acesso negado").
+- Apos identificar-se, o cliente recebe um JWT curto (`SessaoCoordenador`) em `sessaoCoordenador.ts`; API_SECRET reutilizada (dev default `dev-secret-achiropita-2026`).
+- Avaliacoes: 6 questoes (2 fechadas + 4 abertas); finalizada e imutavel; abertas exigem minimo de 20 caracteres. Auditoria via `registrarEvento` (`avaliacaoCoordenador.gerou`, `.revogou`, `.identificou`). Permissao exigida: `avaliacao.gerenciar`.
 
 ## Seguranca
 
@@ -86,5 +95,5 @@ Todas as colecoes Firestore e nomes de identificadores estao em `src/lib/tipos.t
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs\025-bloqueio-pessoa\plan.md
+at specs/027-avaliacao-coordenadores/plan.md
 <!-- SPECKIT END -->

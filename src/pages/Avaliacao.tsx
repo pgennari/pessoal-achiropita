@@ -206,6 +206,16 @@ export function PaginaAvaliacao() {
                   <Icone nome="copiar" />
                 </button>
                 <a
+                  href={`/qr-avaliacao/${linkAvaliacao.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-secundario btn-pequeno"
+                  aria-label="Abrir QR Code"
+                  title="Abrir QR Code"
+                >
+                  <Icone nome="qr" />
+                </a>
+                <a
                   href={`${window.location.origin}/avaliacao/${linkAvaliacao.id}`}
                   target="_blank"
                   rel="noreferrer"

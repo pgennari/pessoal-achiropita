@@ -54,6 +54,7 @@ import { VagaDetalhe } from "./pages/VagaDetalhe";
 import { CantinaPesquisa } from "./pages/CantinaPesquisa";
 import { CantinaPesquisaPublico } from "./pages/CantinaPesquisaPublico";
 import { QrPesquisaCantina } from "./pages/QrPesquisaCantina";
+import { QrAvaliacao } from "./pages/QrAvaliacao";
 import { Montagem } from "./pages/Montagem";
 import { Bloqueios } from "./pages/Bloqueios";
 import { BloqueioPessoa } from "./pages/BloqueioPessoa";
@@ -85,6 +86,18 @@ export function App() {
       <Route path="/cantina/pesquisa" element={<CantinaPesquisaPublico />} />
       <Route path="/qr-pesquisa-cantina" element={<QrPesquisaCantina />} />
       <Route path="/qr-presenca/:token" element={<QrPresenca />} />
+      <Route
+        path="/qr-avaliacao/:referencia"
+        element={<QrAvaliacao tipo="equipistas" />}
+      />
+      <Route
+        path="/qr-avaliacao-coordenador/:referencia"
+        element={<QrAvaliacao tipo="coordenadores" />}
+      />
+      <Route
+        path="/qr-avaliacao-equipista/:referencia"
+        element={<QrAvaliacao tipo="equipista" />}
+      />
       <Route
         element={
           <ProtegerRota>

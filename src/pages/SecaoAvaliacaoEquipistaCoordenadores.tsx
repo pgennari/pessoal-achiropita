@@ -14,8 +14,6 @@ import {
 } from "../lib/hooks";
 import {
   buscarAvaliacaoEquipistaCoordenador,
-  gerarLinkAvaliacaoEquipista,
-  revogarLinkAvaliacaoEquipista,
 } from "../lib/avaliacaoEquipistaCoordenador";
 import { AvaliacaoEquipistaCoordenador, CriterioEquipista } from "../lib/tipos";
 
@@ -56,7 +54,6 @@ export function SecaoAvaliacaoEquipistaCoordenadores({ edicaoId, edicaoNumero, e
   const { itens: equipes } = useEquipes(edicaoId);
   const [copiado, setCopiado] = useState(false);
   const [acaoErro, setAcaoErro] = useState("");
-  const [gerando, setGerando] = useState(false);
   const [equipeFiltro, setEquipeFiltro] = useState<string>("");
   const [avaliadorFiltro, setAvaliadorFiltro] = useState<string>("");
   const [statusFiltro, setStatusFiltro] = useState<string>("");
@@ -87,29 +84,7 @@ export function SecaoAvaliacaoEquipistaCoordenadores({ edicaoId, edicaoNumero, e
 
   const urlLink = link ? `${window.location.origin}/avaliacao/equipista/${link.id}` : null;
 
-  async function handleGerarLink() {
-    setAcaoErro("");
-    setGerando(true);
-    try {
-      await gerarLinkAvaliacaoEquipista(edicaoId);
-    } catch (e) {
-      setAcaoErro((e as Error).message);
-    } finally {
-      setGerando(false);
-    }
-  }
-
-  async function handleRevogarLink() {
-    if (!link) return;
-    setAcaoErro("");
-    try {
-      await revogarLinkAvaliacaoEquipista(link.id);
-    } catch (e) {
-      setAcaoErro((e as Error).message);
-    }
-  }
-
-  function handleCopiarLink() {
+  async function handleCopiarLink() {
     if (!urlLink) return;
     navigator.clipboard.writeText(urlLink).then(() => {
       setCopiado(true);
@@ -175,26 +150,17 @@ export function SecaoAvaliacaoEquipistaCoordenadores({ edicaoId, edicaoNumero, e
               </div>
             </div>
             <div className="flex gap-2">
-              <button
-                type="button"
-                className="btn btn-secundario btn-pequeno"
-                onClick={handleGerarLink}
-                disabled={gerando}
-                aria-label={link ? "Gerar novo link" : "Gerar link"}
-                title={link ? "Gerar novo link (revoga o anterior)" : "Gerar link"}
-              >
-                <Icone nome={link ? "recarregar" : "link"} />
-              </button>
               {link && (
-                <button
-                  type="button"
-                  className="btn btn-perigo btn-pequeno"
-                  onClick={handleRevogarLink}
-                  aria-label="Revogar link"
-                  title="Revogar link"
+                <a
+                  href={`/qr-avaliacao-equipista/${link.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-secundario btn-pequeno"
+                  aria-label="Abrir QR Code"
+                  title="Abrir QR Code"
                 >
-                  <Icone nome="fechar" />
-                </button>
+                  <Icone nome="qr" />
+                </a>
               )}
             </div>
           </div>

@@ -32,7 +32,9 @@ app.openapi(getAlvosRoute, async (c) => {
     SELECT DISTINCT
       ef.id AS equipe_filha_id, ef.nome AS equipe_filha_nome,
       p.id AS pessoa_id, p.nome AS pessoa_nome, p.cracha AS pessoa_cracha,
-      av.id AS avaliacao_id, av.status AS status_avaliacao
+      av.id AS avaliacao_id, av.status AS status_avaliacao,
+      av.permanencia, av.lideranca, av.ponto_positivo, av.aspecto_melhorar,
+      av.situacao_registrar, av.recomendacao
     FROM equipes ef
     JOIN participacoes part ON part.equipe_id = ef.id AND part.funcao = 'Coordenador'
     JOIN pessoas p ON p.id = part.pessoa_id
@@ -57,6 +59,16 @@ app.openapi(getAlvosRoute, async (c) => {
     equipeFilhaNome: String(r.equipe_filha_nome),
     avaliacaoId: r.avaliacao_id ? String(r.avaliacao_id) : null,
     statusAvaliacao: r.status_avaliacao ? String(r.status_avaliacao) : null,
+    rascunho: r.avaliacao_id
+      ? {
+          permanencia: r.permanencia,
+          lideranca: r.lideranca,
+          pontoPositivo: r.ponto_positivo,
+          aspectoMelhorar: r.aspecto_melhorar,
+          situacaoRegistrar: r.situacao_registrar,
+          recomendacao: r.recomendacao,
+        }
+      : null,
   })), 200);
 });
 
@@ -278,14 +290,16 @@ app.openapi(postSalvarRoute, async (c) => {
     return c.json({ erro: "Coordenador não encontrado na edição." }, 422);
   }
 
-  // Se finalizar, valida as 6 questões (fechadas preenchidas + abertas >= 20)
+  // Se finalizar, valida as 6 questões obrigatórias (todas preenchidas)
   if (body.finalizar) {
     const abertasCompletas = PERGUNTAS_ABERTAS.every(
-      (chave) => typeof body[chave] === "string" && (body[chave] as string).trim().length >= 20
+      (chave) =>
+        typeof body[chave] === "string" &&
+        (body[chave] as string).trim().length > 0
     );
     if (!body.permanencia || !body.lideranca || !abertasCompletas) {
       return c.json({
-        erro: "Para finalizar, todas as 6 questões devem ser respondidas e as respostas abertas devem ter no mínimo 20 caracteres",
+        erro: "Para finalizar, todas as 6 questões devem ser respondidas",
       }, 422);
     }
   }

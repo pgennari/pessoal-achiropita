@@ -623,7 +623,7 @@ export type LiderancaCoordenador =
   | "Nao possui";
 
 // Questionário de 6 questões (Q1/Q2 fechadas + Q3-Q6 abertas). Todas as 6 são
-// obrigatórias para finalizar; as abertas exigem no mínimo 20 caracteres.
+// obrigatórias para finalizar (sem mínimo de caracteres nas abertas).
 export interface QuestionarioCoordenador {
   permanencia: PermanenciaCoordenador | null;
   lideranca: LiderancaCoordenador | null;
@@ -670,6 +670,14 @@ export interface AlvoAvaliacaoCoordenador {
   equipeFilhaNome: string;
   avaliacaoId: string | null;
   statusAvaliacao: StatusAvaliacaoCoordenador | null;
+  rascunho: {
+    permanencia: PermanenciaCoordenador | null;
+    lideranca: LiderancaCoordenador | null;
+    pontoPositivo: string | null;
+    aspectoMelhorar: string | null;
+    situacaoRegistrar: string | null;
+    recomendacao: string | null;
+  } | null;
 }
 
 // Opções de exibição do enunciado (valores dos enums sem acento na API;

@@ -90,8 +90,13 @@ export function AvaliacaoCoordenadorPublico() {
   const [erro, setErro] = useState("");
   const [confirmacaoAberta, setConfirmacaoAberta] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dadosRef = useRef({ questionario });
-  dadosRef.current = { questionario };
+  const salvarLockRef = useRef(false);
+  const pendenteRef = useRef(false);
+  const dadosRef = useRef<{
+    questionario: QuestionarioCoordenador;
+    alvoAtivo: string | null;
+  }>({ questionario: QUESTIONARIO_VAZIO, alvoAtivo: null });
+  dadosRef.current.questionario = questionario;
 
   // Valida o link ao montar
   useEffect(() => {
@@ -141,19 +146,29 @@ export function AvaliacaoCoordenadorPublico() {
   const autoSave = useCallback(
     async (forcarFinalizar = false) => {
       if (!sessaoToken || !alvoSel) return;
+      const chaveAlvo = `${alvoSel.pessoaId}:${alvoSel.equipeFilhaId}`;
+      if (dadosRef.current.alvoAtivo !== chaveAlvo) return;
+      const alvo = alvoSel;
+      const snapshot = dadosRef.current.questionario;
+      if (salvarLockRef.current) {
+        pendenteRef.current = forcarFinalizar;
+        return;
+      }
+      salvarLockRef.current = true;
       setSalvando(true);
       try {
         const res = await salvarAvaliacaoCoordenador(sessaoToken, {
-          pessoaId: alvoSel.pessoaId,
-          equipeFilhaId: alvoSel.equipeFilhaId,
-          permanencia: dadosRef.current.questionario.permanencia,
-          lideranca: dadosRef.current.questionario.lideranca,
-          pontoPositivo: dadosRef.current.questionario.pontoPositivo,
-          aspectoMelhorar: dadosRef.current.questionario.aspectoMelhorar,
-          situacaoRegistrar: dadosRef.current.questionario.situacaoRegistrar,
-          recomendacao: dadosRef.current.questionario.recomendacao,
+          pessoaId: alvo.pessoaId,
+          equipeFilhaId: alvo.equipeFilhaId,
+          permanencia: snapshot.permanencia,
+          lideranca: snapshot.lideranca,
+          pontoPositivo: snapshot.pontoPositivo,
+          aspectoMelhorar: snapshot.aspectoMelhorar,
+          situacaoRegistrar: snapshot.situacaoRegistrar,
+          recomendacao: snapshot.recomendacao,
           finalizar: forcarFinalizar,
         });
+        const aindaAtivo = dadosRef.current.alvoAtivo === chaveAlvo;
         setUltimoSalvo(
           res.status === "finalizada"
             ? "Finalizada"
@@ -161,33 +176,61 @@ export function AvaliacaoCoordenadorPublico() {
         );
         setAlvos((prev) =>
           prev.map((a) =>
-            a.pessoaId === alvoSel.pessoaId && a.equipeFilhaId === alvoSel.equipeFilhaId
+            a.pessoaId === alvo.pessoaId && a.equipeFilhaId === alvo.equipeFilhaId
               ? {
                   ...a,
                   avaliacaoId: res.id,
                   statusAvaliacao:
                     res.status === "finalizada" ? "finalizada" : "rascunho",
+                  rascunho: {
+                    permanencia: snapshot.permanencia,
+                    lideranca: snapshot.lideranca,
+                    pontoPositivo: snapshot.pontoPositivo,
+                    aspectoMelhorar: snapshot.aspectoMelhorar,
+                    situacaoRegistrar: snapshot.situacaoRegistrar,
+                    recomendacao: snapshot.recomendacao,
+                  },
                 }
               : a,
           ),
         );
-        if (forcarFinalizar) {
+        if (forcarFinalizar && aindaAtivo) {
           setEtapa("alvos");
           setAlvoSel(null);
+          setQuestionario(QUESTIONARIO_VAZIO);
+          dadosRef.current = {
+            questionario: QUESTIONARIO_VAZIO,
+            alvoAtivo: null,
+          };
         }
       } catch (e) {
-        setErro((e as Error).message);
+        if (dadosRef.current.alvoAtivo === chaveAlvo) {
+          setErro((e as Error).message);
+        }
       } finally {
+        salvarLockRef.current = false;
         setSalvando(false);
+        if (pendenteRef.current) {
+          const finalizarPendente = pendenteRef.current;
+          pendenteRef.current = false;
+          autoSave(finalizarPendente);
+        }
       }
     },
     [sessaoToken, alvoSel],
   );
 
-  // Auto-save com debounce (2s)
+  // Auto-save com debounce (2s), padrão do fluxo de equipistas
   useEffect(() => {
     if (etapa !== "avaliacao" || !alvoSel) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    const chaveAlvo = `${alvoSel.pessoaId}:${alvoSel.equipeFilhaId}`;
+    if (dadosRef.current.alvoAtivo !== chaveAlvo) {
+      dadosRef.current = {
+        ...dadosRef.current,
+        alvoAtivo: chaveAlvo,
+      };
+    }
     debounceRef.current = setTimeout(() => {
       autoSave(false);
     }, 2000);
@@ -227,18 +270,34 @@ export function AvaliacaoCoordenadorPublico() {
     setAlvoSel(alvo);
     setUltimoSalvo("");
     setErro("");
+    setQuestionario(
+      alvo.rascunho
+        ? {
+            permanencia: alvo.rascunho.permanencia,
+            lideranca: alvo.rascunho.lideranca,
+            pontoPositivo: alvo.rascunho.pontoPositivo,
+            aspectoMelhorar: alvo.rascunho.aspectoMelhorar,
+            situacaoRegistrar: alvo.rascunho.situacaoRegistrar,
+            recomendacao: alvo.rascunho.recomendacao,
+          }
+        : QUESTIONARIO_VAZIO,
+    );
     setEtapa("avaliacao");
+    dadosRef.current = {
+      ...dadosRef.current,
+      alvoAtivo: `${alvo.pessoaId}:${alvo.equipeFilhaId}`,
+    };
   }
 
   function handleFinalizar() {
     const abertasCompletas = PERGUNTAS_ABERTAS.every(
       (q) =>
         typeof questionario[q.chave] === "string" &&
-        (questionario[q.chave] as string).trim().length >= 20,
+        (questionario[q.chave] as string).trim().length > 0,
     );
     if (!questionario.permanencia || !questionario.lideranca || !abertasCompletas) {
       setErro(
-        "Para finalizar, todas as 6 questões devem ser respondidas e as respostas abertas devem ter no mínimo 20 caracteres",
+        "Para finalizar, todas as 6 questões devem ser respondidas",
       );
       return;
     }
@@ -521,15 +580,17 @@ export function AvaliacaoCoordenadorPublico() {
                       }
                       placeholder={q.placeholder}
                     />
-<p
+                    <p
                       className={`text-xs mt-1 ${
-                        ((questionario[q.chave] as string | null)?.trim().length ?? 0) >= 20
+                        ((questionario[q.chave] as string | null)?.trim().length ?? 0) > 0
                           ? "text-verde"
                           : "text-ardesia"
                       }`}
                     >
-                      {(questionario[q.chave] as string | null)?.trim().length ?? 0} de 20
-                      caracteres mínimos
+                      {(questionario[q.chave] as string | null)?.trim().length ?? 0}{" "}
+                      {((questionario[q.chave] as string | null)?.trim().length ?? 0) > 0
+                        ? "caracteres"
+                        : "caracteres (obrigatório)"}
                     </p>
                   </div>
                 ))}

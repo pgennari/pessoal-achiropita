@@ -152,14 +152,26 @@ app.openapi(postIdentificarRoute, async (c) => {
     return c.json({ erro: "Acesso negado" }, 200);
   }
 
-  // 4) Já enviou? conta avaliações já finalizadas do equipista na edição
+  // 4) Já enviou? só quando TODOS os coordenadores da equipe foram avaliados.
+  //    Coordenadores-alvo da equipe do equipista na edição (mesma regra de alvos).
+  const alvosCoordenadores = await sql`
+    SELECT COUNT(*)::int AS total
+    FROM participacoes pc
+    JOIN pessoas p ON p.id = pc.pessoa_id
+    WHERE pc.edicao_id = ${link.edicao_id}
+      AND pc.equipe_id = ${part.equipe_id}
+      AND pc.funcao = 'Coordenador'
+      AND p.ativo = TRUE AND p.excluida = FALSE
+      AND p.id != ${pessoa.id}
+  `;
   const [contagem] = await sql`
     SELECT COUNT(*)::int AS total
     FROM avaliacoes_equipista_coordenador
     WHERE edicao_id = ${link.edicao_id}
       AND avaliador_pessoa_id = ${pessoa.id}
   `;
-  const jaEnviou = Number(contagem?.total ?? 0) > 0;
+  const totalAlvos = Number(alvosCoordenadores?.[0]?.total ?? 0);
+  const jaEnviou = totalAlvos > 0 && Number(contagem?.total ?? 0) >= totalAlvos;
 
   // 5) Sessão JWT curta
   const sessao: SessaoEquipista = {

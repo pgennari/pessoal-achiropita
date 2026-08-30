@@ -15,6 +15,7 @@ import {
 import { useSessao, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
 import { SecaoAvaliacaoCoordenadores } from "./SecaoAvaliacaoCoordenadores";
+import { SecaoAvaliacaoEquipistaCoordenadores } from "./SecaoAvaliacaoEquipistaCoordenadores";
 
 // Controle de preenchimento: proporcao de equipistas com avaliacao finalizada
 // por equipe. Cores conforme a paleta do guia visual (mesmo esquema da Presenca).
@@ -50,7 +51,7 @@ export function PaginaAvaliacao() {
   const { itens: equipes } = useEquipes(edicao?.id);
   const { itens: participacoes } = useParticipacoes(edicao?.id);
   const [copiado, setCopiado] = useState(false);
-  const [abaAtiva, setAbaAtiva] = useState<"equipistas" | "coordenadores">("equipistas");
+  const [abaAtiva, setAbaAtiva] = useState<"equipistas" | "coordenadores" | "equipistaCoordenador">("equipistas");
 
   const podeAcessar = temPermissao(sessao, "avaliacao.gerenciar");
 
@@ -158,7 +159,16 @@ export function PaginaAvaliacao() {
             className={`aba ${abaAtiva === "coordenadores" ? "aba-ativa" : ""}`}
             onClick={() => setAbaAtiva("coordenadores")}
           >
-            Coordenadores
+            Apoio
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={abaAtiva === "equipistaCoordenador"}
+            className={`aba ${abaAtiva === "equipistaCoordenador" ? "aba-ativa" : ""}`}
+            onClick={() => setAbaAtiva("equipistaCoordenador")}
+          >
+            Coordenador
           </button>
         </div>
       </div>
@@ -304,6 +314,14 @@ export function PaginaAvaliacao() {
 
       {abaAtiva === "coordenadores" && (
         <SecaoAvaliacaoCoordenadores
+          edicaoId={edicao.id}
+          edicaoNumero={edicao.numero}
+          edicaoAno={edicao.ano}
+        />
+      )}
+
+      {abaAtiva === "equipistaCoordenador" && (
+        <SecaoAvaliacaoEquipistaCoordenadores
           edicaoId={edicao.id}
           edicaoNumero={edicao.numero}
           edicaoAno={edicao.ano}

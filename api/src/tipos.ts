@@ -137,6 +137,22 @@ export type VariaveisCoordenador = {
   Variables: { sessaoCoordenador: SessaoCoordenador };
 };
 
+// Sessão JWT curta do equipista no fluxo público de avaliação dos coordenadores
+// da própria equipe (028). A pessoa tem UMA unica equipe por edicao, por isso
+// 'equipeId' e singular (espelha SessaoCoordenador, mas sem equipeIds).
+export interface SessaoEquipista {
+  pessoaId: string;
+  cracha: number;
+  edicaoId: string;
+  equipeId: string;
+  linkToken: string;
+}
+
+// Tipagem de variáveis Hono para a sessão pública de avaliação do equipista.
+export type VariaveisVerificacaoEquipista = {
+  Variables: { sessaoEquipista: SessaoEquipista };
+};
+
 // Tipagem de variáveis Hono para rotas que só verificam o token Firebase
 // (ex.: aceitar convite — o usuário ainda não tem doc em /usuarios).
 export type VariaveisFirebase = {

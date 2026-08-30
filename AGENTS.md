@@ -74,6 +74,7 @@ Todas as colecoes Firestore e nomes de identificadores estao em `src/lib/tipos.t
 | `/cantina/pesquisas` | CantinaPesquisa (permissao `cantina.gerenciar`) |
 | `/avaliacao/:token` | AvaliacaoPublico (anonimo, sem Layout) |
 | `/avaliacao/coordenadores/:referencia` | AvaliacaoCoordenadorPublico (anonimo, sem Layout) |
+| `/avaliacao/equipista/:referencia` | AvaliacaoEquipistaCoordenadorPublico (anonimo, sem Layout) |
 | `/equipes/relatorio` | RelatorioEquipistas (permissao `equipes.listar`) |
 | `/usuarios` | Usuarios |
 | `/auditoria` | Auditoria |
@@ -86,6 +87,12 @@ Todas as colecoes Firestore e nomes de identificadores estao em `src/lib/tipos.t
 - Apos identificar-se, o cliente recebe um JWT curto (`SessaoCoordenador`) em `sessaoCoordenador.ts`; API_SECRET reutilizada (dev default `dev-secret-achiropita-2026`).
 - Avaliacoes: 6 questoes (2 fechadas + 4 abertas); finalizada e imutavel; abertas exigem minimo de 20 caracteres. Auditoria via `registrarEvento` (`avaliacaoCoordenador.gerou`, `.revogou`, `.identificou`). Permissao exigida: `avaliacao.gerenciar`.
 
+## Avaliacao de Coordenadores pelo Equipista
+
+- Fluxo da feature 028: ADM/ORG gera um link publico por edicao na pagina `/avaliacao` na terceira aba **"Coordenador"** (aba `equipistaCoordenador` em `PaginaAvaliacao`, ao lado de "Equipistas" e "Apoio"); a referencia do link e o `ano` da edicao (`/avaliacao/equipista/2026`).
+- O equipista (participacao `funcao='Equipista'` na edicao do link) identifica-se via cracha e **confirma a identidade** (foto/nome/equipe) antes de receber um JWT curto (`SessaoEquipista`) em `sessaoEquipista.ts`; o frontend nunca revela qual etapa falhou (resposta generica "Acesso negado"). Reentrada pelo cracha apos envio mostra apenas "avaliacao ja enviada", sem revelar as respostas.
+- Avaliacao: 6 criterios fechados (`Otimo/Bom/Regular/Ruim`, JSONB) + comentarios; **sem autosave / sem estado `rascunho`** — a avaliacao so existe ao finalizar (com aviso de imutabilidade + confirmacao). Auditoria via `registrarEvento` (`avaliacaoEquipistaLink.gerou`, `.revogou`, `avaliacaoEquipista.identificou`). Permissao exigida: `avaliacao.gerenciar`.
+
 ## Seguranca
 
 - Firestore rules em `firestore.rules` (344 linhas, sem recursao — compilador rejeita).
@@ -95,5 +102,5 @@ Todas as colecoes Firestore e nomes de identificadores estao em `src/lib/tipos.t
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/027-avaliacao-coordenadores/plan.md
+at specs/028-avaliacao-equipista-coordenador/plan.md
 <!-- SPECKIT END -->

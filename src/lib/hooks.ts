@@ -6,6 +6,7 @@ import { api } from "./api";
 import {
   Avaliacao,
   AvaliacaoCoordenador,
+  AvaliacaoEquipistaCoordenador,
   Bloqueio,
   Checkin,
   Convite,
@@ -19,6 +20,7 @@ import {
   HistoricoEstacionamentoVaga,
   LinkAvaliacao,
   LinkAvaliacaoCoordenador,
+  LinkAvaliacaoEquipista,
   LinkPresenca,
   LinkValidacao,
   Participacao,
@@ -49,6 +51,7 @@ import {
   listarResumoEquipesDoDia,
 } from "./presenca";
 import { listarAvaliacoesCoordenador } from "./avaliacaoCoordenador";
+import { listarAvaliacoesEquipistaCoordenador } from "./avaliacaoEquipistaCoordenador";
 import type { DashboardInicial } from "./dashboard";
 import { PerfilInfo } from "./tipos";
 import { listarCandidatosMontagem } from "./montagem";
@@ -699,6 +702,37 @@ export function useAvaliacoesCoordenador(
       filtros?.status,
     ],
     queryFn: () => listarAvaliacoesCoordenador(edicaoId!, filtros),
+    enabled: !!edicaoId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error), atualizadoEm: dataUpdatedAt };
+}
+
+// ─── Avaliação de coordenadores pelo equipista (028) ─────────────────────────
+
+export function useLinkAvaliacaoEquipistaAtivo(
+  edicaoId: string | undefined,
+): EstadoItem<LinkAvaliacaoEquipista> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["avaliacaoEquipistaLink", edicaoId],
+    queryFn: () => api.get<LinkAvaliacaoEquipista>(`/api/avaliacao-equipista/links/${edicaoId}`),
+    enabled: !!edicaoId,
+  });
+  return { item: data ?? null, carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
+}
+
+export function useAvaliacoesEquipistaCoordenador(
+  edicaoId: string | undefined,
+  filtros?: { equipeId?: string; avaliadorPessoaId?: string; status?: string }
+): EstadoLista<AvaliacaoEquipistaCoordenador> {
+  const { data, isLoading, error, dataUpdatedAt } = useQuery({
+    queryKey: [
+      "avaliacoesEquipistaCoordenador",
+      edicaoId,
+      filtros?.equipeId,
+      filtros?.avaliadorPessoaId,
+      filtros?.status,
+    ],
+    queryFn: () => listarAvaliacoesEquipistaCoordenador(edicaoId!, filtros),
     enabled: !!edicaoId,
   });
   return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error), atualizadoEm: dataUpdatedAt };

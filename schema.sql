@@ -986,3 +986,52 @@ UPDATE perfis SET
   permissoes = permissoes || ARRAY['exclusivoPessoal']
 WHERE sigla = 'ORG'
   AND NOT 'exclusivoPessoal' = ANY(permissoes);
+
+-- ─── Avaliacao de Coordenadores pelo Equipista (028) ────────────────────────
+
+-- links_avaliacao_equipista: link publico para o equipista avaliar os
+-- coordenadores da propria equipe (028). O id e a referencia publica = ano da
+-- edicao em texto (ex.: '2026'). Um link ativo por edicao; ao gerar de novo,
+-- o anterior e revogado. Espelha links_avaliacao_coordenador (027).
+CREATE TABLE IF NOT EXISTS links_avaliacao_equipista (
+  id              TEXT PRIMARY KEY,
+  edicao_id       TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
+  status          status_link NOT NULL DEFAULT 'ativo',
+  criado_por_uid  TEXT NOT NULL,
+  criado_por_nome TEXT NOT NULL,
+  criado_em       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_links_avaliacao_equipista_edicao_ativo
+ON links_avaliacao_equipista(edicao_id) WHERE status = 'ativo';
+CREATE INDEX IF NOT EXISTS idx_links_avaliacao_equipista_edicao
+ON links_avaliacao_equipista(edicao_id);
+
+-- avaliacoes_equipista_coordenador: avaliacao de um coordenador da equipe do
+-- equipista feita pelo proprio equipista (028). Sem estado 'rascunho': a
+-- avaliacao so existe finalizada (sem autosave). Os 6 criterios fechados vao
+-- em JSONB; comentarios em texto. UNIQUE(edicao_id, avaliador_pessoa_id,
+-- pessoa_id) = no maximo 1 avaliacao do mesmo equipista para o mesmo alvo.
+CREATE TABLE IF NOT EXISTS avaliacoes_equipista_coordenador (
+  id                   TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  edicao_id            TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
+  equipe_id            TEXT NOT NULL REFERENCES equipes(id) ON DELETE CASCADE,
+  avaliador_pessoa_id  TEXT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+  avaliador_cracha     INTEGER NOT NULL,
+  avaliador_nome       TEXT NOT NULL,
+  pessoa_id            TEXT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+  criterios            JSONB NOT NULL DEFAULT '{}',
+  comentarios          TEXT,
+  status               TEXT NOT NULL DEFAULT 'finalizada',
+  criado_em            TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finalizado_em        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(edicao_id, avaliador_pessoa_id, pessoa_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_equipista_coord_edicao
+ON avaliacoes_equipista_coordenador(edicao_id);
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_equipista_coord_pessoa
+ON avaliacoes_equipista_coordenador(pessoa_id);
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_equipista_coord_avaliador
+ON avaliacoes_equipista_coordenador(avaliador_pessoa_id);

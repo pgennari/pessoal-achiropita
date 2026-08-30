@@ -35,6 +35,7 @@ import { RelatorioAvaliacoes } from "./pages/RelatorioAvaliacoes";
 import { PresencaPublico } from "./pages/PresencaPublico";
 import { AvaliacaoPublico } from "./pages/AvaliacaoPublico";
 import { AvaliacaoCoordenadorPublico } from "./pages/AvaliacaoCoordenadorPublico";
+import { AvaliacaoEquipistaCoordenadorPublico } from "./pages/AvaliacaoEquipistaCoordenadorPublico";
 import { QrPresenca } from "./pages/QrPresenca";
 import { CheckinPublico } from "./pages/CheckinPublico";
 import { QrEstacionamento } from "./pages/QrEstacionamento";
@@ -76,6 +77,10 @@ export function App() {
       <Route
         path="/avaliacao/coordenadores/:referencia"
         element={<AvaliacaoCoordenadorPublico />}
+      />
+      <Route
+        path="/avaliacao/equipista/:referencia"
+        element={<AvaliacaoEquipistaCoordenadorPublico />}
       />
       <Route path="/cantina/pesquisa" element={<CantinaPesquisaPublico />} />
       <Route path="/qr-pesquisa-cantina" element={<QrPesquisaCantina />} />

@@ -680,6 +680,74 @@ export interface AlvoAvaliacaoCoordenador {
   } | null;
 }
 
+// ─── Avaliação de Coordenadores pelo Equipista (028) ─────────────────────────
+
+// Link público de avaliação de coordenadores pelo equipista. O id é a
+// referência pública (ano da edição em texto, ex.: "2026"); um link ativo por
+// edição. Espelha LinkAvaliacaoCoordenador.
+export interface LinkAvaliacaoEquipista {
+  id: string;
+  edicaoId: string;
+  status: StatusLink;
+  criadoPorUid: string;
+  criadoPorNome: string;
+  criadoEm: string;
+}
+
+// Valor de cada um dos 6 critérios fechados do questionário (sem acento na API).
+export type CriterioEquipista = "Otimo" | "Bom" | "Regular" | "Ruim";
+
+// Os 6 critérios fechados avaliados pelo equipista sobre cada coordenador.
+export interface CriteriosEquipistaCoordenador {
+  pontualidade: CriterioEquipista;
+  dedicacao: CriterioEquipista;
+  companheirismo: CriterioEquipista;
+  espiritualidade: CriterioEquipista;
+  comprometimento: CriterioEquipista;
+  uniforme: CriterioEquipista;
+}
+
+// Questionário de 6 critérios fechados (obrigatórios) + comentários abertos.
+export interface QuestionarioEquipistaCoordenador {
+  criterios: CriteriosEquipistaCoordenador;
+  comentarios: string | null;
+}
+
+// A avaliação do equipista só existe finalizada (sem estado rascunho; sem
+// autosave). Por isso o único status é "finalizada" e a transição é imediata.
+export type StatusAvaliacaoEquipista = "finalizada";
+
+export interface AvaliacaoEquipistaCoordenador {
+  id: string;
+  edicaoId: string;
+  equipeId: string;
+  avaliadorPessoaId: string;
+  avaliadorCracha: number;
+  avaliadorNome: string;
+  pessoaId: string;
+  criterios: CriteriosEquipistaCoordenador;
+  comentarios: string | null;
+  status: StatusAvaliacaoEquipista;
+  criadoEm: string;
+  atualizadoEm: string;
+  finalizadoEm: string;
+  // Resolvidos por JOIN no backend. Opcionais porque nem todo endpoint os retorna.
+  equipeNome?: string;
+  pessoaNome?: string;
+  pessoaCracha?: string | null;
+}
+
+// Alvo da avaliação: coordenador da equipe do equipista, com o status da
+// avaliação que ele já tenha emitido (nunca expõe as respostas — criterios e
+// comentarios ficam null aqui).
+export interface AlvoAvaliacaoEquipista {
+  pessoaId: string;
+  pessoaNome: string;
+  pessoaCracha: string | null;
+  avaliacaoId: string | null;
+  statusAvaliacao: StatusAvaliacaoEquipista | null;
+}
+
 // Opções de exibição do enunciado (valores dos enums sem acento na API;
 // a UI exibe com acentuação, conforme a spec FR-016/FR-017).
 export const OPCOES_PERMANENCIA: { valor: PermanenciaCoordenador; rotulo: string }[] = [

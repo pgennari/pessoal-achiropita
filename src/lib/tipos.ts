@@ -282,6 +282,19 @@ export interface DiaFesta {
   atualizadoEm: string;
 }
 
+// Aviso interno publicado na edição (aba "Comunicação" do detalhe da edição).
+// O autor é um snapshot do momento da criação; manter o autor original ao editar.
+export interface Comunicado {
+  id: string;
+  edicaoId: string;
+  titulo: string;
+  corpo: string;
+  autorUid: string;
+  autorNome: string;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
 export type Setor = string;
 
 export const SETORES: { valor: Setor; rotulo: string }[] = [

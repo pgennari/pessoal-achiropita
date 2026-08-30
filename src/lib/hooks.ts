@@ -9,6 +9,7 @@ import {
   AvaliacaoEquipistaCoordenador,
   Bloqueio,
   Checkin,
+  Comunicado,
   Convite,
   DiaFesta,
   Edicao,
@@ -50,6 +51,7 @@ import {
   listarPresencasDoDia,
   listarResumoEquipesDoDia,
 } from "./presenca";
+import { listarComunicados } from "./comunicados";
 import { listarAvaliacoesCoordenador } from "./avaliacaoCoordenador";
 import { listarAvaliacoesEquipistaCoordenador } from "./avaliacaoEquipistaCoordenador";
 import type { DashboardInicial } from "./dashboard";
@@ -128,6 +130,17 @@ export function useDiasFesta(edicaoId: string | undefined): EstadoLista<DiaFesta
   const { data, isLoading, error } = useQuery({
     queryKey: ["dias-festa", edicaoId],
     queryFn: () => api.get<DiaFesta[]>(`/api/dias-festa?edicaoId=${edicaoId}`),
+    enabled: !!edicaoId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
+}
+
+// ─── Comunicados ──────────────────────────────────────────────────────────────
+
+export function useComunicados(edicaoId: string | undefined): EstadoLista<Comunicado> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["comunicados", edicaoId],
+    queryFn: () => listarComunicados(edicaoId as string),
     enabled: !!edicaoId,
   });
   return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error) };

@@ -59,6 +59,7 @@
 |  | Excluir | usuario.excluir |
 |  | Editar | usuario.editar |
 | Auditoria | Ver | auditoria.ver |
+| Comunicação | Gerenciar (aba de comunicados da edição) | comunicacao.gerenciar |
 | Perfis | Ver lista | perfil.lista |
 |  | Incluir | perfil.incluir |
 |  | Editar detalhes | perfil.editar |

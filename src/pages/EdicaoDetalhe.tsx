@@ -3,6 +3,7 @@
 // Acesso: qualquer perfil autenticado.
 // Criar equipes: edicao.equipeCriar. Alterar setores: setor.editar.
 // Editar edicao: edicao.editar. Ativar: edicao.ativar. Dias: edicao.editar.
+// Comunicacao (aba de comunicados): comunicacao.gerenciar.
 // ============================================================================
 import {
   FormEvent,
@@ -17,9 +18,18 @@ import {
   useEquipes,
   useEdicao,
   useParticipacoes,
+  usePessoas,
   useSetores,
+  useComunicados,
 } from "../lib/hooks";
 import { useSessao, temPermissao } from "../lib/sessao";
+import {
+  atualizarComunicado,
+  criarComunicado,
+  enviarComunicado,
+  removerComunicado,
+  GrupoDestinatarios,
+} from "../lib/comunicados";
 import {
   DadosEdicaoForm,
   ativarEdicao,
@@ -44,6 +54,7 @@ import {
   DiaFesta,
   Equipe,
   SetorInfo,
+  Comunicado,
 } from "../lib/tipos";
 import { formatarData } from "../lib/utilsDominio";
 
@@ -58,11 +69,15 @@ export function EdicaoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { sessao } = useSessao();
+  const podeComunicar = temPermissao(sessao, "comunicacao.gerenciar");
   const { item: edicao, carregando, erro } = useEdicao(id);
   const { itens: equipes, carregando: carregandoEquipes } = useEquipes(id);
   const { itens: participacoes, carregando: carregandoParticipacoes } = useParticipacoes(id);
   const { itens: setores, carregando: carregandoSetores } = useSetores();
   const { itens: dias, carregando: carregandoDias } = useDiasFesta(id);
+  const { itens: comunicados, carregando: carregandoComunicados } =
+    useComunicados(podeComunicar ? id : undefined);
+  const { itens: pessoas, carregando: carregandoPessoas } = usePessoas();
 
   const [editandoEdicao, setEditandoEdicao] = useState(false);
   const [criandoEquipe, setCriandoEquipe] = useState(false);
@@ -74,7 +89,22 @@ export function EdicaoDetalhe() {
   const [novoDiaData, setNovoDiaData] = useState("");
   const [enviandoDia, setEnviandoDia] = useState(false);
   const [diaFormErro, setDiaFormErro] = useState<Record<string, string>>({});
-  const [abaAtiva, setAbaAtiva] = useState<"equipes" | "dias">("equipes");
+  const [abaAtiva, setAbaAtiva] = useState<"equipes" | "dias" | "comunicacao">("equipes");
+  const [criandoComunicado, setCriandoComunicado] = useState(false);
+  const [novoComunicadoTitulo, setNovoComunicadoTitulo] = useState("");
+  const [novoComunicadoCorpo, setNovoComunicadoCorpo] = useState("");
+  const [editandoComunicadoId, setEditandoComunicadoId] = useState<string | null>(null);
+  const [editandoComunicadoTitulo, setEditandoComunicadoTitulo] = useState("");
+  const [editandoComunicadoCorpo, setEditandoComunicadoCorpo] = useState("");
+  const [comunicadoFormErro, setComunicadoFormErro] = useState<string | null>(null);
+  const [enviandoComunicado, setEnviandoComunicado] = useState(false);
+  // Disparo via Brevo: por comunicado, qual grupo esta sendo enviado.
+  const [comunicadoEnvio, setComunicadoEnvio] = useState<
+    Record<string, GrupoDestinatarios | null>
+  >({});
+  const [comunicadoEnvioResultado, setComunicadoEnvioResultado] = useState<
+    Record<string, { tipo: "ok" | "erro"; texto: string }>
+  >({});
 
   // No mobile, apos rolar a lista o navegador pode sintetizar o clique no
   // cartao que ficou sob o dedo no fim do gesto (e nao no que iniciou o
@@ -109,8 +139,42 @@ export function EdicaoDetalhe() {
     );
   }, [equipes, filtroSetor, filtroBusca]);
 
+  const comunicadoEditando = editandoComunicadoId
+    ? comunicados.find((c) => c.id === editandoComunicadoId) ?? null
+    : null;
+
+  // E-mails (minusculos, sem duplicatas e ordenados) das pessoas alocadas
+  // nas equipes da edicao, para gerar os mailto: da aba Comunicação.
+  const emailDePessoa = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of pessoas) {
+      const email = p.email?.trim().toLowerCase();
+      if (email) m.set(p.id, email);
+    }
+    return m;
+  }, [pessoas]);
+
+  const emailsAlocados = useMemo(() => {
+    const set = new Set<string>();
+    for (const part of participacoes) {
+      const email = emailDePessoa.get(part.pessoaId);
+      if (email) set.add(email);
+    }
+    return [...set].sort();
+  }, [participacoes, emailDePessoa]);
+
+  const emailsCoordenadores = useMemo(() => {
+    const set = new Set<string>();
+    for (const part of participacoes) {
+      if (part.funcao !== "Coordenador") continue;
+      const email = emailDePessoa.get(part.pessoaId);
+      if (email) set.add(email);
+    }
+    return [...set].sort();
+  }, [participacoes, emailDePessoa]);
+
   if (!sessao) return null;
-  if (carregando || carregandoEquipes || carregandoParticipacoes || carregandoSetores || carregandoDias)
+  if (carregando || carregandoEquipes || carregandoParticipacoes || carregandoSetores || carregandoDias || carregandoComunicados || carregandoPessoas)
     return <p className="text-ardesia">Carregando...</p>;
 
   if (erro || !edicao) {
@@ -226,6 +290,117 @@ export function EdicaoDetalhe() {
       await removerDiaFesta(sessao, d);
     } catch (err) {
       setAcaoErro(err instanceof Error ? err.message : "Falha ao remover.");
+    }
+  }
+
+  async function handleCriarComunicado(ev: FormEvent) {
+    ev.preventDefault();
+    if (!sessao || !edicao) return;
+    setComunicadoFormErro(null);
+    const titulo = novoComunicadoTitulo.trim();
+    const corpo = novoComunicadoCorpo.trim();
+    if (!titulo || !corpo) {
+      setComunicadoFormErro("Preencha o título e o texto do comunicado.");
+      return;
+    }
+    setEnviandoComunicado(true);
+    try {
+      await criarComunicado(edicao.id, { titulo, corpo });
+      setNovoComunicadoTitulo("");
+      setNovoComunicadoCorpo("");
+      setCriandoComunicado(false);
+    } catch (err) {
+      setComunicadoFormErro(
+        err instanceof Error ? err.message : "Falha ao criar o comunicado."
+      );
+    } finally {
+      setEnviandoComunicado(false);
+    }
+  }
+
+  function iniciarEdicaoComunicado(c: Comunicado) {
+    setEditandoComunicadoId(c.id);
+    setEditandoComunicadoTitulo(c.titulo);
+    setEditandoComunicadoCorpo(c.corpo);
+    setComunicadoFormErro(null);
+  }
+
+  async function handleSalvarComunicado(ev: FormEvent) {
+    ev.preventDefault();
+    if (!sessao || !edicao) return;
+    const alvo = comunicados.find((c) => c.id === editandoComunicadoId);
+    if (!alvo) return;
+    setComunicadoFormErro(null);
+    const titulo = editandoComunicadoTitulo.trim();
+    const corpo = editandoComunicadoCorpo.trim();
+    if (!titulo || !corpo) {
+      setComunicadoFormErro("Preencha o título e o texto do comunicado.");
+      return;
+    }
+    setEnviandoComunicado(true);
+    try {
+      await atualizarComunicado(alvo, { titulo, corpo });
+      setEditandoComunicadoId(null);
+    } catch (err) {
+      setComunicadoFormErro(
+        err instanceof Error ? err.message : "Falha ao salvar o comunicado."
+      );
+    } finally {
+      setEnviandoComunicado(false);
+    }
+  }
+
+  async function handleRemoverComunicado(c: Comunicado) {
+    if (!sessao) return;
+    if (!confirm(`Remover o comunicado "${c.titulo}"?`)) return;
+    setComunicadoFormErro(null);
+    try {
+      await removerComunicado(c);
+    } catch (err) {
+      setComunicadoFormErro(
+        err instanceof Error ? err.message : "Falha ao remover."
+      );
+    }
+  }
+
+  async function handleEnviarComunicado(c: Comunicado, grupo: GrupoDestinatarios) {
+    const contagem =
+      grupo === "coordenadores"
+        ? emailsCoordenadores.length
+        : grupo === "teste"
+          ? 1
+          : emailsAlocados.length;
+    const label =
+      grupo === "coordenadores"
+        ? "coordenadores"
+        : grupo === "teste"
+          ? "e-mail de teste"
+          : "pessoas alocadas";
+    if (
+      !confirm(
+        `Enviar o comunicado "${c.titulo}" por e-mail (Brevo) para ${contagem} ${label}?`
+      )
+    ) {
+      return;
+    }
+    setComunicadoEnvio((prev) => ({ ...prev, [c.id]: grupo }));
+    setComunicadoEnvioResultado((prev) => ({ ...prev, [c.id]: { tipo: "ok", texto: "" } }));
+    try {
+      const { enviados } = await enviarComunicado(c, grupo);
+      setComunicadoEnvioResultado((prev) => ({
+        ...prev,
+        [c.id]: { tipo: "ok", texto: `Enviado para ${enviados} destinatários (Brevo).` },
+      }));
+    } catch (err) {
+      setComunicadoEnvioResultado((prev) => ({
+        ...prev,
+        [c.id]: {
+          tipo: "erro",
+          texto: err instanceof Error ? err.message : "Falha ao enviar o e-mail.",
+        },
+      }));
+    } finally {
+      setComunicadoEnvio((prev) => ({ ...prev, [c.id]: null }));
     }
   }
 
@@ -361,6 +536,17 @@ export function EdicaoDetalhe() {
           >
             Dias de festa
           </button>
+          {podeComunicar && (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={abaAtiva === "comunicacao"}
+              className={`aba ${abaAtiva === "comunicacao" ? "aba-ativa" : ""}`}
+              onClick={() => setAbaAtiva("comunicacao")}
+            >
+              Comunicação
+            </button>
+          )}
         </div>
 
         {abaAtiva === "equipes" && (
@@ -681,6 +867,256 @@ export function EdicaoDetalhe() {
                   </div>
                 </div>
               )}
+            </div>
+          </section>
+        )}
+
+        {abaAtiva === "comunicacao" && podeComunicar && (
+          <section className="tabs-painel" role="tabpanel" tabIndex={0}>
+            <div>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <p className="text-ardesia text-sm">
+                  {carregandoComunicados
+                    ? "Carregando..."
+                    : `${comunicados.length} comunicado(s)`}
+                </p>
+                {!criandoComunicado && (
+                  <button
+                    type="button"
+                    className="btn btn-primario btn-pequeno"
+                    onClick={() => setCriandoComunicado(true)}
+                    aria-label="Novo comunicado"
+                    title="Novo comunicado"
+                  >
+                    <Icone nome="mais" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {comunicadoFormErro && (
+              <div className="card border-vermelho/40 mt-4">
+                <div className="card-corpo text-vermelho-escuro">
+                  {comunicadoFormErro}
+                </div>
+              </div>
+            )}
+
+            {criandoComunicado && (
+              <div className="card mt-4">
+                <div className="card-corpo">
+                  <h4 className="mb-3">Novo comunicado</h4>
+                  <form onSubmit={handleCriarComunicado} className="space-y-4">
+                    <div className="input-grupo">
+                      <label className="input-label" htmlFor="novo-comunicado-titulo">
+                        Título
+                      </label>
+                      <input
+                        id="novo-comunicado-titulo"
+                        type="text"
+                        className="input"
+                        value={novoComunicadoTitulo}
+                        onChange={(e) => setNovoComunicadoTitulo(e.target.value)}
+                        maxLength={120}
+                        required
+                      />
+                    </div>
+                    <div className="input-grupo">
+                      <label className="input-label" htmlFor="novo-comunicado-corpo">
+                        Texto
+                      </label>
+                      <textarea
+                        id="novo-comunicado-corpo"
+                        className="input min-h-28"
+                        value={novoComunicadoCorpo}
+                        onChange={(e) => setNovoComunicadoCorpo(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        className="btn btn-primario"
+                        disabled={enviandoComunicado}
+                        aria-label="Salvar"
+                        title="Salvar"
+                      >
+                        <Icone nome="check" />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secundario"
+                        onClick={() => {
+                          setCriandoComunicado(false);
+                          setComunicadoFormErro(null);
+                        }}
+                        disabled={enviandoComunicado}
+                        aria-label="Cancelar"
+                        title="Cancelar"
+                      >
+                        <Icone nome="fechar" />
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {comunicadoEditando && (
+              <div className="card mt-4">
+                <div className="card-corpo">
+                  <h4 className="mb-3">Editar comunicado</h4>
+                  <form onSubmit={handleSalvarComunicado} className="space-y-4">
+                    <div className="input-grupo">
+                      <label className="input-label" htmlFor="editar-comunicado-titulo">
+                        Título
+                      </label>
+                      <input
+                        id="editar-comunicado-titulo"
+                        type="text"
+                        className="input"
+                        value={editandoComunicadoTitulo}
+                        onChange={(e) => setEditandoComunicadoTitulo(e.target.value)}
+                        maxLength={120}
+                        required
+                      />
+                    </div>
+                    <div className="input-grupo">
+                      <label className="input-label" htmlFor="editar-comunicado-corpo">
+                        Texto
+                      </label>
+                      <textarea
+                        id="editar-comunicado-corpo"
+                        className="input min-h-28"
+                        value={editandoComunicadoCorpo}
+                        onChange={(e) => setEditandoComunicadoCorpo(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        className="btn btn-primario"
+                        disabled={enviandoComunicado}
+                        aria-label="Salvar"
+                        title="Salvar"
+                      >
+                        <Icone nome="check" />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secundario"
+                        onClick={() => {
+                          setEditandoComunicadoId(null);
+                          setComunicadoFormErro(null);
+                        }}
+                        disabled={enviandoComunicado}
+                        aria-label="Cancelar"
+                        title="Cancelar"
+                      >
+                        <Icone nome="fechar" />
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 space-y-4">
+              {comunicados.length === 0 && !carregandoComunicados && (
+                <div className="card">
+                  <div className="card-corpo text-center text-ardesia">
+                    Nenhum comunicado publicado nesta edição.
+                  </div>
+                </div>
+              )}
+              {comunicados.map((c) => (
+                <div key={c.id} className="card">
+                  <div className="card-corpo space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <h4 className="font-semibold text-carbone min-w-0">
+                        {c.titulo}
+                      </h4>
+                      <div className="flex gap-1 shrink-0">
+                        <button
+                          type="button"
+                          className="btn btn-texto btn-pequeno"
+                          onClick={() => iniciarEdicaoComunicado(c)}
+                          aria-label="Editar"
+                          title="Editar"
+                        >
+                          <Icone nome="lapis" />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                          onClick={() => handleRemoverComunicado(c)}
+                          aria-label="Remover"
+                          title="Remover"
+                        >
+                          <Icone nome="lixeira" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="whitespace-pre-wrap text-sm text-carbone">
+                      {c.corpo}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-ardesia">
+                        Enviar por e-mail
+                      </span>
+                      <button
+                        type="button"
+                        className="inline-flex items-center rounded-sm border-[1.5px] border-carbone bg-bianco px-2.5 py-1 font-sans font-semibold text-xs text-carbone transition h-8 hover:bg-carbone hover:text-white disabled:opacity-45 disabled:pointer-events-none"
+                        onClick={() => handleEnviarComunicado(c, "todos")}
+                        disabled={comunicadoEnvio[c.id] !== undefined && comunicadoEnvio[c.id] !== null}
+                        aria-label={`Enviar por e-mail para todos (${emailsAlocados.length})`}
+                        title={`Enviar para pessoas alocadas (${emailsAlocados.length})`}
+                      >
+                        {comunicadoEnvio[c.id] === "todos"
+                          ? "Enviando..."
+                          : `Todos (${emailsAlocados.length})`}
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex items-center rounded-sm border-[1.5px] border-carbone bg-bianco px-2.5 py-1 font-sans font-semibold text-xs text-carbone transition h-8 hover:bg-carbone hover:text-white disabled:opacity-45 disabled:pointer-events-none"
+                        onClick={() => handleEnviarComunicado(c, "coordenadores")}
+                        disabled={comunicadoEnvio[c.id] !== undefined && comunicadoEnvio[c.id] !== null}
+                        aria-label={`Enviar por e-mail para coordenadores (${emailsCoordenadores.length})`}
+                        title={`Enviar para coordenadores (${emailsCoordenadores.length})`}
+                      >
+                        {comunicadoEnvio[c.id] === "coordenadores"
+                          ? "Enviando..."
+                          : `Coordenadores (${emailsCoordenadores.length})`}
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex items-center rounded-sm border-[1.5px] border-marrone bg-bianco px-2.5 py-1 font-sans font-semibold text-xs text-marrone transition h-8 hover:bg-marrone hover:text-white disabled:opacity-45 disabled:pointer-events-none"
+                        onClick={() => handleEnviarComunicado(c, "teste")}
+                        disabled={comunicadoEnvio[c.id] !== undefined && comunicadoEnvio[c.id] !== null}
+                        aria-label="Enviar comunicado de teste por e-mail"
+                        title="Enviar para o e-mail de teste configurado"
+                      >
+                        {comunicadoEnvio[c.id] === "teste" ? "Enviando..." : "Teste"}
+                      </button>
+                      {comunicadoEnvioResultado[c.id]?.texto && (
+                        <span
+                          className={`text-xs font-medium ${
+                            comunicadoEnvioResultado[c.id].tipo === "ok"
+                              ? "text-verde-escuro"
+                              : "text-vermelho-escuro"
+                          }`}
+                        >
+                          {comunicadoEnvioResultado[c.id].texto}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-ardesia">
+                      {c.autorNome} · {new Date(c.criadoEm).toLocaleString("pt-BR")}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
         )}

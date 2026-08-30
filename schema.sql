@@ -1035,3 +1035,36 @@ CREATE INDEX IF NOT EXISTS idx_avaliacoes_equipista_coord_pessoa
 ON avaliacoes_equipista_coordenador(pessoa_id);
 CREATE INDEX IF NOT EXISTS idx_avaliacoes_equipista_coord_avaliador
 ON avaliacoes_equipista_coordenador(avaliador_pessoa_id);
+
+-- ─── Comunicacao (029) ────────────────────────────────────────────────────────
+
+-- comunicados: aviso interno publicado na edicao (aba "Comunicacao" do detalhe
+-- da edicao). Autor e snapshot no momento da criacao (sobrevive a exclusao do
+-- usuario); a edicao mantem o autor original.
+CREATE TABLE IF NOT EXISTS comunicados (
+  id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  edicao_id     TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
+  titulo        TEXT NOT NULL,
+  corpo         TEXT NOT NULL,
+  autor_uid     TEXT NOT NULL,
+  autor_nome    TEXT NOT NULL,
+  criado_em     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (length(trim(titulo)) > 0),
+  CHECK (length(trim(corpo)) > 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_comunicados_edicao ON comunicados(edicao_id);
+
+-- Permissao dedicada para gerenciar a aba Comunicacao das edicoes (029).
+-- Concedida ao ORG; o ADM e superuser e sempre possui todas as permissoes
+-- ativas.
+INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
+  ('comunicacao.gerenciar', 'Comunicacao: gerenciar',
+   'Criar, editar e excluir avisos da aba Comunicacao das edicoes.')
+ON CONFLICT (codigo) DO NOTHING;
+
+UPDATE perfis SET
+  permissoes = permissoes || ARRAY['comunicacao.gerenciar']
+WHERE sigla = 'ORG'
+  AND NOT 'comunicacao.gerenciar' = ANY(permissoes);

@@ -584,6 +584,7 @@ export interface Avaliacao {
   finalizadoEm: string | null;
   // Nomes/cracha resolvidos por JOIN em GET /api/avaliacoes. Opcionais porque
   // outros consumidores deste tipo (ex.: avaliacoes por pessoa) nao os retornam.
+  edicaoNumero?: number;
   equipeNome?: string;
   pessoaNome?: string;
   pessoaCracha?: string | null;
@@ -668,6 +669,7 @@ export interface AvaliacaoCoordenador {
   atualizadoEm: string;
   finalizadoEm: string | null;
   // Resolvidos por JOIN no backend. Opcionais porque nem todo endpoint os retorna.
+  edicaoNumero?: number;
   equipeFilhaNome?: string;
   pessoaNome?: string;
   pessoaCracha?: string | null;
@@ -745,6 +747,7 @@ export interface AvaliacaoEquipistaCoordenador {
   atualizadoEm: string;
   finalizadoEm: string;
   // Resolvidos por JOIN no backend. Opcionais porque nem todo endpoint os retorna.
+  edicaoNumero?: number;
   equipeNome?: string;
   pessoaNome?: string;
   pessoaCracha?: string | null;
@@ -806,42 +809,6 @@ export interface PesquisaCantina {
   recomendaria: RecomendariaCantina;
   melhorias: string | null;
   criadoEm: string;
-}
-
-// ─── Montagem de Equipes (022) ───────────────────────────────────────────────
-
-export interface MatchDetalhe {
-  historico: number;
-  criterios: number;
-  convidarNovamente: number;
-  presencas: number;
-}
-
-export interface CandidatoMontagem {
-  pessoaId: string;
-  pessoaNome: string;
-  pessoaFotoUrl: string | null;
-  pessoaNascimento: string | null;
-  match: number;
-  matchDetalhe: MatchDetalhe;
-}
-
-export interface EdicaoMatchHistorico {
-  edicaoId: string;
-  edicaoNumero: number;
-  match: number;
-  historico: number;
-  criterios: number;
-  convidarNovamente: number;
-  presencas: number;
-  comentarios: string | null;
-  avaliadorNome: string | null;
-}
-
-export interface MatchHistoricoResponse {
-  pessoaId: string;
-  equipeId: string | null;
-  edicoes: EdicaoMatchHistorico[];
 }
 
 // ─── Bloqueio de Pessoas (025) ───────────────────────────────────────────────

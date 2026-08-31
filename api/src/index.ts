@@ -38,7 +38,6 @@ import sincronizacao from "./rotas/sincronizacao.js";
 import vagas from "./rotas/vagas.js";
 import cantina from "./rotas/cantina.js";
 import cantinaPublico from "./rotas/cantinaPublico.js";
-import montagem from "./rotas/montagem.js";
 import bloqueios from "./rotas/bloqueios.js";
 import comunicados from "./rotas/comunicados.js";
 
@@ -107,7 +106,6 @@ app.route("/api/sincronizacao", sincronizacao);
 app.route("/api/vagas", vagas);
 app.route("/api/cantina", cantina);
 app.route("/api/publico", cantinaPublico);
-app.route("/api/montagem", montagem);
 app.route("/api/bloqueios", bloqueios);
 app.route("/api/comunicados", comunicados);
 

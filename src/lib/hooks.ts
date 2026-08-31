@@ -1,7 +1,7 @@
 // Hooks de leitura de dados — substituem o padrão onSnapshot do Firestore.
 // Usa @tanstack/react-query: cache, loading state e refetch após mutações.
 import { useEffect, useMemo, useState } from "react";
-import { useQuery, useQueries, useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { api } from "./api";
 import {
   Avaliacao,
@@ -52,12 +52,18 @@ import {
   listarResumoEquipesDoDia,
 } from "./presenca";
 import { listarComunicados } from "./comunicados";
-import { listarAvaliacoesCoordenador } from "./avaliacaoCoordenador";
-import { listarAvaliacoesEquipistaCoordenador } from "./avaliacaoEquipistaCoordenador";
+import {
+  listarAvaliacoesCoordenador,
+  listarAvaliacoesCoordenadorPessoa,
+} from "./avaliacaoCoordenador";
+import {
+  listarAvaliacoesEquipistaCoordenador,
+  listarAvaliacoesEquipistaCoordenadorPessoa,
+} from "./avaliacaoEquipistaCoordenador";
 import type { DashboardInicial } from "./dashboard";
 import { PerfilInfo } from "./tipos";
-import { listarCandidatosMontagem } from "./montagem";
 import { listarBloqueios } from "./bloqueio";
+import { listarEquipeAnterior, RespostaEquipeAnterior } from "./participacoes";
 
 export interface EstadoLista<T> {
   itens: T[];
@@ -229,6 +235,30 @@ export function useTodasParticipacoes(): EstadoLista<Participacao> {
     queryFn: () => api.get<Participacao[]>("/api/participacoes"),
   });
   return { itens: data ?? [], carregando: isLoading, erro: erroMsg(error) };
+}
+
+// Painel "Equipe da edicao anterior" (029): pessoas da equipe correspondente
+// na edicao N-1 com o contexto delas na edicao atual.
+export interface EstadoEquipeAnterior {
+  dados: RespostaEquipeAnterior | null;
+  carregando: boolean;
+  erro: string | null;
+}
+
+export function useEquipeAnterior(
+  edicaoId: string | undefined,
+  equipeId: string | undefined
+): EstadoEquipeAnterior {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["participacoes", "equipe-anterior", equipeId],
+    queryFn: () => listarEquipeAnterior(edicaoId as string, equipeId as string),
+    enabled: !!edicaoId && !!equipeId,
+  });
+  return {
+    dados: data ?? null,
+    carregando: isLoading && !!edicaoId && !!equipeId,
+    erro: erroMsg(error),
+  };
 }
 
 export function useHistoricoParticipacoesDePessoa(
@@ -720,6 +750,17 @@ export function useAvaliacoesCoordenador(
   return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error), atualizadoEm: dataUpdatedAt };
 }
 
+export function useAvaliacoesCoordenadorPessoa(
+  pessoaId: string | undefined,
+): EstadoLista<AvaliacaoCoordenador> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["avaliacoesCoordenador", "pessoa", pessoaId],
+    queryFn: () => listarAvaliacoesCoordenadorPessoa(pessoaId!),
+    enabled: !!pessoaId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!pessoaId, erro: erroMsg(error) };
+}
+
 // ─── Avaliação de coordenadores pelo equipista (028) ─────────────────────────
 
 export function useLinkAvaliacaoEquipistaAtivo(
@@ -751,6 +792,17 @@ export function useAvaliacoesEquipistaCoordenador(
   return { itens: data ?? [], carregando: isLoading && !!edicaoId, erro: erroMsg(error), atualizadoEm: dataUpdatedAt };
 }
 
+export function useAvaliacoesEquipistaCoordenadorPessoa(
+  pessoaId: string | undefined,
+): EstadoLista<AvaliacaoEquipistaCoordenador> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["avaliacoesEquipistaCoordenador", "pessoa", pessoaId],
+    queryFn: () => listarAvaliacoesEquipistaCoordenadorPessoa(pessoaId!),
+    enabled: !!pessoaId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!pessoaId, erro: erroMsg(error) };
+}
+
 // ─── Utilitário ───────────────────────────────────────────────────────────────
 
 export function useDebounce<T>(valor: T, atraso: number): T {
@@ -765,25 +817,6 @@ export function useDebounce<T>(valor: T, atraso: number): T {
 function erroMsg(error: unknown): string | null {
   if (!error) return null;
   return (error as Error).message ?? "Falha ao carregar dados.";
-}
-
-// ─── Montagem de Equipes (022) ───────────────────────────────────────────────
-
-const TAMANHO_LOTE_MONTAGEM = 20;
-
-export function useMontagemCandidatos(
-  edicaoId: string | undefined,
-  equipeId: string | undefined
-) {
-  return useInfiniteQuery({
-    queryKey: ["montagem-candidatos", edicaoId, equipeId],
-    enabled: !!edicaoId && !!equipeId,
-    initialPageParam: 0,
-    queryFn: ({ pageParam }) =>
-      listarCandidatosMontagem(edicaoId!, equipeId!, pageParam as number),
-    getNextPageParam: (ultima, todas) =>
-      ultima.temMais ? todas.length * TAMANHO_LOTE_MONTAGEM : undefined,
-  });
 }
 
 // ─── Bloqueio de Pessoas (025) ───────────────────────────────────────────────

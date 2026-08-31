@@ -6,6 +6,14 @@ import type { Variaveis } from "../tipos.js";
 
 const app = new OpenAPIHono<Variaveis>();
 
+// Normalizacao de nome de equipe para a comparacao entre edicoes: remove
+// sufixos romanos/arabicos finais (ex.: "Calabresa Chapa I" == "Calabresa Chapa II").
+const NOME_EQUIPE_REGEX = /\s*(I{1,3}|IV|V|VI{0,3}|IX|X|10|[1-9])\s*$/i;
+
+function normalizarNomeEquipe(nome: string): string {
+  return nome.replace(NOME_EQUIPE_REGEX, "").trim();
+}
+
 function participacaoDeRow(r: Record<string, unknown>) {
   const criadoEm = r.criado_em instanceof Date ? r.criado_em.toISOString() : String(r.criado_em ?? "");
   const atualizadoEm = r.atualizado_em instanceof Date ? r.atualizado_em.toISOString() : String(r.atualizado_em ?? "");
@@ -153,6 +161,128 @@ app.openapi(postParticipacaoRoute, async (c) => {
     }
     throw err;
   }
+});
+
+// Painel "Equipe da edicao anterior" (029): lista as pessoas que participaram
+// da equipe correspondente na edicao N-1, com o contexto na edicao atual.
+const getEquipeAnteriorRoute = createRoute({
+  method: "get",
+  path: "/equipe-anterior",
+  tags: ["Participações"],
+  summary: "Lista pessoas da equipe correspondente na edicao anterior",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      edicaoId: z.string(),
+      equipeId: z.string(),
+    }),
+  },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Pessoas da equipe na edicao anterior" },
+    400: { content: { "application/json": { schema: z.any() } }, description: "Parametros invalidos ou edicao fora de planejamento" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Equipe nao encontrada" }
+  }
+});
+
+app.openapi(getEquipeAnteriorRoute, async (c) => {
+  const { edicaoId, equipeId } = c.req.valid("query");
+  if (!edicaoId || !equipeId) {
+    return c.json({ erro: "edicaoId e equipeId sao obrigatorios." }, 400);
+  }
+
+  // Equipe precisa existir, ser ativa e pertencer a edicao informada.
+  const [equipeRow] = await sql`
+    SELECT edicao_id, nome FROM equipes
+    WHERE id = ${equipeId} AND excluida = FALSE
+  `;
+  if (!equipeRow || String(equipeRow.edicao_id) !== edicaoId) {
+    return c.json({ erro: "Equipe nao encontrada." }, 404);
+  }
+
+  // O painel so faz sentido no detalhe de equipe de uma edicao em planejamento.
+  const [edicaoRow] = await sql`
+    SELECT status, numero FROM edicoes WHERE id = ${edicaoId}
+  `;
+  if (!edicaoRow) {
+    return c.json({ erro: "Edicao nao encontrada." }, 404);
+  }
+  if (String(edicaoRow.status) !== "planejamento") {
+    return c.json(
+      { erro: "O painel so esta disponivel para edicoes em planejamento." },
+      400
+    );
+  }
+
+  // Edicao anterior: imediatamente anterior em numero e consolidada.
+  const [edicaoAnteriorRow] = await sql`
+    SELECT id, numero FROM edicoes
+    WHERE numero = ${Number(edicaoRow.numero) - 1} AND status IN ('ativa', 'encerrada')
+    LIMIT 1
+  `;
+  const edicaoAnterior = edicaoAnteriorRow
+    ? { id: String(edicaoAnteriorRow.id), numero: Number(edicaoAnteriorRow.numero) }
+    : null;
+  if (!edicaoAnteriorRow) {
+    return c.json({ edicaoAnterior: null, pessoas: [] }, 200);
+  }
+
+  // Equipe correspondente na edicao anterior por nome normalizado (unica por edicao).
+  const equipeNomeNormalizado = normalizarNomeEquipe(String(equipeRow.nome ?? ""));
+  const [equipeAnteriorRow] = equipeNomeNormalizado
+    ? await sql`
+        SELECT id FROM equipes
+        WHERE edicao_id = ${edicaoAnteriorRow.id}
+          AND excluida = FALSE
+          AND regexp_replace(nome, '\\s*(I{1,3}|IV|V|VI{0,3}|IX|X|10|[1-9])\\s*$', '', 'i')
+              = ${equipeNomeNormalizado}
+        LIMIT 1
+      `
+    : [];
+
+  if (!equipeAnteriorRow) {
+    return c.json({ edicaoAnterior, pessoas: [] }, 200);
+  }
+
+  const rows = await sql`
+    SELECT
+      p.id AS pessoa_id,
+      p.nome AS pessoa_nome,
+      p.cracha,
+      pt.funcao AS funcao_anterior,
+      EXISTS (
+        SELECT 1 FROM participacoes pt2
+        WHERE pt2.pessoa_id = p.id
+          AND pt2.edicao_id = ${edicaoId}
+          AND pt2.equipe_id = ${equipeId}
+      ) AS ja_na_equipe,
+      EXISTS (
+        SELECT 1 FROM participacoes pt3
+        WHERE pt3.pessoa_id = p.id
+          AND pt3.edicao_id = ${edicaoId}
+          AND pt3.equipe_id != ${equipeId}
+      ) AS em_outra_equipe
+    FROM participacoes pt
+    JOIN pessoas p ON p.id = pt.pessoa_id
+    WHERE pt.edicao_id = ${edicaoAnteriorRow.id}
+      AND pt.equipe_id = ${equipeAnteriorRow.id}
+      AND p.ativo = TRUE
+      AND p.bloqueada = FALSE
+      AND p.excluida = FALSE
+    ORDER BY p.nome ASC
+  `;
+
+  return c.json({
+    edicaoAnterior,
+    pessoas: rows.map((r) => ({
+      pessoaId: String(r.pessoa_id),
+      pessoaNome: String(r.pessoa_nome),
+      cracha: r.cracha != null ? Number(r.cracha) : null,
+      funcaoAnterior: String(r.funcao_anterior),
+      jaNaEquipe: r.ja_na_equipe === true,
+      emOutraEquipe: r.em_outra_equipe === true,
+    })),
+  }, 200);
 });
 
 const putParticipacaoRoute = createRoute({

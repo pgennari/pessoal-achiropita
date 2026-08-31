@@ -5,6 +5,32 @@ import { Sessao } from "./sessao";
 
 export class ErroAlocacao extends Error {}
 
+// Painel "Equipe da edicao anterior" (029). Projecao de leitura: pessoa que
+// participou da equipe correspondente na edicao N-1 com o contexto dela na
+// edicao atual. Contrato em specs/029-reaproveitar-equipe-anterior/contracts.
+export interface MembroEquipeAnterior {
+  pessoaId: string;
+  pessoaNome: string;
+  cracha: number | null;
+  funcaoAnterior: Funcao;
+  jaNaEquipe: boolean;
+  emOutraEquipe: boolean;
+}
+
+export interface RespostaEquipeAnterior {
+  edicaoAnterior: { id: string; numero: number } | null;
+  pessoas: MembroEquipeAnterior[];
+}
+
+export async function listarEquipeAnterior(
+  edicaoId: string,
+  equipeId: string
+): Promise<RespostaEquipeAnterior> {
+  return api.get<RespostaEquipeAnterior>(
+    `/api/participacoes/equipe-anterior?edicaoId=${edicaoId}&equipeId=${equipeId}`
+  );
+}
+
 export function participacaoDeSnap(id: string, data: Record<string, unknown>): Participacao {
   return {
     id,

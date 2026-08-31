@@ -148,6 +148,7 @@ function avaliacaoDeRow(r: Record<string, unknown>) {
   return {
     id: String(r.id),
     edicaoId: String(r.edicao_id),
+    edicaoNumero: r.edicao_numero != null ? Number(r.edicao_numero) : undefined,
     equipePaiId: String(r.equipe_pai_id),
     equipeFilhaId: String(r.equipe_filha_id),
     equipeFilhaNome: r.equipe_filha_nome != null ? String(r.equipe_filha_nome) : undefined,
@@ -211,6 +212,44 @@ app.openapi(getAvaliacoesRoute, async (c) => {
     ORDER BY a.atualizado_em DESC
   `;
 
+  return c.json(rows.map((r) => avaliacaoDeRow(r as Record<string, unknown>)) as any, 200);
+});
+
+// ─── Avaliações de coordenador por pessoa ────────────────────────────────────
+// Histórico no detalhe da Pessoa: avaliações recebidas pela pessoa como
+// coordenador de equipe filha, em todas as edições. Espelha o endpoint
+// /api/avaliacoes/pessoa/:pessoaId (avaliações como equipista).
+
+const getAvaliacoesPessoaRoute = createRoute({
+  method: "get",
+  path: "/pessoa/{pessoaId}",
+  tags: ["Avaliação de coordenadores"],
+  summary: "Avaliações de coordenador recebidas por uma pessoa em todas as edições",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ pessoaId: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.any() } }, description: "Avaliações da pessoa" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
+  }
+});
+
+app.openapi(getAvaliacoesPessoaRoute, async (c) => {
+  const { pessoaId } = c.req.valid("param");
+  const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "avaliacao.gerenciar") && !temPermissao(sessao, "pessoas.detalhe")) {
+    return c.json({ erro: "Acesso negado." }, 403);
+  }
+  const rows = await sql`
+    SELECT a.*, ef.nome AS equipe_filha_nome, p.nome AS pessoa_nome,
+           p.cracha AS pessoa_cracha, ed.numero AS edicao_numero
+    FROM avaliacoes_coordenador a
+    JOIN equipes ef ON ef.id = a.equipe_filha_id
+    JOIN pessoas p ON p.id = a.pessoa_id
+    JOIN edicoes ed ON ed.id = a.edicao_id
+    WHERE a.pessoa_id = ${pessoaId}
+    ORDER BY a.atualizado_em DESC
+  `;
   return c.json(rows.map((r) => avaliacaoDeRow(r as Record<string, unknown>)) as any, 200);
 });
 

@@ -5,14 +5,13 @@ import { queryClient } from "./queryClient";
 import { Bloqueio, StatusBloqueio, TipoBloqueio } from "./tipos";
 import { Sessao } from "./sessao";
 
-// O bloqueio afeta praticamente tudo que envolve a pessoa: listagens, detalhe,
-// alocacoes e montagem. Invalidar todas as chaves relacionadas.
+// O bloqueio afeta praticamente tudo que envolve a pessoa: listagens, detalhe e
+// alocacoes. Invalidar todas as chaves relacionadas.
 function invalidarBloqueios() {
   queryClient.invalidateQueries({ queryKey: ["bloqueios"] });
   queryClient.invalidateQueries({ queryKey: ["pessoas"] });
   queryClient.invalidateQueries({ queryKey: ["participacoes"] });
   queryClient.invalidateQueries({ queryKey: ["equipes"] });
-  queryClient.invalidateQueries({ queryKey: ["montagem-candidatos"] });
 }
 
 // Um usuario nunca aprova o proprio pedido (FR-009): o backend rejeita com 409;

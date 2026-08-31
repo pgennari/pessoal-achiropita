@@ -55,7 +55,6 @@ import { CantinaPesquisa } from "./pages/CantinaPesquisa";
 import { CantinaPesquisaPublico } from "./pages/CantinaPesquisaPublico";
 import { QrPesquisaCantina } from "./pages/QrPesquisaCantina";
 import { QrAvaliacao } from "./pages/QrAvaliacao";
-import { Montagem } from "./pages/Montagem";
 import { Bloqueios } from "./pages/Bloqueios";
 import { BloqueioPessoa } from "./pages/BloqueioPessoa";
 import { DesbloqueioPessoa } from "./pages/DesbloqueioPessoa";
@@ -145,7 +144,6 @@ export function App() {
         <Route path="vagas/nova" element={<VagaNova />} />
         <Route path="vagas/:id" element={<VagaDetalhe />} />
         <Route path="cantina/pesquisas" element={<CantinaPesquisa />} />
-        <Route path="montagem" element={<Montagem />} />
         <Route path="auditoria" element={<Auditoria />} />
         <Route path="setores" element={<Setores />} />
         <Route path="sincronizacao" element={<Sincronizacao />} />

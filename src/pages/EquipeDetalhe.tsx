@@ -24,9 +24,11 @@ import {
   desalocar,
   moverDeEquipe,
   trocarFuncao,
+  MembroEquipeAnterior,
 } from "../lib/participacoes";
 import { EquipeForm } from "../components/EquipeForm";
 import { AlocarPessoaDialog } from "../components/AlocarPessoaDialog";
+import { PainelEquipeAnterior } from "../components/PainelEquipeAnterior";
 import { Icone } from "../components/Icone";
 import { DadosToast, Toast } from "../components/Toast";
 import {
@@ -59,6 +61,7 @@ export function EquipeDetalhe() {
 
   const [editando, setEditando] = useState(false);
   const [alocando, setAlocando] = useState(false);
+  const [equipeAnteriorAberto, setEquipeAnteriorAberto] = useState(false);
   const [funcaoInicial, setFuncaoInicial] = useState<Funcao>("Equipista");
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [toast, setToast] = useState<DadosToast | null>(null);
@@ -153,6 +156,28 @@ export function EquipeDetalhe() {
         mensagem: e instanceof Error ? e.message : "Falha ao alocar.",
       });
     }
+  }
+
+  async function handleAdicionarEquipeAnterior(
+    membro: MembroEquipeAnterior,
+    funcao: Funcao
+  ) {
+    if (!sessao || !equipe || !edicao) return;
+    await alocar(sessao, {
+      edicaoId: edicao.id,
+      equipeId: equipe.id,
+      pessoaId: membro.pessoaId,
+      funcao,
+      pessoaNome: membro.pessoaNome,
+      equipeNome: equipe.nome,
+    });
+    // alocar() invalida o prefixo ["participacoes"], que cobre a query do
+    // painel ["participacoes","equipe-anterior",equipeId], reajustando os
+    // marcadores "ja na equipe" automaticamente.
+    setToast({
+      tipo: "sucesso",
+      mensagem: `${membro.pessoaNome} alocado(a) em ${equipe.nome}.`,
+    });
   }
 
   async function handleDesalocar(linha: Linha) {
@@ -256,28 +281,41 @@ export function EquipeDetalhe() {
             )}
           </div>
         </div>
-        {(podeEditarEquipe || podeAlocar) && (
-          <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
+          {edicao.status === "planejamento" && (
             <button
               type="button"
               className="btn btn-secundario"
-              onClick={() => setEditando(true)}
-              aria-label="Editar"
-              title="Editar"
+              onClick={() => setEquipeAnteriorAberto(true)}
+              aria-label="Equipe da edicao anterior"
+              title="Equipe da edicao anterior"
             >
-              <Icone nome="lapis" />
+              <Icone nome="historico" />
             </button>
-            <button
-              type="button"
-              className="btn btn-primario"
-              onClick={() => abrirAlocacao("Equipista")}
-              aria-label="Alocar pessoa"
-              title="Alocar pessoa"
-            >
-              <Icone nome="mais" />
-            </button>
-          </div>
-        )}
+          )}
+          {(podeEditarEquipe || podeAlocar) && (
+            <>
+              <button
+                type="button"
+                className="btn btn-secundario"
+                onClick={() => setEditando(true)}
+                aria-label="Editar"
+                title="Editar"
+              >
+                <Icone nome="lapis" />
+              </button>
+              <button
+                type="button"
+                className="btn btn-primario"
+                onClick={() => abrirAlocacao("Equipista")}
+                aria-label="Alocar pessoa"
+                title="Alocar pessoa"
+              >
+                <Icone nome="mais" />
+              </button>
+            </>
+          )}
+        </div>
       </header>
 
       {acaoErro && (
@@ -506,6 +544,18 @@ export function EquipeDetalhe() {
         onConfirmar={handleAlocar}
         participacoesDaEdicao={participacoes}
         funcaoInicial={funcaoInicial}
+      />
+
+      <PainelEquipeAnterior
+        aberto={equipeAnteriorAberto}
+        onFechar={() => setEquipeAnteriorAberto(false)}
+        edicaoId={edicao.id}
+        equipeId={equipe.id}
+        equipeNome={equipe.nome}
+        podeAlocar={podeAlocar}
+        totalCoordenadoresAtuais={totais.porFuncao.Coordenador}
+        vagasCoordenador={equipe.vagasCoordenador}
+        onAdicionar={handleAdicionarEquipeAnterior}
       />
 
       <Toast dados={toast} onFechar={() => setToast(null)} />

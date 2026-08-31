@@ -56,6 +56,14 @@ export async function buscarAvaliacaoEquipistaCoordenador(
   return api.get<AvaliacaoEquipistaCoordenador>(`/api/avaliacoes-equipista-coordenador/${id}`);
 }
 
+export async function listarAvaliacoesEquipistaCoordenadorPessoa(
+  pessoaId: string,
+): Promise<AvaliacaoEquipistaCoordenador[]> {
+  return api.get<AvaliacaoEquipistaCoordenador[]>(
+    `/api/avaliacoes-equipista-coordenador/pessoa/${pessoaId}`,
+  );
+}
+
 // ─── Rotas públicas (anonimas) ─────────────────────────────────────────────
 
 export async function verificarLinkAvaliacaoEquipista(

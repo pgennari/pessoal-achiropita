@@ -52,6 +52,12 @@ export async function buscarAvaliacaoCoordenador(id: string): Promise<AvaliacaoC
   return api.get<AvaliacaoCoordenador>(`/api/avaliacoes-coordenador/${id}`);
 }
 
+export async function listarAvaliacoesCoordenadorPessoa(
+  pessoaId: string,
+): Promise<AvaliacaoCoordenador[]> {
+  return api.get<AvaliacaoCoordenador[]>(`/api/avaliacoes-coordenador/pessoa/${pessoaId}`);
+}
+
 // ─── Rotas públicas (anonimas) ─────────────────────────────────────────────
 
 export async function verificarLinkAvaliacaoCoordenador(

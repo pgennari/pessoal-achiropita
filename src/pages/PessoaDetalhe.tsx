@@ -17,8 +17,19 @@ import { EditarFilhos } from "../components/EditarFilhos";
 import { EditarParentes } from "../components/EditarParentes";
 import { VinculoVeiculo } from "../components/VinculoVeiculo";
 import { Icone } from "../components/Icone";
-import { usePessoa, usePessoas, useVeiculos, useVeiculosPessoa, useParentes, useAvaliacoesPessoa } from "../lib/hooks";
+import { usePessoa, usePessoas, useVeiculos, useVeiculosPessoa, useParentes, useAvaliacoesPessoa, useAvaliacoesCoordenadorPessoa, useAvaliacoesEquipistaCoordenadorPessoa } from "../lib/hooks";
 import { useSessao, temPermissao } from "../lib/sessao";
+import {
+  Avaliacao,
+  AvaliacaoCoordenador,
+  AvaliacaoEquipistaCoordenador,
+  CriterioEquipista,
+} from "../lib/tipos";
+import {
+  CRITERIO_COR,
+  CRITERIO_LABEL,
+  CRITERIOS_LABELS,
+} from "./SecaoAvaliacaoEquipistaCoordenadores";
 import {
   DadosPessoaForm,
   atualizarPessoa,
@@ -38,6 +49,40 @@ import {
   criarVeiculo,
 } from "../lib/veiculos";
 import { calcularIdade, formatarCPF, formatarData } from "../lib/utilsDominio";
+
+const CORES_CRITERIO: Record<string, string> = {
+  Otimo: "#16a34a",
+  Bom: "#2563eb",
+  Regular: "#ca8a04",
+  Ruim: "#dc2626",
+};
+
+const ROTULOS_CRITERIO: Record<string, string> = {
+  pontualidade: "Pontualidade",
+  dedicacao: "Dedicação",
+  companheirismo: "Companheirismo",
+  espiritualidade: "Espiritualidade",
+  comprometimento: "Comprometimento",
+  uniforme: "Uniforme",
+  convidarNovamente: "Convidaria novamente",
+};
+
+type ChaveQuestaoCoordenador =
+  | "permanencia"
+  | "lideranca"
+  | "pontoPositivo"
+  | "aspectoMelhorar"
+  | "situacaoRegistrar"
+  | "recomendacao";
+
+const PERGUNTAS_COORDENADOR_APOIO: { rotulo: string; chave: ChaveQuestaoCoordenador }[] = [
+  { rotulo: "1. Permanecer na função na próxima festa?", chave: "permanencia" },
+  { rotulo: "2. Perfil de liderança?", chave: "lideranca" },
+  { rotulo: "3. Ponto positivo marcante", chave: "pontoPositivo" },
+  { rotulo: "4. Aspecto que pode melhorar", chave: "aspectoMelhorar" },
+  { rotulo: "5. Situação relevante a registrar", chave: "situacaoRegistrar" },
+  { rotulo: "6. Recomendação de permanência ou mudança", chave: "recomendacao" },
+];
 
 export function PessoaDetalhe() {
   const { id } = useParams<{ id: string }>();
@@ -65,23 +110,19 @@ export function PessoaDetalhe() {
     "movimentacao" | "participacoes" | "presenca" | "avaliacoes" | "bloqueios"
   >(historicoInicial);
   const { itens: avaliacoesPessoa } = useAvaliacoesPessoa(id);
+  const { itens: avaliacoesCoordenador } = useAvaliacoesCoordenadorPessoa(id);
+  const { itens: avaliacoesEquipistaCoord } = useAvaliacoesEquipistaCoordenadorPessoa(id);
 
-  const coresCriterio: Record<string, string> = {
-    Otimo: "#16a34a",
-    Bom: "#2563eb",
-    Regular: "#ca8a04",
-    Ruim: "#dc2626",
-  };
-
-  const rotulosCriterio: Record<string, string> = {
-    pontualidade: "Pontualidade",
-    dedicacao: "Dedicação",
-    companheirismo: "Companheirismo",
-    espiritualidade: "Espiritualidade",
-    comprometimento: "Comprometimento",
-    uniforme: "Uniforme",
-    convidarNovamente: "Convidaria novamente",
-  };
+  const linhasCoordenador: (
+    | { tipo: "apoio"; a: AvaliacaoCoordenador }
+    | { tipo: "equipista"; a: AvaliacaoEquipistaCoordenador }
+  )[] = [
+    ...avaliacoesCoordenador.map((a) => ({ tipo: "apoio" as const, a })),
+    ...avaliacoesEquipistaCoord.map((a) => ({ tipo: "equipista" as const, a })),
+  ].sort(
+    (x, y) =>
+      new Date(y.a.atualizadoEm).getTime() - new Date(x.a.atualizadoEm).getTime()
+  );
 
   if (!sessao) return null;
   const ehProprio = !!sessao.pessoaId && sessao.pessoaId === id;
@@ -716,70 +757,43 @@ export function PessoaDetalhe() {
 
               {abaHistorico === "avaliacoes" && (
                 <div className="tabs-painel" role="tabpanel" tabIndex={0}>
-                  {avaliacoesPessoa.length === 0 ? (
+                  {avaliacoesPessoa.length === 0 &&
+                  avaliacoesCoordenador.length === 0 &&
+                  avaliacoesEquipistaCoord.length === 0 ? (
                     <p className="text-sm text-ardesia">Nenhuma avaliação registrada para esta pessoa.</p>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <p className="text-sm text-ardesia">
-                        {avaliacoesPessoa.length} avaliação(ões) registrada(s)
+                        {avaliacoesPessoa.length + avaliacoesCoordenador.length + avaliacoesEquipistaCoord.length} avaliação(ões) registrada(s)
                       </p>
-                      <div className="card">
-                        <div className="card-corpo divide-y divide-pietra-clara">
-                          {avaliacoesPessoa.map((a) => (
-                            <div key={a.id} className="py-3 first:pt-0 last:pb-0 space-y-2">
-                              <div className="flex items-center justify-between gap-3">
-                                <span className="text-sm font-semibold text-carbone">
-                                  {(a as any).edicaoNumero ?? a.edicaoId}ª edição
-                                </span>
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <span className="text-xs text-ardesia font-mono">
-                                    {new Date(a.atualizadoEm).toLocaleString("pt-BR")}
-                                  </span>
-                                  <span className={`badge ${a.status === "finalizada" ? "badge-verde" : "badge-azul"}`}>
-                                    {a.status === "finalizada" ? "Finalizada" : "Rascunho"}
-                                  </span>
-                                </div>
-                              </div>
-                              <p className="text-xs text-ardesia">
-                                Equipe {(a as any).equipeNome ?? "—"} · Avaliador: {a.avaliadorNome}
-                              </p>
-                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
-                                {Object.entries(a.criterios).map(([k, v]) => (
-                                  <div key={k} className="flex justify-between">
-                                    <span className="text-ardesia">
-                                      {rotulosCriterio[k] ?? k}
-                                    </span>
-                                    <span
-                                      className="font-semibold"
-                                      style={{
-                                        color:
-                                          typeof v === "number"
-                                            ? undefined
-                                            : coresCriterio[v as string] ??
-                                              undefined,
-                                      }}
-                                    >
-                                      {typeof v === "number"
-                                        ? `${v}/5`
-                                        : ((v as string) ?? "—")}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="flex items-center gap-4 text-xs text-ardesia">
-                                <span>
-                                  Apto a coordenar: <strong className="text-carbone">{a.aptoCoordenar ? "Sim" : "Não"}</strong>
-                                </span>
-                              </div>
-                              {a.comentarios && (
-                                <p className="text-xs text-ardesia italic border-t border-pietra-clara pt-2">
-                                  {a.comentarios}
-                                </p>
+                      {avaliacoesPessoa.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="m-0">Como equipista</h4>
+                          <div className="card">
+                            <div className="card-corpo divide-y divide-pietra-clara">
+                              {avaliacoesPessoa.map((a) => (
+                                <LinhaAvaliacaoEquipista key={a.id} a={a} />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {linhasCoordenador.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="m-0">Como coordenador</h4>
+                          <div className="card">
+                            <div className="card-corpo divide-y divide-pietra-clara">
+                              {linhasCoordenador.map((linha) =>
+                                linha.tipo === "apoio" ? (
+                                  <LinhaAvaliacaoCoordenadorApoio key={linha.a.id} a={linha.a} />
+                                ) : (
+                                  <LinhaAvaliacaoCoordenadorEquipista key={linha.a.id} a={linha.a} />
+                                )
                               )}
                             </div>
-                          ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -821,6 +835,137 @@ function Linha({ rotulo, valor }: { rotulo: string; valor: string }) {
         {rotulo}
       </div>
       <div className="text-carbone">{valor}</div>
+    </div>
+  );
+}
+
+function LinhaAvaliacaoEquipista({ a }: { a: Avaliacao }) {
+  return (
+    <div className="py-3 first:pt-0 last:pb-0 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-semibold text-carbone">
+          {a.edicaoNumero ?? a.edicaoId}ª edição
+        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs text-ardesia font-mono">
+            {new Date(a.atualizadoEm).toLocaleString("pt-BR")}
+          </span>
+          <span className={`badge ${a.status === "finalizada" ? "badge-verde" : "badge-azul"}`}>
+            {a.status === "finalizada" ? "Finalizada" : "Rascunho"}
+          </span>
+        </div>
+      </div>
+      <p className="text-xs text-ardesia">
+        Equipe {a.equipeNome ?? "—"} · Avaliador: {a.avaliadorNome}
+      </p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
+        {Object.entries(a.criterios).map(([k, v]) => (
+          <div key={k} className="flex justify-between">
+            <span className="text-ardesia">
+              {ROTULOS_CRITERIO[k] ?? k}
+            </span>
+            <span
+              className="font-semibold"
+              style={{
+                color:
+                  typeof v === "number"
+                    ? undefined
+                    : CORES_CRITERIO[v as string] ??
+                      undefined,
+              }}
+            >
+              {typeof v === "number"
+                ? `${v}/5`
+                : ((v as string) ?? "—")}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-4 text-xs text-ardesia">
+        <span>
+          Apto a coordenar: <strong className="text-carbone">{a.aptoCoordenar ? "Sim" : "Não"}</strong>
+        </span>
+      </div>
+      {a.comentarios && (
+        <p className="text-xs text-ardesia italic border-t border-pietra-clara pt-2">
+          {a.comentarios}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function LinhaAvaliacaoCoordenadorApoio({ a }: { a: AvaliacaoCoordenador }) {
+  return (
+    <div className="py-3 first:pt-0 last:pb-0 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-semibold text-carbone">
+          {a.edicaoNumero ?? a.edicaoId}ª edição
+        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs text-ardesia font-mono">
+            {new Date(a.atualizadoEm).toLocaleString("pt-BR")}
+          </span>
+          <span className={`badge ${a.status === "finalizada" ? "badge-verde" : "badge-azul"}`}>
+            {a.status === "finalizada" ? "Finalizada" : "Rascunho"}
+          </span>
+        </div>
+      </div>
+      <p className="text-xs text-ardesia">
+        Equipe {a.equipeFilhaNome ?? "—"} · Avaliador: {a.avaliadorNome}
+      </p>
+      <div className="grid grid-cols-1 gap-y-1 text-xs">
+        {PERGUNTAS_COORDENADOR_APOIO.map((q) => (
+          <div key={q.chave} className="flex justify-between gap-3">
+            <span className="text-ardesia">{q.rotulo}</span>
+            <span className="font-semibold text-carbone text-right">
+              {a[q.chave] || "—"}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LinhaAvaliacaoCoordenadorEquipista({ a }: { a: AvaliacaoEquipistaCoordenador }) {
+  return (
+    <div className="py-3 first:pt-0 last:pb-0 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-semibold text-carbone">
+          {a.edicaoNumero ?? a.edicaoId}ª edição
+        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs text-ardesia font-mono">
+            {new Date(a.atualizadoEm).toLocaleString("pt-BR")}
+          </span>
+          <span className="badge badge-verde">Finalizada</span>
+        </div>
+      </div>
+      <p className="text-xs text-ardesia">
+        Equipe {a.equipeNome ?? "—"} · Avaliador: {a.avaliadorNome}
+      </p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs">
+        {CRITERIOS_LABELS.map((c) => {
+          const valor = a.criterios[c.chave] as CriterioEquipista;
+          return (
+            <div key={c.chave} className="flex justify-between">
+              <span className="text-ardesia">{c.rotulo}</span>
+              <span
+                className="font-semibold"
+                style={{ color: valor ? CRITERIO_COR[valor] : undefined }}
+              >
+                {valor ? CRITERIO_LABEL[valor] : "—"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      {a.comentarios && (
+        <p className="text-xs text-ardesia italic border-t border-pietra-clara pt-2">
+          {a.comentarios}
+        </p>
+      )}
     </div>
   );
 }

@@ -58,6 +58,12 @@ export async function listarAvaliacoesCoordenadorPessoa(
   return api.get<AvaliacaoCoordenador[]>(`/api/avaliacoes-coordenador/pessoa/${pessoaId}`);
 }
 
+export async function excluirAvaliacaoCoordenador(id: string): Promise<void> {
+  await api.delete(`/api/avaliacoes-coordenador/${id}`);
+  queryClient.invalidateQueries({ queryKey: ["avaliacoesCoordenador"] });
+  queryClient.invalidateQueries({ queryKey: ["avaliacoesCoordenador", "pessoa"] });
+}
+
 // ─── Rotas públicas (anonimas) ─────────────────────────────────────────────
 
 export async function verificarLinkAvaliacaoCoordenador(

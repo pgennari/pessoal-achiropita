@@ -291,4 +291,38 @@ app.openapi(getAvaliacoesPessoaRoute, async (c) => {
   })) as any, 200);
 });
 
+// ─── Excluir uma avaliação ───────────────────────────────────────────────────
+
+const deleteAvaliacaoRoute = createRoute({
+  method: "delete",
+  path: "/{id}",
+  tags: ["Avaliação"],
+  summary: "Excluir uma avaliação",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.object({ ok: z.boolean() }) } }, description: "Excluída" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrada" }
+  }
+});
+
+app.openapi(deleteAvaliacaoRoute, async (c) => {
+  const { id } = c.req.valid("param");
+  const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "avaliacao.gerenciar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao avaliacao.gerenciar." }, 403);
+  }
+  const [row] = await sql`
+    DELETE FROM avaliacoes WHERE id = ${id} RETURNING pessoa_id, edicao_id
+  `;
+  if (!row) return c.json({ erro: "Avaliação não encontrada." }, 404);
+  await registrarEvento(
+    sessao, "avaliacao.excluiu", `avaliacoes/${id}`,
+    `pessoa ${row.pessoa_id} em edicao ${row.edicao_id}`
+  );
+  return c.json({ ok: true }, 200);
+});
+
 export default app;

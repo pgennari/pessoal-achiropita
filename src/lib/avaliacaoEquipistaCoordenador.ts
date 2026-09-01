@@ -64,6 +64,12 @@ export async function listarAvaliacoesEquipistaCoordenadorPessoa(
   );
 }
 
+export async function excluirAvaliacaoEquipistaCoordenador(id: string): Promise<void> {
+  await api.delete(`/api/avaliacoes-equipista-coordenador/${id}`);
+  queryClient.invalidateQueries({ queryKey: ["avaliacoesEquipistaCoordenador"] });
+  queryClient.invalidateQueries({ queryKey: ["avaliacoesEquipistaCoordenador", "pessoa"] });
+}
+
 // ─── Rotas públicas (anonimas) ─────────────────────────────────────────────
 
 export async function verificarLinkAvaliacaoEquipista(

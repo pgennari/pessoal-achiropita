@@ -8,7 +8,7 @@ import { useState } from "react";
 import { useMemo } from "react";
 import { Icone } from "../components/Icone";
 import { useAvaliacoesCoordenador, useEquipes, useLinkAvaliacaoCoordenadorAtivo } from "../lib/hooks";
-import { buscarAvaliacaoCoordenador } from "../lib/avaliacaoCoordenador";
+import { buscarAvaliacaoCoordenador, excluirAvaliacaoCoordenador } from "../lib/avaliacaoCoordenador";
 import { AvaliacaoCoordenador } from "../lib/tipos";
 
 interface Props {
@@ -71,6 +71,16 @@ export function SecaoAvaliacaoCoordenadores({ edicaoId, edicaoNumero, edicaoAno 
       setDetalhe(null);
     } finally {
       setCarregandoDetalhe(false);
+    }
+  }
+
+  async function handleExcluir(a: AvaliacaoCoordenador) {
+    if (!confirm(`Excluir a avaliação de #${a.pessoaCracha ?? "????"}? Esta ação não pode ser desfeita.`)) return;
+    setAcaoErro("");
+    try {
+      await excluirAvaliacaoCoordenador(a.id);
+    } catch (e) {
+      setAcaoErro((e as Error).message);
     }
   }
 
@@ -209,6 +219,8 @@ export function SecaoAvaliacaoCoordenadores({ edicaoId, edicaoNumero, edicaoAno 
         {carregandoAvaliacoes ? "Carregando..." : `${avaliacoes.length} avaliação(ões)`}
       </p>
 
+      {acaoErro && <p className="input-erro-msg">{acaoErro}</p>}
+
       {!carregandoAvaliacoes && avaliacoes.length === 0 ? (
         <p className="text-ardesia text-sm">
           Nenhuma avaliação registrada com esses filtros.
@@ -249,15 +261,26 @@ export function SecaoAvaliacaoCoordenadores({ edicaoId, edicaoNumero, edicaoAno 
                       {new Date(a.atualizadoEm).toLocaleString("pt-BR")}
                     </td>
                     <td className="px-4 py-2">
-                      <button
-                        type="button"
-                        className="btn btn-texto btn-pequeno"
-                        onClick={() => abrirDetalhe(a.id)}
-                        aria-label="Ver avaliação"
-                        title="Ver avaliação"
-                      >
-                        <Icone nome="olho" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          className="btn btn-texto btn-pequeno"
+                          onClick={() => abrirDetalhe(a.id)}
+                          aria-label="Ver avaliação"
+                          title="Ver avaliação"
+                        >
+                          <Icone nome="olho" />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                          onClick={() => handleExcluir(a)}
+                          aria-label="Excluir avaliação"
+                          title="Excluir avaliação"
+                        >
+                          <Icone nome="lixeira" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

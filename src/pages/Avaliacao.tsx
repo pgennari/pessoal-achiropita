@@ -12,8 +12,10 @@ import {
   useEquipes,
   useParticipacoes,
 } from "../lib/hooks";
+import { excluirAvaliacao } from "../lib/avaliacao";
 import { useSessao, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
+import type { Avaliacao } from "../lib/tipos";
 import { SecaoAvaliacaoCoordenadores } from "./SecaoAvaliacaoCoordenadores";
 import { SecaoAvaliacaoEquipistaCoordenadores } from "./SecaoAvaliacaoEquipistaCoordenadores";
 
@@ -51,9 +53,20 @@ export function PaginaAvaliacao() {
   const { itens: equipes } = useEquipes(edicao?.id);
   const { itens: participacoes } = useParticipacoes(edicao?.id);
   const [copiado, setCopiado] = useState(false);
+  const [acaoErro, setAcaoErro] = useState("");
   const [abaAtiva, setAbaAtiva] = useState<"equipistas" | "coordenadores" | "equipistaCoordenador">("equipistas");
 
   const podeAcessar = temPermissao(sessao, "avaliacao.gerenciar");
+
+  async function handleExcluirAvaliacao(a: Avaliacao) {
+    if (!confirm(`Excluir a avaliação de #${(a as any).pessoaCracha ?? "????"}? Esta ação não pode ser desfeita.`)) return;
+    setAcaoErro("");
+    try {
+      await excluirAvaliacao(a.id);
+    } catch (e) {
+      setAcaoErro((e as Error).message);
+    }
+  }
 
   // Controle de preenchimento: para cada equipe, quantos equipistas ja tem
   // avaliacao finalizada sobre o total de equipistas alocados.
@@ -273,6 +286,7 @@ export function PaginaAvaliacao() {
         <p className="text-ardesia text-sm">Nenhuma avaliação registrada nesta edição.</p>
       ) : (
         <div className="card overflow-hidden">
+          {acaoErro && <p className="input-erro-msg px-4 pt-3">{acaoErro}</p>}
           <div className="tabela-rolavel">
             <table className="tabela-larga">
               <thead className="bg-pietra-clara/60 text-left">
@@ -282,6 +296,7 @@ export function PaginaAvaliacao() {
                   <th className="px-4 py-2 font-semibold">Avaliador</th>
                   <th className="px-4 py-2 font-semibold">Status</th>
                   <th className="px-4 py-2 font-semibold">Atualizado</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -311,6 +326,17 @@ export function PaginaAvaliacao() {
                     </td>
                     <td className="px-4 py-2 text-ardesia whitespace-nowrap">
                       {new Date(a.atualizadoEm).toLocaleString("pt-BR")}
+                    </td>
+                    <td className="px-4 py-2">
+                      <button
+                        type="button"
+                        className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                        onClick={() => handleExcluirAvaliacao(a)}
+                        aria-label="Excluir avaliação"
+                        title="Excluir avaliação"
+                      >
+                        <Icone nome="lixeira" />
+                      </button>
                     </td>
                   </tr>
                 ))}

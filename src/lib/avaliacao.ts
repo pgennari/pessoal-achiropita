@@ -50,6 +50,12 @@ export async function listarAvaliacoesPessoa(
   return api.get<Avaliacao[]>(`/api/avaliacoes/pessoa/${pessoaId}`);
 }
 
+export async function excluirAvaliacao(id: string): Promise<void> {
+  await api.delete(`/api/avaliacoes/${id}`);
+  queryClient.invalidateQueries({ queryKey: ["avaliacoes"] });
+  queryClient.invalidateQueries({ queryKey: ["avaliacoes", "pessoa"] });
+}
+
 // ─── Rotas públicas (anonimas) ─────────────────────────────────────────────
 
 export async function verificarLinkAvaliacao(

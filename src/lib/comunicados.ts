@@ -48,17 +48,25 @@ export async function removerComunicado(comunicado: Comunicado): Promise<void> {
 
 export type GrupoDestinatarios = "todos" | "coordenadores" | "teste";
 
-export interface ResultadoEnvioComunicado {
+export interface ResultadoDisparo {
+  bloco: number;
   enviados: number;
   messageId: string;
+}
+
+export interface ResultadoEnvioComunicado {
+  enviados: number;
+  blocos: ResultadoDisparo[];
 }
 
 export async function enviarComunicado(
   comunicado: Comunicado,
   grupo: GrupoDestinatarios
 ): Promise<ResultadoEnvioComunicado> {
-  return api.post<ResultadoEnvioComunicado>(
+  const resultado = await api.post<ResultadoEnvioComunicado>(
     `/api/comunicados/${comunicado.id}/enviar`,
     { grupo }
   );
+  invalidarComunicados(comunicado.edicaoId);
+  return resultado;
 }

@@ -104,7 +104,7 @@ export function App() {
           </ProtegerRota>
         }
       >
-        <Route index element={<RedirecionarEdicaoAtiva />} />
+        <Route index element={<RedirecionarEdicaoAtiva desviarSemDetalhe />} />
         <Route path="pessoas" element={<Pessoas />} />
         <Route path="pessoas/nova" element={<PessoaNova />} />
         <Route path="pessoas/importar-fotos" element={<ImportarFotos />} />
@@ -114,7 +114,10 @@ export function App() {
         <Route path="pessoas/:id" element={<PessoaDetalhe />} />
         <Route path="criancas" element={<Criancas />} />
         <Route path="edicoes" element={<Edicoes />} />
-        <Route path="edicoes/ativa" element={<RedirecionarEdicaoAtiva />} />
+        <Route
+          path="edicoes/ativa"
+          element={<RedirecionarEdicaoAtiva desviarSemDetalhe />}
+        />
         <Route path="edicoes/:id" element={<EdicaoDetalhe />} />
         <Route
           path="edicoes/:edicaoId/equipes/:id"

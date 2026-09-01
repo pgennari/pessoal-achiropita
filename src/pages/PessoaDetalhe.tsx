@@ -13,6 +13,7 @@ import { HistoricoPessoa } from "../components/HistoricoPessoa";
 import { HistoricoEquipesPessoa } from "../components/HistoricoEquipesPessoa";
 import { HistoricoPresencaPessoa } from "../components/HistoricoPresencaPessoa";
 import { HistoricoBloqueiosPessoa } from "../components/HistoricoBloqueiosPessoa";
+import { HistoricoComunicadosPessoa } from "../components/HistoricoComunicadosPessoa";
 import { EditarFilhos } from "../components/EditarFilhos";
 import { EditarParentes } from "../components/EditarParentes";
 import { VinculoVeiculo } from "../components/VinculoVeiculo";
@@ -107,7 +108,7 @@ export function PessoaDetalhe() {
   const [abaCadastro, setAbaCadastro] = useState<"foto" | "dados" | "filhos" | "veiculos" | "parentes">("dados");
   const historicoInicial = searchParams.get("aba") === "avaliacoes" ? "avaliacoes" as const : "presenca" as const;
   const [abaHistorico, setAbaHistorico] = useState<
-    "movimentacao" | "participacoes" | "presenca" | "avaliacoes" | "bloqueios"
+    "movimentacao" | "participacoes" | "presenca" | "avaliacoes" | "bloqueios" | "comunicados"
   >(historicoInicial);
   const { itens: avaliacoesPessoa } = useAvaliacoesPessoa(id);
   const { itens: avaliacoesCoordenador } = useAvaliacoesCoordenadorPessoa(id);
@@ -735,6 +736,15 @@ export function PessoaDetalhe() {
                 >
                   Histórico bloqueios
                 </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={abaHistorico === "comunicados"}
+                  className={`aba ${abaHistorico === "comunicados" ? "aba-ativa" : ""}`}
+                  onClick={() => setAbaHistorico("comunicados")}
+                >
+                  Comunicados
+                </button>
               </div>
 
               {abaHistorico === "presenca" && (
@@ -802,6 +812,12 @@ export function PessoaDetalhe() {
               {abaHistorico === "bloqueios" && (
                 <div className="tabs-painel" role="tabpanel" tabIndex={0}>
                   <HistoricoBloqueiosPessoa pessoaId={pessoa.id} />
+                </div>
+              )}
+
+              {abaHistorico === "comunicados" && (
+                <div className="tabs-painel" role="tabpanel" tabIndex={0}>
+                  <HistoricoComunicadosPessoa pessoaId={pessoa.id} />
                 </div>
               )}
             </div>

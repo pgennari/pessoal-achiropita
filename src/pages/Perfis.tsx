@@ -203,7 +203,9 @@ export function Perfis() {
   const [criando, setCriando] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
 
-  const catalogoAtivo = catalogo.filter((p) => p.ativo);
+  const catalogoAtivo = catalogo
+    .filter((p) => p.ativo)
+    .sort((a, b) => a.rotulo.localeCompare(b.rotulo, "pt-BR"));
   const catalogoCompleto = catalogoTodos ?? [];
 
   function rotuloBadge(codigo: string): { rotulo: string; inativa: boolean } {

@@ -2,6 +2,10 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { comAuth, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
+import {
+  podeVerRelatorio,
+  resolverEscopoRelatorio,
+} from "../relatorioAvaliacao.js";
 import type { Variaveis } from "../tipos.js";
 
 const app = new OpenAPIHono<Variaveis>();
@@ -102,14 +106,34 @@ const getEquipesRoute = createRoute({
 });
 app.openapi(getEquipesRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!temPermissao(sessao, "edicao.detalhe")) {
-    return c.json({ erro: "Acesso negado. Requer permissao edicao.detalhe." }, 403);
-  }
   const query = c.req.valid("query");
   const edicaoId = query.edicaoId;
 
+  // Leitor do relatorio de avaliacoes (avaliacao.relatorio.apoio) acessa a
+  // lista de equipes escopada a propria equipe APOIO e filhas, apenas para
+  // renderizar os filtros do relatorio. edicao.detalhe enxerga todas.
+  const podeRelatorio = podeVerRelatorio(sessao);
+  if (!temPermissao(sessao, "edicao.detalhe") && !podeRelatorio) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.detalhe." }, 403);
+  }
+
+  // Escopo apoiado do leitor do relatorio (aplica-se somente com edicaoId).
+  let escopoApoio: string[] | null = null;
+  if (podeRelatorio && !temPermissao(sessao, "edicao.detalhe") && edicaoId) {
+    const escopo = await resolverEscopoRelatorio(sql, sessao, edicaoId);
+    if (escopo && escopo.tipo === "apoio") {
+      escopoApoio = escopo.equipeIds;
+    }
+  }
+
   if (edicaoId) {
-    const rows = await sql`${SEL_EQUIPES} WHERE e.edicao_id = ${edicaoId} AND e.excluida = FALSE GROUP BY e.id ORDER BY e.nome`;
+    const filtroEscopo =
+      escopoApoio !== null && escopoApoio.length > 0
+        ? sql`AND e.id = ANY(${escopoApoio}::text[])`
+        : sql``;
+    const semLinhas = escopoApoio !== null && escopoApoio.length === 0;
+    if (semLinhas) return c.json([] as any, 200);
+    const rows = await sql`${SEL_EQUIPES} WHERE e.edicao_id = ${edicaoId} AND e.excluida = FALSE ${filtroEscopo} GROUP BY e.id ORDER BY e.nome`;
     return c.json(rows.map(equipeDeRow) as any, 200);
   }
 

@@ -163,7 +163,7 @@ export function PaginaAvaliacao() {
             className={`aba ${abaAtiva === "equipistas" ? "aba-ativa" : ""}`}
             onClick={() => setAbaAtiva("equipistas")}
           >
-            Equipistas
+            Coordenador
           </button>
           <button
             type="button"
@@ -181,7 +181,7 @@ export function PaginaAvaliacao() {
             className={`aba ${abaAtiva === "equipistaCoordenador" ? "aba-ativa" : ""}`}
             onClick={() => setAbaAtiva("equipistaCoordenador")}
           >
-            Coordenador
+            Equipistas
           </button>
         </div>
       </div>

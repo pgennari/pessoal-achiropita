@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { comAuth, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
+import { resolverEscopoRelatorio } from "../relatorioAvaliacao.js";
 import type { Variaveis } from "../tipos.js";
 
 const app = new OpenAPIHono<Variaveis>();
@@ -159,10 +160,24 @@ const getAvaliacoesRoute = createRoute({
 
 app.openapi(getAvaliacoesRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!temPermissao(sessao, "avaliacao.gerenciar")) {
-    return c.json({ erro: "Acesso negado. Requer permissao avaliacao.gerenciar." }, 403);
-  }
   const { edicaoId, equipeId, status } = c.req.valid("query");
+
+  // Relatorio completo (avaliacao.relatorio / avaliacao.gerenciar) ou escopo
+  // apoiado (avaliacao.relatorio.apoio), aplicado no backend.
+  const escopo = await resolverEscopoRelatorio(sql, sessao, edicaoId);
+  if (!escopo) {
+    return c.json({ erro: "Acesso negado. Requer permissao de relatorio de avaliacoes." }, 403);
+  }
+
+  const escopoEquipes =
+    escopo.tipo === "apoio" && escopo.equipeIds.length > 0
+      ? sql`AND a.equipe_id = ANY(${escopo.equipeIds}::text[])`
+      : sql``;
+
+  // Escopo apoiado sem equipes validas -> nenhuma avaliacao.
+  if (escopo.tipo === "apoio" && escopo.equipeIds.length === 0) {
+    return c.json([] as any, 200);
+  }
 
   const rows = await sql`
     SELECT a.*, e.nome AS equipe_nome, p.nome AS pessoa_nome, p.cracha AS pessoa_cracha
@@ -171,6 +186,7 @@ app.openapi(getAvaliacoesRoute, async (c) => {
     JOIN pessoas p ON p.id = a.pessoa_id
     WHERE a.edicao_id = ${edicaoId}
       ${equipeId ? sql`AND a.equipe_id = ${equipeId}` : sql``}
+      ${escopoEquipes}
       ${status ? sql`AND a.status = ${status}` : sql``}
     ORDER BY a.atualizado_em DESC
   `;

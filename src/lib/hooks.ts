@@ -10,6 +10,7 @@ import {
   Bloqueio,
   Checkin,
   Comunicado,
+  ComunicadoDisparoPessoa,
   Convite,
   DiaFesta,
   Edicao,
@@ -514,6 +515,19 @@ export function useHistoricoEquipesPessoa(pessoaId: string | undefined): EstadoL
   const { data, isLoading, error } = useQuery({
     queryKey: ["pessoas", pessoaId, "historico-equipes"],
     queryFn: () => api.get<HistoricoEquipePessoa[]>(`/api/pessoas/${pessoaId}/historico-equipes`),
+    enabled: !!pessoaId,
+  });
+  return { itens: data ?? [], carregando: isLoading && !!pessoaId, erro: erroMsg(error) };
+}
+
+// Historico de comunicados recebidos pela pessoa (aba "Comunicados" do box
+// Exclusivo Pessoal da Pessoa).
+export function useComunicadosDaPessoa(
+  pessoaId: string | undefined
+): EstadoLista<ComunicadoDisparoPessoa> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["pessoas", pessoaId, "comunicados"],
+    queryFn: () => api.get<ComunicadoDisparoPessoa[]>(`/api/pessoas/${pessoaId}/comunicados`),
     enabled: !!pessoaId,
   });
   return { itens: data ?? [], carregando: isLoading && !!pessoaId, erro: erroMsg(error) };

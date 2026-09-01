@@ -586,7 +586,9 @@ INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
   ('vaga.detalhe', 'Vagas: ver detalhes', 'Ver os detalhes de uma vaga de estacionamento.'),
   ('vaga.incluir', 'Vagas: incluir', 'Cadastrar novas vagas de estacionamento.'),
   ('vaga.editar', 'Vagas: editar', 'Editar vagas (identificacao, pessoas e estacionamento).'),
-  ('avaliacao.gerenciar', 'Avaliação: gerenciar', 'Gerar link de avaliação, listar e visualizar avaliações da edição.')
+  ('avaliacao.gerenciar', 'Avaliação: gerenciar', 'Gerar link de avaliação, listar e visualizar avaliações da edição.'),
+  ('avaliacao.relatorio', 'Avaliação: relatório', 'Ver o relatório completo de avaliações da edição.'),
+  ('avaliacao.relatorio.apoio', 'Avaliação: relatório (apoio)', 'Ver o relatório de avaliações da própria equipe APOIO e das equipes filhas.')
 ON CONFLICT (codigo) DO NOTHING;
 
 -- Desativa codigos antigos do catalogo substituidos pelos granulares acima.
@@ -1054,6 +1056,42 @@ CREATE TABLE IF NOT EXISTS comunicados (
 );
 
 CREATE INDEX IF NOT EXISTS idx_comunicados_edicao ON comunicados(edicao_id);
+
+-- comunicado_disparos: historico de cada disparo (bloco) por e-mail enviado a
+-- partir de um comunicado. O Brevo limita cada envio a 99 destinatarios em
+-- BCC remotos; grupos maiores geram um bloco por chamada. Append-only: nunca
+-- UPDATE/DELETE. Mantem message_id, grupo e contagem para auditabilidade na
+-- tela de comunicados.
+CREATE TABLE IF NOT EXISTS comunicado_disparos (
+  id             TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  comunicado_id  TEXT NOT NULL REFERENCES comunicados(id) ON DELETE CASCADE,
+  grupo          TEXT NOT NULL CHECK (grupo IN ('todos','coordenadores','teste')),
+  bloco          INTEGER NOT NULL,
+  destinatarios  INTEGER NOT NULL,
+  message_id     TEXT NOT NULL,
+  criado_em      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_comunicado_disparos_comunicado
+ON comunicado_disparos(comunicado_id, criado_em);
+
+-- comunicado_disparo_pessoa: por pessoa que recebeu um comunicado enviado com
+-- sucesso, registra o nome do comunicado, a data/hora do envio e quem disparou
+-- (snapshots no momento do envio, para sobreviver a edicoes e exclusoes).
+-- Append-only: nunca UPDATE/DELETE. Consumido na aba "Comunicados" do box
+-- Exclusivo Pessoal da Pessoa.
+CREATE TABLE IF NOT EXISTS comunicado_disparo_pessoa (
+  id                 TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  comunicado_id      TEXT NOT NULL REFERENCES comunicados(id) ON DELETE CASCADE,
+  pessoa_id          TEXT NOT NULL REFERENCES pessoas(id) ON DELETE CASCADE,
+  comunicado_titulo  TEXT NOT NULL,
+  enviado_em         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  disparado_por_uid  TEXT NOT NULL,
+  disparado_por_nome TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_comunicado_disparo_pessoa_pessoa
+ON comunicado_disparo_pessoa(pessoa_id, enviado_em);
 
 -- Permissao dedicada para gerenciar a aba Comunicacao das edicoes (029).
 -- Concedida ao ORG; o ADM e superuser e sempre possui todas as permissoes

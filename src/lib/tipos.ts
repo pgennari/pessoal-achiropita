@@ -293,6 +293,29 @@ export interface Comunicado {
   autorNome: string;
   criadoEm: string;
   atualizadoEm: string;
+  disparos: ComunicadoDisparo[];
+}
+
+// Um disparo (bloco) por e-mail feito a partir de um comunicado. Cada chamada
+// a API do Brevo envia no maximo 999 destinatarios; grupos maiores geram
+// varios blocos, cada um com seu proprio disparo aqui.
+export interface ComunicadoDisparo {
+  id: string;
+  grupo: "todos" | "coordenadores" | "teste";
+  bloco: number;
+  destinatarios: number;
+  messageId: string;
+  criadoEm: string;
+}
+
+// Historico de comunicados recebidos por uma pessoa (aba "Comunicados" do box
+// Exclusivo Pessoal). Snapshots do titulo e de quem disparou no momento do envio.
+export interface ComunicadoDisparoPessoa {
+  id: string;
+  comunicadoTitulo: string;
+  enviadoEm: string;
+  disparadoPorUid: string;
+  disparadoPorNome: string;
 }
 
 export type Setor = string;

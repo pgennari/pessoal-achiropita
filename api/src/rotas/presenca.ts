@@ -2,11 +2,14 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { comAuth, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
+import { resolverEscopoRelatorio } from "../relatorioAvaliacao.js";
 import type { Variaveis } from "../tipos.js";
 
 const app = new OpenAPIHono<Variaveis>();
 
-// Leitura de presenca: acesso a tela (presenca.lista).
+// Leitura de presenca: acesso a tela (presenca.lista). O leitor do relatorio
+// de avaliacoes tem leitura escopada tratada individualmente nas rotas
+// (getPresencasRoute), sem relaxar os demais endpoints de presenca.
 function podeLerPresenca(sessao: Variaveis["Variables"]["sessao"]): boolean {
   return temPermissao(sessao, "presenca.lista");
 }
@@ -189,16 +192,38 @@ const getPresencasRoute = createRoute({
   request: { query: z.object({ diaFestaId: z.string() }) },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Lista de presencas" },
-    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.any() } }, description: "Dia não encontrado" }
   }
 });
 
 app.openapi(getPresencasRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!podeLerPresenca(sessao)) {
-    return c.json({ erro: "Acesso negado. Requer permissao presenca.lista." }, 403);
-  }
   const { diaFestaId } = c.req.valid("query");
+
+  // Leitor via relatorio de avaliacoes (apoio) enxerga somente o escopo da
+  // propria equipe APOIO e filhas; quem tem presenca.lista ve tudo.
+  const padrao = temPermissao(sessao, "presenca.lista");
+  let escopoFiltro = sql``;
+  if (!padrao) {
+    const [dia] = await sql`
+      SELECT edicao_id FROM dias_festa WHERE id = ${diaFestaId}
+    `;
+    if (!dia) {
+      return c.json({ erro: "Dia da festa não encontrado." }, 404);
+    }
+    const escopo = await resolverEscopoRelatorio(sql, sessao, String(dia.edicao_id));
+    if (!escopo) {
+      return c.json({ erro: "Acesso negado. Requer permissao presenca.lista." }, 403);
+    }
+    if (escopo.tipo === "apoio" && escopo.equipeIds.length === 0) {
+      return c.json([] as any, 200);
+    }
+    if (escopo.tipo === "apoio") {
+      escopoFiltro = sql`AND pr.equipe_id = ANY(${escopo.equipeIds}::text[])`;
+    }
+  }
+
   const rows = await sql`
     SELECT
       pr.id, pr.dia_festa_id, pr.edicao_id, pr.equipe_id, pr.pessoa_id,
@@ -209,6 +234,7 @@ app.openapi(getPresencasRoute, async (c) => {
     LEFT JOIN participacoes part
       ON part.edicao_id = pr.edicao_id AND part.pessoa_id = pr.pessoa_id
     WHERE pr.dia_festa_id = ${diaFestaId}
+      ${escopoFiltro}
     ORDER BY pr.registrado_em DESC, pr.pessoa_nome ASC
   `;
   return c.json(rows.map(presencaDeRow) as any, 200);

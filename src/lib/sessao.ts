@@ -178,6 +178,75 @@ export function escopoVeiculos(
   return null;
 }
 
+// Ordem de navegacao (espelha o menu lateral): a "primeira pagina" acessivel
+// e o primeiro destino dessa lista cujo usuario tenha permissao. O modulo da
+// festa (/edicoes) fica de fora por exigir edicao.detalhe — usuarios sem essa
+// permissao caem na primeira pagina de trabalho que conseguem acessar.
+const ROTAS_ORDENADAS: { to: string; permissoes: string[] }[] = [
+  {
+    to: "/pessoas",
+    permissoes: [
+      "pessoas.lista",
+      "pessoas.equipe",
+      "pessoas.proprio",
+      "veiculos.lista",
+      "veiculos.equipe",
+      "veiculos.proprio",
+    ],
+  },
+  { to: "/estacionamentos", permissoes: ["vaga.lista", "vaga.detalhe"] },
+  { to: "/cantina/pesquisas", permissoes: ["cantina.gerenciar"] },
+  { to: "/presenca/relatorio", permissoes: ["presenca.relatorio"] },
+  {
+    to: "/estacionamentos/relatorio",
+    permissoes: ["estacionamento.relatorio", "estacionamento.dashboard"],
+  },
+  {
+    to: "/avaliacoes/relatorio",
+    permissoes: ["avaliacao.relatorio", "avaliacao.relatorio.apoio"],
+  },
+  { to: "/equipes/relatorio", permissoes: ["equipes.listar"] },
+  { to: "/usuarios", permissoes: ["usuario.lista"] },
+  {
+    to: "/perfis",
+    permissoes: [
+      "perfil.lista",
+      "perfil.incluir",
+      "perfil.editar",
+      "perfil.excluir",
+    ],
+  },
+  { to: "/permissoes", permissoes: ["permissao.gerenciar"] },
+  { to: "/parametros", permissoes: ["parametros.acessar"] },
+  { to: "/auditoria", permissoes: ["auditoria.ver"] },
+  { to: "/setores", permissoes: ["setor.lista", "setor.editar"] },
+  { to: "/sincronizacao", permissoes: ["sincronizacao.executar"] },
+];
+
+// Primeira pagina (em ordem de navegacao) a que o usuario tem acesso, ou
+// null se nao conseguir acessar nenhuma pagina conhecida.
+export function primeiraPaginaAcessivel(sessao: Sessao | null): string | null {
+  if (!sessao) return null;
+  for (const rota of ROTAS_ORDENADAS) {
+    if (rota.permissoes.some((c) => temPermissao(sessao, c))) return rota.to;
+  }
+  return null;
+}
+
+// Destino pos-login sanitizado: se o usuario nao tem edicao.detalhe, qualquer
+// pagina do modulo de edicao e substituida pela primeira pagina acessivel.
+export function destinoPosLogin(
+  sessao: Sessao | null,
+  destino: string
+): string {
+  if (!sessao) return destino;
+  const ehRotaEdicao = destino === "/edicoes" || destino.startsWith("/edicoes/");
+  if (ehRotaEdicao && !temPermissao(sessao, "edicao.detalhe")) {
+    return primeiraPaginaAcessivel(sessao) ?? "/pessoas";
+  }
+  return destino;
+}
+
 // Leitura de perfis e do catalogo de permissoes: qualquer permissao do grupo
 // perfil.*. As telas de Perfis e Controle de Menus dependem dessas leituras.
 export function temPerfil(sessao: Sessao | null): boolean {

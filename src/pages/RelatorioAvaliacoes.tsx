@@ -1,9 +1,11 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Ver: avaliacao.gerenciar (mesmos perfis que gerenciam avaliacoes: ADM/ORG).
-// Relatorio somente leitura das avaliacoes da edicao ativa (021), filtravel
-// pelos valores possiveis de cada criterio. Fonte: GET /api/avaliacoes via
-// hook useAvaliacoes — sem chamada nova na API.
+// Ver: avaliacao.relatorio (relatorio completo) ou avaliacao.relatorio.apoio
+// (relatorio restrito a equipe 'APOIO' do usuario e suas equipes filhas, com
+// o escopo aplicado no backend). O relatorio e somente leitura das avaliacoes
+// da edicao ativa (021/027/028), filtravel pelos valores possiveis de cada
+// criterio. Fonte: hooks useAvaliacoes / useAvaliacoesCoordenador /
+// useAvaliacoesEquipistaCoordenador — sem chamada nova na API.
 // Semantica dos filtros: OR dentro do mesmo campo, AND entre campos.
 // ============================================================================
 import { useEffect, useMemo, useState } from "react";
@@ -15,7 +17,7 @@ import {
   usePresencasDaEdicao,
   useSetores,
 } from "../lib/hooks";
-import { useSessao, temPermissao } from "../lib/sessao";
+import { useSessao, pode } from "../lib/sessao";
 import { Icone } from "../components/Icone";
 import { formatarData } from "../lib/utilsDominio";
 import { MenuFiltro } from "../components/MenuFiltro";
@@ -381,13 +383,17 @@ export function RelatorioAvaliacoes() {
   }
 
   if (!sessao) return null;
-  if (!temPermissao(sessao, "avaliacao.gerenciar")) {
+  if (
+    !pode(sessao, "avaliacao.relatorio") &&
+    !pode(sessao, "avaliacao.relatorio.apoio")
+  ) {
     return (
       <div className="card">
         <div className="card-corpo">
           <h3 className="mb-2">Sem permissão</h3>
           <p className="text-ardesia">
-            Apenas Administração e Organização acessam o relatório de avaliações.
+            Apenas usuários com permissão de relatório de avaliações acessam
+            esta tela.
           </p>
         </div>
       </div>
@@ -431,7 +437,7 @@ export function RelatorioAvaliacoes() {
             className={`aba ${abaAtiva === "equipistas" ? "aba-ativa" : ""}`}
             onClick={() => setAbaAtiva("equipistas")}
           >
-            Equipistas
+            Coordenador
           </button>
           <button
             type="button"
@@ -449,7 +455,7 @@ export function RelatorioAvaliacoes() {
             className={`aba ${abaAtiva === "coordenador" ? "aba-ativa" : ""}`}
             onClick={() => setAbaAtiva("coordenador")}
           >
-            Coordenador
+            Equipistas
           </button>
         </div>
       </div>

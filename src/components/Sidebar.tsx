@@ -159,7 +159,7 @@ const secoes: Secao[] = [
         to: "/avaliacoes/relatorio",
         label: "Avaliações",
         icone: "avaliar",
-        permissoes: ["avaliacao.gerenciar"],
+        permissoes: ["avaliacao.relatorio", "avaliacao.relatorio.apoio"],
       },
       {
         to: "/equipes/relatorio",

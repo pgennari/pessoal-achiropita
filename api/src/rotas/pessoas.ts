@@ -913,6 +913,61 @@ app.openapi(getHistoricoEquipesPessoaRoute, async (c) => {
   return c.json(resultado as any, 200);
 });
 
+// GET /api/pessoas/:id/comunicados
+// Historico de comunicados recebidos pela pessoa (exibido no box Exclusivo
+// Pessoal da Pessoa). Append-only; traz titulo, data/hora do envio e quem
+// disparou, em ordem cronologica reversa.
+const getComunicadosPessoaRoute = createRoute({
+  method: "get",
+  path: "/{id}/comunicados",
+  tags: ["Pessoas"],
+  summary: "Lista o historico de comunicados recebidos pela pessoa",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: { content: { "application/json": { schema: z.array(z.any()) } }, description: "Historico de comunicados" },
+    403: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: z.object({ erro: z.string() }) } }, description: "Pessoa nao encontrada" },
+  },
+});
+
+app.openapi(getComunicadosPessoaRoute, async (c) => {
+  const { id } = c.req.valid("param");
+  const sessao = c.get("sessao");
+  const escopo = escopoPessoas(sessao);
+  if (!escopo) return c.json({ erro: "Acesso negado. Sem permissao de leitura de pessoas." }, 403);
+
+  let filtro = sql`p.id = ${id}`;
+  if (escopo === "equipe") {
+    const equipes = sessao.equipesCRD ?? [];
+    filtro = sql`p.id = ${id} AND EXISTS (
+      SELECT 1 FROM participacoes part
+      JOIN edicoes e ON e.id = part.edicao_id AND e.status = 'ativa'
+      WHERE part.pessoa_id = p.id AND part.equipe_id = ANY(${equipes})
+    )`;
+  } else if (escopo === "proprio") {
+    if (!sessao.pessoaId || sessao.pessoaId !== id) return c.json({ erro: "Pessoa não encontrada." }, 404);
+  }
+
+  const [pessoa] = await sql`SELECT p.id FROM pessoas p WHERE ${filtro}`;
+  if (!pessoa) return c.json({ erro: "Pessoa nao encontrada." }, 404);
+
+  const rows = await sql`
+    SELECT * FROM comunicado_disparo_pessoa
+    WHERE pessoa_id = ${id}
+    ORDER BY enviado_em DESC
+  `;
+  const resultado = rows.map((r) => ({
+    id: r.id,
+    comunicadoTitulo: r.comunicado_titulo,
+    enviadoEm: r.enviado_em instanceof Date ? r.enviado_em.toISOString() : String(r.enviado_em ?? ""),
+    disparadoPorUid: r.disparado_por_uid,
+    disparadoPorNome: r.disparado_por_nome,
+  }));
+  return c.json(resultado as any, 200);
+});
+
 // GET /api/pessoas/:id/parentes
 const getParentesPessoaRoute = createRoute({
   method: "get",

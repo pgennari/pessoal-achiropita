@@ -18,6 +18,50 @@ function escaparHtml(texto: string): string {
 
 const CHAVE_PARAMETRO_EMAILS_TESTE = "emails-teste";
 
+// Cada chamada de envio e limitada a 98 destinatarios em BCC. Grupos maiores
+// sao divididos em blocos; cada bloco gera uma chamada a API e um registro de
+// disparo na auditoria e em comunicado_disparos.
+const TAMANHO_BLOCO = 98;
+
+// Divide a lista de destinatarios em blocos de no maximo TAMANHO_BLOCO, sem
+// alterar a ordem. Retorna lista vazia quando a entrada e vazia.
+function dividirEmBlocos<T>(itens: T[], tamanho: number): T[][] {
+  const blocos: T[][] = [];
+  for (let i = 0; i < itens.length; i += tamanho) {
+    blocos.push(itens.slice(i, i + tamanho));
+  }
+  return blocos;
+}
+
+// Registra, para cada pessoa da base cujo e-mail esteja no bloco enviado com
+// sucesso, uma linha no historico de comunicados da pessoa (append-only).
+// Snapshot do titulo e do disparador no momento do envio; pessoas sem cadastro
+// (ex.: e-mail de teste) sao ignoradas silenciosamente.
+async function registrarDisparoPorPessoa(opts: {
+  comunicadoId: string;
+  titulo: string;
+  emailsDoBloco: string[];
+  disparadoPorUid: string;
+  disparadoPorNome: string;
+}): Promise<void> {
+  const pessoas = await sql`
+    SELECT id, email FROM pessoas
+    WHERE lower(email) = ANY(${opts.emailsDoBloco.map((e) => e.toLowerCase())})
+  `;
+  if (pessoas.length === 0) return;
+
+  for (const p of pessoas) {
+    await sql`
+      INSERT INTO comunicado_disparo_pessoa
+        (comunicado_id, pessoa_id, comunicado_titulo, disparado_por_uid, disparado_por_nome)
+      VALUES (
+        ${opts.comunicadoId}, ${p.id}, ${opts.titulo},
+        ${opts.disparadoPorUid}, ${opts.disparadoPorNome}
+      )
+    `;
+  }
+}
+
 // E-mails de teste do botao "Teste" do comunicado, lidos do parametro ativo
 // `EmailsTeste` (JSON array de strings ou texto separado por virgula/quebra de
 // linha). Fallback em codigo quando o parametro nao existe, esta inativo, o
@@ -64,7 +108,7 @@ function isoTimestamp(v: unknown): string {
   return v instanceof Date ? v.toISOString() : String(v ?? "");
 }
 
-function comunicadoDeRow(r: Record<string, unknown>) {
+function comunicadoDeRow(r: Record<string, unknown>, disparos: unknown[] = []) {
   return {
     id: r.id,
     edicaoId: r.edicao_id,
@@ -74,6 +118,20 @@ function comunicadoDeRow(r: Record<string, unknown>) {
     autorNome: r.autor_nome,
     criadoEm: isoTimestamp(r.criado_em),
     atualizadoEm: isoTimestamp(r.atualizado_em),
+    disparos,
+  };
+}
+
+// Converte uma linha de comunicado_disparos no contrato do historico exibido
+// na tela de comunicados.
+function disparoDeRow(r: Record<string, unknown>) {
+  return {
+    id: r.id,
+    grupo: r.grupo,
+    bloco: r.bloco,
+    destinatarios: r.destinatarios,
+    messageId: r.message_id,
+    criadoEm: isoTimestamp(r.criado_em),
   };
 }
 
@@ -100,7 +158,25 @@ app.openapi(getComunicadosRoute, async (c) => {
   const rows = edicaoId
     ? await sql`SELECT * FROM comunicados WHERE edicao_id = ${edicaoId} ORDER BY criado_em DESC`
     : await sql`SELECT * FROM comunicados ORDER BY criado_em DESC`;
-  return c.json(rows.map(comunicadoDeRow) as any, 200);
+
+  // Busca todo o historico de disparos dos comunicados da listagem em uma
+  // unica consulta e anexa a cada comunicado (evita N+1).
+  const ids = rows.map((r) => r.id);
+  const disparos = ids.length > 0
+    ? await sql`
+        SELECT * FROM comunicado_disparos
+        WHERE comunicado_id = ANY(${ids})
+        ORDER BY comunicado_id, criado_em ASC, bloco ASC
+      `
+    : [];
+  const porComunicado = new Map<string, unknown[]>();
+  for (const d of disparos) {
+    const atual = porComunicado.get(String(d.comunicado_id)) ?? [];
+    atual.push(disparoDeRow(d));
+    porComunicado.set(String(d.comunicado_id), atual);
+  }
+
+  return c.json(rows.map((r) => comunicadoDeRow(r, porComunicado.get(String(r.id)) ?? [])) as any, 200);
 });
 
 const postComunicadoRoute = createRoute({
@@ -218,27 +294,56 @@ app.openapi(postEnviarComunicadoRoute, async (c) => {
   const titulo = String(comunicado.titulo);
   const corpo = String(comunicado.corpo).trim();
 
-  let resultado;
+  // Divide os destinatarios em blocos de no maximo 99 e dispara uma chamada
+  // a API do Brevo por bloco. Cada bloco e registrado na auditoria e gravado
+  // no historico do comunicado.
+  const blocos = dividirEmBlocos(emails, TAMANHO_BLOCO);
+  const disparos: { bloco: number; enviados: number; messageId: string }[] = [];
+
   try {
-    resultado = await enviarEmail({
-      destinatariosBcc: emails,
-      assunto: titulo,
-      html: montarHtmlComunicado(titulo, corpo),
-      texto: corpo,
-      tags: [`comunicado-edicao-${comunicado.edicao_id}`],
-    });
+    for (let i = 0; i < blocos.length; i++) {
+      const blocoEmails = blocos[i];
+      const blocoNumero = i + 1;
+      const resultado = await enviarEmail({
+        destinatariosBcc: blocoEmails,
+        assunto: titulo,
+        html: montarHtmlComunicado(titulo, corpo),
+        texto: corpo,
+        tags: [`comunicado-edicao-${comunicado.edicao_id}`],
+      });
+
+      await sql`
+        INSERT INTO comunicado_disparos
+          (comunicado_id, grupo, bloco, destinatarios, message_id)
+        VALUES (${id}, ${grupo}, ${blocoNumero}, ${resultado.enviados}, ${resultado.messageId})
+      `;
+      await registrarDisparoPorPessoa({
+        comunicadoId: id,
+        titulo,
+        emailsDoBloco: blocoEmails,
+        disparadoPorUid: sessao.uid,
+        disparadoPorNome: sessao.nome,
+      });
+      await registrarEvento(
+        sessao,
+        "comunicado.enviou",
+        `comunicados/${id}`,
+        `grupo=${grupo} bloco=${blocoNumero}/${blocos.length} destinatarios=${resultado.enviados} messageId=${resultado.messageId}`
+      );
+
+      disparos.push({
+        bloco: blocoNumero,
+        enviados: resultado.enviados,
+        messageId: resultado.messageId,
+      });
+    }
   } catch (err) {
     const mensagem = err instanceof Error ? err.message : "Falha no disparo pelo Brevo.";
     return c.json({ erro: mensagem }, 502);
   }
 
-  await registrarEvento(
-    sessao,
-    "comunicado.enviou",
-    `comunicados/${id}`,
-    `grupo=${grupo} destinatarios=${emails.length} messageId=${resultado.messageId}`
-  );
-  return c.json({ enviados: resultado.enviados, messageId: resultado.messageId }, 200);
+  const totalEnviados = disparos.reduce((soma, d) => soma + d.enviados, 0);
+  return c.json({ enviados: totalEnviados, blocos: disparos }, 200);
 });
 
 const putComunicadoRoute = createRoute({

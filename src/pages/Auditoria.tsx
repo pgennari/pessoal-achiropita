@@ -7,7 +7,20 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuditoriaRecente } from "../lib/hooks";
 import { useSessao, temPermissao } from "../lib/sessao";
 import { Icone } from "../components/Icone";
-import { formatarData } from "../lib/utilsDominio";
+
+function formatarDataHora(iso: string | undefined | null): string {
+  if (!iso) return "—";
+  const data = new Date(iso.length === 10 ? `${iso}T00:00:00` : iso);
+  if (isNaN(data.getTime())) return "—";
+  return `${data.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })} ${data.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
+}
 
 const ACOES: Record<string, string> = {
   "pessoa.criou": "criou pessoa",
@@ -111,7 +124,7 @@ export function Auditoria() {
                   onClick={alvoId && ev.acao !== "pessoa.excluiu" ? () => navigate(`/pessoas/${alvoId}`) : undefined}
                 >
                   <td className="px-4 py-3 text-ardesia font-mono">
-                    {formatarData(ev.criadoEm)}
+                    {formatarDataHora(ev.criadoEm)}
                   </td>
                   <td className="px-4 py-3">{ev.autorNome || ev.autor}</td>
                   <td className="px-4 py-3">

@@ -4,7 +4,9 @@
 // global do Node (>=18).
 
 const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
-const MAX_DESTINATARIOS = 2000;
+// Cada chamada de envio e limitada a 98 destinatarios em BCC. Chunking acima
+// disso fica a cargo do chamador (ver rotas/comunicados.ts).
+const MAX_DESTINATARIOS = 98;
 
 export interface EnviarEmailParams {
   destinatariosBcc: string[];

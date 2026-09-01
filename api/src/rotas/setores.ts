@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { comAuth, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
+import { podeVerRelatorio } from "../relatorioAvaliacao.js";
 import type { Variaveis } from "../tipos.js";
 
 const app = new OpenAPIHono<Variaveis>();
@@ -52,7 +53,9 @@ const getRoute = createRoute({
 
 app.openapi(getRoute, async (c) => {
   const sessao = c.get("sessao");
-  if (!temPermissao(sessao, "setor.lista")) {
+  // Leitor do relatorio de avaliacoes precisa da lista de setores para os
+  // filtros; setores sao um catalogo pequeno e fixo.
+  if (!temPermissao(sessao, "setor.lista") && !podeVerRelatorio(sessao)) {
     return c.json({ erro: "Acesso negado. Requer permissao setor.lista." }, 403);
   }
   const rows = await sql`SELECT * FROM setores ORDER BY id`;

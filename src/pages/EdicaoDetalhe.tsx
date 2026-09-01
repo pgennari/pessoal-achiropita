@@ -65,6 +65,12 @@ function formatarDiaFesta(data: string): string {
   return `${diaSemana.charAt(0).toUpperCase()}${diaSemana.slice(1)}, ${formatarData(data)}`;
 }
 
+function rotuloGrupo(grupo: string): string {
+  if (grupo === "coordenadores") return "Coordenadores";
+  if (grupo === "teste") return "Teste";
+  return "Todos";
+}
+
 export function EdicaoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -368,7 +374,7 @@ export function EdicaoDetalhe() {
       grupo === "coordenadores"
         ? emailsCoordenadores.length
         : grupo === "teste"
-          ? 1
+          ? ""
           : emailsAlocados.length;
     const label =
       grupo === "coordenadores"
@@ -386,10 +392,17 @@ export function EdicaoDetalhe() {
     setComunicadoEnvio((prev) => ({ ...prev, [c.id]: grupo }));
     setComunicadoEnvioResultado((prev) => ({ ...prev, [c.id]: { tipo: "ok", texto: "" } }));
     try {
-      const { enviados } = await enviarComunicado(c, grupo);
+      const { enviados, blocos } = await enviarComunicado(c, grupo);
+      const totalBlocos = blocos.length;
       setComunicadoEnvioResultado((prev) => ({
         ...prev,
-        [c.id]: { tipo: "ok", texto: `Enviado para ${enviados} destinatários (Brevo).` },
+        [c.id]: {
+          tipo: "ok",
+          texto:
+            totalBlocos > 1
+              ? `Enviado para ${enviados} destinatários em ${totalBlocos} blocos (Brevo).`
+              : `Enviado para ${enviados} destinatários (Brevo).`,
+        },
       }));
     } catch (err) {
       setComunicadoEnvioResultado((prev) => ({
@@ -1111,6 +1124,32 @@ export function EdicaoDetalhe() {
                         </span>
                       )}
                     </div>
+                    {c.disparos.length > 0 && (
+                      <div className="rounded-sm border border-ardesia/20 bg-ardesia/5 px-3 py-2">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-ardesia">
+                          Histórico de disparos
+                        </span>
+                        <ul className="mt-1 space-y-0.5">
+                          {c.disparos.map((d) => (
+                            <li
+                              key={d.id}
+                              className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-carbone/80"
+                            >
+                              <span className="font-semibold text-carbone">
+                                {rotuloGrupo(d.grupo)}
+                              </span>
+                              <span>bloco {d.bloco}</span>
+                              <span>·</span>
+                              <span>{d.destinatarios} destinatários</span>
+                              <span>·</span>
+                              <span>
+                                {new Date(d.criadoEm).toLocaleString("pt-BR")}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     <div className="text-xs text-ardesia">
                       {c.autorNome} · {new Date(c.criadoEm).toLocaleString("pt-BR")}
                     </div>

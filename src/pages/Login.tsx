@@ -10,6 +10,7 @@ import {
   recuperarSenha,
   sair,
   useSessao,
+  destinoPosLogin,
 } from "../lib/sessao";
 import { Icone } from "../components/Icone";
 import { getRedirectResult } from "firebase/auth";
@@ -102,7 +103,8 @@ export function Login() {
   const [segundosBloqueio, setSegundosBloqueio] = useState(0);
 
   useEffect(() => {
-    if (!carregando && sessao) navigate(destino, { replace: true });
+    if (!carregando && sessao)
+      navigate(destinoPosLogin(sessao, destino), { replace: true });
   }, [carregando, sessao, destino, navigate]);
 
   // ... earlier in the component

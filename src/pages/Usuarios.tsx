@@ -279,7 +279,7 @@ export function Usuarios() {
 
       <div className="card">
         <div className="card-corpo text-sm text-ardesia">
-          ADM ou ORG geram um convite e enviam o link ao novo usuário.
+          ADM gera um convite e envia o link ao novo usuário.
           Quem entra no sistema <strong>precisa ter passado pelo link</strong>;
           tentativas de login sem convite são recusadas e mostram um aviso
           orientando a procurar a organização.

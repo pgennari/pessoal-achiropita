@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Sessao, sair } from "../lib/sessao";
+import { Sessao, ehADM, sair } from "../lib/sessao";
 import { Icone } from "./Icone";
 import { BotaoFavoritar } from "./BotaoFavoritar";
 
@@ -7,9 +7,12 @@ interface Props {
   sessao: Sessao;
   onAbrirBusca: () => void;
   onAbrirSidebar: () => void;
+  // Abre o drawer de simulacao — o drawer em si vive no Layout, fora do
+  // header, porque backdrop-blur vira containing block de position:fixed.
+  onAbrirSimulacao: () => void;
 }
 
-export function Topbar({ sessao, onAbrirBusca, onAbrirSidebar }: Props) {
+export function Topbar({ sessao, onAbrirBusca, onAbrirSidebar, onAbrirSimulacao }: Props) {
   const navigate = useNavigate();
 
   async function handleSair() {
@@ -81,6 +84,17 @@ export function Topbar({ sessao, onAbrirBusca, onAbrirSidebar }: Props) {
 
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
         <BotaoFavoritar />
+        {ehADM(sessao) && !sessao.simulando && (
+          <button
+            type="button"
+            onClick={onAbrirSimulacao}
+            className="btn btn-secundario btn-pequeno"
+            aria-label="Simular acesso"
+            title="Testar permissões de outro perfil"
+          >
+            <Icone nome="olho" />
+          </button>
+        )}
         <button
           type="button"
           onClick={onAbrirBusca}
@@ -95,7 +109,7 @@ export function Topbar({ sessao, onAbrirBusca, onAbrirSidebar }: Props) {
             {sessao.nome}
           </div>
           <div className="text-xs text-ardesia font-mono">
-            {sessao.email} · {sessao.perfil}
+            {sessao.email} · {(sessao.perfis ?? [sessao.perfil]).join(", ")}
           </div>
         </div>
         <div

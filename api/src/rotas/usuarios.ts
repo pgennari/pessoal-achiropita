@@ -9,11 +9,14 @@ const app = new OpenAPIHono<Variaveis>();
 function usuarioDeRow(r: Record<string, unknown>) {
   const criadoEm = r.criado_em instanceof Date ? r.criado_em.toISOString() : String(r.criado_em ?? "");
   const atualizadoEm = r.atualizado_em instanceof Date ? r.atualizado_em.toISOString() : String(r.atualizado_em ?? "");
+  const perfis = ((r.perfis as string[] | null) ?? []).filter(Boolean);
   return {
     uid: r.uid,
     email: r.email,
     nome: r.nome,
-    perfil: r.perfil,
+    // Compat (033): `perfil` e o perfil primario (primeiro de `perfis`).
+    perfil: perfis[0] ?? "EQP",
+    perfis,
     pessoaId: (r.pessoa_id as string | null) ?? undefined,
     equipesCRD: (r.equipes_crd as string[] | null) ?? undefined,
     tokenConvite: (r.token_convite as string | null) ?? undefined,
@@ -61,7 +64,17 @@ app.openapi(getUsuarioMeRoute, async (c) => {
   const sessao = c.get("sessao");
   const [row] = await sql`SELECT * FROM usuarios WHERE uid = ${sessao.uid}`;
   if (!row) return c.json({ erro: "Usuário não encontrado." }, 404);
-  return c.json({ ...(usuarioDeRow(row) as object), permissoes: sessao.permissoes } as any, 200);
+  // Reflete a sessao corrente (031): sob simulacao, os campos abaixo trazem o
+  // perfil/equipes/permissoes simulados para a UI inteira espelhar a troca.
+  return c.json({
+    ...(usuarioDeRow(row) as object),
+    perfil: sessao.perfil,
+    perfis: sessao.perfis,
+    pessoaId: sessao.pessoaId,
+    equipesCRD: sessao.equipesCRD,
+    permissoes: sessao.permissoes,
+    simulando: sessao.simulando === true,
+  } as any, 200);
 });
 
 const putUsuarioRoute = createRoute({
@@ -77,6 +90,7 @@ const putUsuarioRoute = createRoute({
   },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Atualizado" },
+    400: { content: { "application/json": { schema: z.any() } }, description: "Necessário ao menos um perfil" },
     403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
     404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrado" }
   }
@@ -89,18 +103,25 @@ app.openapi(putUsuarioRoute, async (c) => {
     return c.json({ erro: "Acesso negado. Requer permissao usuario.editar." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
+  const perfisBrutos = Array.isArray(body.perfis) ? (body.perfis as unknown[]) : [];
+  const perfis = Array.from(
+    new Set(perfisBrutos.map((p) => String(p).trim()).filter((p) => p.length > 0))
+  );
+  if (perfis.length === 0) {
+    return c.json({ erro: "Usuário precisa de pelo menos um perfil." }, 400);
+  }
   const [row] = await sql`
     UPDATE usuarios SET
       email         = ${String(body.email ?? "")},
       nome          = ${String(body.nome ?? "")},
-      perfil        = ${String(body.perfil ?? "EQP")},
+      perfis        = ${perfis as string[]},
       pessoa_id     = ${(body.pessoaId as string | null) ?? null},
       equipes_crd   = ${(body.equipesCRD as string[] | null) ?? null},
       atualizado_em = NOW()
     WHERE uid = ${uid} RETURNING *
   `;
   if (!row) return c.json({ erro: "Usuário não encontrado." }, 404);
-  await registrarEvento(sessao, "usuario.atualizou", `usuarios/${uid}`, `${body.nome} (${body.perfil})`);
+  await registrarEvento(sessao, "usuario.atualizou", `usuarios/${uid}`, `${body.nome} (${perfis.join(", ")})`);
   return c.json(usuarioDeRow(row) as any, 200);
 });
 

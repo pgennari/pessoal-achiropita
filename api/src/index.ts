@@ -40,6 +40,8 @@ import cantina from "./rotas/cantina.js";
 import cantinaPublico from "./rotas/cantinaPublico.js";
 import bloqueios from "./rotas/bloqueios.js";
 import comunicados from "./rotas/comunicados.js";
+import resumosEquipe from "./rotas/resumosEquipe.js";
+import simulacao from "./rotas/simulacao.js";
 
 const app = new OpenAPIHono();
 
@@ -58,7 +60,12 @@ app.use(
   "*",
   cors({
     origin: "*",
-    allowHeaders: ["Authorization", "Content-Type"],
+    allowHeaders: [
+      "Authorization",
+      "Content-Type",
+      "X-Simulacao-Perfil",
+      "X-Simulacao-Equipes",
+    ],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
@@ -108,6 +115,8 @@ app.route("/api/cantina", cantina);
 app.route("/api/publico", cantinaPublico);
 app.route("/api/bloqueios", bloqueios);
 app.route("/api/comunicados", comunicados);
+app.route("/api/resumos-equipe", resumosEquipe);
+app.route("/api/simulacao", simulacao);
 
 app.onError((err, c) => {
   console.error("[API Error]", err);

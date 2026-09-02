@@ -14,6 +14,7 @@ import {
   useParticipacoes,
   usePessoas,
   usePresencasDaEdicao,
+  useSetores,
 } from "../lib/hooks";
 import { Icone } from "../components/Icone";
 import { dispararCsv, escaparCsv, montarTsv } from "../lib/csv";
@@ -34,8 +35,25 @@ interface LinhaRelatorio {
 type ColunaOrdenacao = "equipe" | "nome" | "funcao" | "total";
 type FiltroPresenca = "todos" | "presentes" | "ausentes";
 
-function rotuloSetor(setor: string): string {
-  return SETORES.find((s) => s.valor === setor)?.rotulo ?? setor;
+// Cores de fallback dos setores iniciais (iguais ao seed em schema.sql);
+// a cor real vem de setores via API quando disponivel.
+const CORES_SETOR_PADRAO: Record<string, string> = {
+  Interna: "#1f7b4d",
+  Externa: "#c95a2b",
+  Alimentacao: "#b8860b",
+};
+
+function infoSetor(
+  setor: string,
+  setoresPorId: Map<string, { nome: string; cor: string }>
+): { rotulo: string; cor: string } {
+  const viaApi = setoresPorId.get(setor);
+  if (viaApi) return { rotulo: viaApi.nome, cor: viaApi.cor };
+  const estatico = SETORES.find((s) => s.valor === setor);
+  return {
+    rotulo: estatico?.rotulo ?? setor,
+    cor: CORES_SETOR_PADRAO[setor] ?? "#888",
+  };
 }
 
 function dataLocalISO(d: Date): string {
@@ -62,6 +80,7 @@ export function RelatorioPresenca() {
   const { itens: pessoas, carregando: carregandoPessoas, erro: erroPessoas } = usePessoas();
   const { itens: equipes } = useEquipes(edicao?.id);
   const { itens: participacoes } = useParticipacoes(edicao?.id);
+  const { itens: setores } = useSetores();
 
   const [aba, setAba] = useState<AbaRelatorio>("pessoas");
   const [filtroEquipe, setFiltroEquipe] = useState("");
@@ -105,6 +124,11 @@ export function RelatorioPresenca() {
     () => new Map(equipes.map((e) => [e.id, e.nome] as const)),
     [equipes]
   );
+  const setoresPorId = useMemo(() => {
+    const m = new Map<string, { nome: string; cor: string }>();
+    for (const s of setores) m.set(s.id, { nome: s.nome, cor: s.cor });
+    return m;
+  }, [setores]);
 
   const diasPresentesPorPessoa = useMemo(() => {
     const m = new Map<string, Set<string>>();
@@ -265,7 +289,7 @@ export function RelatorioPresenca() {
     for (const dia of equipesSemPresencaPorDia) {
       for (const equipe of dia.equipes) {
         corpo.push(
-          [formatarData(dia.data), rotuloSetor(equipe.setor), equipe.nome]
+          [formatarData(dia.data), infoSetor(equipe.setor, setoresPorId).rotulo, equipe.nome]
             .map(escaparCsv)
             .join(",")
         );
@@ -281,7 +305,7 @@ export function RelatorioPresenca() {
     const linhas = equipesSemPresencaPorDia.flatMap((dia) =>
       dia.equipes.map((equipe) => [
         formatarData(dia.data),
-        rotuloSetor(equipe.setor),
+        infoSetor(equipe.setor, setoresPorId).rotulo,
         equipe.nome,
       ])
     );
@@ -886,22 +910,35 @@ export function RelatorioPresenca() {
                         return (
                           <Fragment key={dia.diaId}>
                             {cabecalho}
-                            {dia.equipes.map((equipe) => (
-                              <tr
-                                key={equipe.id}
-                                className="border-t border-pietra-clara hover:bg-pietra-clara/40"
-                              >
-                                <td className="px-4 py-2 font-mono whitespace-nowrap">
-                                  {formatarData(dia.data)}
-                                </td>
-                                <td className="px-4 py-2 text-ardesia whitespace-nowrap">
-                                  {rotuloSetor(equipe.setor)}
-                                </td>
-                                <td className="px-4 py-2 font-semibold">
-                                  {equipe.nome}
-                                </td>
-                              </tr>
-                            ))}
+                            {dia.equipes.map((equipe) => {
+                              const setor = infoSetor(equipe.setor, setoresPorId);
+                              return (
+                                <tr
+                                  key={equipe.id}
+                                  className="border-t border-pietra-clara hover:brightness-90"
+                                  style={{ backgroundColor: `${setor.cor}3D` }}
+                                >
+                                  <td className="px-4 py-2 font-mono whitespace-nowrap">
+                                    {formatarData(dia.data)}
+                                  </td>
+                                  <td className="px-4 py-2 whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <span
+                                        className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                                        style={{ backgroundColor: setor.cor }}
+                                        aria-hidden
+                                      />
+                                      <span className="text-ardesia">
+                                        {setor.rotulo}
+                                      </span>
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-2 font-semibold">
+                                    {equipe.nome}
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </Fragment>
                         );
                       })}

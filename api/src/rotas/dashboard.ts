@@ -109,10 +109,20 @@ const comAuthSSE = createMiddleware<{
   }
 
   const rows = await sql`
-    SELECT u.uid, u.email, u.nome, u.perfil,
-           COALESCE(p.permissoes, '{}') AS permissoes
+    SELECT u.uid, u.email, u.nome, u.perfis,
+           COALESCE((
+             SELECT ARRAY(
+               SELECT DISTINCT pm.codigo
+               FROM permissoes pm
+               WHERE pm.ativo = TRUE
+                 AND pm.codigo IN (
+                   SELECT unnest(p.permissoes)
+                   FROM perfis p
+                   WHERE p.sigla = ANY(u.perfis)
+                 )
+             )
+           ), '{}') AS permissoes
     FROM usuarios u
-    LEFT JOIN perfis p ON p.sigla = u.perfil
     WHERE u.uid = ${decoded.uid}
   `;
   if (rows.length === 0) {
@@ -120,7 +130,8 @@ const comAuthSSE = createMiddleware<{
   }
 
   const u = rows[0];
-  if (!temPermissao({ perfil: u.perfil as string, permissoes: (u.permissoes as string[] | null) ?? [] }, "estacionamento.dashboard")) {
+  const perfis = ((u.perfis as string[] | null) ?? []).filter(Boolean);
+  if (!temPermissao({ perfil: perfis[0] ?? "EQP", perfis, permissoes: (u.permissoes as string[] | null) ?? [] }, "estacionamento.dashboard")) {
     return c.json({ erro: "Acesso negado. Requer permissao estacionamento.dashboard." }, 403);
   }
 
@@ -128,7 +139,8 @@ const comAuthSSE = createMiddleware<{
     uid: u.uid as string,
     email: u.email as string,
     nome: u.nome as string,
-    perfil: u.perfil as string,
+    perfil: perfis[0] ?? "EQP",
+    perfis,
     permissoes: (u.permissoes as string[] | null) ?? [],
   });
 

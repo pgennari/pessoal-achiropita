@@ -52,7 +52,10 @@ export interface Usuario {
   uid: string;
   email: string;
   nome: string;
+  // Compat (033): `perfil` e o perfil primario (primeiro de `perfis`).
   perfil: Perfil;
+  // Multiplos perfis (033): todos os perfis associados ao usuario.
+  perfis: Perfil[];
   pessoaId?: string;
   equipesCRD?: string[];
   tokenConvite?: string;
@@ -351,6 +354,48 @@ export interface Equipe {
   vagasCoordenador: number;
   vagasEquipista: number;
   criadoEm: string;
+  atualizadoEm: string;
+}
+
+// Campo de texto livre do resumo de uma equipe. Cada campo e preenchido pelo
+// coordenador da equipe correspondente (Gerencia de Estacionamento, Suplentes,
+// Contratados, Controle de Pessoal e Supervisao de Pessoal), uma vez por edicao.
+export type CampoResumoEquipe =
+  | "gestaoEstacionamento"
+  | "suplentes"
+  | "contratados"
+  | "controlePessoal"
+  | "supervisaoPessoal";
+
+export const CAMPOS_RESUMO_EQUIPE: CampoResumoEquipe[] = [
+  "gestaoEstacionamento",
+  "suplentes",
+  "contratados",
+  "controlePessoal",
+  "supervisaoPessoal",
+];
+
+// Autoria de um campo do resumo de equipe: quem registrou o texto e quando.
+export interface AutorCampoResumo {
+  porUid: string;
+  porNome: string;
+  em: string;
+}
+
+// Valores (textos livres) do resumo de uma equipe na edicao (coluna de
+// resumos_equipe). Valores null = campo ainda nao informado. `autores` guarda,
+// por campo, quem registrou o texto e quando (vazio = dados legados sem
+// autoria por campo).
+export interface ResumoEquipe {
+  equipeId: string;
+  edicaoId: string;
+  gestaoEstacionamento: string | null;
+  suplentes: string | null;
+  contratados: string | null;
+  controlePessoal: string | null;
+  supervisaoPessoal: string | null;
+  autores: Partial<Record<CampoResumoEquipe, AutorCampoResumo>>;
+  atualizadoPorNome: string;
   atualizadoEm: string;
 }
 

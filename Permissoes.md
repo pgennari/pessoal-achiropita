@@ -49,6 +49,7 @@
 |  | Excluir equipe | edicao.equipeExcluir |
 |  | Alocar pessoa | edicao.equipeAlocar |
 | Edicao - Historico | Ver | edicao.historico |
+| Organograma | Ver e gerenciar o organograma | organograma.gerenciar |
 | Setores | Ver lista | setor.lista |
 |  | Incluir | setor.incluir |
 |  | Editar detalhes | setor.editar |
@@ -60,6 +61,7 @@
 |  | Editar | usuario.editar |
 | Auditoria | Ver | auditoria.ver |
 | Comunicação | Gerenciar (aba de comunicados da edição) | comunicacao.gerenciar |
+| Resumo | Editar resumo da equipe | resumo.editar.equipe |
 | Perfis | Ver lista | perfil.lista |
 |  | Incluir | perfil.incluir |
 |  | Editar detalhes | perfil.editar |

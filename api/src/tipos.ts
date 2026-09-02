@@ -42,10 +42,19 @@ export interface Sessao {
   email: string;
   nome: string;
   perfil: string;
+  // Multiplos perfis (033): todos os perfis associados ao usuario. A
+  // autorizacao usa a uniao destes perfis; `perfil` acima e o primario
+  // (primeiro da lista) para exibicao e compatibilidade.
+  perfis: string[];
   pessoaId?: string;
   equipesCRD?: string[];
-  // Permissoes vindas do catalogo de perfis (perfis.permissoes).
+  // Permissoes vindas do catalogo de perfis (perfis.permissoes): uniao das
+  // permissoes ativas de todos os perfis do usuario.
   permissoes: string[];
+  // Modo simulacao (031): verdadeiro quando o perfil real ADM esta testando
+  // o sistema com perfil/equipes simulados. Nunca amplia o acesso real;
+  // o executor (uid/nome) continua sendo o ADM.
+  simulando?: boolean;
 }
 
 export interface SessaoPublica {

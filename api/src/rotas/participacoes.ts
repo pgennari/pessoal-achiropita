@@ -53,11 +53,16 @@ const getParticipacoesRoute = createRoute({
   security: [{ bearerAuth: [] }],
   request: { query: z.object({ edicaoId: z.string().optional(), pessoaId: z.string().optional() }) },
   responses: {
-    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de participações" }
+    200: { content: { "application/json": { schema: z.any() } }, description: "Lista de participações" },
+    403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" }
   }
 });
 
 app.openapi(getParticipacoesRoute, async (c) => {
+  const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "edicao.detalhe") && !temPermissao(sessao, "organograma.gerenciar")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.detalhe." }, 403);
+  }
   const query = c.req.valid("query");
   const edicaoId = query.edicaoId;
   const pessoaId = query.pessoaId;

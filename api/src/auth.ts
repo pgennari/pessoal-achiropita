@@ -1,8 +1,9 @@
 import { createMiddleware } from "hono/factory";
 import admin from "firebase-admin";
-import type { Variaveis, VariaveisFirebase } from "./tipos.js";
+import type { Context } from "hono";
+import type { Sessao, Variaveis, VariaveisFirebase } from "./tipos.js";
 import sql from "./db.js";
-import { pode, type SessaoMinima } from "./pbac.js";
+import { ehADM, pode, type SessaoMinima } from "./pbac.js";
 
 // Inicializa Firebase Admin uma única vez.
 // Em Cloud Run, as credenciais vêm automaticamente via ADC (Application
@@ -13,47 +14,139 @@ if (!admin.apps.length) {
   });
 }
 
-// comAuth: verifica o Firebase ID Token E confere o doc em /usuarios.
-// Use em todas as rotas que exigem usuário com perfil.
-export const comAuth = createMiddleware<Variaveis>(async (c, next) => {
+// Verifica o Firebase ID Token e devolve o uid, ou null se ausente/invalido.
+async function uidDoToken(c: Context): Promise<string | null> {
   const authHeader = c.req.header("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return c.json({ erro: "Não autenticado." }, 401);
-  }
-  const token = authHeader.slice(7);
-
-  let decoded: admin.auth.DecodedIdToken;
+  if (!authHeader?.startsWith("Bearer ")) return null;
   try {
-    decoded = await admin.auth().verifyIdToken(token);
+    const decoded = await admin.auth().verifyIdToken(authHeader.slice(7));
+    return decoded.uid;
   } catch {
-    return c.json({ erro: "Token inválido ou expirado." }, 401);
+    return null;
   }
+}
 
+// Carrega a sessao REAL do usuario (/usuarios) com as permissoes ativas da
+// UNIAO de todos os perfis associados (033). Retorna null se o usuario nao
+// tem registro (acesso negado).
+async function carregarSessaoReal(uid: string): Promise<Sessao | null> {
   const rows = await sql`
-    SELECT u.uid, u.email, u.nome, u.perfil, u.pessoa_id, u.equipes_crd,
+    SELECT u.uid, u.email, u.nome, u.perfis, u.pessoa_id, u.equipes_crd,
            COALESCE((
              SELECT ARRAY(
-               SELECT codigo FROM permissoes
-               WHERE ativo = TRUE AND codigo = ANY(p.permissoes)
+               SELECT DISTINCT pm.codigo
+               FROM permissoes pm
+               WHERE pm.ativo = TRUE
+                 AND pm.codigo IN (
+                   SELECT unnest(p.permissoes)
+                   FROM perfis p
+                   WHERE p.sigla = ANY(u.perfis)
+                 )
              )
            ), '{}') AS permissoes
     FROM usuarios u
-    LEFT JOIN perfis p ON p.sigla = u.perfil
-    WHERE u.uid = ${decoded.uid}
+    WHERE u.uid = ${uid}
   `;
-  if (rows.length === 0) {
-    return c.json({ erro: "Usuário sem acesso ao sistema." }, 403);
-  }
+  if (rows.length === 0) return null;
   const u = rows[0];
-  c.set("sessao", {
+  const perfis = (u.perfis as string[]).filter(Boolean);
+  return {
     uid: u.uid as string,
     email: u.email as string,
     nome: u.nome as string,
-    perfil: u.perfil as string,
+    perfil: perfis[0] ?? "EQP",
+    perfis,
     pessoaId: (u.pessoa_id as string | null) ?? undefined,
     equipesCRD: (u.equipes_crd as string[] | null) ?? undefined,
     permissoes: (u.permissoes as string[] | null) ?? [],
-  });
+  };
+}
+
+// Modo simulacao (031): so o perfil real "ADM" pode ativar. A sessao simulada
+// herda somente as permissoes ATIVAS do perfil simulado (nunca as do ADM) e
+// jamais o pessoa_id — a simulacao apenas restringe o acesso do ADM.
+async function sessaoComSimulacao(
+  real: Sessao,
+  c: Context
+): Promise<Sessao | Response> {
+  if (!ehADM(real)) return real;
+  const perfilSimulado = c.req.header("X-Simulacao-Perfil");
+  if (!perfilSimulado) return real;
+
+  const [perf] = await sql`
+    SELECT COALESCE((
+      SELECT ARRAY(
+        SELECT codigo FROM permissoes
+        WHERE ativo = TRUE AND codigo = ANY(p.permissoes)
+      )
+    ), '{}') AS permissoes
+    FROM perfis p WHERE p.sigla = ${perfilSimulado}
+  `;
+  if (!perf) {
+    return c.json({ erro: "Perfil simulado inexistente." }, 400);
+  }
+
+  let equipesSimuladas: string[] | undefined;
+  const eqHeader = c.req.header("X-Simulacao-Equipes");
+  if (eqHeader !== undefined) {
+    try {
+      const parseado: unknown = JSON.parse(eqHeader);
+      if (
+        !Array.isArray(parseado) ||
+        parseado.some((v) => typeof v !== "string")
+      ) {
+        throw new Error("formato invalido");
+      }
+      equipesSimuladas = parseado;
+    } catch {
+      return c.json({ erro: "Cabeçalho de simulação inválido." }, 400);
+    }
+  }
+
+  return {
+    ...real,
+    perfil: perfilSimulado,
+    perfis: [perfilSimulado],
+    permissoes: (perf.permissoes as string[] | null) ?? [],
+    equipesCRD: equipesSimuladas,
+    pessoaId: undefined,
+    simulando: true,
+  };
+}
+
+// comAuth: verifica o Firebase ID Token E confere o doc em /usuarios.
+// Aplica o modo simulacao quando o perfil real e ADM (headers de simulacao).
+// Use em todas as rotas que exigem usuário com perfil.
+export const comAuth = createMiddleware<Variaveis>(async (c, next) => {
+  const uid = await uidDoToken(c);
+  if (!uid) {
+    return c.json({ erro: "Não autenticado." }, 401);
+  }
+  const real = await carregarSessaoReal(uid);
+  if (!real) {
+    return c.json({ erro: "Usuário sem acesso ao sistema." }, 403);
+  }
+  const sessao = await sessaoComSimulacao(real, c);
+  if (sessao instanceof Response) {
+    return sessao;
+  }
+  c.set("sessao", sessao);
+  await next();
+});
+
+// comAuthReal: como comAuth, mas NUNCA aplica simulacao. Use apenas nas rotas
+// de gerenciamento da simulacao (ativar/encerrar), que precisam da sessao real
+// para permitir que o ADM saia do modo simulacao.
+export const comAuthReal = createMiddleware<Variaveis>(async (c, next) => {
+  const uid = await uidDoToken(c);
+  if (!uid) {
+    return c.json({ erro: "Não autenticado." }, 401);
+  }
+  const real = await carregarSessaoReal(uid);
+  if (!real) {
+    return c.json({ erro: "Usuário sem acesso ao sistema." }, 403);
+  }
+  c.set("sessao", real);
   await next();
 });
 

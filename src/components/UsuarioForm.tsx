@@ -21,7 +21,7 @@ function inicialDados(u?: Usuario | null): DadosUsuarioForm {
   return {
     email: u?.email ?? "",
     nome: u?.nome ?? "",
-    perfil: u?.perfil ?? "EQP",
+    perfis: u?.perfis ?? (u?.perfil ? [u.perfil] : []),
     pessoaId: u?.pessoaId ?? "",
     equipesCRD: u?.equipesCRD ?? [],
   };
@@ -55,6 +55,15 @@ export function UsuarioForm({
       if (set.has(id)) set.delete(id);
       else set.add(id);
       return { ...d, equipesCRD: Array.from(set) };
+    });
+  }
+
+  function alternarPerfil(sigla: string) {
+    setDados((d) => {
+      const set = new Set(d.perfis);
+      if (set.has(sigla)) set.delete(sigla);
+      else set.add(sigla);
+      return { ...d, perfis: Array.from(set) };
     });
   }
 
@@ -133,25 +142,45 @@ export function UsuarioForm({
         </div>
 
         <div className="input-grupo sm:col-span-2">
-          <label className="input-label" htmlFor="perfil">
-            Perfil
+          <label className="input-label" id="perfil-label">
+            Perfis
           </label>
-          <select
-            id="perfil"
-            className={`input ${erros.perfil ? "erro" : ""}`}
-            value={dados.perfil}
-            onChange={(e) => set("perfil", e.target.value)}
-          >
-            {perfis.length === 0 && <option value={dados.perfil}>{dados.perfil}</option>}
-            {perfis.map((p) => (
-              <option key={p.sigla} value={p.sigla}>
-                {p.sigla} — {p.nome}
-              </option>
-            ))}
-          </select>
+          {perfis.length === 0 ? (
+            <p className="input-ajuda">Nenhum perfil cadastrado.</p>
+          ) : (
+            <div
+              className="grid grid-cols-2 sm:grid-cols-3 gap-1"
+              role="group"
+              aria-labelledby="perfil-label"
+            >
+              {perfis.map((p) => (
+                <label
+                  key={p.sigla}
+                  className={`flex items-center gap-2 text-sm rounded-sm border px-3 py-2 cursor-pointer ${
+                    dados.perfis.includes(p.sigla)
+                      ? "border-vermelho/50 bg-vermelho/5"
+                      : "border-pietra-clara hover:bg-pietra-clara/40"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={dados.perfis.includes(p.sigla)}
+                    onChange={() => alternarPerfil(p.sigla)}
+                  />
+                  <span className="font-semibold">{p.sigla}</span>
+                  <span className="text-ardesia text-xs truncate">{p.nome}</span>
+                </label>
+              ))}
+            </div>
+          )}
+          <p className="input-ajuda">
+            O usuário herda a união das permissões de todos os perfis marcados.
+          </p>
+          {erros.perfis && <p className="input-erro-msg">{erros.perfis}</p>}
         </div>
 
-        {dados.perfil === "CRD" && (
+        {dados.perfis.includes("CRD") && (
           <div className="input-grupo sm:col-span-2">
             <label className="input-label">Equipes coordenadas</label>
             {equipesAtivas.length === 0 ? (

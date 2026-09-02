@@ -14,17 +14,26 @@ export class ErroUsuario extends Error {
 export interface DadosUsuarioForm {
   email: string;
   nome: string;
-  perfil: Perfil;
+  // Multiplos perfis (033): lista de perfis associados (nunca vazia).
+  perfis: Perfil[];
   pessoaId?: string;
   equipesCRD?: string[];
 }
 
 export function usuarioDeSnap(uid: string, data: Record<string, unknown>): Usuario {
+  const perfis = Array.isArray(data.perfis)
+    ? (data.perfis as Perfil[])
+    : Array.isArray(data.perfil)
+      ? (data.perfil as Perfil[])
+      : data.perfil
+        ? [data.perfil as Perfil]
+        : ["EQP"];
   return {
     uid,
     email: (data.email as string) ?? "",
     nome: (data.nome as string) ?? "",
-    perfil: (data.perfil as Perfil) ?? "EQP",
+    perfil: perfis[0] ?? "EQP",
+    perfis,
     pessoaId: (data.pessoaId as string) || undefined,
     equipesCRD: Array.isArray(data.equipesCRD) ? (data.equipesCRD as string[]) : undefined,
     tokenConvite: (data.tokenConvite as string) || undefined,
@@ -38,8 +47,11 @@ function validar(d: DadosUsuarioForm, perfisSiglas: Set<string>): Record<string,
   if (!d.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email))
     erros.email = "E-mail inválido.";
   if (!d.nome.trim()) erros.nome = "Nome é obrigatório.";
-  if (!perfisSiglas.has(d.perfil)) erros.perfil = "Perfil inválido.";
-  if (d.perfil === "CRD" && (!d.equipesCRD || d.equipesCRD.length === 0))
+  if (!d.perfis || d.perfis.length === 0)
+    erros.perfis = "Selecione pelo menos um perfil.";
+  else if (d.perfis.some((p) => !perfisSiglas.has(p)))
+    erros.perfis = "Perfil inválido.";
+  if (d.perfis?.includes("CRD") && (!d.equipesCRD || d.equipesCRD.length === 0))
     erros.equipesCRD = "Coordenador precisa de pelo menos uma equipe.";
   return erros;
 }
@@ -55,9 +67,9 @@ export async function atualizarUsuario(
   await api.put(`/api/usuarios/${uid}`, {
     email: dados.email.trim().toLowerCase(),
     nome: dados.nome.trim(),
-    perfil: dados.perfil,
+    perfis: dados.perfis,
     pessoaId: dados.pessoaId?.trim() || null,
-    equipesCRD: dados.perfil === "CRD" && dados.equipesCRD ? dados.equipesCRD : null,
+    equipesCRD: dados.perfis.includes("CRD") && dados.equipesCRD ? dados.equipesCRD : null,
   });
   await queryClient.invalidateQueries({ queryKey: ["usuarios"] });
 }

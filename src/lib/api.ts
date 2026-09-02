@@ -3,6 +3,7 @@
 // Rotas públicas (fluxo de validação) usam sessaoJwt.
 import { auth } from "./firebase";
 import { verificarVersao } from "./versao";
+import { simulacaoHeaders } from "./simulacao";
 
 const BASE = ((import.meta.env.VITE_API_URL as string | undefined) ?? "").replace(/\/+$/, "");
 
@@ -24,6 +25,8 @@ async function requisicao<T>(
     headers["Authorization"] = `Bearer ${sessaoJwt}`;
   } else {
     headers["Authorization"] = `Bearer ${await getToken()}`;
+    // Modo simulacao (031): o backend apenas aplica a quem e ADM real.
+    Object.assign(headers, simulacaoHeaders());
   }
 
   const res = await fetch(`${BASE}${caminho}`, {

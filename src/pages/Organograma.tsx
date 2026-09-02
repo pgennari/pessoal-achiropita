@@ -1,6 +1,6 @@
 // ============================================================================
 // CONTROLE DE PERMISSAO
-// Acesso: edicao.detalhe. Subordinar/desvincular/editar hierarquia:
+// Acesso: organograma.gerenciar. Subordinar/desvincular/editar hierarquia:
 // edicao.equipeEditar. A criacao de equipes continua na aba Equipes da
 // edicao — aqui apenas se organiza as equipes ja cadastradas.
 // ============================================================================
@@ -421,7 +421,7 @@ export function Organograma() {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
 
-  const podeAcessar = temPermissao(sessao, "edicao.detalhe");
+  const podeAcessar = temPermissao(sessao, "organograma.gerenciar");
   const podeEditar = temPermissao(sessao, "edicao.equipeEditar");
 
   const mapaSetor = useMemo(() => {

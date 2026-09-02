@@ -19,7 +19,7 @@ import { EditarParentes } from "../components/EditarParentes";
 import { VinculoVeiculo } from "../components/VinculoVeiculo";
 import { Icone } from "../components/Icone";
 import { usePessoa, usePessoas, useVeiculos, useVeiculosPessoa, useParentes, useAvaliacoesPessoa, useAvaliacoesCoordenadorPessoa, useAvaliacoesEquipistaCoordenadorPessoa } from "../lib/hooks";
-import { useSessao, temPermissao } from "../lib/sessao";
+import { useSessao, temPermissao, ehADM } from "../lib/sessao";
 import {
   Avaliacao,
   AvaliacaoCoordenador,
@@ -130,7 +130,7 @@ export function PessoaDetalhe() {
   const podeEditar = temPermissao(sessao, "pessoas.editar") || ehProprio;
   const podeInativar = temPermissao(sessao, "pessoas.ativar");
   const podeExcluir = temPermissao(sessao, "pessoas.excluir");
-  const bloquearSensivel = sessao.perfil !== "ADM";
+  const bloquearSensivel = !ehADM(sessao);
   const podeVerExclusivo = temPermissao(sessao, "exclusivoPessoal");
   const podeBloquear = temPermissao(sessao, "pessoas.bloqueio");
   const pendenteBloqueio = pessoa?.bloqueio?.pendente ?? null;

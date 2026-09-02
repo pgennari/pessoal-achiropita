@@ -14,12 +14,18 @@ import {
 } from "firebase/auth";
 import { auth } from "./firebase";
 import { Perfil, Usuario } from "./tipos";
+import { EVENTO_SIMULACAO, lerSimulacao, limparSimulacao, simulacaoHeaders } from "./simulacao";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
 
 export interface Sessao extends Usuario {
-  // Permissoes do catalogo de perfis, carregadas de /api/usuarios/me.
+  // Permissoes do catalogo de perfis, carregadas de /api/usuarios/me (uniao
+  // das permissoes ativas de todos os perfis do usuario).
   permissoes?: string[];
+  // Modo simulacao (031): verdadeiro quando o ADM real esta testando o sistema
+  // com perfil/equipes simulados. Nesse caso `perfil`, `perfis`, `permissoes`
+  // e `equipesCRD` trazem os valores simulados, nao os do usuario real.
+  simulando?: boolean;
 }
 
 export interface EstadoSessao {
@@ -30,6 +36,59 @@ export interface EstadoSessao {
   carregando: boolean;
 }
 
+interface DadosMe {
+  perfil?: Perfil;
+  perfis?: Perfil[];
+  nome?: string;
+  pessoaId?: string;
+  equipesCRD?: string[];
+  tokenConvite?: string;
+  permissoes?: string[];
+  simulando?: boolean;
+}
+
+// Busca /me com o token atual, refletindo a simulacao (031) quando ativa.
+// Retorna null em falha de rede/servidor (mantem o estado corrente).
+async function buscarSessao(
+  user: User,
+  aplicarSimulacao = true
+): Promise<{ sessao: Sessao | null; semAcesso: boolean } | null> {
+  try {
+    const token = await user.getIdToken();
+    const res = await fetch(`${BASE}/api/usuarios/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(aplicarSimulacao ? simulacaoHeaders() : {}),
+      },
+    });
+
+    if (res.status === 403 || res.status === 404) {
+      return { sessao: null, semAcesso: true };
+    }
+    if (!res.ok) return null;
+
+    const dados = (await res.json()) as DadosMe;
+    const perfis = dados.perfis ?? (dados.perfil ? [dados.perfil] : ["EQP"]);
+    return {
+      sessao: {
+        uid: user.uid,
+        email: user.email ?? "",
+        nome: dados.nome ?? user.displayName ?? user.email ?? "",
+        perfil: dados.perfil ?? perfis[0] ?? "EQP",
+        perfis,
+        pessoaId: dados.pessoaId,
+        equipesCRD: dados.equipesCRD,
+        tokenConvite: dados.tokenConvite,
+        permissoes: dados.permissoes ?? [],
+        simulando: dados.simulando ?? false,
+      },
+      semAcesso: false,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function useSessao(): EstadoSessao {
   const [estado, setEstado] = useState<EstadoSessao>({
     sessao: null,
@@ -38,58 +97,53 @@ export function useSessao(): EstadoSessao {
   });
 
   useEffect(() => {
-    const cancelarAuth = onAuthStateChanged(auth(), async (user: User | null) => {
+    let ativo = true;
+
+    async function aplicar(user: User | null) {
+      if (!ativo) return;
       if (!user) {
         setEstado({ sessao: null, semAcesso: false, carregando: false });
         return;
       }
-
-      try {
-        const token = await user.getIdToken();
-        const res = await fetch(`${BASE}/api/usuarios/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-        });
-
-        if (res.status === 403 || res.status === 404) {
-          setEstado({ sessao: null, semAcesso: true, carregando: false });
-          return;
-        }
-        if (!res.ok) {
-          // Falha de rede ou servidor — limpa o estado sem bloquear
-          setEstado({ sessao: null, semAcesso: false, carregando: false });
-          return;
-        }
-
-        const dados = await res.json() as {
-          perfil?: Perfil;
-          nome?: string;
-          pessoaId?: string;
-          equipesCRD?: string[];
-          tokenConvite?: string;
-          permissoes?: string[];
-        };
-        setEstado({
-          sessao: {
-            uid: user.uid,
-            email: user.email ?? "",
-            nome: dados.nome ?? user.displayName ?? user.email ?? "",
-            perfil: dados.perfil ?? "EQP",
-            pessoaId: dados.pessoaId,
-            equipesCRD: dados.equipesCRD,
-            tokenConvite: dados.tokenConvite,
-            permissoes: dados.permissoes ?? [],
-          },
-          semAcesso: false,
-          carregando: false,
-        });
-      } catch {
-        setEstado({ sessao: null, semAcesso: false, carregando: false });
+      let resultado = await buscarSessao(user);
+      // Autocura da simulacao (031): se o /me falhou enquanto a simulacao
+      // estava ativa (ex.: perfil simulado com problema, rede momentanea), a
+      // simulação e descartada e a sessao e rebuscada com o perfil REAL. Isso
+      // garante que uma simulacao abandonada nunca prenda o ADM fora do sistema
+      // (nem acione a tela de login) por causa de um header simulado.
+      if (!resultado && lerSimulacao()) {
+        limparSimulacao();
+        resultado = await buscarSessao(user, false);
       }
+      if (!ativo) return;
+      if (!resultado) {
+        setEstado({ sessao: null, semAcesso: false, carregando: false });
+        return;
+      }
+      setEstado({
+        sessao: resultado.sessao,
+        semAcesso: resultado.semAcesso,
+        carregando: false,
+      });
+    }
+
+    const cancelarAuth = onAuthStateChanged(auth(), (user: User | null) => {
+      void aplicar(user);
     });
 
-    return () => cancelarAuth();
+    // Trocas de simulacao refazem o /me para a UI inteira refletir o perfil
+    // simulado. O logout em si (sair) ja limpa a simulacao no encerramento.
+    function aoAlterarSimulacao() {
+      const user = auth().currentUser;
+      if (user) void aplicar(user);
+    }
+    window.addEventListener(EVENTO_SIMULACAO, aoAlterarSimulacao);
+
+    return () => {
+      ativo = false;
+      cancelarAuth();
+      window.removeEventListener(EVENTO_SIMULACAO, aoAlterarSimulacao);
+    };
   }, []);
 
   return estado;
@@ -125,15 +179,28 @@ export async function recuperarSenha(email: string): Promise<void> {
 }
 
 export async function sair(): Promise<void> {
+  // Sair encerra tambem a simulacao (031): o proximo login deve sempre começar
+  // com o perfil REAL. Sem isso, uma simulacao abandonada (ex.: falha de /me)
+  // prende o ADM fora do sistema, incapaz de voltar ao perfil real.
+  limparSimulacao();
   await signOut(auth());
 }
 
 // Funcao unica de validacao de acesso (mesmo contrato do backend).
-// ADM e superuser; demais perfis dependem das permissoes ativas da sessao.
+// O perfil ADM e superuser; demais perfis dependem das permissoes ativas da
+// sessao (uniao das permissoes de todos os perfis do usuario).
 export function pode(sessao: Sessao | null, codigo: string): boolean {
   if (!sessao) return false;
-  if (sessao.perfil === "ADM") return true;
+  if (ehADM(sessao)) return true;
   return (sessao.permissoes ?? []).includes(codigo);
+}
+
+// Verdadeiro quando o usuario tem o perfil ADM entre os perfis associados.
+// Usado para comportamento de superusuario e para exibicao (ex.: elementos
+// restritos ao ADM).
+export function ehADM(sessao: Sessao | null): boolean {
+  if (!sessao) return false;
+  return (sessao.perfis ?? []).includes("ADM");
 }
 
 // As guards abaixo delegam a funcao unica pode(). Os perfis padrao continuam

@@ -5,7 +5,6 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- Tipos enumerados
-CREATE TYPE perfil_usuario        AS ENUM ('ADM','ORG','CRD','EQP','OPC','REC');
 CREATE TYPE status_convite        AS ENUM ('pendente','usado','revogado');
 CREATE TYPE status_edicao         AS ENUM ('planejamento','ativa','encerrada');
 CREATE TYPE funcao_participacao   AS ENUM ('Coordenador','Equipista');
@@ -17,7 +16,7 @@ CREATE TABLE usuarios (
   uid           TEXT PRIMARY KEY,
   email         TEXT NOT NULL,
   nome          TEXT NOT NULL,
-  perfil        perfil_usuario NOT NULL,
+  perfis        TEXT[] NOT NULL DEFAULT ARRAY['EQP'],
   pessoa_id     TEXT,
   equipes_crd   TEXT[],
   token_convite TEXT,
@@ -158,7 +157,7 @@ CREATE INDEX idx_participacoes_equipe  ON participacoes(equipe_id);
 CREATE TABLE convites (
   id              TEXT PRIMARY KEY,
   email           TEXT NOT NULL,
-  perfil          perfil_usuario NOT NULL,
+  perfil          TEXT NOT NULL,
   pessoa_id       TEXT,
   equipes_crd     TEXT[],
   status          status_convite NOT NULL DEFAULT 'pendente',
@@ -588,7 +587,8 @@ INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
   ('vaga.editar', 'Vagas: editar', 'Editar vagas (identificacao, pessoas e estacionamento).'),
   ('avaliacao.gerenciar', 'Avaliação: gerenciar', 'Gerar link de avaliação, listar e visualizar avaliações da edição.'),
   ('avaliacao.relatorio', 'Avaliação: relatório', 'Ver o relatório completo de avaliações da edição.'),
-  ('avaliacao.relatorio.apoio', 'Avaliação: relatório (apoio)', 'Ver o relatório de avaliações da própria equipe APOIO e das equipes filhas.')
+  ('avaliacao.relatorio.apoio', 'Avaliação: relatório (apoio)', 'Ver o relatório de avaliações da própria equipe APOIO e das equipes filhas.'),
+  ('organograma.gerenciar', 'Organograma: gerenciar', 'Ver e gerenciar o organograma de equipes da edição.')
 ON CONFLICT (codigo) DO NOTHING;
 
 -- Desativa codigos antigos do catalogo substituidos pelos granulares acima.
@@ -641,7 +641,8 @@ INSERT INTO perfis (sigla, nome, fixo, permissoes) VALUES
     auditoria.ver,
     perfil.lista,
     parametros.acessar,
-    avaliacao.gerenciar
+    avaliacao.gerenciar,
+    organograma.gerenciar
   }'),
   ('CRD', 'Coordenador de barraca', FALSE, '{
     veiculos.equipe,veiculos.detalhe,
@@ -1105,3 +1106,51 @@ UPDATE perfis SET
   permissoes = permissoes || ARRAY['comunicacao.gerenciar']
 WHERE sigla = 'ORG'
   AND NOT 'comunicacao.gerenciar' = ANY(permissoes);
+
+-- ============================================================================
+-- Resumo de equipe
+-- ============================================================================
+
+-- resumos_equipe: textos livres informados, uma unica vez por edicao, pelos
+-- coordenadores das equipes de controle (Gerencia de Estacionamento, Suplentes,
+-- Contratados, Controle de Pessoal e Supervisao de Pessoal) para cada equipe.
+-- Uma linha por equipe (PK em equipe_id); cada coluna e preenchida apenas pelo
+-- coordenador da equipe correspondente ao nome da coluna. `autores` guarda, por
+-- campo, quem registrou o texto e quando (chave = campo, valor = {porUid,
+-- porNome, em}); a coluna e atualizada junto com o campo correspondente.
+CREATE TABLE IF NOT EXISTS resumos_equipe (
+  equipe_id             TEXT PRIMARY KEY REFERENCES equipes(id) ON DELETE CASCADE,
+  edicao_id             TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
+  gestao_estacionamento TEXT,
+  suplentes             TEXT,
+  contratados           TEXT,
+  controle_pessoal      TEXT,
+  supervisao_pessoal    TEXT,
+  autores               JSONB NOT NULL DEFAULT '{}',
+  atualizado_por_uid    TEXT NOT NULL DEFAULT '',
+  atualizado_por_nome   TEXT NOT NULL DEFAULT '',
+  criado_em             TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atualizado_em         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_resumos_equipe_edicao ON resumos_equipe(edicao_id);
+
+-- Permissao dedicada para editar ou remover o resumo de uma equipe (feature
+-- Resumo). Concedida ao CRD (coordenadores de equipe); o ADM e superuser e
+-- sempre possui todas as permissoes.
+INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
+  ('resumo.editar.equipe', 'Resumo: editar resumo da equipe',
+   'Editar ou remover o resumo das equipes (somente da propria equipe de controle).')
+ON CONFLICT (codigo) DO NOTHING;
+
+UPDATE perfis SET
+  permissoes = permissoes || ARRAY['resumo.editar.equipe']
+  WHERE sigla = 'CRD'
+  AND NOT 'resumo.editar.equipe' = ANY(permissoes);
+
+-- Organograma (permissao organograma.gerenciar). Concedida ao ORG; o ADM e
+-- superuser e sempre possui todas as permissoes.
+UPDATE perfis SET
+  permissoes = permissoes || ARRAY['organograma.gerenciar']
+  WHERE sigla = 'ORG'
+  AND NOT 'organograma.gerenciar' = ANY(permissoes);

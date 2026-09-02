@@ -4,11 +4,14 @@ import { useSessao } from "../lib/sessao";
 import { BuscaGlobal } from "./BuscaGlobal";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import { SimulacaoBanner } from "./SimulacaoBanner";
+import { SimulacaoControle } from "./SimulacaoControle";
 
 export function Layout() {
   const { sessao } = useSessao();
   const [buscaAberta, setBuscaAberta] = useState(false);
   const [sidebarAberta, setSidebarAberta] = useState(false);
+  const [simulacaoAberta, setSimulacaoAberta] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -43,7 +46,9 @@ export function Layout() {
           sessao={sessao}
           onAbrirBusca={() => setBuscaAberta(true)}
           onAbrirSidebar={() => setSidebarAberta(true)}
+          onAbrirSimulacao={() => setSimulacaoAberta(true)}
         />
+        <SimulacaoBanner sessao={sessao} />
         <main className="flex-1 px-4 sm:px-6 md:px-10 py-6 sm:py-8 max-w-container w-full mx-auto print:max-w-none print:p-0">
           <Outlet />
         </main>
@@ -51,6 +56,10 @@ export function Layout() {
       <BuscaGlobal
         aberto={buscaAberta}
         onFechar={() => setBuscaAberta(false)}
+      />
+      <SimulacaoControle
+        aberto={simulacaoAberta}
+        onFechar={() => setSimulacaoAberta(false)}
       />
     </div>
   );

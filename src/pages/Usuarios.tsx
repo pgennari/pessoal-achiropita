@@ -6,7 +6,7 @@
 // ============================================================================
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useSessao, temPermissao } from "../lib/sessao";
+import { useSessao, temPermissao, ehADM } from "../lib/sessao";
 import {
   useEquipes,
   useConvites,
@@ -33,6 +33,7 @@ import {
 import { UsuarioForm } from "../components/UsuarioForm";
 import { ConviteForm } from "../components/ConviteForm";
 import { Icone } from "../components/Icone";
+import { SimulacaoControle } from "../components/SimulacaoControle";
 import { Convite, StatusConvite, Usuario } from "../lib/tipos";
 import { formatarData } from "../lib/utilsDominio";
 
@@ -79,6 +80,7 @@ export function Usuarios() {
   const [criandoConvite, setCriandoConvite] = useState(false);
   const [linkRecemCriado, setLinkRecemCriado] = useState<CriarConviteResultado | null>(null);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
+  const [simulacaoUsuario, setSimulacaoUsuario] = useState<Usuario | null>(null);
 
   // Filtros da aba Usuários
   const [filtroUsuario, setFiltroUsuario] = useState("");
@@ -121,7 +123,7 @@ export function Usuarios() {
       (u) =>
         u.nome.toLowerCase().includes(t) ||
         u.email.toLowerCase().includes(t) ||
-        u.perfil.toLowerCase() === t
+        (u.perfis ?? [u.perfil]).some((p) => p.toLowerCase() === t)
     );
   }, [usuarios, filtroUsuario]);
 
@@ -146,6 +148,7 @@ export function Usuarios() {
   const podeExcluir = temPermissao(sessao, "usuario.excluir");
   const podeRevogar = temPermissao(sessao, "usuario.conviteRevogar");
   const podeEditarConvite = temPermissao(sessao, "usuario.conviteEnviar");
+  const podeSimular = ehADM(sessao) && !sessao.simulando;
   if (!podeListar) {
     return (
       <div className="card">
@@ -386,7 +389,7 @@ export function Usuarios() {
                   <thead className="bg-pietra-clara/60 text-left">
                     <tr>
                       <th className="px-4 py-3 font-semibold">Nome / e-mail</th>
-                      <th className="px-4 py-3 font-semibold w-24">Perfil</th>
+                      <th className="px-4 py-3 font-semibold w-24">Perfis</th>
                       <th className="px-4 py-3 font-semibold hidden md:table-cell">
                         Vinculada a
                       </th>
@@ -425,10 +428,17 @@ export function Usuarios() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={classePerfilBadge(u.perfil)}>
-                            {rotuloPerfil.get(u.perfil) ?? u.perfil}
-                          </span>
-                        </td>
+                            <div className="flex flex-wrap gap-1">
+                              {(u.perfis ?? [u.perfil]).map((p) => (
+                                <span
+                                  key={p}
+                                  className={classePerfilBadge(p)}
+                                >
+                                  {rotuloPerfil.get(p) ?? p}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
                         <td className="px-4 py-3 hidden md:table-cell text-ardesia">
                           {u.pessoaId
                             ? indicePessoas.get(u.pessoaId) ?? "(pessoa removida)"
@@ -439,6 +449,23 @@ export function Usuarios() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex justify-end gap-2">
+                            {podeSimular &&
+                              (u.perfis ?? [u.perfil]).some((p) => p !== "ADM") && (
+                              <button
+                                type="button"
+                                className="btn btn-secundario btn-pequeno"
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  setEditandoConviteId(null);
+                                  setEditandoUid(null);
+                                  setSimulacaoUsuario(u);
+                                }}
+                                aria-label="Simular usuário"
+                                title={`Testar o sistema como ${u.nome}`}
+                              >
+                                <Icone nome="olho" />
+                              </button>
+                            )}
                             {podeEditar && (
                             <button
                               type="button"
@@ -692,6 +719,19 @@ export function Usuarios() {
           </section>
         )}
       </div>
+
+      <SimulacaoControle
+        aberto={simulacaoUsuario !== null}
+        inicial={
+          simulacaoUsuario
+            ? {
+                perfil: (simulacaoUsuario.perfis ?? [simulacaoUsuario.perfil])[0] ?? "EQP",
+                equipesCRD: simulacaoUsuario.equipesCRD,
+              }
+            : null
+        }
+        onFechar={() => setSimulacaoUsuario(null)}
+      />
     </div>
   );
 }

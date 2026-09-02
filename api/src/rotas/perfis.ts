@@ -212,7 +212,7 @@ app.openapi(deleteRoute, async (c) => {
 
   const [emUso] = await sql`
     SELECT
-      (SELECT COUNT(*)::int FROM usuarios WHERE perfil = ${sigla}) AS usuarios,
+      (SELECT COUNT(*)::int FROM usuarios WHERE ${sigla} = ANY(perfis)) AS usuarios,
       (SELECT COUNT(*)::int FROM convites WHERE perfil = ${sigla}) AS convites
   `;
   if ((emUso.usuarios as number) > 0 || (emUso.convites as number) > 0) {

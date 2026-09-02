@@ -57,13 +57,23 @@ export async function apenasPermissoesAtivas(
 // (filtro feito pelo comAuth no carregamento da sessao).
 export interface SessaoMinima {
   perfil?: string;
+  // Multiplos perfis (033): array de perfis associados ao usuario. Quando
+  // ausente, cai para `[perfil]` (compatibilidade com sessoes legadas).
+  perfis?: string[];
   permissoes?: string[];
 }
 
 export function pode(sessao: SessaoMinima | null | undefined, codigo: string): boolean {
-  if (!sessao?.perfil) return false;
-  if (sessao.perfil === "ADM") return true;
+  if (!sessao) return false;
+  const perfis = sessao.perfis ?? (sessao.perfil ? [sessao.perfil] : []);
+  if (perfis.includes("ADM")) return true;
   return (sessao.permissoes ?? []).includes(codigo);
+}
+
+export function ehADM(sessao: SessaoMinima | null | undefined): boolean {
+  if (!sessao) return false;
+  const perfis = sessao.perfis ?? (sessao.perfil ? [sessao.perfil] : []);
+  return perfis.includes("ADM");
 }
 
 export function isErroDuplicado(e: unknown): boolean {

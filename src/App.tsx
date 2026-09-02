@@ -58,6 +58,8 @@ import { QrAvaliacao } from "./pages/QrAvaliacao";
 import { Bloqueios } from "./pages/Bloqueios";
 import { BloqueioPessoa } from "./pages/BloqueioPessoa";
 import { DesbloqueioPessoa } from "./pages/DesbloqueioPessoa";
+import { Resumo } from "./pages/Resumo";
+import { ResumoEquipe } from "./pages/ResumoEquipe";
 
 export function App() {
   return (
@@ -124,6 +126,11 @@ export function App() {
           element={<EquipeDetalhe />}
         />
         <Route path="organograma" element={<Organograma />} />
+        <Route path="resumo" element={<Resumo />} />
+        <Route
+          path="edicoes/:edicaoId/equipes/:equipeId/resumo"
+          element={<ResumoEquipe />}
+        />
         <Route path="formacao" element={<PaginaFormacao />} />
         <Route path="formacao/pendencias" element={<PendenciasFormacao />} />
         <Route path="avaliacao" element={<PaginaAvaliacao />} />

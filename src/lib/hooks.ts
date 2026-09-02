@@ -34,6 +34,7 @@ import {
   PessoaComVeiculos,
   PresencaRegistrada,
   ResumoEquipePresenca,
+  ResumoEquipe,
   SetorInfo,
   StatusBloqueio,
   TurmaFormacao,
@@ -65,6 +66,7 @@ import type { DashboardInicial } from "./dashboard";
 import { PerfilInfo } from "./tipos";
 import { listarBloqueios } from "./bloqueio";
 import { listarEquipeAnterior, RespostaEquipeAnterior } from "./participacoes";
+import { listarResumoEquipe } from "./resumoEquipe";
 
 export interface EstadoLista<T> {
   itens: T[];
@@ -171,6 +173,17 @@ export function useEquipe(id: string | undefined): EstadoItem<Equipe> {
     enabled: !!id,
   });
   return { item: data ?? null, carregando: isLoading && !!id, erro: erroMsg(error) };
+}
+
+// Resumo de uma equipe (feature Resumo): valores informados uma unica vez por
+// edicao pelos coordenadores das equipes de controle.
+export function useResumoEquipe(equipeId: string | undefined): EstadoItem<ResumoEquipe> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["resumos-equipe", equipeId],
+    queryFn: () => listarResumoEquipe(equipeId as string),
+    enabled: !!equipeId,
+  });
+  return { item: data ?? null, carregando: isLoading && !!equipeId, erro: erroMsg(error) };
 }
 
 export function useTodasEquipes(): EstadoLista<Equipe> {
@@ -292,6 +305,43 @@ export function useIndicePessoas(pessoas: Pessoa[]) {
     for (const p of pessoas) porId.set(p.id, p);
     return porId;
   }, [pessoas]);
+}
+
+// Pessoas alocadas em uma equipe da edicao (via participacoes), juntas dos
+// dados completos (nome, cracha, funcao). Ordenadas por funcao (Coordenador
+// primeiro) e depois por nome.
+export function usePessoasDaEquipe(
+  edicaoId: string | undefined,
+  equipeId: string | undefined
+): { itens: PessoaDaEquipe[]; carregando: boolean } {
+  const participacoes = useParticipacoes(edicaoId);
+  const pessoas = usePessoas();
+  const indice = useIndicePessoas(pessoas.itens);
+
+  const itens = useMemo(() => {
+    return participacoes.itens
+      .filter((p) => p.equipeId === equipeId)
+      .map((p) => {
+        const pessoa = indice.get(p.pessoaId);
+        return { participacao: p, pessoa: pessoa ?? null };
+      })
+      .sort((a, b) => {
+        const fa = a.participacao.funcao;
+        const fb = b.participacao.funcao;
+        if (fa !== fb) return fa === "Coordenador" ? -1 : 1;
+        return (a.pessoa?.nome ?? "").localeCompare(b.pessoa?.nome ?? "");
+      });
+  }, [participacoes.itens, equipeId, indice]);
+
+  return {
+    itens,
+    carregando: participacoes.carregando || pessoas.carregando,
+  };
+}
+
+export interface PessoaDaEquipe {
+  participacao: Participacao;
+  pessoa: Pessoa | null;
 }
 
 // ─── Usuários ─────────────────────────────────────────────────────────────────

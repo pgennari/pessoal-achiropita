@@ -111,9 +111,11 @@ app.openapi(getEquipesRoute, async (c) => {
 
   // Leitor do relatorio de avaliacoes (avaliacao.relatorio.apoio) acessa a
   // lista de equipes escopada a propria equipe APOIO e filhas, apenas para
-  // renderizar os filtros do relatorio. edicao.detalhe enxerga todas.
+  // renderizar os filtros do relatorio. edicao.detalhe (ou organograma.gerenciar)
+  // enxerga todas.
   const podeRelatorio = podeVerRelatorio(sessao);
-  if (!temPermissao(sessao, "edicao.detalhe") && !podeRelatorio) {
+  const podeOrganograma = temPermissao(sessao, "organograma.gerenciar");
+  if (!temPermissao(sessao, "edicao.detalhe") && !podeOrganograma && !podeRelatorio) {
     return c.json({ erro: "Acesso negado. Requer permissao edicao.detalhe." }, 403);
   }
 

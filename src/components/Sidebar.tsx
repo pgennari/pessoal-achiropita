@@ -77,6 +77,12 @@ const secoes: Secao[] = [
         permissoes: ["edicao.lista", "edicao.detalhe"],
       },
       {
+        to: "/resumo",
+        label: "Resumo",
+        icone: "pasta",
+        permissoes: ["edicao.detalhe"],
+      },
+      {
         to: "/presenca",
         label: "Presença",
         icone: "presenca",
@@ -103,7 +109,7 @@ const secoes: Secao[] = [
         to: "/organograma",
         label: "Organograma",
         icone: "organograma",
-        permissoes: ["edicao.detalhe"],
+        permissoes: ["organograma.gerenciar"],
       },
     ],
   },

@@ -325,7 +325,7 @@ export function ResumoEquipe() {
           <h2>Resumo de {equipe.nome}</h2>
           <button
             type="button"
-            className="btn btn-secundario btn-pequeno"
+            className="btn btn-secundario btn-pequeno ml-auto"
             onClick={() => setAbrirPessoas(true)}
             aria-label="Ver pessoas da equipe"
             title="Ver pessoas da equipe"

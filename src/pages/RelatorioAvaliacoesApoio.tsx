@@ -3,18 +3,20 @@
 // Ver: avaliacao.gerenciar (mesmos perfis que gerenciam avaliacoes: ADM/ORG),
 // garantida pelo pai (RelatorioAvaliacoes) antes de renderizar.
 // Relatorio somente leitura das avaliacoes de coordenadores (equipes filhas)
-// da edicao ativa, com filtros e detalhe em modo leitura.
+// da edicao ativa, com filtros multi-selecao, resumo e cartoes expandiveis.
 // ============================================================================
-import { useMemo, useState } from "react";
-import {
-  useAvaliacoesCoordenador,
-  useEquipes,
-} from "../lib/hooks";
-import {
-  buscarAvaliacaoCoordenador,
-} from "../lib/avaliacaoCoordenador";
+import { useEffect, useMemo, useState } from "react";
+import { useAvaliacoesCoordenador, useEquipes } from "../lib/hooks";
 import { Icone } from "../components/Icone";
-import { AvaliacaoCoordenador } from "../lib/tipos";
+import { MenuFiltro } from "../components/MenuFiltro";
+import {
+  PermanenciaCoordenador,
+  LiderancaCoordenador,
+  OPCOES_PERMANENCIA,
+  OPCOES_LIDERANCA,
+} from "../lib/tipos";
+
+type CampoFiltro = "equipes" | "avaliadores" | "status" | "permanencia" | "lideranca";
 
 interface Props {
   edicaoId: string;
@@ -22,28 +24,132 @@ interface Props {
   edicaoAno: number;
 }
 
+const PERMANENCIA_ROTULO: Record<PermanenciaCoordenador, string> = {
+  Sim: "Sim",
+  "Sim, com algumas ressalvas": "Sim, com algumas ressalvas",
+  "Nao tenho certeza": "Não tenho certeza",
+  Nao: "Não",
+};
+
+const PERMANENCIA_COR: Record<PermanenciaCoordenador, string> = {
+  Sim: "#16a34a",
+  "Sim, com algumas ressalvas": "#2563eb",
+  "Nao tenho certeza": "#ca8a04",
+  Nao: "#dc2626",
+};
+
+const LIDERANCA_ROTULO: Record<LiderancaCoordenador, string> = {
+  Excelente: "Excelente",
+  Bom: "Bom",
+  Regular: "Regular",
+  Pouco: "Pouco",
+  "Nao possui": "Não possui",
+};
+
+const LIDERANCA_COR: Record<LiderancaCoordenador, string> = {
+  Excelente: "#16a34a",
+  Bom: "#2563eb",
+  Regular: "#ca8a04",
+  Pouco: "#dc2626",
+  "Nao possui": "#dc2626",
+};
+
 function formatarMomento(iso: string): string {
   const data = new Date(iso);
   if (isNaN(data.getTime())) return "-";
-  return data.toLocaleString("pt-BR");
+  return data.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function temAlgumFiltro(filtros: {
+  equipes: Set<string>;
+  avaliadores: Set<string>;
+  status: Set<string>;
+  permanencia: Set<string>;
+  lideranca: Set<string>;
+}): boolean {
+  return (
+    filtros.equipes.size > 0 ||
+    filtros.avaliadores.size > 0 ||
+    filtros.status.size > 0 ||
+    filtros.permanencia.size > 0 ||
+    filtros.lideranca.size > 0
+  );
 }
 
 export function RelatorioAvaliacoesApoio({ edicaoId, edicaoNumero, edicaoAno }: Props) {
   const { itens: equipes } = useEquipes(edicaoId);
-  const [equipeFiltro, setEquipeFiltro] = useState<string>("");
-  const [avaliadorFiltro, setAvaliadorFiltro] = useState<string>("");
-  const [statusFiltro, setStatusFiltro] = useState<string>("");
-  const [detalheId, setDetalheId] = useState<string | null>(null);
-  const [detalhe, setDetalhe] = useState<AvaliacaoCoordenador | null>(null);
-  const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
-  const [acaoErro, setAcaoErro] = useState("");
+  const { itens: avaliacoes, carregando, erro } = useAvaliacoesCoordenador(edicaoId);
 
-  const { itens: avaliacoes, carregando: carregandoAvaliacoes } =
-    useAvaliacoesCoordenador(edicaoId, {
-      equipeId: equipeFiltro || undefined,
-      avaliadorPessoaId: avaliadorFiltro || undefined,
-      status: statusFiltro || undefined,
+  const [equipesFiltro, setEquipesFiltro] = useState<Set<string>>(new Set());
+  const [avaliadoresFiltro, setAvaliadoresFiltro] = useState<Set<string>>(new Set());
+  const [statusFiltro, setStatusFiltro] = useState<Set<string>>(new Set());
+  const [permanenciaFiltro, setPermanenciaFiltro] = useState<Set<string>>(new Set());
+  const [liderancaFiltro, setLiderancaFiltro] = useState<Set<string>>(new Set());
+  const [dropdownAberto, setDropdownAberto] = useState<string | null>(null);
+  const [resumoAberto, setResumoAberto] = useState(false);
+
+  useEffect(() => {
+    if (!dropdownAberto) return;
+    function aoClicarFora(evento: MouseEvent) {
+      const alvo = evento.target as HTMLElement | null;
+      if (alvo?.closest("[data-dropdown]")) return;
+      setDropdownAberto(null);
+    }
+    function aoTeclar(evento: KeyboardEvent) {
+      if (evento.key === "Escape") setDropdownAberto(null);
+    }
+    document.addEventListener("mousedown", aoClicarFora);
+    document.addEventListener("keydown", aoTeclar);
+    return () => {
+      document.removeEventListener("mousedown", aoClicarFora);
+      document.removeEventListener("keydown", aoTeclar);
+    };
+  }, [dropdownAberto]);
+
+  function alternarDropdown(chave: string) {
+    setDropdownAberto((atual) => (atual === chave ? null : chave));
+  }
+
+  function alternarCampo(campo: CampoFiltro, chave: string) {
+    const setter =
+      campo === "equipes"
+        ? setEquipesFiltro
+        : campo === "avaliadores"
+          ? setAvaliadoresFiltro
+          : campo === "status"
+            ? setStatusFiltro
+            : campo === "permanencia"
+              ? setPermanenciaFiltro
+              : setLiderancaFiltro;
+    setter((atual) => {
+      const novo = new Set(atual);
+      if (novo.has(chave)) novo.delete(chave);
+      else novo.add(chave);
+      return novo;
     });
+  }
+
+  function limparCampo(campo: CampoFiltro) {
+    if (campo === "equipes") setEquipesFiltro(new Set());
+    else if (campo === "avaliadores") setAvaliadoresFiltro(new Set());
+    else if (campo === "status") setStatusFiltro(new Set());
+    else if (campo === "permanencia") setPermanenciaFiltro(new Set());
+    else setLiderancaFiltro(new Set());
+  }
+
+  function limparFiltros() {
+    setEquipesFiltro(new Set());
+    setAvaliadoresFiltro(new Set());
+    setStatusFiltro(new Set());
+    setPermanenciaFiltro(new Set());
+    setLiderancaFiltro(new Set());
+  }
 
   const avaliadores = useMemo(() => {
     const vistos = new Set<string>();
@@ -57,223 +163,337 @@ export function RelatorioAvaliacoesApoio({ edicaoId, edicaoNumero, edicaoAno }: 
     return lista.sort((x, y) => x.nome.localeCompare(y.nome, "pt-BR"));
   }, [avaliacoes]);
 
-  async function abrirDetalhe(id: string) {
-    setDetalheId(id);
-    setCarregandoDetalhe(true);
-    setAcaoErro("");
-    try {
-      setDetalhe(await buscarAvaliacaoCoordenador(id));
-    } catch (e) {
-      setAcaoErro((e as Error).message);
-      setDetalhe(null);
-    } finally {
-      setCarregandoDetalhe(false);
+  const opcoesEquipe = useMemo(() => {
+    const vistos = new Map<string, string>();
+    for (const a of avaliacoes) {
+      if (a.equipeFilhaId && a.equipeFilhaNome && !vistos.has(a.equipeFilhaId)) {
+        vistos.set(a.equipeFilhaId, a.equipeFilhaNome);
+      }
     }
-  }
+    if (vistos.size === 0) {
+      return equipes
+        .filter((e) => e.equipePaiId)
+        .map((e) => ({ valor: e.id, rotulo: e.nome }));
+    }
+    return Array.from(vistos.entries())
+      .map(([id, nome]) => ({ valor: id, rotulo: nome }))
+      .sort((a, b) => a.rotulo.localeCompare(b.rotulo, "pt-BR"));
+  }, [avaliacoes, equipes]);
 
-  if (detalheId !== null) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="font-display text-base">Avaliação do coordenador</h3>
-          <button
-            type="button"
-            className="btn btn-secundario btn-pequeno"
-            onClick={() => {
-              setDetalheId(null);
-              setDetalhe(null);
-            }}
-            aria-label="Voltar"
-            title="Voltar"
-          >
-            <Icone nome="seta-esquerda" />
-          </button>
-        </div>
-        {carregandoDetalhe && <p className="text-ardesia">Carregando...</p>}
-        {!carregandoDetalhe && detalhe && (
-          <DetalheAvaliacaoCoordenador avaliacao={detalhe} />
-        )}
-        {acaoErro && <p className="input-erro-msg">{acaoErro}</p>}
-      </div>
-    );
-  }
+  const filtradas = useMemo(() => {
+    return avaliacoes.filter((a) => {
+      if (equipesFiltro.size > 0 && !equipesFiltro.has(a.equipeFilhaId)) return false;
+      if (avaliadoresFiltro.size > 0 && !avaliadoresFiltro.has(a.avaliadorPessoaId)) return false;
+      if (statusFiltro.size > 0 && !statusFiltro.has(a.status)) return false;
+      if (permanenciaFiltro.size > 0 && (!a.permanencia || !permanenciaFiltro.has(a.permanencia))) return false;
+      if (liderancaFiltro.size > 0 && (!a.lideranca || !liderancaFiltro.has(a.lideranca))) return false;
+      return true;
+    });
+  }, [avaliacoes, equipesFiltro, avaliadoresFiltro, statusFiltro, permanenciaFiltro, liderancaFiltro]);
+
+  const comFiltros = temAlgumFiltro({
+    equipes: equipesFiltro,
+    avaliadores: avaliadoresFiltro,
+    status: statusFiltro,
+    permanencia: permanenciaFiltro,
+    lideranca: liderancaFiltro,
+  });
+
+  const resumoPermanencia = useMemo(() => {
+    const porValor: Record<PermanenciaCoordenador, number> = {
+      Sim: 0,
+      "Sim, com algumas ressalvas": 0,
+      "Nao tenho certeza": 0,
+      Nao: 0,
+    };
+    for (const a of filtradas) {
+      if (a.permanencia) porValor[a.permanencia] += 1;
+    }
+    return porValor;
+  }, [filtradas]);
+
+  const resumoLideranca = useMemo(() => {
+    const porValor: Record<LiderancaCoordenador, number> = {
+      Excelente: 0,
+      Bom: 0,
+      Regular: 0,
+      Pouco: 0,
+      "Nao possui": 0,
+    };
+    for (const a of filtradas) {
+      if (a.lideranca) porValor[a.lideranca] += 1;
+    }
+    return porValor;
+  }, [filtradas]);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <select
-          className="input !w-auto !py-1 !px-2 text-sm"
-          value={equipeFiltro}
-          onChange={(e) => setEquipeFiltro(e.target.value)}
-          aria-label="Filtrar por equipe filha"
-          title="Filtrar por equipe filha"
-        >
-          <option value="">Todas as equipes filhas</option>
-          {equipes
-            .filter((e) => e.equipePaiId)
-            .map((e) => (
-              <option key={e.id} value={e.id}>{e.nome}</option>
-            ))}
-        </select>
-        <select
-          className="input !w-auto !py-1 !px-2 text-sm"
-          value={avaliadorFiltro}
-          onChange={(e) => setAvaliadorFiltro(e.target.value)}
-          aria-label="Filtrar por avaliador"
-          title="Filtrar por avaliador"
-        >
-          <option value="">Todos os avaliadores</option>
-          {avaliadores.map((a) => (
-            <option key={a.pessoaId} value={a.pessoaId}>{a.nome}</option>
-          ))}
-        </select>
-        <select
-          className="input !w-auto !py-1 !px-2 text-sm"
-          value={statusFiltro}
-          onChange={(e) => setStatusFiltro(e.target.value)}
-          aria-label="Filtrar por status"
-          title="Filtrar por status"
-        >
-          <option value="">Todos os status</option>
-          <option value="rascunho">Rascunho</option>
-          <option value="finalizada">Finalizada</option>
-        </select>
-      </div>
+      {carregando && <p className="text-ardesia">Carregando...</p>}
 
-      <p className="text-ardesia text-sm">
-        {edicaoNumero}ª edição ({edicaoAno}) —{" "}
-        {carregandoAvaliacoes
-          ? "Carregando..."
-          : `${avaliacoes.length} avaliação(ões)`}
-      </p>
-
-      {!carregandoAvaliacoes && avaliacoes.length === 0 ? (
-        <p className="text-ardesia text-sm">
-          Nenhuma avaliação registrada com esses filtros.
-        </p>
-      ) : (
-        <div className="card overflow-hidden">
-          <div className="tabela-rolavel">
-            <table className="tabela-larga">
-              <thead className="bg-pietra-clara/60 text-left">
-                <tr>
-                  <th className="px-4 py-2 font-semibold">Crachá · Avaliado</th>
-                  <th className="px-4 py-2 font-semibold">Equipe filha</th>
-                  <th className="px-4 py-2 font-semibold">Avaliador</th>
-                  <th className="px-4 py-2 font-semibold">Status</th>
-                  <th className="px-4 py-2 font-semibold">Atualizado</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {(carregandoAvaliacoes ? [] : avaliacoes).map((a) => (
-                  <tr key={a.id} className="border-t border-pietra-clara hover:bg-pietra-clara/40">
-                    <td className="px-4 py-2 whitespace-nowrap">
-                      <span className="font-mono text-ardesia">
-                        #{a.pessoaCracha ?? "????"}
-                      </span>{" "}
-                      <span className="text-carbone font-semibold">
-                        {a.pessoaNome ?? ""}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-ardesia whitespace-nowrap">
-                      {a.equipeFilhaNome ?? a.equipeFilhaId}
-                    </td>
-                    <td className="px-4 py-2 text-ardesia whitespace-nowrap">
-                      {a.avaliadorNome}
-                    </td>
-                    <td className="px-4 py-2 whitespace-nowrap">
-                      <span className={`badge ${a.status === "finalizada" ? "badge-verde" : "badge-azul"}`}>
-                        {a.status === "finalizada" ? "Finalizada" : "Rascunho"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-ardesia whitespace-nowrap">
-                      {formatarMomento(a.atualizadoEm)}
-                    </td>
-                    <td className="px-4 py-2">
-                      <button
-                        type="button"
-                        className="btn btn-texto btn-pequeno"
-                        onClick={() => abrirDetalhe(a.id)}
-                        aria-label="Ver avaliação"
-                        title="Ver avaliação"
-                      >
-                        <Icone nome="olho" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {erro && (
+        <div className="card border-vermelho/40">
+          <div className="card-corpo text-vermelho-escuro">
+            Falha ao carregar as avaliações. Verifique a conexão e tente novamente mais tarde.
           </div>
         </div>
       )}
-    </div>
-  );
-}
 
-function DetalheAvaliacaoCoordenador({ avaliacao }: { avaliacao: AvaliacaoCoordenador }) {
-  const barra = [
-    { rotulo: "1. Permanecer na função na próxima festa?", valor: avaliacao.permanencia },
-    { rotulo: "2. Perfil de liderança?", valor: avaliacao.lideranca },
-    { rotulo: "3. Ponto positivo marcante", valor: avaliacao.pontoPositivo },
-    { rotulo: "4. Aspecto que pode melhorar", valor: avaliacao.aspectoMelhorar },
-    { rotulo: "5. Situação relevante a registrar", valor: avaliacao.situacaoRegistrar },
-    { rotulo: "6. Recomendação de permanência ou mudança", valor: avaliacao.recomendacao },
-  ];
+      {!carregando && !erro && (
+        <>
+          <div className="card">
+            <div className="card-corpo flex flex-wrap items-center gap-2 py-3">
+              <MenuFiltro
+                aberto={dropdownAberto === "equipes"}
+                rotulo="Equipe filha"
+                opcoes={opcoesEquipe.map((e) => ({
+                  chave: e.valor,
+                  rotulo: e.rotulo,
+                  marcado: equipesFiltro.has(e.valor),
+                }))}
+                aoAbrirFechar={() => alternarDropdown("equipes")}
+                aoMarcar={(chave) => alternarCampo("equipes", chave)}
+                aoLimparCampo={() => limparCampo("equipes")}
+                permitirBusca
+                placeholderBusca="Buscar equipe..."
+              />
 
-  return (
-    <div className="card">
-      <div className="card-corpo space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="w-11 h-11 rounded-full bg-verde/15 text-verde-escuro flex items-center justify-center font-display text-lg shrink-0">
-              {avaliacao.pessoaNome?.trim().charAt(0).toUpperCase() ?? "?"}
-            </span>
-            <div className="min-w-0">
-              <div className="font-semibold text-carbone truncate">
-                #{avaliacao.pessoaCracha ?? "????"} {avaliacao.pessoaNome ?? ""}
-              </div>
-              <div className="text-ardesia text-sm">
-                {avaliacao.equipeFilhaNome} · avaliado por {avaliacao.avaliadorNome}
-              </div>
+              <MenuFiltro
+                aberto={dropdownAberto === "avaliadores"}
+                rotulo="Avaliador"
+                opcoes={avaliadores.map((a) => ({
+                  chave: a.pessoaId,
+                  rotulo: a.nome,
+                  marcado: avaliadoresFiltro.has(a.pessoaId),
+                }))}
+                aoAbrirFechar={() => alternarDropdown("avaliadores")}
+                aoMarcar={(chave) => alternarCampo("avaliadores", chave)}
+                aoLimparCampo={() => limparCampo("avaliadores")}
+                permitirBusca
+                placeholderBusca="Buscar avaliador..."
+              />
+
+              <span className="h-6 w-px bg-pietra mx-1" aria-hidden="true" />
+
+              <MenuFiltro
+                aberto={dropdownAberto === "status"}
+                rotulo="Status"
+                opcoes={[
+                  { chave: "rascunho", rotulo: "Rascunho", marcado: statusFiltro.has("rascunho") },
+                  { chave: "finalizada", rotulo: "Finalizada", marcado: statusFiltro.has("finalizada") },
+                ]}
+                aoAbrirFechar={() => alternarDropdown("status")}
+                aoMarcar={(chave) => alternarCampo("status", chave)}
+                aoLimparCampo={() => limparCampo("status")}
+              />
+
+              <span className="h-6 w-px bg-pietra mx-1" aria-hidden="true" />
+
+              <MenuFiltro
+                aberto={dropdownAberto === "permanencia"}
+                rotulo="Permanência"
+                opcoes={OPCOES_PERMANENCIA.map(({ valor, rotulo }) => ({
+                  chave: valor,
+                  rotulo,
+                  marcado: permanenciaFiltro.has(valor),
+                }))}
+                aoAbrirFechar={() => alternarDropdown("permanencia")}
+                aoMarcar={(chave) => alternarCampo("permanencia", chave)}
+                aoLimparCampo={() => limparCampo("permanencia")}
+              />
+
+              <MenuFiltro
+                aberto={dropdownAberto === "lideranca"}
+                rotulo="Liderança"
+                opcoes={OPCOES_LIDERANCA.map(({ valor, rotulo }) => ({
+                  chave: valor,
+                  rotulo,
+                  marcado: liderancaFiltro.has(valor),
+                }))}
+                aoAbrirFechar={() => alternarDropdown("lideranca")}
+                aoMarcar={(chave) => alternarCampo("lideranca", chave)}
+                aoLimparCampo={() => limparCampo("lideranca")}
+              />
+
+              {comFiltros && (
+                <button
+                  type="button"
+                  className="btn-xs btn-secundario ml-auto"
+                  onClick={limparFiltros}
+                  aria-label="Limpar filtros"
+                  title="Limpar filtros"
+                >
+                  <Icone nome="fechar" tamanho={16} />
+                </button>
+              )}
             </div>
           </div>
-          <span className={`badge ${avaliacao.status === "finalizada" ? "badge-verde" : "badge-azul"}`}>
-            {avaliacao.status === "finalizada" ? "Finalizada" : "Rascunho"}
-          </span>
-        </div>
 
-        <div className="grid grid-cols-2 gap-3 text-sm border-t border-pietra-clara pt-4">
-          <div>
-            <span className="text-ardesia block text-xs">Finalizada em</span>
-            <span className="font-mono">
-              {avaliacao.finalizadoEm
-                ? new Date(avaliacao.finalizadoEm).toLocaleString("pt-BR")
-                : "—"}
-            </span>
-          </div>
-          <div>
-            <span className="text-ardesia block text-xs">Atualizado em</span>
-            <span className="font-mono">
-              {new Date(avaliacao.atualizadoEm).toLocaleString("pt-BR")}
-            </span>
-          </div>
-        </div>
+          <p className="text-ardesia text-sm">
+            {edicaoNumero}ª edição ({edicaoAno})
+          </p>
 
-        <div className="space-y-3 border-t border-pietra-clara pt-4">
-          {barra.map((q) => (
-            <div key={q.rotulo}>
-              <label className="input-label">{q.rotulo}</label>
-              <p className="text-sm text-carbone whitespace-pre-line">
-                {q.valor || (
-                  <span className="text-ardesia italic">Não respondida</span>
+          {avaliacoes.length > 0 && (
+            <div className="card">
+              <div className="card-corpo space-y-4">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-2 text-left"
+                  onClick={() => setResumoAberto((atual) => !atual)}
+                  aria-expanded={resumoAberto}
+                  aria-controls="resumo-avaliacoes-apoio"
+                >
+                  <h3>Resumo</h3>
+                  <Icone nome={resumoAberto ? "menos" : "mais"} tamanho={16} />
+                </button>
+                {resumoAberto && (
+                  <div id="resumo-avaliacoes-apoio" className="space-y-4">
+                    <div className="kpi-grid">
+                      <div className="kpi">
+                        <div className="kpi-label">Avaliações na edição</div>
+                        <div className="kpi-valor">{avaliacoes.length}</div>
+                      </div>
+                      <div className="kpi">
+                        <div className="kpi-label">Após filtros</div>
+                        <div className="kpi-valor">{filtradas.length}</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                      <div>
+                        <p className="input-label">Permanência</p>
+                        <ul className="text-sm space-y-1 mt-1">
+                          {OPCOES_PERMANENCIA.map(({ valor, rotulo }) => (
+                            <li key={valor} className="flex justify-between gap-2">
+                              <span className="text-ardesia">{rotulo}</span>
+                              <span>{resumoPermanencia[valor]}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="input-label">Liderança</p>
+                        <ul className="text-sm space-y-1 mt-1">
+                          {OPCOES_LIDERANCA.map(({ valor, rotulo }) => (
+                            <li key={valor} className="flex justify-between gap-2">
+                              <span className="text-ardesia">{rotulo}</span>
+                              <span>{resumoLideranca[valor]}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-baseline justify-between flex-wrap gap-2">
+            <h3>Resultado</h3>
+            <span className="text-ardesia text-sm">
+              {filtradas.length} de {avaliacoes.length} avaliações
+              {comFiltros ? " com os filtros aplicados" : ""}
+            </span>
+          </div>
+
+          {avaliacoes.length === 0 && (
+            <div className="card">
+              <div className="card-corpo text-ardesia">
+                Nenhuma avaliação registrada nesta edição. As avaliações são feitas pelos
+                coordenadores de apoio no link público disponível na tela da edição.
+              </div>
+            </div>
+          )}
+
+          {avaliacoes.length > 0 && filtradas.length === 0 && (
+            <div className="card">
+              <div className="card-corpo text-ardesia space-y-3">
+                <p>Nenhuma avaliação corresponde aos filtros aplicados.</p>
+                <button
+                  type="button"
+                  className="btn-xs btn-secundario ml-auto"
+                  onClick={limparFiltros}
+                  aria-label="Limpar filtros"
+                  title="Limpar filtros"
+                >
+                  <Icone nome="fechar" tamanho={16} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {filtradas.map((avaliacao) => (
+            <div key={avaliacao.id} className="card">
+              <div className="card-corpo space-y-2">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <span className="block font-semibold truncate">
+                    {avaliacao.pessoaNome ?? "-"}
+                    {avaliacao.pessoaCracha ? ` · crachá ${avaliacao.pessoaCracha}` : ""}
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span
+                      className={`badge ${avaliacao.status === "finalizada" ? "badge-verde" : "badge-azul"}`}
+                    >
+                      {avaliacao.status === "finalizada" ? "Finalizada" : "Rascunho"}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-xs text-ardesia block">
+                  {avaliacao.equipeFilhaNome ?? "-"} · Avaliador:{" "}
+                  {avaliacao.avaliadorNome} · Atualizado em{" "}
+                  {formatarMomento(avaliacao.atualizadoEm)}
+                </span>
+
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                  <span>
+                    <span className="text-xs text-ardesia">Permanência</span>{" "}
+                    {avaliacao.permanencia ? (
+                      <span
+                        className="font-bold font-display"
+                        style={{ color: PERMANENCIA_COR[avaliacao.permanencia] }}
+                      >
+                        {PERMANENCIA_ROTULO[avaliacao.permanencia]}
+                      </span>
+                    ) : (
+                      <span className="text-ardesia italic">—</span>
+                    )}
+                  </span>
+                  <span>
+                    <span className="text-xs text-ardesia">Liderança</span>{" "}
+                    {avaliacao.lideranca ? (
+                      <span
+                        className="font-bold font-display"
+                        style={{ color: LIDERANCA_COR[avaliacao.lideranca] }}
+                      >
+                        {LIDERANCA_ROTULO[avaliacao.lideranca]}
+                      </span>
+                    ) : (
+                      <span className="text-ardesia italic">—</span>
+                    )}
+                  </span>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-pietra-clara">
+                  {[
+                    { rotulo: "Ponto positivo", valor: avaliacao.pontoPositivo },
+                    { rotulo: "Aspecto que pode melhorar", valor: avaliacao.aspectoMelhorar },
+                    { rotulo: "Situação relevante a registrar", valor: avaliacao.situacaoRegistrar },
+                    { rotulo: "Recomendação", valor: avaliacao.recomendacao },
+                  ].map((q) => (
+                    <div key={q.rotulo}>
+                      <p className="input-label">{q.rotulo}</p>
+                      {q.valor ? (
+                        <p className="text-sm whitespace-pre-wrap break-words">{q.valor}</p>
+                      ) : (
+                        <p className="text-sm text-ardesia">—</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           ))}
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }

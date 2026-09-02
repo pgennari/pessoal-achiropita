@@ -53,9 +53,14 @@ const getRoute = createRoute({
 
 app.openapi(getRoute, async (c) => {
   const sessao = c.get("sessao");
-  // Leitor do relatorio de avaliacoes precisa da lista de setores para os
-  // filtros; setores sao um catalogo pequeno e fixo.
-  if (!temPermissao(sessao, "setor.lista") && !podeVerRelatorio(sessao)) {
+  // Leitor do relatorio de avaliacoes e usuario com edicao.detalhe precisam
+  // da lista de setores (cores nos cards, filtros); setores sao um catalogo
+  // pequeno e fixo.
+  if (
+    !temPermissao(sessao, "setor.lista") &&
+    !temPermissao(sessao, "edicao.detalhe") &&
+    !podeVerRelatorio(sessao)
+  ) {
     return c.json({ erro: "Acesso negado. Requer permissao setor.lista." }, 403);
   }
   const rows = await sql`SELECT * FROM setores ORDER BY id`;

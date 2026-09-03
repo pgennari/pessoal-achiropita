@@ -229,7 +229,7 @@ app.openapi(getEquipeAnteriorRoute, async (c) => {
     ? { id: String(edicaoAnteriorRow.id), numero: Number(edicaoAnteriorRow.numero) }
     : null;
   if (!edicaoAnteriorRow) {
-    return c.json({ edicaoAnterior: null, pessoas: [] }, 200);
+    return c.json({ edicaoAnterior: null, equipeAnteriorId: null, pessoas: [] }, 200);
   }
 
   // Equipe correspondente na edicao anterior por nome normalizado (unica por edicao).
@@ -246,7 +246,7 @@ app.openapi(getEquipeAnteriorRoute, async (c) => {
     : [];
 
   if (!equipeAnteriorRow) {
-    return c.json({ edicaoAnterior, pessoas: [] }, 200);
+    return c.json({ edicaoAnterior, equipeAnteriorId: null, pessoas: [] }, 200);
   }
 
   const rows = await sql`
@@ -254,6 +254,7 @@ app.openapi(getEquipeAnteriorRoute, async (c) => {
       p.id AS pessoa_id,
       p.nome AS pessoa_nome,
       p.cracha,
+      p.foto_url AS pessoa_foto_url,
       pt.funcao AS funcao_anterior,
       EXISTS (
         SELECT 1 FROM participacoes pt2
@@ -279,10 +280,12 @@ app.openapi(getEquipeAnteriorRoute, async (c) => {
 
   return c.json({
     edicaoAnterior,
+    equipeAnteriorId: String(equipeAnteriorRow.id),
     pessoas: rows.map((r) => ({
       pessoaId: String(r.pessoa_id),
       pessoaNome: String(r.pessoa_nome),
       cracha: r.cracha != null ? Number(r.cracha) : null,
+      fotoUrl: r.pessoa_foto_url != null ? String(r.pessoa_foto_url) : null,
       funcaoAnterior: String(r.funcao_anterior),
       jaNaEquipe: r.ja_na_equipe === true,
       emOutraEquipe: r.em_outra_equipe === true,

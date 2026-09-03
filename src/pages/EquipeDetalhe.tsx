@@ -29,6 +29,7 @@ import {
 import { EquipeForm } from "../components/EquipeForm";
 import { AlocarPessoaDialog } from "../components/AlocarPessoaDialog";
 import { PainelEquipeAnterior } from "../components/PainelEquipeAnterior";
+import { ResumoEquipeAnterior } from "../components/ResumoEquipeAnterior";
 import { Icone } from "../components/Icone";
 import { DadosToast, Toast } from "../components/Toast";
 import {
@@ -441,6 +442,13 @@ export function EquipeDetalhe() {
           </tbody>
         </table></div>
       </section>
+
+      {edicao.status === "planejamento" && (
+        <ResumoEquipeAnterior
+          edicaoId={edicao.id}
+          equipeId={equipe.id}
+        />
+      )}
 
       <div>
         <button

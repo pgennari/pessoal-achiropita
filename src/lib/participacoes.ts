@@ -12,6 +12,7 @@ export interface MembroEquipeAnterior {
   pessoaId: string;
   pessoaNome: string;
   cracha: number | null;
+  fotoUrl: string | null;
   funcaoAnterior: Funcao;
   jaNaEquipe: boolean;
   emOutraEquipe: boolean;
@@ -19,6 +20,7 @@ export interface MembroEquipeAnterior {
 
 export interface RespostaEquipeAnterior {
   edicaoAnterior: { id: string; numero: number } | null;
+  equipeAnteriorId: string | null;
   pessoas: MembroEquipeAnterior[];
 }
 

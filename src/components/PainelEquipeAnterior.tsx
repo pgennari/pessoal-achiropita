@@ -30,6 +30,7 @@ export function PainelEquipeAnterior({
   const { dados, carregando, erro } = useEquipeAnterior(edicaoId, equipeId);
   const [enviandoPessoa, setEnviandoPessoa] = useState<string | null>(null);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const [fotoAmpliada, setFotoAmpliada] = useState<{ url: string; nome: string } | null>(null);
 
   useEffect(() => {
     if (!aberto) return;
@@ -52,6 +53,10 @@ export function PainelEquipeAnterior({
     } finally {
       setEnviandoPessoa(null);
     }
+  }
+
+  function inicialDe(nome: string): string {
+    return nome.trim().charAt(0).toUpperCase();
   }
 
   const semEdicaoAnterior = dados !== null && dados.edicaoAnterior === null;
@@ -123,7 +128,31 @@ export function PainelEquipeAnterior({
                   const semAcao = m.jaNaEquipe || m.emOutraEquipe;
                   return (
                     <li key={m.pessoaId} className="px-5 py-3">
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          className="h-[4.5rem] w-[4.5rem] shrink-0 rounded-md ring-2 ring-bianco overflow-hidden flex items-center justify-center text-bianco font-display text-base cursor-pointer"
+                          style={
+                            m.fotoUrl
+                              ? undefined
+                              : { background: "linear-gradient(135deg, #2E9D52, #16753A)" }
+                          }
+                          onClick={() => m.fotoUrl && setFotoAmpliada({ url: m.fotoUrl, nome: m.pessoaNome })}
+                          disabled={!m.fotoUrl}
+                          aria-label={`Ver foto completa de ${m.pessoaNome}`}
+                          title={m.fotoUrl ? "Ver foto completa" : undefined}
+                        >
+                          {m.fotoUrl ? (
+                            <img
+                              src={m.fotoUrl}
+                              alt={`Foto de ${m.pessoaNome}`}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            inicialDe(m.pessoaNome)
+                          )}
+                        </button>
                         <div className="min-w-0">
                           <div className="font-semibold text-carbone truncate">
                             {m.pessoaNome}
@@ -133,15 +162,15 @@ export function PainelEquipeAnterior({
                           </div>
                         </div>
                         {m.jaNaEquipe ? (
-                          <span className="badge badge-verde">ja na equipe</span>
+                          <span className="badge badge-verde ml-auto">ja na equipe</span>
                         ) : m.emOutraEquipe ? (
-                          <span className="badge badge-cinza">
+                          <span className="badge badge-cinza ml-auto">
                             em outra equipe
                           </span>
                         ) : null}
                       </div>
                       {podeAlocar && !semAcao && (
-                        <div className="mt-2 flex flex-wrap gap-2">
+                        <div className="mt-3 flex justify-end gap-2">
                           <button
                             type="button"
                             className="btn btn-secundario btn-grande"
@@ -177,6 +206,38 @@ export function PainelEquipeAnterior({
           <span>esc fechar</span>
         </footer>
       </aside>
+
+      {fotoAmpliada && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-carbone/80"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Foto de ${fotoAmpliada.nome} em tamanho real`}
+          onClick={(e) => {
+            e.stopPropagation();
+            setFotoAmpliada(null);
+          }}
+        >
+          <img
+            src={fotoAmpliada.url}
+            alt={`Foto de ${fotoAmpliada.nome}`}
+            className="max-h-[90vh] max-w-[90vw] object-contain shadow-media"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            type="button"
+            className="absolute top-4 right-4 btn btn-secundario btn-pequeno"
+            onClick={(e) => {
+              e.stopPropagation();
+              setFotoAmpliada(null);
+            }}
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            <Icone nome="fechar" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

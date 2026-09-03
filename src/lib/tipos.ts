@@ -365,7 +365,8 @@ export type CampoResumoEquipe =
   | "suplentes"
   | "contratados"
   | "controlePessoal"
-  | "supervisaoPessoal";
+  | "supervisaoPessoal"
+  | "apoioPessoal";
 
 export const CAMPOS_RESUMO_EQUIPE: CampoResumoEquipe[] = [
   "gestaoEstacionamento",
@@ -373,6 +374,7 @@ export const CAMPOS_RESUMO_EQUIPE: CampoResumoEquipe[] = [
   "contratados",
   "controlePessoal",
   "supervisaoPessoal",
+  "apoioPessoal",
 ];
 
 // Autoria de um campo do resumo de equipe: quem registrou o texto e quando.
@@ -405,6 +407,7 @@ export interface ResumoEquipe {
   contratados: string | null;
   controlePessoal: string | null;
   supervisaoPessoal: string | null;
+  apoioPessoal: string | null;
   autores: Partial<Record<CampoResumoEquipe, AutorCampoResumo>>;
   votos: Partial<Record<CampoResumoEquipe, VotoResumoEquipe>>;
   atualizadoPorNome: string;

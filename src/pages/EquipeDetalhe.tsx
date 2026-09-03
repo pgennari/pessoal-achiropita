@@ -553,8 +553,6 @@ export function EquipeDetalhe() {
         equipeId={equipe.id}
         equipeNome={equipe.nome}
         podeAlocar={podeAlocar}
-        totalCoordenadoresAtuais={totais.porFuncao.Coordenador}
-        vagasCoordenador={equipe.vagasCoordenador}
         onAdicionar={handleAdicionarEquipeAnterior}
       />
 

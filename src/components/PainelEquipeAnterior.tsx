@@ -15,8 +15,6 @@ export interface PainelEquipeAnteriorProps {
   equipeId: string;
   equipeNome: string;
   podeAlocar: boolean;
-  totalCoordenadoresAtuais: number;
-  vagasCoordenador: number;
   onAdicionar: (membro: MembroEquipeAnterior, funcao: Funcao) => Promise<void>;
 }
 
@@ -27,8 +25,6 @@ export function PainelEquipeAnterior({
   equipeId,
   equipeNome,
   podeAlocar,
-  totalCoordenadoresAtuais,
-  vagasCoordenador,
   onAdicionar,
 }: PainelEquipeAnteriorProps) {
   const { dados, carregando, erro } = useEquipeAnterior(edicaoId, equipeId);
@@ -45,11 +41,6 @@ export function PainelEquipeAnterior({
   }, [aberto, onFechar]);
 
   if (!aberto) return null;
-
-  const vagaCoordenadorCheia =
-    podeAlocar &&
-    vagasCoordenador > 0 &&
-    totalCoordenadoresAtuais >= vagasCoordenador;
 
   async function adicionar(membro: MembroEquipeAnterior, funcao: Funcao) {
     setErroAcao(null);
@@ -122,11 +113,6 @@ export function PainelEquipeAnterior({
                   {dados.pessoas.length === 1 ? "pessoa" : "pessoas"}
                 </div>
               )}
-              {vagaCoordenadorCheia && (
-                <div className="px-5 py-2 text-xs text-ardesia border-b border-pietra-clara">
-                  Vaga de coordenador indisponivel nesta equipe.
-                </div>
-              )}
               {erroAcao && (
                 <div className="px-5 py-2 text-xs text-vermelho-escuro border-b border-pietra-clara">
                   {erroAcao}
@@ -169,17 +155,10 @@ export function PainelEquipeAnterior({
                           <button
                             type="button"
                             className="btn btn-primario btn-grande"
-                            disabled={
-                              enviandoPessoa === m.pessoaId ||
-                              vagaCoordenadorCheia
-                            }
+                            disabled={enviandoPessoa === m.pessoaId}
                             onClick={() => adicionar(m, "Coordenador")}
                             aria-label={`Adicionar ${m.pessoaNome} como Coordenador`}
-                            title={
-                              vagaCoordenadorCheia
-                                ? "Vaga de coordenador indisponivel"
-                                : "Adicionar como Coordenador"
-                            }
+                            title="Adicionar como Coordenador"
                           >
                             <Icone nome="usuario-coordenador" />
                           </button>

@@ -12,13 +12,11 @@ import {
 } from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
 import {
-  CAMPOS_RESUMO_EQUIPE,
   CampoResumoEquipe,
   SetorInfo,
   VotoResumoEquipe,
 } from "../lib/tipos";
-import { NOME_EQUIPE_DO_CAMPO } from "../lib/resumoEquipe";
-import { Icone } from "../components/Icone";
+import { CAMPOS_RESUMO_EQUIPE_ORDENADOS, NOME_EQUIPE_DO_CAMPO } from "../lib/resumoEquipe";import { Icone } from "../components/Icone";
 
 export function Resumo() {
   const { sessao } = useSessao();
@@ -58,7 +56,7 @@ export function Resumo() {
           <Link to="/edicoes" className="eyebrow">
             ← Edição da Festa
           </Link>
-          <h2 className="mt-1">Resumo</h2>
+          <h2 className="mt-1">Resumo do Pessoal</h2>
         </header>
         <div className="card">
           <div className="card-corpo">
@@ -86,9 +84,9 @@ export function Resumo() {
         <Link to={`/edicoes/${edicaoAtiva.id}`} className="eyebrow">
           ← {edicaoAtiva.numero}ª edição
         </Link>
-        <h2 className="mt-1">Resumo</h2>
+        <h2 className="mt-1">Resumo do Pessoal</h2>
         <p className="text-ardesia">
-          Visão geral das equipes desta edição
+          Visão geral das equipes da pasta Pessoal, sobre as equipes desta edição
         </p>
       </header>
 
@@ -142,7 +140,7 @@ export function Resumo() {
                 </div>
 
                 <div className="space-y-1.5">
-                  {CAMPOS_RESUMO_EQUIPE.map((campo) => {
+                  {CAMPOS_RESUMO_EQUIPE_ORDENADOS.map((campo) => {
                     const voto = mapaVotos.get(e.id)?.[campo];
                     const cor =
                       voto?.voto === "curtir"

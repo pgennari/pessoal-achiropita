@@ -17,6 +17,7 @@ export const CAMPOS = [
   "contratados",
   "controlePessoal",
   "supervisaoPessoal",
+  "apoioPessoal",
 ] as const;
 
 export type Campo = (typeof CAMPOS)[number];
@@ -27,7 +28,8 @@ const NOME_EQUIPE_DO_CAMPO: Record<Campo, string> = {
   suplentes: "Suplentes",
   contratados: "Contratados",
   controlePessoal: "Controle de Pessoal",
-  supervisaoPessoal: "Supervisão Pessoal",
+  supervisaoPessoal: "Supervisão de Pessoal",
+  apoioPessoal: "Apoio Pessoal",
 };
 
 // Coluna no banco de cada campo. Nomes fixos, sem interpolacao de input.
@@ -37,6 +39,7 @@ const COLUNA_DO_CAMPO: Record<Campo, string> = {
   contratados: "contratados",
   controlePessoal: "controle_pessoal",
   supervisaoPessoal: "supervisao_pessoal",
+  apoioPessoal: "apoio_pessoal",
 };
 
 function normalizarNome(nome: string): string {
@@ -63,6 +66,7 @@ const ResumoEquipeSchema = z.object({
   contratados: z.string().nullable(),
   controlePessoal: z.string().nullable(),
   supervisaoPessoal: z.string().nullable(),
+  apoioPessoal: z.string().nullable(),
   autores: z.record(z.string(), AutorSchema),
   votos: z.record(z.string(), z.any()),
   atualizadoPorNome: z.string(),
@@ -113,6 +117,7 @@ function resumoDeRow(r: Record<string, unknown> | undefined) {
     contratados: r.contratados ?? null,
     controlePessoal: r.controle_pessoal ?? null,
     supervisaoPessoal: r.supervisao_pessoal ?? null,
+    apoioPessoal: r.apoio_pessoal ?? null,
     autores: parseAutores(r),
     votos: parseObjeto(r, "votos"),
     atualizadoPorNome: String(r.atualizado_por_nome ?? ""),
@@ -177,7 +182,7 @@ app.openapi(getRoute, async (c) => {
     SELECT * FROM resumos_equipe WHERE equipe_id = ${equipeId}
   `;
   if (rows.length === 0) {
-    return c.json({ equipeId, edicaoId, gestaoEstacionamento: null, suplentes: null, contratados: null, controlePessoal: null, supervisaoPessoal: null, autores: {}, votos: {}, atualizadoPorNome: "", atualizadoEm: "" }, 200);
+    return c.json({ equipeId, edicaoId, gestaoEstacionamento: null, suplentes: null, contratados: null, controlePessoal: null, supervisaoPessoal: null, apoioPessoal: null, autores: {}, votos: {}, atualizadoPorNome: "", atualizadoEm: "" }, 200);
   }
   return c.json(resumoDeRow(rows[0]) as any, 200);
 });

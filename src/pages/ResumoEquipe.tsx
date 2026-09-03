@@ -24,7 +24,6 @@ import { EditorResumoMentions } from "../components/EditorResumoMentions";
 import { segmentarMencoes } from "../lib/mentions";
 import {
   CampoResumoEquipe,
-  CAMPOS_RESUMO_EQUIPE,
   Equipe,
   Pessoa,
   ResumoEquipe as ResumoEquipeDados,
@@ -32,6 +31,7 @@ import {
 } from "../lib/tipos";
 import {
   atualizarResumoEquipe,
+  CAMPOS_RESUMO_EQUIPE_ORDENADOS,
   NOME_EQUIPE_DO_CAMPO,
   normalizarNomeResumo,
   votarResumoEquipe,
@@ -406,7 +406,7 @@ export function ResumoEquipe() {
       )}
 
       <div className="grid gap-4 grid-cols-1">
-        {CAMPOS_RESUMO_EQUIPE.map((campo) => {
+        {CAMPOS_RESUMO_EQUIPE_ORDENADOS.map((campo) => {
           const suporte = equipeDoCampo(equipesDaEdicao, campo);
           const podeEditar =
             temPermissao(sessao, "resumo.editar.equipe") &&

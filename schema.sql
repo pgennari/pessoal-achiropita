@@ -1113,7 +1113,8 @@ WHERE sigla = 'ORG'
 
 -- resumos_equipe: textos livres informados, uma unica vez por edicao, pelos
 -- coordenadores das equipes de controle (Gerencia de Estacionamento, Suplentes,
--- Contratados, Controle de Pessoal e Supervisao de Pessoal) para cada equipe.
+-- Contratados, Controle de Pessoal, Supervisao de Pessoal e Apoio Pessoal) para
+-- cada equipe.
 -- Uma linha por equipe (PK em equipe_id); cada coluna e preenchida apenas pelo
 -- coordenador da equipe correspondente ao nome da coluna. `autores` guarda, por
 -- campo, quem registrou o texto e quando (chave = campo, valor = {porUid,
@@ -1126,6 +1127,7 @@ CREATE TABLE IF NOT EXISTS resumos_equipe (
   contratados           TEXT,
   controle_pessoal      TEXT,
   supervisao_pessoal    TEXT,
+  apoio_pessoal         TEXT,
   autores               JSONB NOT NULL DEFAULT '{}',
   votos                 JSONB NOT NULL DEFAULT '{}',
   atualizado_por_uid    TEXT NOT NULL DEFAULT '',
@@ -1137,6 +1139,10 @@ CREATE TABLE IF NOT EXISTS resumos_equipe (
 -- Coluna `votos` (voto Curtir/Descurtir da equipe que preenche o campo na
 -- equipe que esta sendo resumida). Idempotente para bancos existentes.
 ALTER TABLE resumos_equipe ADD COLUMN IF NOT EXISTS votos JSONB NOT NULL DEFAULT '{}';
+
+-- Coluna `apoio_pessoal` (texto livre da equipe Apoio Pessoal como avaliadora).
+-- Idempotente para bancos existentes.
+ALTER TABLE resumos_equipe ADD COLUMN IF NOT EXISTS apoio_pessoal TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_resumos_equipe_edicao ON resumos_equipe(edicao_id);
 

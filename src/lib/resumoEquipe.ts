@@ -2,6 +2,7 @@
 // preenchido pelo coordenador da equipe correspondente na edicao.
 import { api } from "./api";
 import type { CampoResumoEquipe, ResumoEquipe } from "./tipos";
+import { CAMPOS_RESUMO_EQUIPE } from "./tipos";
 
 // Nome (na edicao) da equipe cujo coordenador preenche cada campo.
 export const NOME_EQUIPE_DO_CAMPO: Record<CampoResumoEquipe, string> = {
@@ -10,7 +11,15 @@ export const NOME_EQUIPE_DO_CAMPO: Record<CampoResumoEquipe, string> = {
   contratados: "Contratados",
   controlePessoal: "Controle Pessoal",
   supervisaoPessoal: "Supervisão Pessoal",
+  apoioPessoal: "Apoio Pessoal",
 };
+
+// Campos do resumo ordenados alfabeticamente pelo nome da equipe avaliadora.
+export const CAMPOS_RESUMO_EQUIPE_ORDENADOS: CampoResumoEquipe[] = [
+  ...CAMPOS_RESUMO_EQUIPE,
+].sort((a, b) =>
+  NOME_EQUIPE_DO_CAMPO[a].localeCompare(NOME_EQUIPE_DO_CAMPO[b], "pt-BR"),
+);
 
 // Nome normalizado (caixa baixa, sem acentos, espacos colapsados) para
 // comparar os nomes das equipes da edicao com o rotulo de cada campo.

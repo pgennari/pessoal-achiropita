@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { Sessao, pode } from "../lib/sessao";
-import { useEdicaoAtiva } from "../lib/hooks";
+import { useEdicaoAtiva, useBloqueios } from "../lib/hooks";
 import { useFavoritos, ROTAS } from "../lib/favoritos";
 import { Icone } from "./Icone";
 import { useState, useEffect } from "react";
@@ -12,6 +12,7 @@ interface ItemNav {
   permissoes?: string[];
   filhos?: ItemNav[];
   excluirAtivo?: string[];
+  indicador?: "bloqueiosPendentes";
 }
 
 interface Secao {
@@ -47,6 +48,7 @@ const secoes: Secao[] = [
         label: "Bloqueios",
         icone: "cadeado",
         permissoes: ["pessoas.bloqueio"],
+        indicador: "bloqueiosPendentes",
       },
       {
         to: "/veiculos",
@@ -240,6 +242,17 @@ function itemAtivo(item: ItemNav, pathname: string): boolean {
   return true;
 }
 
+function valorIndicador(
+  item: ItemNav,
+  pendentes: number,
+  sessao: Sessao,
+): number {
+  if (item.indicador === "bloqueiosPendentes" && itemVisivel(item, sessao)) {
+    return pendentes;
+  }
+  return 0;
+}
+
 interface Props {
   sessao: Sessao;
   aberta: boolean;
@@ -250,6 +263,7 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
   const { edicao: edicaoAtiva } = useEdicaoAtiva();
   const { favoritos } = useFavoritos();
   const location = useLocation();
+  const { itens: bloqueiosPendentes } = useBloqueios({ status: "pendente" });
 
   const [colapsado, setColapsado] = useState(() => {
     try {
@@ -469,6 +483,15 @@ export function Sidebar({ sessao, aberta, onFechar }: Props) {
                             <Icone nome={item.icone} tamanho={14} className="shrink-0" />
                           )}
                           {!colapsado && <span>{item.label}</span>}
+                          {valorIndicador(item, bloqueiosPendentes.length, sessao) >
+                            0 && (
+                            <span
+                              className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none text-bianco bg-vermelho"
+                              title="Solicitações pendentes"
+                            >
+                              {bloqueiosPendentes.length}
+                            </span>
+                          )}
                         </NavLink>
                         {filhosVisiveis && filhosVisiveis.length > 0 && !colapsado && (
                           <div className="ml-3 pl-3 border-l border-pietra space-y-0.5 mt-0.5 mb-1">

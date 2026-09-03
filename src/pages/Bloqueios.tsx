@@ -1,7 +1,7 @@
 // Tela "Pessoas > Bloqueios": duas abas (Pendentes e Bloqueados) com a
 // justificativa completa, 1o aprovador/data e aprovacao do 2o aprovador.
 // Acesso restrito a quem tem a permissao `pessoas.bloqueio`.
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useBloqueios } from "../lib/hooks";
 import { useSessao, temPermissao } from "../lib/sessao";
@@ -21,6 +21,15 @@ export function Bloqueios() {
     useBloqueios({ status: "aprovado" });
   const [ocupadoId, setOcupadoId] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const navegouInicial = useRef(false);
+
+  useEffect(() => {
+    if (navegouInicial.current) return;
+    if (!carregandoPendentes && pendentes.length === 0) {
+      navegouInicial.current = true;
+      setAba("bloqueados");
+    }
+  }, [carregandoPendentes, pendentes.length]);
 
   if (!sessao) return null;
 

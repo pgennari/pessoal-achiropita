@@ -4,9 +4,20 @@
 // ============================================================================
 import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useEdicaoAtiva, useEquipes, useSetores } from "../lib/hooks";
+import {
+  useEdicaoAtiva,
+  useEquipes,
+  useSetores,
+  useVotosResumosEquipes,
+} from "../lib/hooks";
 import { useSessao } from "../lib/sessao";
-import { SetorInfo } from "../lib/tipos";
+import {
+  CAMPOS_RESUMO_EQUIPE,
+  CampoResumoEquipe,
+  SetorInfo,
+  VotoResumoEquipe,
+} from "../lib/tipos";
+import { NOME_EQUIPE_DO_CAMPO } from "../lib/resumoEquipe";
 import { Icone } from "../components/Icone";
 
 export function Resumo() {
@@ -19,6 +30,16 @@ export function Resumo() {
   );
   const { itens: setores } = useSetores();
 
+  const equipeIds = useMemo(() => equipes.map((e) => e.id), [equipes]);
+  const { itens: resumos, carregando: carregandoResumos } =
+    useVotosResumosEquipes(equipeIds);
+
+  const mapaVotos = useMemo(() => {
+    const m = new Map<string, Partial<Record<CampoResumoEquipe, VotoResumoEquipe>>>();
+    for (const r of resumos) m.set(r.equipeId, r.votos ?? {});
+    return m;
+  }, [resumos]);
+
   const mapaSetor = useMemo(() => {
     const m = new Map<string, SetorInfo>();
     for (const s of setores) m.set(s.id, s);
@@ -27,7 +48,7 @@ export function Resumo() {
 
   if (!sessao) return null;
 
-  if (carregandoEdicao || carregandoEquipes)
+  if (carregandoEdicao || carregandoEquipes || carregandoResumos)
     return <p className="text-ardesia">Carregando...</p>;
 
   if (!edicaoAtiva) {
@@ -118,6 +139,32 @@ export function Resumo() {
                   >
                     {setorInfo?.nome ?? e.setor}
                   </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  {CAMPOS_RESUMO_EQUIPE.map((campo) => {
+                    const voto = mapaVotos.get(e.id)?.[campo];
+                    const cor =
+                      voto?.voto === "curtir"
+                        ? "bg-verde"
+                        : voto?.voto === "descurtir"
+                          ? "bg-vermelho"
+                          : "bg-pietra";
+                    return (
+                      <div
+                        key={campo}
+                        className="flex items-center gap-2 text-sm text-carbone"
+                      >
+                        <span
+                          className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${cor}`}
+                          aria-hidden="true"
+                        />
+                        <span className="min-w-0 truncate">
+                          {NOME_EQUIPE_DO_CAMPO[campo]}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

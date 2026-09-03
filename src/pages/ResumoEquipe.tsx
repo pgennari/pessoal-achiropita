@@ -34,6 +34,7 @@ import {
   atualizarResumoEquipe,
   NOME_EQUIPE_DO_CAMPO,
   normalizarNomeResumo,
+  votarResumoEquipe,
 } from "../lib/resumoEquipe";
 
 function equipeDoCampo(
@@ -46,6 +47,7 @@ function equipeDoCampo(
 
 interface CampoResumoProps {
   equipeId: string;
+  equipeAvaliadaNome: string;
   campo: CampoResumoEquipe;
   resumo: ResumoEquipeDados | null;
   podeEditar: boolean;
@@ -73,6 +75,7 @@ function autorDoCampo(
 
 function CampoResumo({
   equipeId,
+  equipeAvaliadaNome,
   campo,
   resumo,
   podeEditar,
@@ -83,10 +86,29 @@ function CampoResumo({
   const valorAtual = resumo?.[campo] ?? null;
   const temValor = valorAtual !== null && valorAtual !== "";
   const autor = autorDoCampo(resumo, campo);
+  const votoAtual = resumo?.votos?.[campo]?.voto ?? null;
   const [editando, setEditando] = useState(false);
   const [texto, setTexto] = useState<string>(valorAtual ?? "");
   const [salvando, setSalvando] = useState(false);
+  const [votando, setVotando] = useState(false);
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
+  const [erroVoto, setErroVoto] = useState<string | null>(null);
+
+  async function votar(voto: "curtir" | "descurtir") {
+    if (!podeEditar || voto === votoAtual || votando) return;
+    setVotando(true);
+    setErroVoto(null);
+    try {
+      await votarResumoEquipe(equipeId, campo, voto);
+      await queryClient.invalidateQueries({
+        queryKey: ["resumos-equipe", equipeId],
+      });
+    } catch (e) {
+      setErroVoto(e instanceof Error ? e.message : "Erro ao votar.");
+    } finally {
+      setVotando(false);
+    }
+  }
 
   function iniciarEdicao() {
     setTexto(valorAtual ?? "");
@@ -217,6 +239,41 @@ function CampoResumo({
         )}
 
         {erroSalvar && <p className="text-sm text-vermelho">{erroSalvar}</p>}
+
+        <div className="rounded-lg border border-pietra bg-bianco p-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-medium text-carbone">
+              Qual sua avaliação geral da equipe {equipeAvaliadaNome}?
+            </p>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                className={`btn btn-pequeno disabled:opacity-100 ${
+                  votoAtual === "curtir" ? "btn-primario" : "btn-secundario"
+                }`}
+                onClick={() => votar("curtir")}
+                disabled={!podeEditar || votoAtual === "curtir" || votando}
+                aria-label={`Curtir equipe ${equipeAvaliadaNome}`}
+                title={podeEditar ? "Curtir" : "Somente o coordenador da equipe pode votar"}
+              >
+                <Icone nome="curtir" tamanho={18} />
+              </button>
+              <button
+                type="button"
+                className={`btn btn-pequeno disabled:opacity-100 ${
+                  votoAtual === "descurtir" ? "btn-perigo" : "btn-secundario"
+                }`}
+                onClick={() => votar("descurtir")}
+                disabled={!podeEditar || votoAtual === "descurtir" || votando}
+                aria-label={`Descurtir equipe ${equipeAvaliadaNome}`}
+                title={podeEditar ? "Descurtir" : "Somente o coordenador da equipe pode votar"}
+              >
+                <Icone nome="descurtir" tamanho={18} />
+              </button>
+            </div>
+          </div>
+          {erroVoto && <p className="mt-2 text-sm text-vermelho">{erroVoto}</p>}
+        </div>
       </div>
     </div>
   );
@@ -360,6 +417,7 @@ export function ResumoEquipe() {
             <CampoResumo
               key={campo}
               equipeId={equipe.id}
+              equipeAvaliadaNome={equipe.nome}
               campo={campo}
               resumo={resumo}
               podeEditar={podeEditar}

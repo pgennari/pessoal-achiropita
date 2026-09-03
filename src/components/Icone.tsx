@@ -51,6 +51,8 @@ import {
   Target,
   Star,
   StarOff,
+  ThumbsDown,
+  ThumbsUp,
   Trash2,
   User,
   UserRoundCog,
@@ -127,6 +129,8 @@ const icones: Record<string, LucideIcon> = {
   menos: Minus,
   recentralizar: Maximize,
   MapPin: MapPin,
+  curtir: ThumbsUp,
+  descurtir: ThumbsDown,
 };
 
 interface IconeProps {

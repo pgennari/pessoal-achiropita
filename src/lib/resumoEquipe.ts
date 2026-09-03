@@ -39,3 +39,14 @@ export async function atualizarResumoEquipe(
     valor,
   });
 }
+
+export async function votarResumoEquipe(
+  equipeId: string,
+  campo: CampoResumoEquipe,
+  voto: "curtir" | "descurtir"
+): Promise<ResumoEquipe> {
+  return api.put<ResumoEquipe>(`/api/resumos-equipe/${equipeId}/voto`, {
+    campo,
+    voto,
+  });
+}

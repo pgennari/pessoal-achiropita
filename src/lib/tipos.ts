@@ -382,10 +382,21 @@ export interface AutorCampoResumo {
   em: string;
 }
 
+// Voto (Curtir/Descurtir) que a equipe que preenche um campo do resumo da na
+// equipe que esta sendo resumida. `voto` alterna entre 'curtir' e 'descurtir'
+// (nao ha remocao).
+export interface VotoResumoEquipe {
+  voto: "curtir" | "descurtir";
+  porUid: string;
+  porNome: string;
+  em: string;
+}
+
 // Valores (textos livres) do resumo de uma equipe na edicao (coluna de
 // resumos_equipe). Valores null = campo ainda nao informado. `autores` guarda,
 // por campo, quem registrou o texto e quando (vazio = dados legados sem
-// autoria por campo).
+// autoria por campo). `votos` guarda, por campo, o voto Curtir/Descurtir da
+// equipe que preenche o campo na equipe resumida.
 export interface ResumoEquipe {
   equipeId: string;
   edicaoId: string;
@@ -395,6 +406,7 @@ export interface ResumoEquipe {
   controlePessoal: string | null;
   supervisaoPessoal: string | null;
   autores: Partial<Record<CampoResumoEquipe, AutorCampoResumo>>;
+  votos: Partial<Record<CampoResumoEquipe, VotoResumoEquipe>>;
   atualizadoPorNome: string;
   atualizadoEm: string;
 }

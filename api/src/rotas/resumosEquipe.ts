@@ -64,6 +64,7 @@ const ResumoEquipeSchema = z.object({
   controlePessoal: z.string().nullable(),
   supervisaoPessoal: z.string().nullable(),
   autores: z.record(z.string(), AutorSchema),
+  votos: z.record(z.string(), z.any()),
   atualizadoPorNome: z.string(),
   atualizadoEm: z.string(),
 });
@@ -77,6 +78,21 @@ function parseAutores(r: Record<string, unknown>): Record<string, unknown> {
   if (typeof r.autores === "string") {
     try {
       return JSON.parse(r.autores) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+function parseObjeto(r: Record<string, unknown>, chave: string): Record<string, unknown> {
+  const v = r[chave];
+  if (v && typeof v === "object") {
+    return v as Record<string, unknown>;
+  }
+  if (typeof v === "string") {
+    try {
+      return JSON.parse(v) as Record<string, unknown>;
     } catch {
       return {};
     }
@@ -98,6 +114,7 @@ function resumoDeRow(r: Record<string, unknown> | undefined) {
     controlePessoal: r.controle_pessoal ?? null,
     supervisaoPessoal: r.supervisao_pessoal ?? null,
     autores: parseAutores(r),
+    votos: parseObjeto(r, "votos"),
     atualizadoPorNome: String(r.atualizado_por_nome ?? ""),
     atualizadoEm,
   };
@@ -160,7 +177,7 @@ app.openapi(getRoute, async (c) => {
     SELECT * FROM resumos_equipe WHERE equipe_id = ${equipeId}
   `;
   if (rows.length === 0) {
-    return c.json({ equipeId, edicaoId, gestaoEstacionamento: null, suplentes: null, contratados: null, controlePessoal: null, supervisaoPessoal: null, autores: {}, atualizadoPorNome: "", atualizadoEm: "" }, 200);
+    return c.json({ equipeId, edicaoId, gestaoEstacionamento: null, suplentes: null, contratados: null, controlePessoal: null, supervisaoPessoal: null, autores: {}, votos: {}, atualizadoPorNome: "", atualizadoEm: "" }, 200);
   }
   return c.json(resumoDeRow(rows[0]) as any, 200);
 });
@@ -255,6 +272,94 @@ app.openapi(putRoute, async (c) => {
     "resumoEquipe.atualizou",
     `resumos_equipe/${equipeId}`,
     `${campo}=${valor ?? "null"}`
+  );
+  return c.json(resumoDeRow(rows[0]) as any, 200);
+});
+
+const putVotoRoute = createRoute({
+  method: "put",
+  path: "/{equipeId}/voto",
+  tags: ["ResumoEquipe"],
+  summary: "Registra ou alterna o voto (Curtir/Descurtir) da equipe que preenche o campo",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ equipeId: z.string() }),
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            campo: z.enum(CAMPOS),
+            voto: z.enum(["curtir", "descurtir"]),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: ResumoEquipeSchema } },
+      description: "Resumo com votos atualizados",
+    },
+    400: { content: { "application/json": { schema: msgErro } }, description: "Dados invalidos" },
+    403: { content: { "application/json": { schema: msgErro } }, description: "Acesso negado" },
+    404: { content: { "application/json": { schema: msgErro } }, description: "Equipe nao encontrada" },
+  },
+});
+
+app.openapi(putVotoRoute, async (c) => {
+  const sessao = c.get("sessao");
+  const { equipeId } = c.req.valid("param");
+  const { campo, voto } = c.req.valid("json");
+
+  const equipes = await sql`
+    SELECT e.id, e.edicao_id FROM equipes e
+    WHERE e.id = ${equipeId} AND e.excluida = FALSE
+  `;
+  if (equipes.length === 0) {
+    return c.json({ erro: "Equipe não encontrada." }, 404);
+  }
+  const edicaoId = String(equipes[0].edicao_id);
+
+  if (!temPermissao(sessao, "resumo.editar.equipe")) {
+    return c.json({ erro: "Acesso negado. Requer permissao resumo.editar.equipe." }, 403);
+  }
+
+  const equipeAvaliadoraId = await equipeDoCampo(edicaoId, campo);
+  const ehAdm = ehADM(sessao);
+  const coordena = equipeAvaliadoraId !== null &&
+    sessao.equipesCRD?.includes(equipeAvaliadoraId);
+  if (!ehAdm && !coordena) {
+    return c.json({ erro: "Acesso negado. Somente o coordenador da equipe correspondente vota neste campo." }, 403);
+  }
+
+  const linhaAtual = await sql`
+    SELECT votos FROM resumos_equipe WHERE equipe_id = ${equipeId}
+  `;
+  const votos = linhaAtual.length > 0 ? parseObjeto(linhaAtual[0], "votos") : {};
+  votos[campo] = {
+    voto,
+    porUid: sessao.uid,
+    porNome: sessao.nome,
+    em: new Date().toISOString(),
+  };
+
+  const rows = await sql`
+    INSERT INTO resumos_equipe (equipe_id, edicao_id, votos, atualizado_por_uid, atualizado_por_nome, atualizado_em)
+    VALUES (${equipeId}, ${edicaoId}, ${JSON.stringify(votos)}::jsonb, ${sessao.uid}, ${sessao.nome}, NOW())
+    ON CONFLICT (equipe_id) DO UPDATE SET
+      votos = EXCLUDED.votos,
+      atualizado_por_uid = ${sessao.uid},
+      atualizado_por_nome = ${sessao.nome},
+      atualizado_em = NOW()
+    RETURNING *
+  `;
+
+  await registrarEvento(
+    sessao,
+    "resumoEquipe.votou",
+    `resumos_equipe/${equipeId}`,
+    `${campo}=${voto}`
   );
   return c.json(resumoDeRow(rows[0]) as any, 200);
 });

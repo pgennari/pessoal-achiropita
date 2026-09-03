@@ -1127,11 +1127,16 @@ CREATE TABLE IF NOT EXISTS resumos_equipe (
   controle_pessoal      TEXT,
   supervisao_pessoal    TEXT,
   autores               JSONB NOT NULL DEFAULT '{}',
+  votos                 JSONB NOT NULL DEFAULT '{}',
   atualizado_por_uid    TEXT NOT NULL DEFAULT '',
   atualizado_por_nome   TEXT NOT NULL DEFAULT '',
   criado_em             TIMESTAMPTZ NOT NULL DEFAULT now(),
   atualizado_em         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Coluna `votos` (voto Curtir/Descurtir da equipe que preenche o campo na
+-- equipe que esta sendo resumida). Idempotente para bancos existentes.
+ALTER TABLE resumos_equipe ADD COLUMN IF NOT EXISTS votos JSONB NOT NULL DEFAULT '{}';
 
 CREATE INDEX IF NOT EXISTS idx_resumos_equipe_edicao ON resumos_equipe(edicao_id);
 

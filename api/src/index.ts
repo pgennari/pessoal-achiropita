@@ -64,6 +64,7 @@ app.use(
       "Authorization",
       "Content-Type",
       "X-Simulacao-Perfil",
+      "X-Simulacao-Perfis",
       "X-Simulacao-Equipes",
     ],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],

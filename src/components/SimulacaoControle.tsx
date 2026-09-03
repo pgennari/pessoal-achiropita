@@ -32,10 +32,9 @@ function ConteudoSimulacao({
   const { edicao } = useEdicaoAtiva();
   const { itens: equipes } = useEquipes(edicao?.id);
 
-  const [perfil, setPerfil] = useState(() => {
-    const inicialPerfil = inicial?.perfil;
-    if (inicialPerfil && inicialPerfil !== "ADM") return inicialPerfil;
-    return "";
+  const [perfisSelecionados, setPerfisSelecionados] = useState<string[]>(() => {
+    const inicialPerfis = inicial?.perfis ?? [];
+    return inicialPerfis.filter((p) => p !== "ADM");
   });
   const [equipesSelecionadas, setEquipesSelecionadas] = useState<string[]>(
     () => inicial?.equipesCRD ?? []
@@ -44,6 +43,15 @@ function ConteudoSimulacao({
   const [erro, setErro] = useState<string | null>(null);
 
   const opcoesPerfis = perfis.filter((p) => p.sigla !== "ADM");
+
+  function alternarPerfil(sigla: string) {
+    setPerfisSelecionados((atual) => {
+      const set = new Set(atual);
+      if (set.has(sigla)) set.delete(sigla);
+      else set.add(sigla);
+      return Array.from(set);
+    });
+  }
 
   function alternarEquipe(id: string) {
     setEquipesSelecionadas((atual) => {
@@ -55,16 +63,16 @@ function ConteudoSimulacao({
   }
 
   async function confirmar() {
-    if (!perfil) return;
+    if (perfisSelecionados.length === 0) return;
     setEnviando(true);
     setErro(null);
     try {
       await api.post("/api/simulacao/ativar", {
-        perfil,
+        perfis: perfisSelecionados,
         equipesCRD: equipesSelecionadas.length ? equipesSelecionadas : undefined,
       });
       ativarSimulacao({
-        perfil,
+        perfis: perfisSelecionados,
         equipesCRD: equipesSelecionadas.length
           ? equipesSelecionadas
           : undefined,
@@ -118,25 +126,32 @@ function ConteudoSimulacao({
           )}
 
           <div className="input-grupo">
-            <label className="input-label" htmlFor="simulacao-perfil">
-              Perfil simulado
+            <label className="input-label">
+              Perfis simulados
             </label>
-            <select
-              id="simulacao-perfil"
-              className="input"
-              value={perfil}
-              onChange={(e) => setPerfil(e.target.value)}
-            >
-              <option value="">Selecione um perfil...</option>
-              {opcoesPerfis.map((p) => (
-                <option key={p.sigla} value={p.sigla}>
-                  {p.sigla} — {p.nome}
-                </option>
-              ))}
-            </select>
+            {opcoesPerfis.length === 0 ? (
+              <p className="input-ajuda">
+                Nenhum perfil disponível para simulação.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 gap-1">
+                {opcoesPerfis.map((p) => (
+                  <label key={p.sigla} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={perfisSelecionados.includes(p.sigla)}
+                      onChange={() => alternarPerfil(p.sigla)}
+                    />
+                    <span>{p.sigla} — {p.nome}</span>
+                  </label>
+                ))}
+              </div>
+            )}
             <p className="input-ajuda">
-              O sistema passará a se comportar como esse perfil (menus, escopos
-              e autorização de escrita) até você encerrar a simulação.
+              Selecione um ou mais perfis. O sistema passará a se comportar
+              com a união de suas permissões (menus, escopos e autorização
+              de escrita) até você encerrar a simulação.
             </p>
           </div>
 
@@ -168,8 +183,8 @@ function ConteudoSimulacao({
 
           <div className="mt-6 rounded-sm bg-crema border border-pietra-clara p-3 text-ardesia text-sm">
             Durante a simulação, todas as ações — inclusive escrita — passam
-            pela autorização do perfil simulado. Tudo fica registrado na
-            auditoria como <strong>{perfil || "(perfil)"}</strong>, creditado a
+            pela autorização dos perfis simulados. Tudo fica registrado na
+            auditoria como <strong>{perfisSelecionados.join(", ") || "(perfis)"}</strong>, creditado a
             você.
           </div>
         </div>
@@ -179,7 +194,7 @@ function ConteudoSimulacao({
             type="button"
             className="btn btn-primario"
             onClick={confirmar}
-            disabled={!perfil || enviando}
+            disabled={perfisSelecionados.length === 0 || enviando}
             aria-label="Simular"
             title="Ativar simulação"
           >
@@ -196,9 +211,9 @@ function ConteudoSimulacao({
             <Icone nome="fechar" />
           </button>
           <span className="ml-auto text-xs text-ardesia">
-            {perfil
-              ? `Simulando como ${perfil}`
-              : "Selecione o perfil para ativar"}
+            {perfisSelecionados.length > 0
+              ? `Simulando como ${perfisSelecionados.join(", ")}`
+              : "Selecione pelo menos um perfil"}
           </span>
         </footer>
       </aside>

@@ -5,7 +5,9 @@ import { queryClient } from "./queryClient";
 // localStorage e e enviado como headers em cada request autenticado; o
 // backend so aplica a simulacao para o perfil real "ADM".
 export interface Simulacao {
-  perfil: string;
+  // Multiplos perfis (033): array de perfis simulados. A uniao das
+  // permissoes de todos e aplicada na sessao simulada.
+  perfis: string[];
   equipesCRD?: string[];
 }
 
@@ -21,10 +23,17 @@ export function lerSimulacao(): Simulacao | null {
   try {
     const bruto = localStorage.getItem(CHAVE_SIMULACAO);
     if (!bruto) return null;
-    const obj = JSON.parse(bruto) as { perfil?: unknown; equipesCRD?: unknown };
-    if (typeof obj.perfil !== "string" || !obj.perfil.trim()) return null;
+    const obj = JSON.parse(bruto) as { perfis?: unknown; perfil?: unknown; equipesCRD?: unknown };
+    // Compat: aceita tanto `perfis` (novo) quanto `perfil` (legado).
+    const perfisRaw = Array.isArray(obj.perfis)
+      ? obj.perfis
+      : typeof obj.perfil === "string" && obj.perfil.trim()
+        ? [obj.perfil]
+        : [];
+    const perfis = perfisRaw.filter((p): p is string => typeof p === "string" && !!p.trim());
+    if (perfis.length === 0) return null;
     return {
-      perfil: obj.perfil.trim(),
+      perfis,
       equipesCRD:
         obj.equipesCRD === undefined
           ? undefined
@@ -42,7 +51,9 @@ export function lerSimulacao(): Simulacao | null {
 export function simulacaoHeaders(): Record<string, string> {
   const s = lerSimulacao();
   if (!s) return {};
-  const headers: Record<string, string> = { "X-Simulacao-Perfil": s.perfil };
+  const headers: Record<string, string> = {
+    "X-Simulacao-Perfis": JSON.stringify(s.perfis),
+  };
   if (s.equipesCRD && s.equipesCRD.length > 0) {
     headers["X-Simulacao-Equipes"] = JSON.stringify(s.equipesCRD);
   }

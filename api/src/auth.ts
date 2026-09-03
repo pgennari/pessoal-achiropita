@@ -63,29 +63,60 @@ async function carregarSessaoReal(uid: string): Promise<Sessao | null> {
 }
 
 // Modo simulacao (031): so o perfil real "ADM" pode ativar. A sessao simulada
-// herda somente as permissoes ATIVAS do perfil simulado (nunca as do ADM) e
+// herda as permissoes ATIVAS da uniao dos perfis simulados (nunca as do ADM) e
 // jamais o pessoa_id — a simulacao apenas restringe o acesso do ADM.
 async function sessaoComSimulacao(
   real: Sessao,
   c: Context
 ): Promise<Sessao | Response> {
   if (!ehADM(real)) return real;
-  const perfilSimulado = c.req.header("X-Simulacao-Perfil");
-  if (!perfilSimulado) return real;
 
+  // Compat: aceita tanto X-Simulacao-Perfis (novo, JSON array) quanto
+  // X-Simulacao-Perfil (legado, string unica).
+  const perfisArrayRaw = c.req.header("X-Simulacao-Perfis");
+  const perfilLegado = c.req.header("X-Simulacao-Perfil");
+  let perfisSimulados: string[] | null = null;
+
+  if (perfisArrayRaw !== undefined) {
+    try {
+      const parseado: unknown = JSON.parse(perfisArrayRaw);
+      if (
+        !Array.isArray(parseado) ||
+        parseado.length === 0 ||
+        parseado.some((v) => typeof v !== "string")
+      ) {
+        throw new Error("formato invalido");
+      }
+      perfisSimulados = parseado;
+    } catch {
+      return c.json({ erro: "Cabeçalho de simulação inválido." }, 400);
+    }
+  } else if (perfilLegado !== undefined && perfilLegado.trim()) {
+    perfisSimulados = [perfilLegado.trim()];
+  }
+
+  if (!perfisSimulados) return real;
+
+  // Busca permissoes da UNIAO de todos os perfis simulados. A subquery desdobra
+  // os codigos de cada perfil e deduplica entre eles; sem isso, pegar apenas a
+  // primeira linha devolveria so as permissoes de um perfil (033).
   const [perf] = await sql`
     SELECT COALESCE((
       SELECT ARRAY(
-        SELECT codigo FROM permissoes
-        WHERE ativo = TRUE AND codigo = ANY(p.permissoes)
+        SELECT DISTINCT pm.codigo
+        FROM permissoes pm
+        WHERE pm.ativo = TRUE
+          AND pm.codigo IN (
+            SELECT unnest(p.permissoes)
+            FROM perfis p
+            WHERE p.sigla = ANY(${perfisSimulados})
+          )
       )
     ), '{}') AS permissoes
-    FROM perfis p WHERE p.sigla = ${perfilSimulado}
   `;
   if (!perf) {
     return c.json({ erro: "Perfil simulado inexistente." }, 400);
   }
-
   let equipesSimuladas: string[] | undefined;
   const eqHeader = c.req.header("X-Simulacao-Equipes");
   if (eqHeader !== undefined) {
@@ -105,8 +136,8 @@ async function sessaoComSimulacao(
 
   return {
     ...real,
-    perfil: perfilSimulado,
-    perfis: [perfilSimulado],
+    perfil: perfisSimulados[0],
+    perfis: perfisSimulados,
     permissoes: (perf.permissoes as string[] | null) ?? [],
     equipesCRD: equipesSimuladas,
     pessoaId: undefined,

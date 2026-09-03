@@ -28,9 +28,8 @@ export function Resumo() {
   );
   const { itens: setores } = useSetores();
 
-  const equipeIds = useMemo(() => equipes.map((e) => e.id), [equipes]);
   const { itens: resumos, carregando: carregandoResumos } =
-    useVotosResumosEquipes(equipeIds);
+    useVotosResumosEquipes(edicaoAtiva?.id);
 
   const mapaVotos = useMemo(() => {
     const m = new Map<string, Partial<Record<CampoResumoEquipe, VotoResumoEquipe>>>();
@@ -43,6 +42,11 @@ export function Resumo() {
     for (const s of setores) m.set(s.id, s);
     return m;
   }, [setores]);
+
+  const mapaEquipes = useMemo(
+    () => new Map(equipes.map((e) => [e.id, e])),
+    [equipes],
+  );
 
   if (!sessao) return null;
 
@@ -102,7 +106,7 @@ export function Resumo() {
           const setorInfo = mapaSetor.get(e.setor);
           const cor = setorInfo?.cor ?? "#888";
           const equipePai = e.equipePaiId
-            ? equipes.find((eq) => eq.id === e.equipePaiId)
+            ? mapaEquipes.get(e.equipePaiId)
             : undefined;
           return (
             <div

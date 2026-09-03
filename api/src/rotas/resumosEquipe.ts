@@ -142,6 +142,43 @@ async function equipeDoCampo(
   return null;
 }
 
+const ResumoListaSchema = z.object({
+  itens: z.array(ResumoEquipeSchema),
+});
+
+const listRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["ResumoEquipe"],
+  summary: "Valores do resumo de todas as equipes de uma edicao",
+  middleware: [comAuth as any] as const,
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({ edicaoId: z.string() }),
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: ResumoListaSchema } },
+      description: "Resumos de todas as equipes da edicao",
+    },
+    403: { content: { "application/json": { schema: msgErro } }, description: "Acesso negado" },
+  },
+});
+
+app.openapi(listRoute, async (c) => {
+  const sessao = c.get("sessao");
+  if (!temPermissao(sessao, "edicao.detalhe")) {
+    return c.json({ erro: "Acesso negado. Requer permissao edicao.detalhe." }, 403);
+  }
+  const { edicaoId } = c.req.valid("query");
+
+  const rows = await sql`
+    SELECT * FROM resumos_equipe WHERE edicao_id = ${edicaoId}
+  `;
+  const itens = rows.map((r) => resumoDeRow(r)).filter((r): r is NonNullable<typeof r> => !!r);
+  return c.json({ itens } as any, 200);
+});
+
 const getRoute = createRoute({
   method: "get",
   path: "/{equipeId}",

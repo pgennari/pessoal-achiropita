@@ -14,7 +14,7 @@ const app = new OpenAPIHono<Variaveis>();
 // Estes endpoints apenas registram a trilha de auditoria.
 
 const ativarSchema = z.object({
-  perfil: z.string().min(1).max(20),
+  perfis: z.array(z.string().min(1).max(20)).min(1),
   equipesCRD: z.array(z.string()).optional(),
 });
 
@@ -43,11 +43,14 @@ app.openapi(ativarRoute, async (c) => {
     return c.json({ erro: "Acesso negado. Somente ADM pode simular acessos." }, 403);
   }
   const body = c.req.valid("json");
-  const [perf] = await sql`SELECT sigla FROM perfis WHERE sigla = ${body.perfil}`;
-  if (!perf) {
-    return c.json({ erro: "Perfil inexistente." }, 400);
+  // Valida que todos os perfis existem.
+  for (const p of body.perfis) {
+    const [perf] = await sql`SELECT sigla FROM perfis WHERE sigla = ${p}`;
+    if (!perf) {
+      return c.json({ erro: `Perfil inexistente: ${p}` }, 400);
+    }
   }
-  const detalhes = `${body.perfil}${
+  const detalhes = `${body.perfis.join(", ")}${
     body.equipesCRD?.length ? ` · ${body.equipesCRD.length} equipe(s)` : ""
   }`;
   await registrarEvento(sessao, "simulacao.ativou", "simulacao", detalhes);

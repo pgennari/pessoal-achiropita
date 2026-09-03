@@ -186,25 +186,21 @@ export function useResumoEquipe(equipeId: string | undefined): EstadoItem<Resumo
   return { item: data ?? null, carregando: isLoading && !!equipeId, erro: erroMsg(error) };
 }
 
-// Votos (Curtir/Descurtir) do resumo de varias equipes, indexados por equipe.
-// Usa a mesma queryKey de useResumoEquipe para reaproveitar o cache.
+// Votos (Curtir/Descurtir) do resumo de todas as equipes de uma edicao.
+// Faz um unico GET por edicao (endpoint batch), evitando N+1 requests.
 export function useVotosResumosEquipes(
-  equipeIds: string[]
+  edicaoId: string | undefined
 ): EstadoLista<ResumoEquipe> {
-  const resultados = useQueries({
-    queries: equipeIds.map((equipeId) => ({
-      queryKey: ["resumos-equipe", equipeId],
-      queryFn: () => listarResumoEquipe(equipeId),
-      enabled: equipeId.length > 0,
-    })),
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["resumos-equipe", edicaoId],
+    queryFn: () =>
+      api.get<{ itens: ResumoEquipe[] }>(
+        `/api/resumos-equipe?edicaoId=${edicaoId}`,
+      ),
+    enabled: !!edicaoId,
   });
-  const itens = resultados
-    .map((r) => r.data)
-    .filter((d): d is ResumoEquipe => !!d);
-  const carregando = resultados.some((r) => r.isLoading);
-  const erro =
-    resultados.map((r) => erroMsg(r.error)).find((e) => e !== null) ?? null;
-  return { itens, carregando, erro };
+  const itens = data?.itens ?? [];
+  return { itens, carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
 }
 
 export function useTodasEquipes(): EstadoLista<Equipe> {

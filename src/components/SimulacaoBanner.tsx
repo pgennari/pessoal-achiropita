@@ -28,7 +28,7 @@ export function SimulacaoBanner({ sessao }: Props) {
       <Icone nome="olho" tamanho={18} className="text-ouro-texto" />
       <span className="font-semibold text-ouro-texto">Simulação ativa</span>
       <span className="text-ouro-texto">
-        perfil <strong>{sessao.perfil}</strong>
+        perfil(is) <strong>{sessao.perfis?.join(", ") ?? sessao.perfil}</strong>
         {nEquipes > 0 && ` · ${nEquipes} equipe(s)`}
       </span>
       <button

@@ -725,7 +725,7 @@ export function Usuarios() {
         inicial={
           simulacaoUsuario
             ? {
-                perfil: (simulacaoUsuario.perfis ?? [simulacaoUsuario.perfil])[0] ?? "EQP",
+                perfis: (simulacaoUsuario.perfis ?? [simulacaoUsuario.perfil]).filter((p) => p !== "ADM"),
                 equipesCRD: simulacaoUsuario.equipesCRD,
               }
             : null

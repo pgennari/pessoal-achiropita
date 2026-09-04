@@ -382,9 +382,13 @@ export function EdicaoDetalhe() {
         : grupo === "teste"
           ? "e-mail de teste"
           : "pessoas alocadas";
+    const avisoLimite =
+      typeof contagem === "number" && contagem > 300
+        ? "\n\nO servico de disparo de e-mails possui uma limitacao de 300 e-mails a cada 24hs. Todos os e-mails serao enfileirados agora, mas so serao realmente enviados em blocos de 300 a cada 24hs."
+        : "";
     if (
       !confirm(
-        `Enviar o comunicado "${c.titulo}" por e-mail (Brevo) para ${contagem} ${label}?`
+        `Enviar o comunicado "${c.titulo}" por e-mail (Brevo) para ${contagem} ${label}?${avisoLimite}`
       )
     ) {
       return;

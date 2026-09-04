@@ -2,8 +2,9 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import sql from "../db.js";
 import { comAuth, temPermissao } from "../auth.js";
 import { registrarEvento } from "../auditoria.js";
+import { enviarEmail } from "../brevo.js";
 import { isErroDuplicado } from "../pbac.js";
-import type { Variaveis } from "../tipos.js";
+import type { Sessao, Variaveis } from "../tipos.js";
 
 const app = new OpenAPIHono<Variaveis>();
 
@@ -78,6 +79,16 @@ function bloqueioDeRow(r: Record<string, unknown>): BloqueioResposta {
   };
 }
 
+// Escapa caracteres especiais para inserir texto do usuario em HTML de e-mail.
+function escaparHtml(texto: string): string {
+  return texto
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // Busca um lance com nome/cracha da pessoa (join) para respostas 201/200.
 async function bloqueioComPessoa(id: string) {
   const [row] = await sql`
@@ -87,6 +98,102 @@ async function bloqueioComPessoa(id: string) {
     WHERE b.id = ${id}
   `;
   return bloqueioDeRow(row as unknown as Record<string, unknown>);
+}
+
+// Notificacao por e-mail de um bloqueio pendente aprovacao. Ao cadastrar uma
+// solicitacao, verifica o parametro ativo `bloqueio.notificar-aprovadores`:
+// - "true": dispara para todos os usuarios com a permissao `pessoas.bloqueio`
+//   (que podem aprovar), exceto o proprio solicitante (1o aprovador, que nao
+//   pode aprovar o proprio pedido);
+// - caso contrario: dispara para o e-mail de teste do parametro ativo
+//   `bloqueio.email-teste`.
+// O envio e nao critico: falhas sao registradas na auditoria e jamais abortam
+// a criacao da solicitacao (o retorno 201 ja foi montado pelo chamador).
+async function notificarAprovadores(opts: {
+  id: string;
+  pessoaNome: string;
+  pessoaCracha: number;
+  tipo: "bloqueio" | "desbloqueio";
+  motivo: string;
+  solicitanteUid: string;
+  sessao: Sessao;
+}) {
+  const [paramNotificar] = await sql`
+    SELECT valor FROM parametros
+    WHERE lower(chave) = lower('bloqueio.notificar-aprovadores') AND ativo = TRUE
+  `;
+  const notificar =
+    paramNotificar && String(paramNotificar.valor).trim().toLowerCase() === "true";
+
+  let emails: string[];
+  if (notificar) {
+    const rows = await sql`
+      SELECT DISTINCT u.email
+      FROM usuarios u
+      WHERE u.email IS NOT NULL AND u.email <> ''
+        AND u.uid <> ${opts.solicitanteUid}
+        AND 'pessoas.bloqueio' IN (
+          SELECT DISTINCT pm.codigo
+          FROM permissoes pm
+          WHERE pm.ativo = TRUE
+            AND pm.codigo IN (
+              SELECT unnest(p.permissoes)
+              FROM perfis p
+              WHERE p.sigla = ANY(u.perfis)
+            )
+        )
+    `;
+    emails = rows.map((r) => String(r.email).trim().toLowerCase()).filter(Boolean);
+  } else {
+    const [paramTeste] = await sql`
+      SELECT valor FROM parametros
+      WHERE lower(chave) = lower('bloqueio.email-teste') AND ativo = TRUE
+    `;
+    const teste = String(paramTeste?.valor ?? "").trim().toLowerCase();
+    emails = teste ? [teste] : [];
+  }
+
+if (emails.length === 0) return;
+
+  const verbo = opts.tipo === "bloqueio" ? "bloqueio" : "desbloqueio";
+  const pessoaNome = escaparHtml(opts.pessoaNome);
+  const motivo = escaparHtml(opts.motivo);
+  const appUrl = (process.env.APP_URL ?? "").replace(/\/+$/, "");
+  const linkBloqueios = appUrl ? `${appUrl}/pessoas/bloqueios` : "";
+  const assunto = `Tem ${verbo} pendente de aprovacao - ${opts.pessoaNome}`;
+  const texto = [
+    `Nova solicitacao de ${verbo} pendente de aprovacao.`,
+    ``,
+    `Pessoa: ${opts.pessoaNome}`,
+    `Cracha: ${opts.pessoaCracha}`,
+    `Solicitacao: ${verbo}`,
+    `Motivo: ${opts.motivo}`,
+    ``,
+    linkBloqueios
+      ? `Acesse a tela Bloqueios para aprovar:\n${linkBloqueios}`
+      : `Acesse a tela Bloqueios para aprovar.`,
+  ].join("\n");
+  const html =
+    `<html><body>` +
+    `<h2>Olá!</h2>` +
+    `<p>Nova solicitacao de <strong>${verbo}</strong> aguardando aprovacao.</p>` +
+    `<p><strong>Pessoa:</strong> ${pessoaNome} (cracha ${opts.pessoaCracha})</p>` +
+    `<p><strong>Motivo:</strong> ${motivo}</p>` +
+    (linkBloqueios
+      ? `<p><a href="${linkBloqueios}">Abrir tela de Bloqueios e aprovar</a></p>`
+      : `<p>Acesse a tela Bloqueios para aprovar.</p>`) +
+    `</body></html>`;
+
+  try {
+    await enviarEmail({ destinatariosBcc: emails, assunto, html, texto });
+  } catch (err) {
+    await registrarEvento(
+      opts.sessao,
+      "bloqueio.notificacao.falhou",
+      `bloqueios/${opts.id}`,
+      err instanceof Error ? err.message : "Falha no envio do e-mail"
+    ).catch(() => {});
+  }
 }
 
 // GET /api/bloqueios — historico e filtros (abas Pendentes / Bloqueados).
@@ -170,7 +277,7 @@ app.openapi(postBloqueioRoute, async (c) => {
   try {
     const criado = await sql.begin(async (tx) => {
       const [pessoa] = await tx`
-        SELECT id, nome, bloqueada FROM pessoas
+        SELECT id, nome, cracha, bloqueada FROM pessoas
         WHERE id = ${body.pessoaId} AND excluida = FALSE
         FOR UPDATE
       `;
@@ -195,7 +302,11 @@ app.openapi(postBloqueioRoute, async (c) => {
         )
         RETURNING id
       `;
-      return { id: String(inserido.id), pessoaNome: String(pessoa.nome) };
+      return {
+        id: String(inserido.id),
+        pessoaNome: String(pessoa.nome),
+        pessoaCracha: Number(pessoa.cracha),
+      };
     });
 
     await registrarEvento(
@@ -204,6 +315,15 @@ app.openapi(postBloqueioRoute, async (c) => {
       `bloqueios/${criado.id}`,
       `${body.tipo} de ${criado.pessoaNome}`
     );
+    await notificarAprovadores({
+      id: criado.id,
+      pessoaNome: criado.pessoaNome,
+      pessoaCracha: criado.pessoaCracha,
+      tipo: body.tipo,
+      motivo: body.motivo,
+      solicitanteUid: sessao.uid,
+      sessao,
+    });
     return c.json(await bloqueioComPessoa(criado.id), 201);
   } catch (err) {
     if (err instanceof ErroRequisicao) {

@@ -45,7 +45,7 @@ export async function enviarEmail({
     throw new Error(`Limite do Brevo excedido (maximo ${MAX_DESTINATARIOS} por envio).`);
   }
 
-  const corpo = {
+  const corpo: Record<string, unknown> = {
     sender: {
       email: remetenteEmail,
       name: process.env.BREVO_SENDER_NAME ?? "Festa da Achiropita",
@@ -55,8 +55,12 @@ export async function enviarEmail({
     subject: assunto,
     htmlContent: html,
     textContent: texto,
-    tags: tags ?? [],
   };
+  // O Brevo rejeita `tags` vazio (HTTP 400 "tags is blank"). So envia quando
+  // ha tags reais; caso contrario omite o campo (parametro opcional da API).
+  if (tags && tags.length > 0) {
+    corpo.tags = tags;
+  }
 
   const resposta = await fetch(BREVO_URL, {
     method: "POST",

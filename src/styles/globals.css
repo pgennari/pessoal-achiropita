@@ -205,6 +205,9 @@
   .badge-azul {
     @apply bg-azul-suave text-azul-texto;
   }
+  .badge-marrom {
+    @apply bg-marrom-suave text-marrom-texto;
+  }
   .badge-cinza {
     @apply bg-pietra text-ardesia;
   }

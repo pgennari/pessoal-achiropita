@@ -64,6 +64,9 @@ import {
   type LucideIcon,
   NotebookPen,
   ParkingCircle,
+  HandHeart,
+  HandFist,
+  LayoutDashboard,
 } from "lucide-react";
 
 const icones: Record<string, LucideIcon> = {
@@ -126,6 +129,9 @@ const icones: Record<string, LucideIcon> = {
   "recolher": PanelLeftClose,
   "expandir": PanelLeftOpen,
   "organograma": Network,
+  apoio: HandHeart,
+  "hand-fist": HandFist,
+  "layout-dashboard": LayoutDashboard,
   menos: Minus,
   recentralizar: Maximize,
   MapPin: MapPin,

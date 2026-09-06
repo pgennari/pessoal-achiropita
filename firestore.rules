@@ -193,9 +193,10 @@ service cloud.firestore {
     function conviteValido(d) {
       return d.keys().hasAll([
           "email", "perfil", "status", "expiraEm",
-          "criadoPorUid", "criadoPorNome"
+          "criadoPorUid", "criadoPorNome", "pessoaId"
         ])
         && d.email is string
+        && d.pessoaId is string
         && d.perfil in ["ADM", "ORG", "CRD", "EQP", "OPC", "REC"]
         && d.status in ["pendente", "usado", "revogado"]
         && d.expiraEm is timestamp;

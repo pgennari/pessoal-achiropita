@@ -4,17 +4,17 @@
 // Confirmar dados / marcar manual / remover: "formacao.marcarManual".
 // Compartilhar link: "formacao.turmas".
 // ============================================================================
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useSessao, temPermissao } from "../lib/sessao";
-import { Icone } from "../components/Icone";
+import { Sessao, temPermissao } from "../lib/sessao";
+import { Icone } from "./Icone";
 import {
   useEquipes,
-  useEdicaoAtiva,
   useFormacoes,
   useLinksEdicao,
   useParticipacoes,
   usePessoas,
+  useSetores,
   useTurmasFormacao,
 } from "../lib/hooks";
 import {
@@ -23,9 +23,9 @@ import {
   marcarPresencaManual,
   removerFormacao,
 } from "../lib/formacoes";
-import { gerarLinkDeTurma } from "../lib/links";
-import { urlPublica } from "../lib/links";
+import { gerarLinkDeTurma, urlPublica } from "../lib/links";
 import {
+  Edicao,
   Equipe,
   Formacao,
   FUNCOES,
@@ -38,6 +38,14 @@ import {
 } from "../lib/tipos";
 import { formatarData, normalizar, soDigitos } from "../lib/utilsDominio";
 
+// Cores de fallback dos setores iniciais (iguais ao seed em schema.sql);
+// a cor real vem de setores via API quando disponivel.
+const CORES_SETOR_PADRAO: Record<string, string> = {
+  Interna: "#1f7b4d",
+  Externa: "#c95a2b",
+  Alimentacao: "#b8860b",
+};
+
 // --- tipos auxiliares ---
 
 interface GrupoEquipe {
@@ -47,9 +55,13 @@ interface GrupoEquipe {
   pessoas: Pessoa[];
 }
 
-const SECAO_SEM_FORMACAO = "sem-formacao";
-const SECAO_AGUARDANDO_VALIDACAO = "aguardando-validacao";
-const SECAO_CONFIRMADOS = "confirmados";
+type AbaPendencias = "sem-formacao" | "aguardando" | "confirmados";
+
+const NOME_ABAS: Record<AbaPendencias, string> = {
+  "sem-formacao": "Sem formação",
+  aguardando: "Aguardando",
+  confirmados: "Confirmados",
+};
 
 function agruparPorEquipe(
   pessoas: Pessoa[],
@@ -77,31 +89,26 @@ function agruparPorEquipe(
   );
 }
 
-function rotuloSetor(s: Setor): string {
-  return s === "Alimentacao" ? "Alimentação" : s;
-}
-
-function rolarParaSecao(id: string) {
-  document.getElementById(id)?.scrollIntoView({
-    behavior: "smooth",
-    block: "start",
-  });
+interface Props {
+  sessao: Sessao;
+  edicao: Edicao;
 }
 
 // --- componente principal ---
 
-export function PendenciasFormacao() {
-  const { sessao } = useSessao();
-  const { edicao, carregando: carregandoEdicao } = useEdicaoAtiva();
+export function SecaoPendenciasFormacao({ sessao, edicao }: Props) {
   const navigate = useNavigate();
-  const { itens: turmas } = useTurmasFormacao(edicao?.id);
-  const { itens: equipes } = useEquipes(edicao?.id);
-  const { itens: participacoes } = useParticipacoes(edicao?.id);
-  const { itens: formacoes } = useFormacoes(edicao?.id);
+  const { itens: turmas } = useTurmasFormacao(edicao.id);
+  const { itens: equipes } = useEquipes(edicao.id);
+  const { itens: participacoes } = useParticipacoes(edicao.id);
+  const { itens: formacoes } = useFormacoes(edicao.id);
   const { itens: pessoas } = usePessoas();
-  const { itens: linksEdicao } = useLinksEdicao(edicao?.id);
+  const { itens: linksEdicao } = useLinksEdicao(edicao.id);
+  const { itens: setores } = useSetores();
 
   const [erro, setErro] = useState<string | null>(null);
+
+  const [abaAtiva, setAbaAtiva] = useState<AbaPendencias>("sem-formacao");
 
   // Modal presença manual
   const [marcandoPara, setMarcandoPara] = useState<{
@@ -131,19 +138,6 @@ export function PendenciasFormacao() {
   const [busca, setBusca] = useState("");
   const [filtroEquipe, setFiltroEquipe] = useState("");
   const [filtroFuncao, setFiltroFuncao] = useState<Funcao | "">("");
-  const [mostrarTopo, setMostrarTopo] = useState(false);
-
-  useEffect(() => {
-    function aoRolar() {
-      setMostrarTopo(window.scrollY > 400);
-    }
-    window.addEventListener("scroll", aoRolar, { passive: true });
-    return () => window.removeEventListener("scroll", aoRolar);
-  }, []);
-
-  function voltarAoTopo() {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
 
   const podeConfirmarDados = temPermissao(sessao, "formacao.marcarManual");
   const podeRemover = temPermissao(sessao, "formacao.marcarManual");
@@ -166,6 +160,16 @@ export function PendenciasFormacao() {
     for (const e of equipes) m.set(e.id, e);
     return m;
   }, [equipes]);
+
+  const indiceCorSetor = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const s of setores) m.set(s.id, s.cor);
+    return m;
+  }, [setores]);
+
+  function corDoSetor(setor: string): string {
+    return indiceCorSetor.get(setor) ?? CORES_SETOR_PADRAO[setor] ?? "#888";
+  }
 
   const indiceFormacoes = useMemo(() => {
     const m = new Map<string, Formacao>();
@@ -271,83 +275,12 @@ export function PendenciasFormacao() {
     [pendentesValidacao, indiceParticipacaoPorPessoa, indiceEquipeById]
   );
 
-  const totalPresencas = formacoes.length;
-  const pctPresencas =
-    alocados.length > 0
-      ? Math.round((totalPresencas / alocados.length) * 100)
-      : 0;
-
-  const atalhosPendencias = [
-    {
-      id: SECAO_SEM_FORMACAO,
-      titulo: "SEM FORMAÇÃO",
-      descricao: "Pessoas alocadas que ainda não registraram presença.",
-      quantidade: semFormacao.length,
-      classeBadge: "badge-cinza",
-    },
-    {
-      id: SECAO_AGUARDANDO_VALIDACAO,
-      titulo: "Aguardando validação de dados",
-      descricao: "Presenças manuais que ainda dependem de confirmação.",
-      quantidade: pendentesValidacao.length,
-      classeBadge: "badge-ouro",
-    },
-    {
-      id: SECAO_CONFIRMADOS,
-      titulo: "Confirmados",
-      descricao: "Pessoas com presença e dados já validados.",
-      quantidade: confirmados.length,
-      classeBadge: "badge-verde",
-    },
-  ];
-
-  if (!sessao) return null;
-  if (!podeAcessar) {
-    return (
-      <div className="card">
-        <div className="card-corpo">
-          <h3 className="mb-2">Sem permissão</h3>
-          <p className="text-ardesia">
-            Sem acesso a esta seção.
-          </p>
-          <Link
-            to="/"
-            className="btn btn-secundario mt-4"
-            aria-label="Voltar"
-            title="Voltar"
-          >
-            <Icone nome="seta-esquerda" />
-          </Link>
-        </div>
-      </div>
-    );
-  }
-  if (carregandoEdicao) return <p className="text-ardesia">Carregando...</p>;
-  if (!edicao) {
-    return (
-      <div className="card">
-        <div className="card-corpo">
-          <h3 className="mb-2">Sem edição ativa</h3>
-          <p className="text-ardesia">
-            Marque uma edição como ativa para ver pendências de formação.
-          </p>
-          <Link
-            to="/edicoes"
-            className="btn btn-primario mt-4"
-            aria-label="Abrir edições"
-            title="Abrir edições"
-          >
-            <Icone nome="calendario" />
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  if (!podeAcessar) return null;
 
   // --- handlers ---
 
   async function handleConfirmarMarcacao() {
-    if (!sessao || !edicao || !marcandoPara) return;
+    if (!sessao || !marcandoPara) return;
     setErro(null);
     try {
       await marcarPresencaManual(sessao, {
@@ -425,17 +358,20 @@ export function PendenciasFormacao() {
   // --- render ---
 
   return (
-    <div className="space-y-6">
-      <header>
-        <div className="eyebrow">Operação</div>
-        <h2 className="mt-1">Pendências de Formação</h2>
-        <p className="text-ardesia text-sm">
-          {edicao.numero}ª edição ({edicao.ano}) ·{" "}
-          <span className="font-mono">{totalPresencas}</span> de{" "}
-          <span className="font-mono">{alocados.length}</span> alocados com
-          formação ({pctPresencas}%)
-        </p>
-      </header>
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h3>Pendências de formação</h3>
+          <p className="text-ardesia text-sm">
+            <span className="font-mono">{semFormacao.length}</span> sem
+            formação · <span className="font-mono">
+              {pendentesValidacao.length}
+            </span>{" "}
+            aguardando · <span className="font-mono">{confirmados.length}</span>{" "}
+            confirmados
+          </p>
+        </div>
+      </div>
 
       {erro && (
         <div className="card border-vermelho/40">
@@ -444,308 +380,317 @@ export function PendenciasFormacao() {
       )}
 
       {/* Filtros de pendências (US-06-04) */}
-      <section className="space-y-4">
-        <div>
+      <div className="card">
+        <div className="card-corpo">
           <p className="text-ardesia text-sm">
-            Use os filtros para localizar e acompanhar as pendências por equipe
-            ou função.
+            Use os filtros para localizar e acompanhar as pendências por
+            equipe ou função.
           </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {atalhosPendencias.map((atalho) => (
-              <button
-                key={atalho.id}
-                type="button"
-                onClick={() => rolarParaSecao(atalho.id)}
-                className={`badge ${atalho.classeBadge} cursor-pointer hover:opacity-75 transition-opacity`}
-              >
-                {atalho.titulo}
-                <span className="font-bold ml-1">{atalho.quantidade}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-corpo">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <input
-                className="input"
-                placeholder="Buscar por nome, crachá ou CPF..."
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-              />
-              <select
-                className="input"
-                value={filtroEquipe}
-                onChange={(e) => setFiltroEquipe(e.target.value)}
-              >
-                <option value="">Todas as equipes</option>
-                {equipes.map((eq) => (
-                  <option key={eq.id} value={eq.id}>
-                    {eq.nome}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="input"
-                value={filtroFuncao}
-                onChange={(e) =>
-                  setFiltroFuncao(e.target.value as Funcao | "")
-                }
-              >
-                <option value="">Todas as funções</option>
-                {FUNCOES.map((f) => (
-                  <option key={f} value={f}>
-                    {f}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Lista A — Sem formação */}
-        <div id={SECAO_SEM_FORMACAO} className="scroll-mt-6">
-          <div className="flex items-center gap-3 mb-3">
-            <h4 className="m-0">Sem formação</h4>
-            <span className="badge badge-cinza">{semFormacao.length}</span>
-          </div>
-          <p className="text-ardesia text-sm mb-3">
-            Equipistas alocados que ainda não têm presença registrada.
-          </p>
-          {gruposSemFormacao.length === 0 ? (
-            <div className="card">
-              <div className="card-corpo text-ardesia text-center">
-                {semFormacao.length === 0
-                  ? "Nenhuma pendência de formação."
-                  : "Nenhum resultado para os filtros aplicados."}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {gruposSemFormacao.map((grupo) => (
-                <GrupoBarracaTabela
-                  key={grupo.equipeId}
-                  grupo={grupo}
-                  colunaStatus={false}
-                  onRowClick={podeConfirmarDados ? (p) => {
-                    setMarcandoPara({ pessoa: p });
-                    setJustificativa("");
-                  } : undefined}
-                  renderAcoes={podeConfirmarDados ? (p) => (
-                    <button
-                      type="button"
-                      className="btn btn-primario btn-pequeno"
-                      onClick={() => {
-                        setMarcandoPara({ pessoa: p });
-                        setJustificativa("");
-                      }}
-                      aria-label="Marcar manual"
-                      title="Marcar manual"
-                    >
-                      <Icone nome="check" />
-                    </button>
-                  ) : () => null}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Lista B — Aguardando validação de dados */}
-        <div id={SECAO_AGUARDANDO_VALIDACAO} className="scroll-mt-6">
-          <div className="flex flex-wrap items-center gap-3 mb-3">
-            <h4 className="m-0">Aguardando validação de dados</h4>
-            <span className="badge badge-ouro">
-              {pendentesValidacao.length}
-            </span>
-            {/* TODO(US-06-04): "Notificar todos" requer FCM push e serviço de
-                e-mail — exige Cloud Functions (plano Blaze). Não implementado
-                no MVP Spark. */}
-            <button
-              type="button"
-              className="btn btn-secundario btn-pequeno ml-auto opacity-50 cursor-not-allowed"
-              disabled
-              aria-label="Notificar todos"
-              title="Requer Cloud Functions (plano Blaze) — não disponível no Spark"
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input
+              className="input"
+              placeholder="Buscar por nome, crachá ou CPF..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+            <select
+              className="input"
+              value={filtroEquipe}
+              onChange={(e) => setFiltroEquipe(e.target.value)}
             >
-              <Icone nome="enviar" />
-            </button>
-          </div>
-          <p className="text-ardesia text-sm mb-3">
-            Presença registrada manualmente. O equipista ainda não confirmou
-            seus dados pelo link público.
-          </p>
-          {gruposPendentesValidacao.length === 0 ? (
-            <div className="card">
-              <div className="card-corpo text-ardesia text-center">
-                {pendentesValidacao.length === 0
-                  ? "Nenhuma validação pendente."
-                  : "Nenhum resultado para os filtros aplicados."}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {gruposPendentesValidacao.map((grupo) => (
-                <GrupoBarracaTabela
-                  key={grupo.equipeId}
-                  grupo={grupo}
-                  colunaStatus
-                  onRowClick={(p) => navigate(`/pessoas/${p.id}`)}
-                  renderStatus={(p) => {
-                    const f = indiceFormacoes.get(p.id);
-                    if (!f) return null;
-                    return (
-                      <button
-                        type="button"
-                        className="badge badge-ouro hover:underline cursor-pointer"
-                        onClick={(ev) => {
-                          ev.stopPropagation();
-                          setVendoJustificativa({ formacao: f, pessoa: p });
-                        }}
-                        title="Ver justificativa"
-                      >
-                        manual
-                      </button>
-                    );
-                  }}
-                  renderAcoes={(p) => {
-                    const f = indiceFormacoes.get(p.id);
-                    return (
-                      <div className="flex gap-2 justify-end flex-wrap">
-                        {podeConfirmarDados && f && (
-                          <button
-                            type="button"
-                            className="btn btn-primario btn-pequeno"
-                            disabled={confirmandoId === f.id}
-                            onClick={(ev) => { ev.stopPropagation(); handleConfirmarDados(f, p); }}
-                            aria-label="Confirmar dados"
-                            title="Confirmar dados"
-                          >
-                            <Icone nome="check" />
-                          </button>
-                        )}
-                        {podeCompartilharLink && (
-                          <button
-                            type="button"
-                            className="btn btn-secundario btn-pequeno"
-                            onClick={(ev) => {
-                              ev.stopPropagation();
-                              if (f) {
-                                setErroLink(null);
-                                setCompartilhandoPara({
-                                  pessoa: p,
-                                  formacao: f,
-                                });
-                              }
-                            }}
-                            aria-label="Compartilhar link"
-                            title="Compartilhar link"
-                          >
-                            <Icone nome="link" />
-                          </button>
-                        )}
-                        {podeRemover && f && (
-                          <button
-                            type="button"
-                            className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                            onClick={(ev) => { ev.stopPropagation(); handleRemoverFormacao(f); }}
-                            aria-label="Remover"
-                            title="Remover"
-                          >
-                            <Icone nome="lixeira" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  }}
-                />
+              <option value="">Todas as equipes</option>
+              {equipes.map((eq) => (
+                <option key={eq.id} value={eq.id}>
+                  {eq.nome}
+                </option>
               ))}
-            </div>
-          )}
-        </div>
-
-        {/* Confirmados */}
-        <div id={SECAO_CONFIRMADOS} className="scroll-mt-6">
-          <div className="flex items-center gap-3 mb-3">
-            <h4 className="m-0">Confirmados</h4>
-            <span className="badge badge-verde">{confirmados.length}</span>
+            </select>
+            <select
+              className="input"
+              value={filtroFuncao}
+              onChange={(e) => setFiltroFuncao(e.target.value as Funcao | "")}
+            >
+              <option value="">Todas as funções</option>
+              {FUNCOES.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
           </div>
-          {confirmados.length === 0 ? (
-            <div className="card">
-              <div className="card-corpo text-ardesia text-center">
-                Nenhum confirmado ainda.
-              </div>
-            </div>
-          ) : (
-            <div className="card overflow-hidden">
-              <div className="tabela-rolavel">
-                <table className="tabela-larga">
-                  <thead className="bg-pietra-clara/60 text-left">
-                    <tr>
-                      <th className="px-4 py-3 font-semibold w-20">Crachá</th>
-                      <th className="px-4 py-3 font-semibold">Pessoa</th>
-                      <th className="px-4 py-3 font-semibold">Equipe</th>
-                      <th className="px-4 py-3 font-semibold w-36">Status</th>
-                      <th className="px-4 py-3 font-semibold w-32 text-right">
-                        Ações
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {confirmados.map((p) => {
-                      const f = indiceFormacoes.get(p.id);
-                      const part = indiceParticipacaoPorPessoa.get(p.id);
-                      const equipe = part
-                        ? indiceEquipeById.get(part.equipeId)
-                        : undefined;
-                      return (
-                        <tr
-                          key={p.id}
-                          className="border-t border-pietra-clara hover:bg-pietra-clara/40 cursor-pointer"
-                          onClick={() => navigate(`/pessoas/${p.id}`)}
-                        >
-                          <td className="px-4 py-3 font-mono text-ardesia">
-                            #{p.cracha}
-                          </td>
-                          <td className="px-4 py-3">
-                            <Link
-                              to={`/pessoas/${p.id}`}
-                              className="font-semibold text-carbone hover:text-verde"
-                            >
-                              {p.nome}
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3 text-ardesia">
-                            {equipe?.nome ?? "—"}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="badge badge-verde">validado</span>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            {podeRemover && f && (
-                              <button
-                                type="button"
-                                className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                                onClick={(ev) => { ev.stopPropagation(); handleRemoverFormacao(f); }}
-                                aria-label="Remover"
-                                title="Remover"
-                              >
-                                <Icone nome="lixeira" />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+        </div>
+      </div>
+
+      <div className="tabs" role="tablist" aria-label="Pendências de formação">
+        <div className="tabs-lista">
+          {(["sem-formacao", "aguardando", "confirmados"] as const).map(
+            (aba) => (
+              <button
+                key={aba}
+                type="button"
+                role="tab"
+                aria-selected={abaAtiva === aba}
+                className={`aba ${abaAtiva === aba ? "aba-ativa" : ""}`}
+                onClick={() => setAbaAtiva(aba)}
+              >
+                {NOME_ABAS[aba]}
+              </button>
+            )
           )}
         </div>
 
-      </section>
+        {/* Aba — Sem formação */}
+        {abaAtiva === "sem-formacao" && (
+          <section className="tabs-painel" role="tabpanel" tabIndex={0}>
+            <p className="text-ardesia text-sm mb-4">
+              Equipistas alocados que ainda não têm presença registrada.{" "}
+              <span className="badge badge-cinza">{semFormacao.length}</span>
+            </p>
+            {gruposSemFormacao.length === 0 ? (
+              <div className="card">
+                <div className="card-corpo text-ardesia text-center">
+                  {semFormacao.length === 0
+                    ? "Nenhuma pendência de formação."
+                    : "Nenhum resultado para os filtros aplicados."}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {gruposSemFormacao.map((grupo) => (
+                  <GrupoBarracaTabela
+                    key={grupo.equipeId}
+                    grupo={grupo}
+                    corSetor={corDoSetor(grupo.setor)}
+                    colunaStatus={false}
+                    onRowClick={
+                      podeConfirmarDados
+                        ? (p) => {
+                            setMarcandoPara({ pessoa: p });
+                            setJustificativa("");
+                          }
+                        : undefined
+                    }
+                    renderAcoes={
+                      podeConfirmarDados
+                        ? (p) => (
+                            <button
+                              type="button"
+                              className="btn btn-primario btn-pequeno"
+                              onClick={() => {
+                                setMarcandoPara({ pessoa: p });
+                                setJustificativa("");
+                              }}
+                              aria-label="Marcar manual"
+                              title="Marcar manual"
+                            >
+                              <Icone nome="check" />
+                            </button>
+                          )
+                        : () => null
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Aba — Aguardando validação de dados */}
+        {abaAtiva === "aguardando" && (
+          <section className="tabs-painel" role="tabpanel" tabIndex={0}>
+            <p className="text-ardesia text-sm mb-4">
+              Presença registrada manualmente. O equipista ainda não confirmou
+              seus dados pelo link público.{" "}
+              <span className="badge badge-ouro">
+                {pendentesValidacao.length}
+              </span>
+            </p>
+            {gruposPendentesValidacao.length === 0 ? (
+              <div className="card">
+                <div className="card-corpo text-ardesia text-center">
+                  {pendentesValidacao.length === 0
+                    ? "Nenhuma validação pendente."
+                    : "Nenhum resultado para os filtros aplicados."}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {gruposPendentesValidacao.map((grupo) => (
+                  <GrupoBarracaTabela
+                    key={grupo.equipeId}
+                    grupo={grupo}
+                    corSetor={corDoSetor(grupo.setor)}
+                    colunaStatus
+                    onRowClick={(p) => navigate(`/pessoas/${p.id}`)}
+                    renderStatus={(p) => {
+                      const f = indiceFormacoes.get(p.id);
+                      if (!f) return null;
+                      return (
+                        <button
+                          type="button"
+                          className="badge badge-ouro hover:underline cursor-pointer"
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            setVendoJustificativa({ formacao: f, pessoa: p });
+                          }}
+                          title="Ver justificativa"
+                        >
+                          manual
+                        </button>
+                      );
+                    }}
+                    renderAcoes={(p) => {
+                      const f = indiceFormacoes.get(p.id);
+                      return (
+                        <div className="flex gap-2 justify-end flex-wrap">
+                          {podeConfirmarDados && f && (
+                            <button
+                              type="button"
+                              className="btn btn-primario btn-pequeno"
+                              disabled={confirmandoId === f.id}
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                handleConfirmarDados(f, p);
+                              }}
+                              aria-label="Confirmar dados"
+                              title="Confirmar dados"
+                            >
+                              <Icone nome="check" />
+                            </button>
+                          )}
+                          {podeCompartilharLink && (
+                            <button
+                              type="button"
+                              className="btn btn-secundario btn-pequeno"
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                if (f) {
+                                  setErroLink(null);
+                                  setCompartilhandoPara({
+                                    pessoa: p,
+                                    formacao: f,
+                                  });
+                                }
+                              }}
+                              aria-label="Compartilhar link"
+                              title="Compartilhar link"
+                            >
+                              <Icone nome="link" />
+                            </button>
+                          )}
+                          {podeRemover && f && (
+                            <button
+                              type="button"
+                              className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                handleRemoverFormacao(f);
+                              }}
+                              aria-label="Remover"
+                              title="Remover"
+                            >
+                              <Icone nome="lixeira" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Aba — Confirmados */}
+        {abaAtiva === "confirmados" && (
+          <section className="tabs-painel" role="tabpanel" tabIndex={0}>
+            <p className="text-ardesia text-sm mb-4">
+              Pessoas com presença e dados já validados.{" "}
+              <span className="badge badge-verde">{confirmados.length}</span>
+            </p>
+            {confirmados.length === 0 ? (
+              <div className="card">
+                <div className="card-corpo text-ardesia text-center">
+                  Nenhum confirmado ainda.
+                </div>
+              </div>
+            ) : (
+              <div className="card overflow-hidden">
+                <div className="tabela-rolavel">
+                  <table className="tabela-larga">
+                    <thead className="bg-pietra-clara/60 text-left">
+                      <tr>
+                        <th className="px-4 py-3 font-semibold w-20">Crachá</th>
+                        <th className="px-4 py-3 font-semibold">Pessoa</th>
+                        <th className="px-4 py-3 font-semibold">Equipe</th>
+                        <th className="px-4 py-3 font-semibold w-36">
+                          Status
+                        </th>
+                        <th className="px-4 py-3 font-semibold w-32 text-right">
+                          Ações
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {confirmados.map((p) => {
+                        const f = indiceFormacoes.get(p.id);
+                        const part = indiceParticipacaoPorPessoa.get(p.id);
+                        const equipe = part
+                          ? indiceEquipeById.get(part.equipeId)
+                          : undefined;
+                        return (
+                          <tr
+                            key={p.id}
+                            className="border-t border-pietra-clara hover:bg-pietra-clara/40 cursor-pointer"
+                            onClick={() => navigate(`/pessoas/${p.id}`)}
+                          >
+                            <td className="px-4 py-3 font-mono text-ardesia">
+                              #{p.cracha}
+                            </td>
+                            <td className="px-4 py-3">
+                              <Link
+                                to={`/pessoas/${p.id}`}
+                                className="font-semibold text-carbone hover:text-verde"
+                              >
+                                {p.nome}
+                              </Link>
+                            </td>
+                            <td className="px-4 py-3 text-ardesia">
+                              {equipe?.nome ?? "—"}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="badge badge-verde">
+                                validado
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {podeRemover && f && (
+                                <button
+                                  type="button"
+                                  className="btn btn-texto btn-pequeno text-vermelho-escuro"
+                                  onClick={(ev) => {
+                                    ev.stopPropagation();
+                                    handleRemoverFormacao(f);
+                                  }}
+                                  aria-label="Remover"
+                                  title="Remover"
+                                >
+                                  <Icone nome="lixeira" />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+      </div>
 
       {/* Modal — Presença manual */}
       {marcandoPara && (
@@ -863,9 +808,7 @@ export function PendenciasFormacao() {
 
               <div className="text-ardesia text-sm">
                 Registrado por{" "}
-                <strong>
-                  {vendoJustificativa.formacao.registradoPorNome}
-                </strong>{" "}
+                <strong>{vendoJustificativa.formacao.registradoPorNome}</strong>{" "}
                 em{" "}
                 <span className="font-mono">
                   {formatarData(vendoJustificativa.formacao.presencaEm)}
@@ -1012,9 +955,7 @@ export function PendenciasFormacao() {
                             type="button"
                             className="btn btn-primario btn-pequeno"
                             disabled={gerandoLink}
-                            onClick={() =>
-                              handleGerarLinkParaCompartilhar(t)
-                            }
+                            onClick={() => handleGerarLinkParaCompartilhar(t)}
                             aria-label="Gerar link"
                             title="Gerar link"
                           >
@@ -1045,19 +986,7 @@ export function PendenciasFormacao() {
           </div>
         </div>
       )}
-
-      {mostrarTopo && (
-        <button
-          type="button"
-          onClick={voltarAoTopo}
-          className="fixed bottom-6 right-6 z-40 btn btn-primario btn-pequeno rounded-full shadow-media"
-          aria-label="Voltar ao topo"
-          title="Voltar ao topo"
-        >
-          <Icone nome="topo" />
-        </button>
-      )}
-    </div>
+    </section>
   );
 }
 
@@ -1065,27 +994,31 @@ export function PendenciasFormacao() {
 
 interface GrupoEquipeTabelaProps {
   grupo: GrupoEquipe;
+  corSetor: string;
   colunaStatus: boolean;
-  renderStatus?: (p: Pessoa) => React.ReactNode;
-  renderAcoes: (p: Pessoa) => React.ReactNode;
+  renderStatus?: (p: Pessoa) => ReactNode;
+  renderAcoes: (p: Pessoa) => ReactNode;
   onRowClick?: (p: Pessoa) => void;
 }
 
 function GrupoBarracaTabela({
   grupo,
+  corSetor,
   colunaStatus,
   renderStatus,
   renderAcoes,
   onRowClick,
 }: GrupoEquipeTabelaProps) {
   return (
-    <div className="card overflow-hidden">
+    <div
+      className="card overflow-hidden"
+      style={{ borderLeft: `4px solid ${corSetor}` }}
+    >
       <div className="card-corpo flex flex-wrap items-center gap-3 border-b border-pietra-clara py-3">
         <span className="font-semibold">{grupo.equipeNome}</span>
-        <span className="badge badge-cinza text-xs">
-          {rotuloSetor(grupo.setor)}
+        <span className="badge badge-cinza ml-auto">
+          {grupo.pessoas.length}
         </span>
-        <span className="badge badge-cinza ml-auto">{grupo.pessoas.length}</span>
       </div>
       <div className="tabela-rolavel">
         <table className="tabela-larga">

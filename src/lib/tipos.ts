@@ -1,7 +1,16 @@
 // Perfis sao um catalogo editavel (tela de controle de perfil); a sigla e a
-// chave do registro em /perfis. Os seis perfis padrao (ADM, ORG, CRD, EQP,
-// OPC, REC) sao semeados no banco; o ADM e fixo e nao pode ser alterado.
+// chave do registro em /perfis. Os sete perfis padrao (ADM, ORG, CRD, APO,
+// EQP, OPC, REC) sao semeados no banco; o ADM e fixo e nao pode ser alterado.
 export type Perfil = string;
+
+// Perfis que exigem ao menos uma equipe associada (usuario/convite). Ambos
+// usam o campo legado `equipesCRD`: o CRD coordena as equipes e o APO apoia
+// (as equipes sob a equipe de apoio do usuario sao as filhas dela).
+export const SIGLAS_COM_EQUIPES = ["CRD", "APO"] as const;
+
+export function precisaEquipes(perfis: string[]): boolean {
+  return perfis.some((p) => (SIGLAS_COM_EQUIPES as readonly string[]).includes(p));
+}
 
 // Registro do catalogo de perfis (GET/POST/PUT/DELETE /api/perfis).
 export interface PerfilInfo {
@@ -329,6 +338,40 @@ export const SETORES: { valor: Setor; rotulo: string }[] = [
   { valor: "Alimentacao", rotulo: "Alimentação" },
 ];
 
+// Tipo de equipe: SUPERVISAO, APOIO ou NORMAL. Valores sem acento no
+// banco/API; o rotulo exibido e com acento (mesma convencao do setor).
+export type TipoEquipe = "SUPERVISAO" | "APOIO" | "NORMAL";
+
+export const TIPOS_EQUIPE: { sigla: TipoEquipe; rotulo: string }[] = [
+  { sigla: "SUPERVISAO", rotulo: "Supervisão" },
+  { sigla: "APOIO", rotulo: "Apoio" },
+  { sigla: "NORMAL", rotulo: "Normal" },
+];
+
+export const TIPO_EQUIPE_PADRAO: TipoEquipe = "NORMAL";
+
+export function rotuloTipoEquipe(tipo: TipoEquipe | null | undefined): string {
+  const t = TIPOS_EQUIPE.find((x) => x.sigla === tipo);
+  return t?.rotulo ?? "—";
+}
+
+// So exibe badge de tipo para APOIO/SUPERVISAO (equipes NORMAL nao marcam);
+// cores: SUPERVISAO = marrom, APOIO = azul.
+export function tipoEquipeTemBadge(tipo: TipoEquipe | null | undefined): boolean {
+  return tipo === "SUPERVISAO" || tipo === "APOIO";
+}
+
+export function classeBadgeTipoEquipe(tipo: TipoEquipe | null | undefined): string {
+  switch (tipo) {
+    case "SUPERVISAO":
+      return "badge-marrom";
+    case "APOIO":
+      return "badge-azul";
+    default:
+      return "badge-cinza";
+  }
+}
+
 export interface SetorInfo {
   id: string;
   nome: string;
@@ -343,6 +386,8 @@ export interface Equipe {
   edicaoId: string;
   nome: string;
   setor: Setor;
+  // Tipo de equipe: SUPERVISAO, APOIO ou NORMAL.
+  tipo: TipoEquipe;
   // Subordinacao no organograma; null = sem equipe superior.
   equipePaiId?: string | null;
   // Equipe raiz do organograma (unica por edicao; as demais equipes sem
@@ -355,6 +400,34 @@ export interface Equipe {
   vagasEquipista: number;
   criadoEm: string;
   atualizadoEm: string;
+}
+
+// Painel do Apoio (feature Painel Apoio): equipes de apoio do usuario e as
+// equipes filhas delas, com os dias de festa sem presenca e as avaliacoes
+// (019) por equipe.
+export interface PainelApoioApoio {
+  equipeId: string;
+  nome: string;
+}
+
+export interface PainelApoioEquipe {
+  equipeId: string;
+  nome: string;
+  setor: Setor;
+  // Datas (YYYY-MM-DD) dos dias de festa da edicao em que a equipe filha nao
+  // teve nenhuma presenca registrada (vazio = presenca em todos os dias).
+  diasFaltantes: string[];
+  // Avaliacoes de equipistas FINALIZADAS na edicao (0 = o coordenador ainda
+  // nao avaliou ninguem da equipe).
+  avaliacoes: number;
+}
+
+export interface PainelApoio {
+  edicaoId: string;
+  // Total de dias de festa da edicao (util para saber se ha dias cadastrados).
+  diasFesta: number;
+  apoios: PainelApoioApoio[];
+  equipes: PainelApoioEquipe[];
 }
 
 // Campo de texto livre do resumo de uma equipe. Cada campo e preenchido pelo

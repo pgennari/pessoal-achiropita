@@ -1,6 +1,6 @@
 import { api } from "./api";
 import { queryClient } from "./queryClient";
-import { Perfil, Usuario } from "./tipos";
+import { Perfil, Usuario, precisaEquipes } from "./tipos";
 import { Sessao } from "./sessao";
 
 export class ErroUsuario extends Error {
@@ -51,8 +51,8 @@ function validar(d: DadosUsuarioForm, perfisSiglas: Set<string>): Record<string,
     erros.perfis = "Selecione pelo menos um perfil.";
   else if (d.perfis.some((p) => !perfisSiglas.has(p)))
     erros.perfis = "Perfil inválido.";
-  if (d.perfis?.includes("CRD") && (!d.equipesCRD || d.equipesCRD.length === 0))
-    erros.equipesCRD = "Coordenador precisa de pelo menos uma equipe.";
+  if (precisaEquipes(d.perfis) && (!d.equipesCRD || d.equipesCRD.length === 0))
+    erros.equipesCRD = "Coordenador/Apoio precisa de pelo menos uma equipe.";
   return erros;
 }
 
@@ -69,7 +69,7 @@ export async function atualizarUsuario(
     nome: dados.nome.trim(),
     perfis: dados.perfis,
     pessoaId: dados.pessoaId?.trim() || null,
-    equipesCRD: dados.perfis.includes("CRD") && dados.equipesCRD ? dados.equipesCRD : null,
+    equipesCRD: precisaEquipes(dados.perfis) && dados.equipesCRD ? dados.equipesCRD : null,
   });
   await queryClient.invalidateQueries({ queryKey: ["usuarios"] });
 }

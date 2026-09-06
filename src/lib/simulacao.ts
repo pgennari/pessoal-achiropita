@@ -9,6 +9,10 @@ export interface Simulacao {
   // permissoes de todos e aplicada na sessao simulada.
   perfis: string[];
   equipesCRD?: string[];
+  // pessoa_id do usuario simulado (atalho "Simular usuario" na pagina
+  // Usuarios): a sessao simulada carrega o escopo pessoal desse usuario
+  // (ex.: relatorio de avaliacoes de equipes APOIO) alem dos perfis.
+  pessoaId?: string;
 }
 
 export const CHAVE_SIMULACAO = "achiropita.simulacao.v1";
@@ -23,7 +27,7 @@ export function lerSimulacao(): Simulacao | null {
   try {
     const bruto = localStorage.getItem(CHAVE_SIMULACAO);
     if (!bruto) return null;
-    const obj = JSON.parse(bruto) as { perfis?: unknown; perfil?: unknown; equipesCRD?: unknown };
+    const obj = JSON.parse(bruto) as { perfis?: unknown; perfil?: unknown; equipesCRD?: unknown; pessoaId?: unknown };
     // Compat: aceita tanto `perfis` (novo) quanto `perfil` (legado).
     const perfisRaw = Array.isArray(obj.perfis)
       ? obj.perfis
@@ -40,6 +44,10 @@ export function lerSimulacao(): Simulacao | null {
           : ehArrayStrings(obj.equipesCRD)
             ? obj.equipesCRD
             : [],
+      pessoaId:
+        typeof obj.pessoaId === "string" && obj.pessoaId.trim()
+          ? obj.pessoaId.trim()
+          : undefined,
     };
   } catch {
     return null;
@@ -56,6 +64,9 @@ export function simulacaoHeaders(): Record<string, string> {
   };
   if (s.equipesCRD && s.equipesCRD.length > 0) {
     headers["X-Simulacao-Equipes"] = JSON.stringify(s.equipesCRD);
+  }
+  if (s.pessoaId && s.pessoaId.trim()) {
+    headers["X-Simulacao-Pessoa"] = s.pessoaId;
   }
   return headers;
 }

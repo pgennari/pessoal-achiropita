@@ -55,6 +55,9 @@ import {
   Equipe,
   SetorInfo,
   Comunicado,
+  classeBadgeTipoEquipe,
+  rotuloTipoEquipe,
+  tipoEquipeTemBadge,
 } from "../lib/tipos";
 import { formatarData } from "../lib/utilsDominio";
 
@@ -258,6 +261,7 @@ export function EdicaoDetalhe() {
       await atualizarEquipe(sessao, equipe, {
         nome: equipe.nome,
         setor: novoSector,
+        tipo: equipe.tipo,
         equipePaiId: equipe.equipePaiId ?? null,
       }, equipes);
       setAlterandoSetorId(null);
@@ -694,11 +698,21 @@ export function EdicaoDetalhe() {
                           >
                             {e.nome}
                           </Link>
-                          {equipePai && (
-                            <span className="block text-xs text-ardesia">
-                              Subordinada a {equipePai.nome}
-                            </span>
-                          )}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {tipoEquipeTemBadge(e.tipo) && (
+                              <span
+                                className={`badge ${classeBadgeTipoEquipe(e.tipo)} shrink-0`}
+                                title="Tipo de equipe"
+                              >
+                                {rotuloTipoEquipe(e.tipo)}
+                              </span>
+                            )}
+                            {equipePai && (
+                              <span className="text-xs text-ardesia">
+                                Subordinada a {equipePai.nome}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         {alterandoSetorId === e.id && podeAlterarSetor ? (
                           <select

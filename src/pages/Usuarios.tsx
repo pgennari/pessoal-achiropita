@@ -279,7 +279,8 @@ export function Usuarios() {
 
       <div className="card">
         <div className="card-corpo text-sm text-ardesia">
-          ADM gera um convite e envia o link ao novo usuário.
+          ADM gera um convite <strong>vinculado a uma Pessoa</strong>, usando o
+          e-mail cadastrado no registro dela, e envia o link ao novo usuário.
           Quem entra no sistema <strong>precisa ter passado pelo link</strong>;
           tentativas de login sem convite são recusadas e mostram um aviso
           orientando a procurar a organização.
@@ -727,6 +728,7 @@ export function Usuarios() {
             ? {
                 perfis: (simulacaoUsuario.perfis ?? [simulacaoUsuario.perfil]).filter((p) => p !== "ADM"),
                 equipesCRD: simulacaoUsuario.equipesCRD,
+                pessoaId: simulacaoUsuario.pessoaId,
               }
             : null
         }

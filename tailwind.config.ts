@@ -25,6 +25,7 @@ const config: Config = {
         carbone: "#1C1A16",
         ouro: { DEFAULT: "#C99A2E", suave: "#F5EBC8", texto: "#6F5310" },
         azul: { DEFAULT: "#2A5C8A", suave: "#DCE7F2", texto: "#1B3F5C" },
+        marrom: { DEFAULT: "#7B4A2D", suave: "#EAE0D3", texto: "#4A2A14" },
       },
       fontFamily: {
         display: ['"Fraunces"', '"Times New Roman"', "serif"],

@@ -37,6 +37,8 @@ import {
   Funcao,
   Participacao,
   Pessoa,
+  rotuloTipoEquipe,
+  tipoEquipeTemBadge,
 } from "../lib/tipos";
 
 interface Linha {
@@ -269,6 +271,12 @@ export function EquipeDetalhe() {
           <h2 className="mt-1">{equipe.nome}</h2>
           <div className="text-ardesia text-sm">
             {nomeSetor}
+            {tipoEquipeTemBadge(equipe.tipo) && (
+              <>
+                {" · "}
+                {rotuloTipoEquipe(equipe.tipo)}
+              </>
+            )}
             {equipePai && (
               <>
                 {" · subordinada a "}

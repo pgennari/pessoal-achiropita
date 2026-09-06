@@ -16,6 +16,7 @@ export const ROTAS: Record<string, MetaRota> = {
   "/organograma": { label: "Organograma", icone: "organograma" },
   "/resumo": { label: "Resumo", icone: "relatorio" },
   "/presenca": { label: "Presença", icone: "check" },
+  "/apoio": { label: "Painel do Apoio", icone: "apoio" },
   "/formacao": { label: "Formação", icone: "clipboard" },
   "/estacionamentos": { label: "Estacionamentos", icone: "carro" },
   "/vagas": { label: "Vagas", icone: "alvo" },

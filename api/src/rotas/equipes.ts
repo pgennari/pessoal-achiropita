@@ -10,6 +10,12 @@ import type { Variaveis } from "../tipos.js";
 
 const app = new OpenAPIHono<Variaveis>();
 
+const TIPOS_EQUIPE_VALIDOS = new Set(["SUPERVISAO", "APOIO", "NORMAL"]);
+
+function tipoEquipe(entrada: unknown): string {
+  return typeof entrada === "string" ? entrada : "NORMAL";
+}
+
 function equipeDeRow(r: Record<string, unknown>) {
   const criadoEm = r.criado_em instanceof Date ? r.criado_em.toISOString() : String(r.criado_em ?? "");
   const atualizadoEm = r.atualizado_em instanceof Date ? r.atualizado_em.toISOString() : String(r.atualizado_em ?? "");
@@ -18,6 +24,7 @@ function equipeDeRow(r: Record<string, unknown>) {
     edicaoId: r.edicao_id,
     nome: r.nome,
     setor: r.setor,
+    tipo: (r.tipo as string) ?? "NORMAL",
     equipePaiId: r.equipe_pai_id ?? null,
     raiz: r.raiz === true,
     excluida: r.excluida === true,
@@ -36,6 +43,7 @@ const SEL_EQUIPES = sql`
     e.edicao_id,
     e.nome,
     e.setor,
+    e.tipo,
     e.equipe_pai_id,
     e.raiz,
     e.excluida,
@@ -234,6 +242,10 @@ app.openapi(postEquipeRoute, async (c) => {
   const body = await c.req.json() as Record<string, unknown>;
   const { edicaoId, nome, setor } = body;
   const edicao = String(edicaoId ?? "");
+  const tipo = tipoEquipe(body.tipo);
+  if (!TIPOS_EQUIPE_VALIDOS.has(tipo)) {
+    return c.json({ erro: "Tipo de equipe inválido. Use SUPERVISAO, APOIO ou NORMAL." }, 400);
+  }
 
   // Subordinacao opcional no organograma.
   const paiIdBruto = body.equipePaiId;
@@ -245,8 +257,8 @@ app.openapi(postEquipeRoute, async (c) => {
   }
 
   const [row] = await sql`
-    INSERT INTO equipes (edicao_id, nome, setor, equipe_pai_id)
-    VALUES (${edicao}, ${String(nome ?? "")}, ${String(setor ?? "Interna")}, ${equipePaiId})
+    INSERT INTO equipes (edicao_id, nome, setor, tipo, equipe_pai_id)
+    VALUES (${edicao}, ${String(nome ?? "")}, ${String(setor ?? "Interna")}, ${tipo}, ${equipePaiId})
     RETURNING id
   `;
   if (body.raiz === true) {
@@ -284,12 +296,22 @@ app.openapi(putEquipeRoute, async (c) => {
     return c.json({ erro: "Acesso negado. Requer permissao edicao.equipeEditar." }, 403);
   }
   const [existente] =
-    await sql`SELECT edicao_id, equipe_pai_id, raiz FROM equipes WHERE id = ${id} AND excluida = FALSE`;
+    await sql`SELECT edicao_id, equipe_pai_id, raiz, tipo FROM equipes WHERE id = ${id} AND excluida = FALSE`;
   if (!existente) return c.json({ erro: "Equipe não encontrada." }, 404);
   const edicaoId = String(existente.edicao_id);
 
   const body = await c.req.json() as Record<string, unknown>;
   const { nome, setor } = body;
+
+  // Tipo de equipe: so muda quando o campo vem no corpo (chamadas que editam
+  // apenas nome/setor/raiz/pai preservam o tipo atual).
+  let tipo = (existente.tipo as string) ?? "NORMAL";
+  if ("tipo" in body) {
+    tipo = tipoEquipe(body.tipo);
+    if (!TIPOS_EQUIPE_VALIDOS.has(tipo)) {
+      return c.json({ erro: "Tipo de equipe inválido. Use SUPERVISAO, APOIO ou NORMAL." }, 400);
+    }
+  }
 
   // Subordinacao no organograma: so altera quando o campo vem no corpo
   // (chamadas que editam apenas nome/setor preservam o pai atual).
@@ -327,6 +349,7 @@ app.openapi(putEquipeRoute, async (c) => {
     UPDATE equipes SET
       nome          = ${String(nome ?? "")},
       setor         = ${String(setor ?? "Interna")},
+      tipo          = ${tipo},
       equipe_pai_id = ${equipePaiId},
       raiz          = ${raiz},
       atualizado_em = NOW()
@@ -449,7 +472,7 @@ app.openapi(postEquipeCopiarRoute, async (c) => {
     edicaoDestinoId: string;
   };
   const origem = await sql`
-    SELECT id, nome, setor, equipe_pai_id
+    SELECT id, nome, setor, tipo, equipe_pai_id
     FROM equipes WHERE edicao_id = ${edicaoOrigemId}
       AND excluida = FALSE
     ORDER BY criado_em
@@ -458,8 +481,8 @@ app.openapi(postEquipeCopiarRoute, async (c) => {
   const mapaIds = new Map<string, string>();
   for (const eq of origem) {
     const [nova] = await sql`
-      INSERT INTO equipes (edicao_id, nome, setor)
-      VALUES (${edicaoDestinoId}, ${eq.nome}, ${eq.setor})
+      INSERT INTO equipes (edicao_id, nome, setor, tipo)
+      VALUES (${edicaoDestinoId}, ${eq.nome}, ${eq.setor}, ${(eq.tipo as string) ?? "NORMAL"})
       RETURNING id
     `;
     mapaIds.set(String(eq.id), String(nova.id));

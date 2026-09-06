@@ -23,7 +23,7 @@ import {
   definirEquipeRaiz,
   idsDescendentes,
 } from "../lib/equipes";
-import { Equipe, Pessoa, SetorInfo } from "../lib/tipos";
+import { Equipe, Pessoa, SetorInfo, classeBadgeTipoEquipe, rotuloTipoEquipe, tipoEquipeTemBadge } from "../lib/tipos";
 import { EquipeForm } from "../components/EquipeForm";
 import { CanvasZoom } from "../components/CanvasZoom";
 import { Icone } from "../components/Icone";
@@ -307,6 +307,11 @@ function NoArvore(props: PropsNo) {
               >
                 {setorNome}
               </span>
+              {tipoEquipeTemBadge(e.tipo) && (
+                <span className={`badge ${classeBadgeTipoEquipe(e.tipo)} shrink-0`}>
+                  {rotuloTipoEquipe(e.tipo)}
+                </span>
+              )}
               {podeEditar && (
                 <div className="flex gap-0.5 items-center ml-auto">
                   <button

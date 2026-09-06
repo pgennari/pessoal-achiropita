@@ -21,7 +21,6 @@ import { Perfis } from "./pages/Perfis";
 import { Permissoes } from "./pages/Permissoes";
 import { Parametros } from "./pages/Parametros";
 import { PaginaFormacao } from "./pages/Formacao";
-import { PendenciasFormacao } from "./pages/PendenciasFormacao";
 import { PaginaAvaliacao } from "./pages/Avaliacao";
 import { ValidarPublico } from "./pages/ValidarPublico";
 import { QrTurma } from "./pages/QrTurma";
@@ -60,6 +59,7 @@ import { BloqueioPessoa } from "./pages/BloqueioPessoa";
 import { DesbloqueioPessoa } from "./pages/DesbloqueioPessoa";
 import { Resumo } from "./pages/Resumo";
 import { ResumoEquipe } from "./pages/ResumoEquipe";
+import { PainelApoio } from "./pages/PainelApoio";
 
 export function App() {
   return (
@@ -132,8 +132,8 @@ export function App() {
           element={<ResumoEquipe />}
         />
         <Route path="formacao" element={<PaginaFormacao />} />
-        <Route path="formacao/pendencias" element={<PendenciasFormacao />} />
         <Route path="avaliacao" element={<PaginaAvaliacao />} />
+        <Route path="apoio" element={<PainelApoio />} />
         <Route path="presenca" element={<Presenca />} />
         <Route path="presenca/grade" element={<GradePresencaPage />} />
         <Route path="presenca/relatorio" element={<RelatorioPresenca />} />

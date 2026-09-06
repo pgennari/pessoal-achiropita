@@ -7,6 +7,14 @@ const MINUTOS_APOS_INICIO = 15;
 
 export class ErroLink extends Error {}
 
+export function statusDoLink(
+  link: LinkValidacao
+): "ativo" | "expirado" | "revogado" {
+  if (link.status === "revogado") return "revogado";
+  if (new Date(link.expiraEm) <= new Date()) return "expirado";
+  return "ativo";
+}
+
 export function gerarToken(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID().replace(/-/g, "");

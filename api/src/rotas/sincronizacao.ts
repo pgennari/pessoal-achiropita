@@ -517,7 +517,7 @@ async function aplicarDiff(
       if (existente) return; // ja criado em decisao anterior
       const setor = diff.setorPlanilha ?? "Interna";
       const [row] = await sql`
-        INSERT INTO equipes (edicao_id, nome, setor) VALUES (${ctx.edicao.id}, ${nome}, ${setor})
+        INSERT INTO equipes (edicao_id, nome, setor, tipo) VALUES (${ctx.edicao.id}, ${nome}, ${setor}, 'NORMAL')
         RETURNING id, nome
       `;
       ctx.equipeIdPorNome.set(normalizar(nome), String(row.id));

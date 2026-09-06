@@ -263,6 +263,7 @@ const ROTAS_ORDENADAS: { to: string; permissoes: string[] }[] = [
   },
   { to: "/estacionamentos", permissoes: ["vaga.lista", "vaga.detalhe"] },
   { to: "/cantina/pesquisas", permissoes: ["cantina.gerenciar"] },
+  { to: "/apoio", permissoes: ["apoio.painel"] },
   { to: "/presenca/relatorio", permissoes: ["presenca.relatorio"] },
   {
     to: "/estacionamentos/relatorio",

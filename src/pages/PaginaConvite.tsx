@@ -274,7 +274,7 @@ export function PaginaConvite() {
                 disabled={etapa === "salvando"}
                 aria-label="Criar conta"
                 title="Criar conta"
-              >
+              ><span className="mr-2">Criar conta</span>
                 <Icone nome="check" />
               </button>
 
@@ -293,7 +293,7 @@ export function PaginaConvite() {
                 disabled={etapa === "salvando"}
                 aria-label="Cadastrar com Google"
                 title="Cadastrar com Google"
-              >
+              ><span className="mr-2">Entrar com Google</span>
                 <Icone nome="usuario" />
               </button>
               <p className="input-ajuda text-center">

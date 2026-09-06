@@ -76,6 +76,7 @@ function ConteudoSimulacao({
         equipesCRD: equipesSelecionadas.length
           ? equipesSelecionadas
           : undefined,
+        pessoaId: inicial?.pessoaId,
       });
       onFechar();
       navigate("/");

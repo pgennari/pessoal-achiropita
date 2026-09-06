@@ -64,7 +64,11 @@ async function carregarSessaoReal(uid: string): Promise<Sessao | null> {
 
 // Modo simulacao (031): so o perfil real "ADM" pode ativar. A sessao simulada
 // herda as permissoes ATIVAS da uniao dos perfis simulados (nunca as do ADM) e
-// jamais o pessoa_id — a simulacao apenas restringe o acesso do ADM.
+// nunca o pessoa_id do ADM. Quando o ADM simula a partir de um usuario
+// especifico (atalho da pagina Usuarios), o header X-Simulacao-Pessoa carrega
+// o pessoa_id daquele usuario na sessao simulada — restringe ainda mais o
+// acesso (escopos pessoais como o relatorio de avaliacoes de equipes APOIO),
+// jamais o amplia. Sem o header, pessoaId permanece undefined.
 async function sessaoComSimulacao(
   real: Sessao,
   c: Context
@@ -134,13 +138,18 @@ async function sessaoComSimulacao(
     }
   }
 
+  const pessoaSimulada = c.req.header("X-Simulacao-Pessoa");
+
   return {
     ...real,
     perfil: perfisSimulados[0],
     perfis: perfisSimulados,
     permissoes: (perf.permissoes as string[] | null) ?? [],
     equipesCRD: equipesSimuladas,
-    pessoaId: undefined,
+    pessoaId:
+      pessoaSimulada && pessoaSimulada.trim()
+        ? pessoaSimulada.trim()
+        : undefined,
     simulando: true,
   };
 }

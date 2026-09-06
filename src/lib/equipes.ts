@@ -1,12 +1,14 @@
 import { api } from "./api";
 import { queryClient } from "./queryClient";
-import { Equipe, Setor } from "./tipos";
+import { Equipe, Setor, TipoEquipe, TIPO_EQUIPE_PADRAO } from "./tipos";
 import { Sessao } from "./sessao";
 import { normalizar } from "./utilsDominio";
 
 export interface DadosEquipeForm {
   nome: string;
   setor: Setor;
+  // Tipo de equipe: SUPERVISAO, APOIO ou NORMAL.
+  tipo: TipoEquipe;
   // Equipe superior no organograma; null/undefined = equipe raiz.
   equipePaiId?: string | null;
 }
@@ -25,6 +27,7 @@ export function equipeDeSnap(id: string, data: Record<string, unknown>): Equipe 
     edicaoId: (data.edicaoId as string) ?? "",
     nome: (data.nome as string) ?? "",
     setor: (data.setor as Setor) ?? "Interna",
+    tipo: (data.tipo as TipoEquipe) ?? TIPO_EQUIPE_PADRAO,
     equipePaiId: (data.equipePaiId as string | null) ?? null,
     raiz: (data.raiz as boolean) ?? false,
     excluida: (data.excluida as boolean) ?? false,

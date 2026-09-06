@@ -20,14 +20,12 @@ import {
   removerTurma,
 } from "../lib/turmas";
 import { TurmaForm } from "../components/TurmaForm";
+import { TurmaCard } from "../components/TurmaCard";
 import { LinkDaTurma } from "../components/LinkDaTurma";
+import { SecaoPendenciasFormacao } from "../components/SecaoPendenciasFormacao";
 import { Icone } from "../components/Icone";
 import { TurmaFormacao } from "../lib/tipos";
 import { formatarData } from "../lib/utilsDominio";
-
-function rotuloSetor(s: string): string {
-  return s === "Alimentacao" ? "Alimentação" : s;
-}
 
 export function PaginaFormacao() {
   const { sessao } = useSessao();
@@ -42,6 +40,7 @@ export function PaginaFormacao() {
 
   const [criandoTurma, setCriandoTurma] = useState(false);
   const [editandoTurmaId, setEditandoTurmaId] = useState<string | null>(null);
+  const [linkTurmaId, setLinkTurmaId] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   const turmaEditando =
@@ -150,16 +149,6 @@ export function PaginaFormacao() {
             formação ({pctPresencas}%)
           </p>
         </div>
-        {temPermissao(sessao, "formacao.pendenciaListar") && (
-          <Link
-            to="/formacao/pendencias"
-            className="btn btn-secundario"
-            aria-label="Pendências de formação"
-            title="Pendências de formação"
-          >
-            <Icone nome="alerta" />
-          </Link>
-        )}
       </header>
 
       {erro && (
@@ -230,61 +219,65 @@ export function PaginaFormacao() {
           </div>
         )}
 
-        <div className="space-y-4">
-          {turmas.map((t) => {
-            const equipe = equipes.find((e) => e.id === t.equipeIdVinculo);
-            return (
-              <div key={t.id} className="card">
-                <div className="card-corpo space-y-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="font-display text-xl">
-                        {formatarData(t.data)} ·{" "}
-                        <span className="font-mono">
-                          {t.horarioInicio}
-                          {t.horarioFim ? `–${t.horarioFim}` : ""}
-                        </span>
-                      </div>
-                      <div className="text-ardesia text-sm">
-                        {t.local} · capacidade {t.capacidadeMaxima}
-                        {equipe
-                          ? ` · ${equipe.nome}`
-                          : t.setorVinculo
-                            ? ` · setor ${rotuloSetor(t.setorVinculo)}`
-                            : ""}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        className="btn btn-secundario btn-pequeno"
-                        onClick={() => setEditandoTurmaId(t.id)}
-                        aria-label="Editar"
-                        title="Editar"
-                      >
-                        <Icone nome="lapis" />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-texto btn-pequeno text-vermelho-escuro"
-                        onClick={() => handleRemoverTurma(t)}
-                        aria-label="Remover"
-                        title="Remover"
-                      >
-                        <Icone nome="lixeira" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="border-t border-pietra-clara pt-4">
-                    <LinkDaTurma turma={t} />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+          {turmas.map((t) => (
+            <TurmaCard
+              key={t.id}
+              turma={t}
+              equipe={equipes.find((e) => e.id === t.equipeIdVinculo)}
+              onEditar={() => setEditandoTurmaId(t.id)}
+              onRemover={() => handleRemoverTurma(t)}
+              onGerenciarLink={() => setLinkTurmaId(t.id)}
+            />
+          ))}
         </div>
       </section>}
+
+      <SecaoPendenciasFormacao sessao={sessao} edicao={edicao} />
+
+      {linkTurmaId &&
+        (() => {
+          const turma = turmas.find((t) => t.id === linkTurmaId);
+          if (!turma) return null;
+          return (
+            <div
+              className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] px-4 bg-carbone/40"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Gerenciar link de validação da turma"
+              onClick={() => setLinkTurmaId(null)}
+            >
+              <div
+                className="card w-full max-w-lg shadow-media"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="card-corpo space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="eyebrow">Link de validação</div>
+                      <h3 className="mt-1">
+                        {formatarData(turma.data)} ·{" "}
+                        <span className="font-mono">
+                          {turma.horarioInicio}
+                        </span>
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secundario btn-pequeno shrink-0"
+                      onClick={() => setLinkTurmaId(null)}
+                      aria-label="Fechar"
+                      title="Fechar"
+                    >
+                      <Icone nome="fechar" tamanho={18} />
+                    </button>
+                  </div>
+                  <LinkDaTurma turma={turma} />
+                </div>
+              </div>
+            </div>
+          );
+        })()}
     </div>
   );
 }

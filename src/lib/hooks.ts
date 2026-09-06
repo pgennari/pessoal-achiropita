@@ -29,6 +29,7 @@ import {
   ParticipacaoHistorica,
   Parametro,
   Parentesco,
+  PainelApoio,
   Permissao,
   Pessoa,
   PessoaComVeiculos,
@@ -48,6 +49,7 @@ import {
   buscarHistoricoPublico,
 } from "./checkin";
 import { listarParentes } from "./parentes";
+import { listarPainelApoio } from "./apoio";
 import {
   listarPresencasDePessoa,
   listarPresencasDoDia,
@@ -173,6 +175,19 @@ export function useEquipe(id: string | undefined): EstadoItem<Equipe> {
     enabled: !!id,
   });
   return { item: data ?? null, carregando: isLoading && !!id, erro: erroMsg(error) };
+}
+
+// ─── Painel do Apoio ───────────────────────────────────────────────────────────
+
+export function usePainelApoio(
+  edicaoId: string | undefined
+): EstadoItem<PainelApoio> {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["apoio", "painel", edicaoId],
+    queryFn: () => listarPainelApoio(edicaoId as string),
+    enabled: !!edicaoId,
+  });
+  return { item: data ?? null, carregando: isLoading && !!edicaoId, erro: erroMsg(error) };
 }
 
 // Resumo de uma equipe (feature Resumo): valores informados uma unica vez por

@@ -1,6 +1,6 @@
 import { api, apiPublica } from "./api";
 import { queryClient } from "./queryClient";
-import { Convite, Perfil, StatusConvite } from "./tipos";
+import { Convite, Perfil, StatusConvite, precisaEquipes } from "./tipos";
 import { Sessao } from "./sessao";
 
 const VALIDADE_PADRAO_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
@@ -57,11 +57,12 @@ export function conviteDeSnap(id: string, data: Record<string, unknown>): Convit
 
 function validar(d: DadosConviteForm, perfisSiglas: Set<string>): Record<string, string> {
   const erros: Record<string, string> = {};
+  if (!d.pessoaId) erros.pessoaId = "Selecione a Pessoa vinculada ao convite.";
   if (!d.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email))
     erros.email = "E-mail inválido.";
   if (!perfisSiglas.has(d.perfil)) erros.perfil = "Perfil inválido.";
-  if (d.perfil === "CRD" && (!d.equipesCRD || d.equipesCRD.length === 0))
-    erros.equipesCRD = "Coordenador precisa de pelo menos uma equipe.";
+  if (precisaEquipes([d.perfil]) && (!d.equipesCRD || d.equipesCRD.length === 0))
+    erros.equipesCRD = "Coordenador/Apoio precisa de pelo menos uma equipe.";
   return erros;
 }
 
@@ -94,7 +95,7 @@ export async function criarConvite(
     email: normalizarEmail(dados.email),
     perfil: dados.perfil,
     pessoaId: dados.pessoaId?.trim() || null,
-    equipesCRD: dados.perfil === "CRD" && dados.equipesCRD ? dados.equipesCRD : null,
+    equipesCRD: precisaEquipes([dados.perfil]) && dados.equipesCRD ? dados.equipesCRD : null,
     expiraEm,
   });
   await queryClient.invalidateQueries({ queryKey: ["convites"] });
@@ -112,7 +113,7 @@ export async function atualizarConvite(
   await api.put(`/api/convites/${conviteId}`, {
     perfil: dados.perfil,
     pessoaId: dados.pessoaId?.trim() || null,
-    equipesCRD: dados.perfil === "CRD" && dados.equipesCRD ? dados.equipesCRD : null,
+    equipesCRD: precisaEquipes([dados.perfil]) && dados.equipesCRD ? dados.equipesCRD : null,
   });
   await queryClient.invalidateQueries({ queryKey: ["convites"] });
 }

@@ -1,6 +1,6 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useSetores } from "../lib/hooks";
-import { Equipe, SETORES, Setor } from "../lib/tipos";
+import { Equipe, SETORES, Setor, TIPOS_EQUIPE, TipoEquipe } from "../lib/tipos";
 import { DadosEquipeForm, idsDescendentes } from "../lib/equipes";
 import { Icone } from "./Icone";
 
@@ -21,6 +21,7 @@ function inicialDados(
   return {
     nome: e?.nome ?? "",
     setor: e?.setor ?? "Interna",
+    tipo: e?.tipo ?? "NORMAL",
     equipePaiId: e ? e.equipePaiId ?? null : paiInicialId ?? null,
   };
 }
@@ -108,6 +109,24 @@ export function EquipeForm({
         </div>
 
         <div className="input-grupo">
+          <label className="input-label" htmlFor="tipo">
+            Tipo de equipe
+          </label>
+          <select
+            id="tipo"
+            className="input"
+            value={dados.tipo}
+            onChange={(e) => set("tipo", e.target.value as TipoEquipe)}
+          >
+            {TIPOS_EQUIPE.map((t) => (
+              <option key={t.sigla} value={t.sigla}>
+                {t.rotulo}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="input-grupo">
           <label className="input-label" htmlFor="setor">
             Setor
           </label>
@@ -126,7 +145,7 @@ export function EquipeForm({
         </div>
 
         {opcoesPai.length > 0 && (
-          <div className="input-grupo">
+          <div className="input-grupo sm:col-span-2">
             <label className="input-label" htmlFor="equipePaiId">
               Equipe superior
             </label>
@@ -150,8 +169,6 @@ export function EquipeForm({
             )}
           </div>
         )}
-
-        {!opcoesPai.length && <div className="hidden sm:block" />}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:col-span-2">
           {CAMPOS_VAGAS.map((campo) => (

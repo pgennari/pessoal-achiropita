@@ -6,20 +6,15 @@ import {
   ErroLink,
   gerarLinkDeTurma,
   revogarLink,
+  statusDoLink,
   urlPublica,
 } from "../lib/links";
-import { LinkValidacao, TurmaFormacao } from "../lib/tipos";
+import { TurmaFormacao } from "../lib/tipos";
 import { formatarData } from "../lib/utilsDominio";
 import { Icone } from "./Icone";
 
 interface Props {
   turma: TurmaFormacao;
-}
-
-function statusDoLink(link: LinkValidacao): "ativo" | "expirado" | "revogado" {
-  if (link.status === "revogado") return "revogado";
-  if (new Date(link.expiraEm) <= new Date()) return "expirado";
-  return "ativo";
 }
 
 export function LinkDaTurma({ turma }: Props) {

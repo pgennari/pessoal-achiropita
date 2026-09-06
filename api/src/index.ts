@@ -41,6 +41,7 @@ import cantinaPublico from "./rotas/cantinaPublico.js";
 import bloqueios from "./rotas/bloqueios.js";
 import comunicados from "./rotas/comunicados.js";
 import resumosEquipe from "./rotas/resumosEquipe.js";
+import apoio from "./rotas/apoio.js";
 import simulacao from "./rotas/simulacao.js";
 
 const app = new OpenAPIHono();
@@ -66,6 +67,7 @@ app.use(
       "X-Simulacao-Perfil",
       "X-Simulacao-Perfis",
       "X-Simulacao-Equipes",
+      "X-Simulacao-Pessoa",
     ],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
@@ -117,6 +119,7 @@ app.route("/api/publico", cantinaPublico);
 app.route("/api/bloqueios", bloqueios);
 app.route("/api/comunicados", comunicados);
 app.route("/api/resumos-equipe", resumosEquipe);
+app.route("/api/apoio", apoio);
 app.route("/api/simulacao", simulacao);
 
 app.onError((err, c) => {

@@ -62,6 +62,7 @@ const postConviteRoute = createRoute({
   request: { body: { content: { "application/json": { schema: z.any() } } } },
   responses: {
     201: { content: { "application/json": { schema: z.any() } }, description: "Criado" },
+    400: { content: { "application/json": { schema: z.any() } }, description: "Dados inválidos" },
     403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
     409: { content: { "application/json": { schema: z.any() } }, description: "Conflito" }
   }
@@ -73,18 +74,45 @@ app.openapi(postConviteRoute, async (c) => {
     return c.json({ erro: "Acesso negado. Requer permissao usuario.conviteEnviar." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
-  const { email, perfil, pessoaId, equipesCRD, token, expiraEm } = body;
+  const { email, perfil, equipesCRD, token, expiraEm } = body;
+  const pessoaId = (body.pessoaId as string | null) ?? null;
+  const emailNormalizado = String(email ?? "").trim().toLowerCase();
+
+  if (!pessoaId) {
+    return c.json({ erro: "O convite deve estar vinculado a uma Pessoa." }, 400);
+  }
+  const [pessoa] = await sql`SELECT id, email FROM pessoas WHERE id = ${pessoaId}`;
+  if (!pessoa) {
+    return c.json({ erro: "Pessoa vinculada não encontrada." }, 400);
+  }
+  const emailPessoa = String((pessoa.email as string | null) ?? "").trim().toLowerCase();
+  if (!emailPessoa) {
+    return c.json({ erro: "A pessoa selecionada não possui e-mail cadastrado." }, 400);
+  }
+  if (emailPessoa !== emailNormalizado) {
+    return c.json({ erro: "O e-mail do convite deve ser o e-mail cadastrado da pessoa." }, 400);
+  }
+
+  const [usuario] = await sql`SELECT 1 FROM usuarios WHERE email = ${emailPessoa}`;
+  if (usuario) {
+    return c.json({ erro: "Já existe usuário cadastrado com este e-mail; edite o usuário em vez de gerar convite." }, 409);
+  }
+  const [pendente] = await sql`SELECT 1 FROM convites WHERE email = ${emailPessoa} AND status = 'pendente'`;
+  if (pendente) {
+    return c.json({ erro: "Já existe convite pendente para este e-mail." }, 409);
+  }
+
   try {
     const [row] = await sql`
       INSERT INTO convites (id, email, perfil, pessoa_id, equipes_crd, status, criado_por_uid, criado_por_nome, expira_em)
       VALUES (
-        ${String(token)}, ${String(email ?? "").toLowerCase()}, ${String(perfil ?? "EQP")},
-        ${(pessoaId as string | null) ?? null},
+        ${String(token)}, ${emailPessoa}, ${String(perfil ?? "EQP")},
+        ${pessoaId},
         ${(equipesCRD as string[] | null) ?? null},
         'pendente', ${sessao.uid}, ${sessao.nome}, ${String(expiraEm ?? "")}
       ) RETURNING *
     `;
-    await registrarEvento(sessao, "convite.gerou", `convites/${token}`, `${email} (${perfil})`);
+    await registrarEvento(sessao, "convite.gerou", `convites/${token}`, `${emailPessoa} (${perfil})`);
     return c.json(conviteDeRow(row) as any, 201);
   } catch (err: unknown) {
     const e = err as { code?: string };
@@ -107,8 +135,10 @@ const putConviteRoute = createRoute({
   },
   responses: {
     200: { content: { "application/json": { schema: z.any() } }, description: "Atualizado" },
+    400: { content: { "application/json": { schema: z.any() } }, description: "Dados inválidos" },
     403: { content: { "application/json": { schema: z.any() } }, description: "Acesso negado" },
-    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrado" }
+    404: { content: { "application/json": { schema: z.any() } }, description: "Não encontrado" },
+    409: { content: { "application/json": { schema: z.any() } }, description: "Conflito" }
   }
 });
 
@@ -119,10 +149,34 @@ app.openapi(putConviteRoute, async (c) => {
     return c.json({ erro: "Acesso negado. Requer permissao usuario.conviteEnviar." }, 403);
   }
   const body = await c.req.json() as Record<string, unknown>;
+  const pessoaId = (body.pessoaId as string | null) ?? null;
+
+  if (!pessoaId) {
+    return c.json({ erro: "O convite deve estar vinculado a uma Pessoa." }, 400);
+  }
+  const [pessoa] = await sql`SELECT id, email FROM pessoas WHERE id = ${pessoaId}`;
+  if (!pessoa) {
+    return c.json({ erro: "Pessoa vinculada não encontrada." }, 400);
+  }
+  const emailPessoa = String((pessoa.email as string | null) ?? "").trim().toLowerCase();
+  if (!emailPessoa) {
+    return c.json({ erro: "A pessoa selecionada não possui e-mail cadastrado." }, 400);
+  }
+
+  const [usuario] = await sql`SELECT 1 FROM usuarios WHERE email = ${emailPessoa}`;
+  if (usuario) {
+    return c.json({ erro: "Já existe usuário cadastrado com este e-mail; edite o usuário em vez de gerar convite." }, 409);
+  }
+  const [pendente] = await sql`SELECT 1 FROM convites WHERE email = ${emailPessoa} AND status = 'pendente' AND id <> ${id}`;
+  if (pendente) {
+    return c.json({ erro: "Já existe convite pendente para este e-mail." }, 409);
+  }
+
   const [row] = await sql`
     UPDATE convites SET
+      email       = ${emailPessoa},
       perfil      = ${String(body.perfil ?? "EQP")},
-      pessoa_id   = ${(body.pessoaId as string | null) ?? null},
+      pessoa_id   = ${pessoaId},
       equipes_crd = ${(body.equipesCRD as string[] | null) ?? null}
     WHERE id = ${id} RETURNING *
   `;

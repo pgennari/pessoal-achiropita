@@ -3,6 +3,7 @@ import {
   Equipe,
   Pessoa,
   Usuario,
+  precisaEquipes,
 } from "../lib/tipos";
 import { DadosUsuarioForm } from "../lib/usuarios";
 import { usePerfis } from "../lib/hooks";
@@ -180,9 +181,15 @@ export function UsuarioForm({
           {erros.perfis && <p className="input-erro-msg">{erros.perfis}</p>}
         </div>
 
-        {dados.perfis.includes("CRD") && (
+        {precisaEquipes(dados.perfis) && (
           <div className="input-grupo sm:col-span-2">
-            <label className="input-label">Equipes coordenadas</label>
+            <label className="input-label">
+              {dados.perfis.includes("APO")
+                ? dados.perfis.includes("CRD")
+                  ? "Equipes (coordenadas / apoio)"
+                  : "Equipe de apoio"
+                : "Equipes coordenadas"}
+            </label>
             {equipesAtivas.length === 0 ? (
               <p className="input-ajuda">
                 Nenhuma equipe cadastrada na edição ativa. Crie equipes

@@ -65,8 +65,7 @@ Todas as colecoes Firestore e nomes de identificadores estao em `src/lib/tipos.t
 | `/edicoes` | Edicoes |
 | `/edicoes/:id` | EdicaoDetalhe |
 | `/edicoes/:edicaoId/barracas/:id` | BarracaDetalhe |
-| `/formacao` | PaginaFormacao |
-| `/formacao/pendencias` | PendenciasFormacao |
+| `/formacao` | PaginaFormacao (turmas + pendencias em abas) |
 | `/vagas` | Vagas |
 | `/vagas/nova` | VagaNova |
 | `/vagas/:id` | VagaDetalhe |

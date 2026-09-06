@@ -149,6 +149,19 @@ const secoes: Secao[] = [
     ],
   },
   {
+    label: "Apoio",
+    icone: "hand-fist",
+    permissoes: ["apoio.painel"],
+    itens: [
+      {
+        to: "/apoio",
+        label: "Painel do Apoio",
+        icone: "layout-dashboard",
+        permissoes: ["apoio.painel"],
+      },
+    ],
+  },
+  {
     label: "Relatórios",
     itens: [
       {

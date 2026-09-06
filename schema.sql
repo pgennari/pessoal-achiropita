@@ -110,6 +110,7 @@ CREATE TABLE equipes (
   edicao_id           TEXT NOT NULL REFERENCES edicoes(id) ON DELETE CASCADE,
   nome                TEXT NOT NULL,
   setor               TEXT NOT NULL,
+  tipo                TEXT NOT NULL DEFAULT 'NORMAL',
   vagas_coordenador   INTEGER NOT NULL DEFAULT 0,
   vagas_equipista     INTEGER NOT NULL DEFAULT 0,
   criado_em           TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -137,6 +138,17 @@ ALTER TABLE equipes ADD COLUMN IF NOT EXISTS raiz BOOLEAN NOT NULL DEFAULT FALSE
 -- Exclusao logica (024-exclusao-logica-equipe): equipe marcada como excluida
 -- nao aparece no sistema; o registro e preservado para referencia e historico.
 ALTER TABLE equipes ADD COLUMN IF NOT EXISTS excluida BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Tipo de equipe: SUPERVISAO, APOIO ou NORMAL (sem acento, como setor).
+-- Equipes existentes herdam NORMAL.
+ALTER TABLE equipes ADD COLUMN IF NOT EXISTS tipo TEXT NOT NULL DEFAULT 'NORMAL';
+DO $$
+BEGIN
+  ALTER TABLE equipes
+  ADD CONSTRAINT ck_equipes_tipo
+  CHECK (tipo IN ('SUPERVISAO', 'APOIO', 'NORMAL'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- participacoes: UNIQUE(edicao_id, pessoa_id) = uma equipe por edição por pessoa
 CREATE TABLE participacoes (
@@ -1165,3 +1177,16 @@ UPDATE perfis SET
   permissoes = permissoes || ARRAY['organograma.gerenciar']
   WHERE sigla = 'ORG'
   AND NOT 'organograma.gerenciar' = ANY(permissoes);
+
+-- Painel do Apoio: permissao apoio.painel e perfil APO.
+-- O perfil APO concede acesso somente ao painel das equipes filhas das
+-- equipes de apoio associadas ao usuario (campo legado `equipes_crd`, o mesmo
+-- do CRD). O ADM e superuser e sempre possui todas as permissoes.
+INSERT INTO permissoes (codigo, rotulo, descricao) VALUES
+  ('apoio.painel', 'Apoio: painel',
+   'Ver o painel das equipes sob a equipe de apoio do usuário.')
+ON CONFLICT (codigo) DO NOTHING;
+
+INSERT INTO perfis (sigla, nome, fixo, permissoes) VALUES
+  ('APO', 'Apoio', FALSE, '{apoio.painel}')
+ON CONFLICT (sigla) DO NOTHING;
